@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /agent/
+Disallow: /user/
+Disallow: /api/
+Disallow: /includes/
+Disallow: /templates/
+Disallow: /database/
+Disallow: /uploads/kyc-documents/
+Disallow: /*.php$
+Disallow: /*.sql$
+Disallow: /auth/agent-verification.html
+
+# Crawl delay
+Crawl-delay: 5
+
+# Sitemap
+Sitemap: https://kinasgroup.com/sitemap.xml

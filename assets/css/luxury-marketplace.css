@@ -1,0 +1,333 @@
+/* luxury-marketplace.css - JamesEdition Style for Kinas Group */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap');
+
+:root {
+    --je-gold: #C6A43F;
+    --je-gold-dark: #A8882E;
+    --je-gold-light: #D4B96A;
+    --je-black: #0A0A0A;
+    --je-dark: #1A1A1A;
+    --je-dark-lighter: #2A2A2A;
+    --je-white: #FFFFFF;
+    --je-gray: #B0B0B0;
+    --je-gray-dark: #666666;
+    --je-border: #333333;
+    --je-success: #2E7D32;
+    --je-error: #C62828;
+    --je-warning: #F57C00;
+    --ng-naira: #2E7D32;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--je-white);
+    color: var(--je-black);
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6, .serif-font {
+    font-family: 'Prata', serif;
+    font-weight: 400;
+}
+
+/* Container */
+.luxury-container, .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 40px;
+}
+
+@media (max-width: 768px) {
+    .luxury-container, .container {
+        padding: 0 20px;
+    }
+}
+
+/* Buttons */
+.btn, .je2-button {
+    display: inline-block;
+    padding: 12px 30px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+    font-size: 14px;
+}
+
+.btn-primary {
+    background: var(--je-gold);
+    color: var(--je-black);
+}
+
+.btn-primary:hover {
+    background: var(--je-gold-dark);
+    transform: translateY(-2px);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--je-gold);
+    color: var(--je-gold);
+}
+
+.btn-outline:hover {
+    background: var(--je-gold);
+    color: var(--je-white);
+}
+
+/* Tables - Responsive */
+.table-responsive {
+    overflow-x: auto;
+    background: var(--je-white);
+    border-radius: 12px;
+    border: 1px solid #E0E0E0;
+}
+
+.luxury-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+.luxury-table th,
+.luxury-table td {
+    padding: 15px 20px;
+    text-align: left;
+    border-bottom: 1px solid #E0E0E0;
+}
+
+.luxury-table th {
+    background: #F5F5F5;
+    font-weight: 600;
+    color: var(--je-black);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.luxury-table tr:hover {
+    background: rgba(198, 164, 63, 0.05);
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-approved, .status-active {
+    background: #E8F5E9;
+    color: var(--je-success);
+}
+
+.status-pending {
+    background: #FFF3E0;
+    color: var(--je-warning);
+}
+
+.status-flagged, .status-inactive {
+    background: #FFEBEE;
+    color: var(--je-error);
+}
+
+/* Nigerian Naira Price Styling */
+.price-ngn {
+    font-weight: 700;
+    color: var(--je-black);
+}
+
+.price-ngn::before {
+    content: "₦";
+    margin-right: 2px;
+}
+
+/* Dashboard Layout */
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 30px;
+    min-height: calc(100vh - 200px);
+}
+
+.dashboard-sidebar {
+    background: #F8F8F8;
+    border-radius: 12px;
+    padding: 30px 20px;
+    border: 1px solid #E0E0E0;
+}
+
+.dashboard-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dashboard-nav a {
+    padding: 12px 20px;
+    color: var(--je-gray-dark);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Inter', sans-serif;
+}
+
+.dashboard-nav a:hover,
+.dashboard-nav a.active {
+    background: rgba(198, 164, 63, 0.1);
+    color: var(--je-gold);
+}
+
+.dashboard-content {
+    background: var(--je-white);
+    border-radius: 12px;
+    padding: 30px;
+    border: 1px solid #E0E0E0;
+}
+
+/* Stats Cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: #F8F8F8;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--je-gold);
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--je-gray-dark);
+    margin-top: 10px;
+}
+
+/* Form Styles */
+.luxury-form {
+    max-width: 800px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    background: #F8F8F8;
+    border: 1px solid #E0E0E0;
+    color: var(--je-black);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--je-gold);
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 40px;
+}
+
+.pagination a,
+.pagination span {
+    padding: 10px 15px;
+    background: #F8F8F8;
+    border: 1px solid #E0E0E0;
+    color: var(--je-black);
+    text-decoration: none;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.pagination a:hover,
+.pagination .active {
+    background: var(--je-gold);
+    color: var(--je-white);
+    border-color: var(--je-gold);
+}
+
+/* Alerts */
+.alert {
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid;
+}
+
+.alert-success {
+    background: #E8F5E9;
+    border-left-color: var(--je-success);
+    color: var(--je-success);
+}
+
+.alert-error {
+    background: #FFEBEE;
+    border-left-color: var(--je-error);
+    color: var(--je-error);
+}
+
+.alert-warning {
+    background: #FFF3E0;
+    border-left-color: var(--je-warning);
+    color: var(--je-warning);
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .dashboard-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
