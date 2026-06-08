@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 369" width="600" height="369">
+  <rect width="600" height="369" fill="#f0f0f0"/>
+  <g transform="translate(200,100)" fill="none" stroke="#cccccc" stroke-width="3">
+    <rect x="0" y="0" width="200" height="160" rx="6" fill="#e8e8e8"/>
+    <line x1="20" y1="30" x2="130" y2="30" stroke="#d8d8d8" stroke-width="6" stroke-linecap="round"/>
+    <line x1="20" y1="50" x2="160" y2="50" stroke="#d8d8d8" stroke-width="6" stroke-linecap="round"/>
+    <line x1="20" y1="70" x2="140" y2="70" stroke="#d8d8d8" stroke-width="6" stroke-linecap="round"/>
+    <line x1="20" y1="90" x2="100" y2="90" stroke="#d8d8d8" stroke-width="6" stroke-linecap="round"/>
+    <line x1="20" y1="110" x2="170" y2="110" stroke="#d8d8d8" stroke-width="6" stroke-linecap="round"/>
+    <line x1="20" y1="130" x2="120" y2="130" stroke="#d8d8d8" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <text x="300" y="340" text-anchor="middle" fill="#aaaaaa" font-family="Inter, Arial, sans-serif" font-size="16">No image available</text>
+</svg>

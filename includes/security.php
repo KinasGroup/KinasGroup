@@ -1,0 +1,413 @@
+<?php
+// KINAS GROUP — Security Functions
+// SECURED: Enhanced with path traversal helpers and validation utilities
+
+class Security {
+
+    // ── Input sanitisation ──────────────────────────────────────────────────
+
+    /**
+     * Sanitize input data (recursive for arrays)
+     */
+    public static function sanitizeInput(mixed $data): mixed {
+        if (is_array($data)) {
+            return array_map([self::class, 'sanitizeInput'], $data);
+        }
+        if (!is_string($data)) {
+            return $data;
+        }
+        return htmlspecialchars(strip_tags(trim($data)), ENT_QUOTES, 'UTF-8');
+    }
+
+    /**
+     * Prevent XSS by escaping output
+     */
+    public static function preventXSS(string $data): string {
+        return htmlspecialchars($data, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    /**
+     * Strip all HTML tags from input
+     */
+    public static function stripAllTags(string $data): string {
+        return strip_tags(trim($data));
+    }
+
+    // ── Password ────────────────────────────────────────────────────────────
+
+    /**
+     * Hash password with bcrypt (cost 12)
+     */
+    public static function hashPassword(string $password): string {
+        return password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+    }
+
+    /**
+     * Verify password against hash
+     */
+    public static function verifyPassword(string $password, string $hash): bool {
+        return password_verify($password, $hash);
+    }
+
+    /**
+     * Check if password needs rehashing
+     */
+    public static function needsRehash(string $hash): bool {
+        return password_needs_rehash($hash, PASSWORD_BCRYPT, ['cost' => 12]);
+    }
+
+    // ── Token generation ────────────────────────────────────────────────────
+
+    /**
+     * Generate cryptographically secure random token
+     */
+    public static function generateToken(int $length = 32): string {
+        return bin2hex(random_bytes($length));
+    }
+
+    /**
+     * Generate OTP code (numeric only)
+     */
+    public static function generateOTP(int $digits = 6): string {
+        return str_pad((string)random_int(0, (int)str_repeat('9', $digits)), $digits, '0', STR_PAD_LEFT);
+    }
+
+    // ── CSRF ────────────────────────────────────────────────────────────────
+
+    /**
+     * Generate CSRF token (stored in session)
+     */
+    public static function generate_csrf_token(): string {
+        if (!isset($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+
+    /**
+     * Validate CSRF token using constant-time comparison
+     */
+    public static function validateCSRFToken(string $token): bool {
+        if (!isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'CSRF token validation failed']);
+            exit;
+        }
+        // Rotate after use
+        unset($_SESSION['csrf_token']);
+        return true;
+    }
+
+    /**
+     * Generate HTML hidden input with CSRF token
+     */
+    public static function csrfField(): string {
+        return '<input type="hidden" name="csrf_token" value="' . self::preventXSS(self::generate_csrf_token()) . '">';
+    }
+
+    // ── Rate limiting (DB-backed — survives session reset / new clients) ────
+
+    /**
+     * Throws HTTP 429 if $key has exceeded $maxAttempts within $windowSeconds.
+     * Uses the rate_limits table. Falls back to session if DB unavailable.
+     */
+    public static function rateLimitDB(string $key, int $maxAttempts = 5, int $windowSeconds = 300): void {
+        try {
+            $db = Database::getInstance()->getConnection();
+
+            // Prune old windows
+            $db->prepare("DELETE FROM rate_limits WHERE window_start < DATE_SUB(NOW(), INTERVAL ? SECOND)")
+               ->execute([$windowSeconds]);
+
+            $row = $db->prepare("SELECT attempts FROM rate_limits WHERE rate_key = ? AND window_start > DATE_SUB(NOW(), INTERVAL ? SECOND)");
+            $row->execute([$key, $windowSeconds]);
+            $record = $row->fetch();
+
+            if ($record) {
+                if ($record['attempts'] >= $maxAttempts) {
+                    http_response_code(429);
+                    header('Retry-After: ' . $windowSeconds);
+                    echo json_encode(['error' => 'Too many attempts. Please try again later.']);
+                    exit;
+                }
+                $db->prepare("UPDATE rate_limits SET attempts = attempts + 1 WHERE rate_key = ?")
+                   ->execute([$key]);
+            } else {
+                $db->prepare("INSERT INTO rate_limits (rate_key, attempts, window_start) VALUES (?, 1, NOW())")
+                   ->execute([$key]);
+            }
+        } catch (\Exception $e) {
+            // Fallback to session-based limiting if DB fails
+            self::rateLimitSession($key, $maxAttempts, $windowSeconds);
+        }
+    }
+
+    /** Legacy session-based rate limit — kept as fallback only */
+    public static function rateLimit(string $key, int $maxAttempts = 5, int $decaySeconds = 300): void {
+        self::rateLimitSession($key, $maxAttempts, $decaySeconds);
+    }
+
+    private static function rateLimitSession(string $key, int $maxAttempts, int $windowSeconds): void {
+        $attempts = $_SESSION['rate_limit'][$key] ?? ['count' => 0, 'time' => time()];
+        if (time() - $attempts['time'] > $windowSeconds) {
+            $attempts = ['count' => 0, 'time' => time()];
+        }
+        $attempts['count']++;
+        $_SESSION['rate_limit'][$key] = $attempts;
+        if ($attempts['count'] > $maxAttempts) {
+            http_response_code(429);
+            header('Retry-After: ' . $windowSeconds);
+            echo json_encode(['error' => 'Too many attempts. Please try again later.']);
+            exit;
+        }
+    }
+
+    // ── Bearer token validation ─────────────────────────────────────────────
+
+    /**
+     * Validates the Bearer token from the Authorization header.
+     * Returns the user row if valid, null otherwise.
+     */
+    public static function validateBearerToken(): ?array {
+        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+        if (!str_starts_with($header, 'Bearer ')) {
+            return null;
+        }
+        $token = substr($header, 7);
+        if (strlen($token) < 20) {
+            return null;
+        }
+        try {
+            $db   = Database::getInstance()->getConnection();
+            $stmt = $db->prepare(
+                "SELECT u.id, u.name, u.email, u.role, u.verified
+                 FROM sessions s
+                 JOIN users u ON s.user_id = u.id
+                 WHERE s.token = ? AND s.expires_at > NOW() AND u.status = 'active'"
+            );
+            $stmt->execute([$token]);
+            return $stmt->fetch() ?: null;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Require a valid Bearer token OR an active session.
+     * Populates $_SESSION if token-authenticated (stateless API clients).
+     */
+    public static function requireAuth(): void {
+        if (SessionManager::isLoggedIn()) return;
+
+        $user = self::validateBearerToken();
+        if ($user) {
+            SessionManager::setUser($user);
+            return;
+        }
+        http_response_code(401);
+        echo json_encode(['error' => 'Unauthorised']);
+        exit;
+    }
+
+    // ── IP helper ───────────────────────────────────────────────────────────
+
+    /**
+     * Get client IP address (only trusts REMOTE_ADDR)
+     */
+    public static function getClientIP(): string {
+        return $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+    }
+
+    // ── Path traversal prevention ───────────────────────────────────────────
+
+    /**
+     * Sanitize path to prevent directory traversal attacks
+     */
+    public static function sanitizePath(string $path): string {
+        // Remove null bytes
+        $path = str_replace("\0", '', $path);
+        // Remove directory separators
+        $path = str_replace(['/', '\\', '..'], '', $path);
+        // Final cleanup with basename
+        return basename($path);
+    }
+
+    /**
+     * Validate that a path is within allowed directory
+     */
+    public static function isPathSafe(string $path, string $allowedDir): bool {
+        $realPath = realpath($path);
+        $realAllowed = realpath($allowedDir);
+
+        if ($realPath === false || $realAllowed === false) {
+            return false;
+        }
+
+        return str_starts_with($realPath, $realAllowed);
+    }
+
+    /**
+     * Whitelist-based path validation
+     */
+    public static function validateDirectory(string $dirName, array $allowedDirs): string {
+        $sanitized = self::sanitizePath($dirName);
+
+        if (!in_array($sanitized, $allowedDirs, true)) {
+            return $allowedDirs[0] ?? 'general'; // Default fallback
+        }
+
+        return $sanitized;
+    }
+
+    // ── Input validation helpers ────────────────────────────────────────────
+
+    /**
+     * Validate email format
+     */
+    public static function isValidEmail(string $email): bool {
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+    }
+
+    /**
+     * Validate URL format
+     */
+    public static function isValidUrl(string $url): bool {
+        return filter_var($url, FILTER_VALIDATE_URL) !== false;
+    }
+
+    /**
+     * Validate phone number format
+     */
+    public static function isValidPhone(string $phone): bool {
+        return preg_match('/^\+?[\d\s\-\(\)]{7,15}$/', $phone) === 1;
+    }
+
+    /**
+     * Validate integer range
+     */
+    public static function isValidInt(mixed $value, ?int $min = null, ?int $max = null): bool {
+        if (!filter_var($value, FILTER_VALIDATE_INT)) {
+            return false;
+        }
+        if ($min !== null && $value < $min) {
+            return false;
+        }
+        if ($max !== null && $value > $max) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Validate float range
+     */
+    public static function isValidFloat(mixed $value, ?float $min = null, ?float $max = null): bool {
+        $value = (float)$value;
+        if (!is_finite($value)) {
+            return false;
+        }
+        if ($min !== null && $value < $min) {
+            return false;
+        }
+        if ($max !== null && $value > $max) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Validate string length
+     */
+    public static function isValidLength(string $value, int $min = 0, int $max = 255): bool {
+        $len = strlen($value);
+        return $len >= $min && $len <= $max;
+    }
+
+    /**
+     * Validate against whitelist
+     */
+    public static function inWhitelist(mixed $value, array $allowed): bool {
+        return in_array($value, $allowed, true);
+    }
+
+    // ── HTTP security headers ───────────────────────────────────────────────
+
+    public static function secureHeaders(): void {
+        header('X-Frame-Options: SAMEORIGIN');
+        header('X-Content-Type-Options: nosniff');
+        header('X-XSS-Protection: 1; mode=block');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('Permissions-Policy: geolocation=(), camera=(), microphone=()');
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https:; frame-src https://www.google.com https://recaptcha.google.com;");
+        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+            header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
+        }
+    }
+
+    // ── File upload validation ──────────────────────────────────────────────
+
+    /**
+     * Validate file upload with MIME type verification
+     */
+    public static function validateFileUpload(array $file, array $allowedTypes = ['jpg','jpeg','png','pdf'], int $maxSize = 5242880): array {
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            return ['valid' => false, 'error' => 'Upload failed with error code: ' . $file['error']];
+        }
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($extension, $allowedTypes, true)) {
+            return ['valid' => false, 'error' => 'Invalid file type'];
+        }
+        if ($file['size'] > $maxSize) {
+            return ['valid' => false, 'error' => 'File too large'];
+        }
+        $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+        $allowedMimes = [
+            'jpg'  => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png'  => 'image/png',
+            'webp' => 'image/webp',
+            'pdf'  => 'application/pdf',
+            'doc'  => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ];
+        if (!isset($allowedMimes[$extension]) || $mimeType !== $allowedMimes[$extension]) {
+            return ['valid' => false, 'error' => 'Invalid file content'];
+        }
+        return ['valid' => true];
+    }
+
+    // ── Activity logging ────────────────────────────────────────────────────
+
+    /**
+     * Log security-relevant activity
+     */
+    public static function logActivity(?int $userId, string $action, string $details = ''): void {
+        if ($userId === null || $userId < 1) {
+            return; // Don't log if no valid user ID
+        }
+
+        try {
+            $db = Database::getInstance()->getConnection();
+            $db->prepare(
+                "INSERT INTO activity_logs (user_id, action, details, ip_address, created_at)
+                 VALUES (?, ?, ?, ?, NOW())"
+            )->execute([$userId, $action, $details, self::getClientIP()]);
+        } catch (\Exception $e) {
+            error_log('Activity log failed: ' . $e->getMessage());
+        }
+    }
+
+    public static function generateCSRFToken(): string {
+        if (!isset($_SESSION["csrf_token"])) {
+            $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION["csrf_token"];
+    }
+
+}
+
+// Apply security headers on every PHP request
+Security::secureHeaders();
+

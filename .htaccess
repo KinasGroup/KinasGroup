@@ -1,0 +1,80 @@
+RewriteEngine On
+RewriteBase /
+
+# ── HTTPS enforcement ──────────────────────────────────────────────────────
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# ── NOTE: .html redirect rules removed - static .html files have been removed ──
+# All pages now use PHP exclusively for server-side rendering and security
+
+# ── Remove trailing slashes ────────────────────────────────────────────────
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)/$ /$1 [L,R=301]
+
+# ── index redirect ─────────────────────────────────────────────────────────
+RewriteCond %{THE_REQUEST} ^.*\/index\.php
+RewriteRule ^(.*)index\.php$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# ── Pretty URLs for blog ───────────────────────────────────────────────────
+RewriteRule ^blog/([a-zA-Z0-9-]+)$          blog/post.php?slug=$1         [L,QSA]
+RewriteRule ^blog/category/([a-zA-Z0-9-]+)$ blog/category.php?slug=$1    [L,QSA]
+
+# ── Pretty URLs for listings ──────────────────────────────────────────────
+RewriteRule ^car/([0-9]+)$      divisions/kinas-automobile/detail.php?id=$1      [L,QSA]
+RewriteRule ^property/([0-9]+)$ divisions/williams-connect-home/detail.php?id=$1 [L,QSA]
+RewriteRule ^product/([0-9]+)$  divisions/kinas-marketplace/detail.php?id=$1     [L,QSA]
+
+# ── Security: block sensitive files ───────────────────────────────────────
+<FilesMatch "\.(sql|log|md|env|sh|bak|orig|swp)$">
+    Require all denied
+</FilesMatch>
+
+# Block .env (belt and braces)
+<Files ".env">
+    Require all denied
+</Files>
+
+# Block direct access to includes, config, and database directories
+RewriteRule ^includes/           - [F,L]
+RewriteRule ^api/config/         - [F,L]
+RewriteRule ^database/           - [F,L]
+RewriteRule ^templates/          - [F,L]
+
+# Block access to PHP files in uploads directory
+RewriteRule ^uploads/.*\.php$   - [F,L]
+
+# ── No directory listing ───────────────────────────────────────────────────
+Options -Indexes
+
+# ── Cache control ──────────────────────────────────────────────────────────
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg       "access plus 1 year"
+    ExpiresByType image/png        "access plus 1 year"
+    ExpiresByType image/webp       "access plus 1 year"
+    ExpiresByType image/svg+xml    "access plus 1 year"
+    ExpiresByType text/css         "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+</IfModule>
+
+# ── Gzip compression ───────────────────────────────────────────────────────
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
+
+# ── HTTP security headers ─────────────────────────────────────────────────
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), camera=(), microphone=()"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com https://api.getmati.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https: https://api.getmati.com; frame-src https://www.google.com https://recaptcha.google.com https://api.getmati.com https://*.mati.io; form-action 'self' https://api.getmati.com https://*.mati.io;"
+</IfModule>
+
+# ── Error pages ────────────────────────────────────────────────────────────
+ErrorDocument 404 /pages/404.php
+ErrorDocument 403 /pages/403.php
+ErrorDocument 500 /pages/500.php

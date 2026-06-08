@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    
+    <!-- Homepage -->
+    <url><loc>https://kinasgroup.com/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+    
+    <!-- Static Pages -->
+    <url><loc>https://kinasgroup.com/pages/about.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    <url><loc>https://kinasgroup.com/pages/contact.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    <url><loc>https://kinasgroup.com/pages/privacy-policy.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+    <url><loc>https://kinasgroup.com/pages/terms-of-use.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+    <url><loc>https://kinasgroup.com/pages/faq.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+    <url><loc>https://kinasgroup.com/pages/how-it-works.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+    <url><loc>https://kinasgroup.com/pages/safety-tips.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+    
+    <!-- Auth Pages -->
+    <url><loc>https://kinasgroup.com/auth/login.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+    <url><loc>https://kinasgroup.com/auth/register.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    
+    <!-- Division Index Pages -->
+    <url><loc>https://kinasgroup.com/divisions/kinas-automobile/</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+    <url><loc>https://kinasgroup.com/divisions/williams-connect-home/</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+    <url><loc>https://kinasgroup.com/divisions/kinas-volt/</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+    <url><loc>https://kinasgroup.com/divisions/kinas-marketplace/</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+    
+    <!-- Division Listing Pages -->
+    <url><loc>https://kinasgroup.com/divisions/kinas-automobile/cars.html</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+    <url><loc>https://kinasgroup.com/divisions/kinas-automobile/rentals.html</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+    <url><loc>https://kinasgroup.com/divisions/williams-connect-home/properties.html</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+    <url><loc>https://kinasgroup.com/divisions/kinas-marketplace/products.html</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+    
+    <!-- Blog -->
+    <url><loc>https://kinasgroup.com/blog/</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+</urlset>
