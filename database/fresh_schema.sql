@@ -389,7 +389,7 @@ CREATE TABLE rate_limits (
 -- Admin user (password: 'Admin@2026' — CHANGE IN PRODUCTION)
 -- bcrypt hash: $2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi
 INSERT INTO users (name, email, password, phone, role, verified, status, email_verified_at, division)
-VALUES ('Site Admin', 'admin@kinasgroup.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+VALUES ('Site Admin', 'admin@kinas-group.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
         '+2348000000000', 'admin', 1, 'active', NOW(), NULL);
 
 -- Default marketplace categories
@@ -401,3 +401,83 @@ INSERT INTO marketplace_categories (name, slug, description) VALUES
   ('Yachts',               'yachts',  'Yachts and watercraft'),
   ('Private Jets',         'jets',    'Private aviation'),
   ('Collectibles',         'collectibles', 'Rare and collectible items');
+
+-- =====================================================================
+-- TRANSACTIONS / COMMISSIONS (Earnings & Payouts)
+-- =====================================================================
+
+CREATE TABLE transactions (
+    id              INT PRIMARY KEY AUTO_INCREMENT,
+    agent_id        INT NOT NULL,
+    listing_id      INT NOT NULL,
+    listing_type    ENUM('car','property','solar','marketplace') NOT NULL,
+    buyer_name      VARCHAR(255),
+    buyer_email     VARCHAR(255),
+    amount          DECIMAL(15,2) NOT NULL,
+    commission_pct  DECIMAL(5,2) DEFAULT 5.00,
+    commission      DECIMAL(15,2) NOT NULL,
+    currency        VARCHAR(8) DEFAULT 'NGN',
+    status          ENUM('pending','paid','cancelled','refunded') DEFAULT 'pending',
+    paid_at         TIMESTAMP NULL,
+    notes           TEXT,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (agent_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_agent   (agent_id),
+    INDEX idx_status  (status),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE payout_settings (
+    id                  INT PRIMARY KEY AUTO_INCREMENT,
+    agent_id            INT NOT NULL UNIQUE,
+    payment_method      ENUM('bank_transfer_ngn','paypal','stripe','flutterwave','paystack') DEFAULT 'bank_transfer_ngn',
+    bank_name           VARCHAR(100),
+    bank_account_name   VARCHAR(255),
+    bank_account_number VARCHAR(50),
+    paypal_email        VARCHAR(255),
+    stripe_account_id   VARCHAR(100),
+    min_payout          DECIMAL(12,2) DEFAULT 50000,
+    auto_payout         BOOLEAN DEFAULT FALSE,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (agent_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE blog_posts (
+    id              INT PRIMARY KEY AUTO_INCREMENT,
+    slug            VARCHAR(200) UNIQUE NOT NULL,
+    title           VARCHAR(255) NOT NULL,
+    excerpt         TEXT,
+    body            LONGTEXT NOT NULL,
+    featured_image  VARCHAR(500),
+    author_id       INT NULL,
+    category        ENUM('automobile','realestate','solar','marketplace','news','guides') DEFAULT 'news',
+    tags            VARCHAR(500),
+    views           INT DEFAULT 0,
+    published       BOOLEAN DEFAULT FALSE,
+    published_at    TIMESTAMP NULL,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_slug      (slug),
+    INDEX idx_published (published, published_at),
+    INDEX idx_category  (category)
+) ENGINE=InnoDB;
+
+CREATE TABLE blog_comments (
+    id              INT PRIMARY KEY AUTO_INCREMENT,
+    post_id         INT NOT NULL,
+    parent_id       INT NULL,
+    user_id         INT NULL,
+    name            VARCHAR(255) NOT NULL,
+    email           VARCHAR(255) NOT NULL,
+    body            TEXT NOT NULL,
+    approved        BOOLEAN DEFAULT FALSE,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id)   REFERENCES blog_posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_id) REFERENCES blog_comments(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id)   REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_post     (post_id),
+    INDEX idx_approved (approved)
+) ENGINE=InnoDB;
