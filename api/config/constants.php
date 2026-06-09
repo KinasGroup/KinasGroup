@@ -2,10 +2,10 @@
 // KINAS GROUP - Application Constants
 
 // Site Configuration
-define('SITE_NAME', 'KINAS GROUP');
-define('SITE_URL', 'https://kinasgroup.com');
-define('ADMIN_EMAIL', 'admin@kinasgroup.com');
-define('SUPPORT_EMAIL', 'support@kinasgroup.com');
+define('SITE_NAME', getenv('APP_NAME') ?: 'KINAS GROUP');
+define('SITE_URL',  rtrim(getenv('APP_URL') ?: 'https://kinasgroup.com', '/'));
+define('ADMIN_EMAIL',   getenv('ADMIN_EMAIL')   ?: 'admin@kinasgroup.com');
+define('SUPPORT_EMAIL', getenv('SUPPORT_EMAIL') ?: 'support@kinasgroup.com');
 
 // Division Configuration
 define('DIVISION_AUTOMOBILE', 'kinas-automobile');
@@ -23,10 +23,10 @@ define('DIVISIONS', [
 
 // Division Accent Colors
 define('DIVISION_COLORS', [
-    'kinas-automobile' => '#006c75',
-    'williams-connect-home' => '#006c75',
-    'kinas-volt' => '#27AE60',
-    'kinas-marketplace' => '#8E44AD'
+    'kinas-automobile'      => '#006c75',
+    'williams-connect-home' => '#1A5276',
+    'kinas-volt'            => '#27AE60',
+    'kinas-marketplace'     => '#8E44AD'
 ]);
 
 // =======================
@@ -51,8 +51,9 @@ define('R2_ENABLED', getenv('R2_ENABLED') !== 'false' && !empty(getenv('R2_BUCKE
 define('R2_ACCOUNT_ID', getenv('R2_ACCOUNT_ID') ?: '');
 define('R2_ACCESS_KEY', getenv('R2_ACCESS_KEY_ID') ?: '');
 define('R2_SECRET_KEY', getenv('R2_SECRET_ACCESS_KEY') ?: '');
-define('R2_BUCKET', getenv('R2_BUCKET') ?: 'kinas-group-uploads');
-define('R2_PUBLIC_URL', getenv('R2_PUBLIC_URL') ?: '');
+define('R2_BUCKET',     getenv('R2_BUCKET') ?: 'kinas-group-uploads');
+define('R2_PUBLIC_URL', getenv('R2_PUBLIC_URL')
+    ?: (R2_ACCOUNT_ID ? 'https://pub-' . R2_ACCOUNT_ID . '.r2.dev/' . (getenv('R2_BUCKET') ?: 'kinas-group-uploads') : ''));
 
 // R2 Folder Structure (mirrors local structure)
 define('R2_FOLDERS', [
@@ -64,21 +65,15 @@ define('R2_FOLDERS', [
     'general' => 'general/'
 ]);
 
-// Auto-generate public URL if not provided
-if (!defined('R2_PUBLIC_URL') || empty(R2_PUBLIC_URL)) {
-    $generatedUrl = 'https://pub-' . R2_ACCOUNT_ID . '.r2.dev/' . R2_BUCKET;
-    define('R2_PUBLIC_URL', $generatedUrl);
-}
-
 // R2 Upload Configuration
-define('R2_MAX_UPLOAD_SIZE', 10 * 1024 * 1024); // 10MB (matches local)
-define('R2_IMAGE_QUALITY', 85);
-define('R2_THUMBNAIL_WIDTH', 400);
-define('R2_MAX_IMAGE_WIDTH', 1920);
-define('R2_MAX_IMAGE_HEIGHT', 1080);
+define('R2_MAX_UPLOAD_SIZE', (int)(getenv('R2_MAX_UPLOAD_SIZE') ?: 10 * 1024 * 1024)); // 10MB default
+define('R2_IMAGE_QUALITY',   (int)(getenv('R2_IMAGE_QUALITY')   ?: 85));
+define('R2_THUMBNAIL_WIDTH', (int)(getenv('R2_THUMBNAIL_WIDTH') ?: 400));
+define('R2_MAX_IMAGE_WIDTH', (int)(getenv('R2_MAX_IMAGE_WIDTH') ?: 1920));
+define('R2_MAX_IMAGE_HEIGHT',(int)(getenv('R2_MAX_IMAGE_HEIGHT') ?: 1080));
 
 // Fallback to local storage if R2 fails
-define('R2_FALLBACK_TO_LOCAL', true);
+define('R2_FALLBACK_TO_LOCAL', getenv('R2_FALLBACK_TO_LOCAL') !== 'false');
 
 // Storage driver preference ('r2' or 'local')
 define('STORAGE_DRIVER', (R2_ENABLED && !empty(R2_ACCOUNT_ID) && !empty(R2_ACCESS_KEY)) ? 'r2' : 'local');
@@ -188,6 +183,6 @@ define('SOCIAL_MEDIA', [
     'linkedin' => 'https://linkedin.com/company/kinasgroup'
 ]);
 
-// Timezone
-date_default_timezone_set('UTC');
+// Timezone — must match database.php; use Africa/Lagos for Nigeria operations
+date_default_timezone_set(getenv('TIMEZONE') ?: 'Africa/Lagos');
 ?>
