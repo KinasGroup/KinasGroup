@@ -49,6 +49,3 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 </div>
 
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
-BLOG_CATEGORY_EOF
-
-echo "✅ Updated: blog/category.php"

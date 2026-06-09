@@ -66,6 +66,3 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
         </item>
     </channel>
 </rss>
-BLOG_RSS_EOF
-
-echo "✅ Updated: blog/rss.php"

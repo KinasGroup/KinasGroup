@@ -54,6 +54,3 @@ document.getElementById('searchInput')?.addEventListener('keypress', function(e)
 </script>
 
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
-BLOG_SEARCH_EOF
-
-echo "✅ Updated: blog/search.php"

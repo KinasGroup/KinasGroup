@@ -90,6 +90,3 @@ document.getElementById('newsletterForm')?.addEventListener('submit', function(e
 </script>
 
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
-BLOG_INDEX_EOF
-
-echo "✅ Updated: blog/index.php"
