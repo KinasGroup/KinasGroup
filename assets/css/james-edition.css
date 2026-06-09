@@ -835,6 +835,57 @@
 }
 .je-footer-newsletter input::placeholder { color: rgba(255,255,255,0.4); }
 .je-footer-newsletter input:focus { outline: none; border-color: var(--je-gold); }
+.je-footer-admin-cta { margin-top: 12px; list-style: none; }
+.je-admin-portal-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, rgba(198,164,63,0.18) 0%, rgba(198,164,63,0.06) 100%);
+    border: 1px solid rgba(198,164,63,0.45);
+    border-radius: 10px;
+    text-decoration: none;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.je-admin-portal-btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(198,164,63,0.35) 50%, transparent 70%);
+    transform: translateX(-100%);
+    transition: transform 0.7s ease;
+    pointer-events: none;
+}
+.je-admin-portal-btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--je-gold);
+    background: linear-gradient(135deg, rgba(198,164,63,0.30) 0%, rgba(198,164,63,0.12) 100%);
+    box-shadow: 0 8px 22px rgba(198,164,63,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.je-admin-portal-btn:hover::before { transform: translateX(100%); }
+.je-admin-portal-btn:focus-visible { outline: 2px solid var(--je-gold); outline-offset: 2px; }
+.je-admin-portal-shield {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--je-gold) 0%, #A8882E 100%);
+    color: #0A0A0A;
+    font-size: 15px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(198,164,63,0.35);
+}
+.je-admin-portal-text { display: flex; flex-direction: column; line-height: 1.15; flex: 1; min-width: 0; }
+.je-admin-portal-eyebrow { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(198,164,63,0.85); }
+.je-admin-portal-label { font-size: 14px; font-weight: 700; color: #fff; font-family: 'Prata', serif; letter-spacing: 0.3px; }
+.je-admin-portal-arrow {
+    color: var(--je-gold);
+    font-size: 13px;
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+}
+.je-admin-portal-btn:hover .je-admin-portal-arrow { transform: translateX(3px); }
+
 .je-footer-bottom {
     padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.1);
     display: flex; align-items: center; justify-content: space-between;
