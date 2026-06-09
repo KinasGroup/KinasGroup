@@ -2,7 +2,7 @@
 // KINAS GROUP - Storage Helper
 // Unified interface for R2 and local storage
 
-require_once __DIR__ . '/../config/constants.php';
+require_once __DIR__ . '/../api/config/constants.php';
 
 class StorageHelper {
     
