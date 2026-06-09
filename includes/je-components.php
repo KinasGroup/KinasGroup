@@ -323,6 +323,18 @@ function je_render_footer(string $variant = 'site'): void
                         <?php if (!empty($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
                             <li><a href="/admin/dashboard.php"><i class="fas fa-lock" style="color:#C6A43F;"></i> Admin Panel</a></li>
                         <?php endif; ?>
+                        <?php if (empty($_SESSION['user_id'])): ?>
+                            <li class="je-footer-admin-cta">
+                                <a href="/admin/login.php" class="je-admin-portal-btn">
+                                    <span class="je-admin-portal-shield"><i class="fas fa-shield-halved"></i></span>
+                                    <span class="je-admin-portal-text">
+                                        <span class="je-admin-portal-eyebrow">Restricted Access</span>
+                                        <span class="je-admin-portal-label">Admin Portal</span>
+                                    </span>
+                                    <span class="je-admin-portal-arrow"><i class="fas fa-arrow-right"></i></span>
+                                </a>
+                            </li>
+                        <?php endif; ?>
                     </ul>
                 </div>
                 <div>
