@@ -1,7 +1,81 @@
 <?php
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
+require_once __DIR__ . '/../api/config/database.php';
 SessionManager::requireAdmin();
+
+$db = Database::getInstance()->getConnection();
+
+// ── Filters ──────────────────────────────────────────────────
+$division = $_GET['division'] ?? '';
+$period   = $_GET['period']   ?? 'all';
+
+$where = ["c.status = 'flagged'"];
+$params = [];
+if ($division !== '') {
+    $where[] = "(c.division = ? OR c.listing_type = ?)";
+    $params[] = $division;
+    $params[] = $division;
+}
+if ($period === 'week')   $where[] = "c.updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+if ($period === 'month')  $where[] = "c.updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+$whereSQL = implode(' AND ', $where);
+
+// ── Union flagged listings across all 4 tables ───────────────
+$sql = "
+    SELECT 'car' AS type, c.id, c.title, c.price, c.status, c.updated_at, c.city, c.state,
+           u.name AS agent_name, u.email AS agent_email,
+           (SELECT url FROM listing_images WHERE listing_id = c.id AND listing_type='car' ORDER BY sort_order LIMIT 1) AS image
+    FROM car_listings c LEFT JOIN users u ON c.agent_id = u.id
+    WHERE c.status = 'flagged'
+    UNION ALL
+    SELECT 'property', p.id, p.title, p.price, p.status, p.updated_at, p.city, p.state,
+           u.name, u.email,
+           (SELECT url FROM listing_images WHERE listing_id = p.id AND listing_type='property' ORDER BY sort_order LIMIT 1)
+    FROM property_listings p LEFT JOIN users u ON p.agent_id = u.id
+    WHERE p.status = 'flagged'
+    UNION ALL
+    SELECT 'solar', s.id, s.title, s.price, s.status, s.updated_at, s.city, s.state,
+           u.name, u.email,
+           (SELECT url FROM listing_images WHERE listing_id = s.id AND listing_type='solar' ORDER BY sort_order LIMIT 1)
+    FROM solar_listings s LEFT JOIN users u ON s.agent_id = u.id
+    WHERE s.status = 'flagged'
+    UNION ALL
+    SELECT 'marketplace', m.id, m.title, m.price, m.status, m.updated_at, m.city, m.state,
+           u.name, u.email,
+           (SELECT url FROM listing_images WHERE listing_id = m.id AND listing_type='marketplace' ORDER BY sort_order LIMIT 1)
+    FROM marketplace_listings m LEFT JOIN users u ON m.agent_id = u.id
+    WHERE m.status = 'flagged'
+    ORDER BY updated_at DESC
+    LIMIT 100
+";
+$rows = $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+
+// If a division filter was set, filter in PHP (unions + params get ugly otherwise)
+if ($division !== '') {
+    $rows = array_values(array_filter($rows, fn($r) => $r['type'] === $division));
+}
+
+// ── Stats ────────────────────────────────────────────────────
+$countAll   = (int)$db->query("SELECT
+        (SELECT COUNT(*) FROM car_listings WHERE status='flagged') +
+        (SELECT COUNT(*) FROM property_listings WHERE status='flagged') +
+        (SELECT COUNT(*) FROM solar_listings WHERE status='flagged') +
+        (SELECT COUNT(*) FROM marketplace_listings WHERE status='flagged')")->fetchColumn();
+$countWeek  = (int)$db->query("SELECT
+        (SELECT COUNT(*) FROM car_listings WHERE status='flagged' AND updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) +
+        (SELECT COUNT(*) FROM property_listings WHERE status='flagged' AND updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) +
+        (SELECT COUNT(*) FROM solar_listings WHERE status='flagged' AND updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) +
+        (SELECT COUNT(*) FROM marketplace_listings WHERE status='flagged' AND updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY))")->fetchColumn();
+$countRemoved = (int)$db->query("SELECT
+        (SELECT COUNT(*) FROM car_listings WHERE status='removed') +
+        (SELECT COUNT(*) FROM property_listings WHERE status='removed') +
+        (SELECT COUNT(*) FROM solar_listings WHERE status='removed') +
+        (SELECT COUNT(*) FROM marketplace_listings WHERE status='removed')")->fetchColumn();
+
+// High-priority heuristic: no images = high pri
+$countHigh = count(array_filter($rows, fn($r) => empty($r['image'])));
+
 $headerDepth = '../';
 ?>
 <!DOCTYPE html>
@@ -31,26 +105,31 @@ $headerDepth = '../';
         .filter-group label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666; }
         .filter-group select, .filter-group input { padding: 10px 12px; border: 1px solid #E0E0E0; border-radius: 8px; font-family: 'Inter', sans-serif; min-width: 150px; }
         .btn-filter { background: #C6A43F; color: #0A0A0A; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .btn-filter:hover { background: #A8882E; }
+        .btn-secondary { background: #F5F5F5; color: #333; border: 1px solid #E0E0E0; padding: 10px 16px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 13px; }
         .table-responsive { overflow-x: auto; }
         .flagged-table { width: 100%; border-collapse: collapse; background: white; border-radius: 20px; overflow: hidden; border: 1px solid #E0E0E0; }
         .flagged-table th { background: #F8F8F8; padding: 15px 20px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; color: #666; border-bottom: 1px solid #E0E0E0; }
         .flagged-table td { padding: 16px 20px; border-bottom: 1px solid #E0E0E0; vertical-align: middle; font-size: 13px; }
         .flagged-table tr:last-child td { border-bottom: none; }
-        .flagged-table tr:hover { background: #FEF2F2; }
-        .flag-reason { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-        .flag-spam { background: #FEF2F2; color: #DC2626; }
-        .flag-fake { background: #FFF3E0; color: #F57C00; }
-        .flag-price { background: #E3F2FD; color: #1565C0; }
-        .listing-image { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
-        .btn-review { background: #C6A43F; color: #0A0A0A; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-right: 6px; }
+        .flagged-table tr:hover { background: #FEFBF5; }
+        .division-tag { display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
+        .division-tag.car         { background:#E3F2FD; color:#1565C0; }
+        .division-tag.property    { background:#E8F5E9; color:#2E7D32; }
+        .division-tag.solar       { background:#FFF3E0; color:#F57C00; }
+        .division-tag.marketplace { background:#F3E5F5; color:#7B1FA2; }
+        .listing-image { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; color: #ccc; }
+        .listing-image img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+        .btn-review { background: #C6A43F; color: #0A0A0A; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-right: 6px; text-decoration: none; display: inline-block; }
         .btn-review:hover { background: #A8882E; }
         .btn-remove { background: #DC2626; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
         .btn-remove:hover { background: #B91C1C; }
         .btn-ignore { background: #666; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-right: 6px; }
         .btn-ignore:hover { background: #555; }
-        .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 30px; }
-        .pagination a, .pagination span { padding: 10px 16px; background: white; border: 1px solid #E0E0E0; border-radius: 10px; text-decoration: none; color: #333; transition: all 0.3s; }
-        .pagination a:hover, .pagination .active { background: #C6A43F; border-color: #C6A43F; color: #0A0A0A; }
+        .empty-state { padding: 80px 20px; text-align: center; color: #999; }
+        .empty-state i { font-size: 48px; color: #2E7D32; margin-bottom: 16px; display: block; opacity: 0.7; }
+        .empty-state p { font-size: 14px; }
+        .flag-actions { display: flex; flex-wrap: wrap; gap: 6px; }
         @media (max-width: 768px) { .admin-main { padding: 20px; } .filters-bar { flex-direction: column; align-items: stretch; } .filter-group select, .filter-group input { width: 100%; } }
     </style>
 
@@ -66,70 +145,103 @@ $headerDepth = '../';
     </div>
 
     <div class="stats-row">
-        <div class="stat-card"><div class="stat-number">12</div><div class="stat-label">Pending Review</div></div>
-        <div class="stat-card"><div class="stat-number">8</div><div class="stat-label">Resolved This Week</div></div>
-        <div class="stat-card danger"><div class="stat-number">3</div><div class="stat-label">High Priority</div></div>
-        <div class="stat-card"><div class="stat-number">2</div><div class="stat-label">Removed Listings</div></div>
+        <div class="stat-card"><div class="stat-number"><?= number_format($countAll) ?></div><div class="stat-label">Currently Flagged</div></div>
+        <div class="stat-card"><div class="stat-number"><?= number_format($countWeek) ?></div><div class="stat-label">Flagged This Week</div></div>
+        <div class="stat-card danger"><div class="stat-number"><?= number_format($countHigh) ?></div><div class="stat-label">High Priority</div></div>
+        <div class="stat-card"><div class="stat-number"><?= number_format($countRemoved) ?></div><div class="stat-label">Removed Listings</div></div>
     </div>
 
-    <div class="filters-bar">
-        <div class="filter-group"><label>Status</label><select><option>All Flags</option><option>Pending Review</option><option>Under Investigation</option><option>Resolved</option></select></div>
-        <div class="filter-group"><label>Division</label><select><option>All Divisions</option><option>KINAS Automobile</option><option>Williams Connect Home</option><option>KINAS Marketplace</option><option>KINAS Volt</option></select></div>
-        <div class="filter-group"><label>Flag Reason</label><select><option>All Reasons</option><option>Spam/Fake</option><option>Incorrect Pricing</option><option>Suspicious Activity</option><option>Copyright Issue</option></select></div>
-        <button class="btn-filter"><i class="fas fa-filter"></i> Apply Filters</button>
-    </div>
+    <form class="filters-bar" method="GET">
+        <div class="filter-group"><label>Division</label>
+            <select name="division">
+                <option value="">All Divisions</option>
+                <option value="car"         <?= $division === 'car'         ? 'selected' : '' ?>>KINAS Automobile</option>
+                <option value="property"    <?= $division === 'property'    ? 'selected' : '' ?>>Williams Connect Home</option>
+                <option value="solar"       <?= $division === 'solar'       ? 'selected' : '' ?>>KINAS Volt</option>
+                <option value="marketplace" <?= $division === 'marketplace' ? 'selected' : '' ?>>KINAS Marketplace</option>
+            </select>
+        </div>
+        <div class="filter-group"><label>Period</label>
+            <select name="period">
+                <option value="all"   <?= $period === 'all'   ? 'selected' : '' ?>>All time</option>
+                <option value="month" <?= $period === 'month' ? 'selected' : '' ?>>This month</option>
+                <option value="week"  <?= $period === 'week'  ? 'selected' : '' ?>>This week</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> Apply</button>
+        <a href="flagged-listings.php" class="btn-secondary"><i class="fas fa-undo"></i> Reset</a>
+    </form>
 
     <div class="table-responsive">
+        <?php if (empty($rows)): ?>
+            <div class="flagged-table" style="text-align:center;">
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <p>All caught up! No flagged listings matching the current filter.</p>
+                </div>
+            </div>
+        <?php else: ?>
         <table class="flagged-table">
             <thead>
-                <tr><th>Listing</th><th>Division</th><th>Flag Reason</th><th>Reported By</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+                <tr><th>Listing</th><th>Division</th><th>Status</th><th>Agent</th><th>Last Update</th><th>Actions</th></tr>
             </thead>
             <tbody>
+            <?php
+                $divisionLabels = ['car'=>'KINAS Automobile','property'=>'Williams Connect Home','solar'=>'KINAS Volt','marketplace'=>'KINAS Marketplace'];
+                foreach ($rows as $r):
+                    $detailUrl = '/divisions/kinas-' . str_replace(['car','property','solar','marketplace'],['automobile','williams-connect-home','volt','marketplace'], $r['type']) . '/detail.php?id=' . (int)$r['id'];
+            ?>
                 <tr>
-                    <td><div style="display: flex; align-items: center; gap: 12px;"><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=100&q=80" class="listing-image" onerror="this.src='https://via.placeholder.com/60'"><div><strong>2024 Mercedes-Benz S-Class</strong><br><span style="font-size: 11px; color:#666;">ID: #12345</span></div></div></td>
-                    <td>KINAS Automobile</td>
-                    <td><span class="flag-reason flag-spam"><i class="fas fa-ban"></i> Suspicious Listing</span></td>
-                    <td>buyer@example.com</td>
-                    <td>Jan 20, 2024</td>
-                    <td><span style="color:#F57C00;"><i class="fas fa-clock"></i> Pending</span></td>
-                    <td><button class="btn-review"><i class="fas fa-eye"></i> Review</button><button class="btn-remove"><i class="fas fa-trash"></i> Remove</button><button class="btn-ignore"><i class="fas fa-check"></i> Ignore</button></td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="listing-image">
+                                <?php if (!empty($r['image'])): ?>
+                                    <img src="<?= htmlspecialchars($r['image']) ?>" alt="">
+                                <?php else: ?>
+                                    <i class="fas fa-image"></i>
+                                <?php endif; ?>
+                            </div>
+                            <div>
+                                <strong><a href="<?= $detailUrl ?>" style="color:#0A0A0A; text-decoration:none;"><?= htmlspecialchars($r['title']) ?></a></strong>
+                                <br><span style="font-size: 11px; color:#666;">ID: #<?= (int)$r['id'] ?> · ₦<?= number_format((float)$r['price']) ?></span>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="division-tag <?= htmlspecialchars($r['type']) ?>"><?= htmlspecialchars($divisionLabels[$r['type']] ?? $r['type']) ?></span></td>
+                    <td>
+                        <span style="color:#DC2626;"><i class="fas fa-flag"></i> Flagged</span>
+                        <?php if (empty($r['image'])): ?>
+                            <br><span style="font-size:11px; color:#F57C00;"><i class="fas fa-exclamation-triangle"></i> No images</span>
+                        <?php endif; ?>
+                    </td>
+                    <td>
+                        <?= htmlspecialchars($r['agent_name'] ?: '—') ?>
+                        <br><span style="font-size:11px; color:#666;"><?= htmlspecialchars($r['agent_email'] ?? '') ?></span>
+                    </td>
+                    <td><?= htmlspecialchars($r['updated_at']) ?></td>
+                    <td>
+                        <div class="flag-actions">
+                            <a href="<?= $detailUrl ?>" target="_blank" class="btn-review"><i class="fas fa-eye"></i> Review</a>
+                            <form method="POST" action="/api/admin/review-listing.php" style="display:inline" onsubmit="return confirm('Approve this listing? It will be set back to active.');">
+                                <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
+                                <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
+                                <input type="hidden" name="listing_type" value="<?= htmlspecialchars($r['type']) ?>">
+                                <input type="hidden" name="action" value="approve">
+                                <button type="submit" class="btn-ignore" title="Approve and un-flag"><i class="fas fa-check"></i> Approve</button>
+                            </form>
+                            <form method="POST" action="/api/admin/remove-listing.php" style="display:inline" onsubmit="return confirm('Remove this listing? It will be hidden from public view.');">
+                                <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
+                                <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
+                                <input type="hidden" name="listing_type" value="<?= htmlspecialchars($r['type']) ?>">
+                                <button type="submit" class="btn-remove" title="Remove listing"><i class="fas fa-trash"></i> Remove</button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
-                <tr style="background:#FEF2F2;">
-                    <td><div style="display: flex; align-items: center; gap: 12px;"><img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=100&q=80" class="listing-image"><div><strong>Lagos Waterfront Mansion</strong><br><span style="font-size: 11px; color:#666;">ID: #12378</span></div></div></td>
-                    <td>Williams Connect Home</td>
-                    <td><span class="flag-reason flag-fake"><i class="fas fa-exclamation-triangle"></i> Fake Listing</span></td>
-                    <td>anonymous@report.com</td>
-                    <td>Jan 19, 2024</td>
-                    <td><span style="color:#DC2626;"><i class="fas fa-flag"></i> High Priority</span></td>
-                    <td><button class="btn-review"><i class="fas fa-eye"></i> Review</button><button class="btn-remove"><i class="fas fa-trash"></i> Remove</button><button class="btn-ignore"><i class="fas fa-check"></i> Ignore</button></td>
-                </tr>
-                <tr>
-                    <td><div style="display: flex; align-items: center; gap: 12px;"><img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&q=80" class="listing-image"><div><strong>Premium Rolex Watch</strong><br><span style="font-size: 11px; color:#666;">ID: #12456</span></div></div></td>
-                    <td>KINAS Marketplace</td>
-                    <td><span class="flag-reason flag-price"><i class="fas fa-tag"></i> Inaccurate Price</span></td>
-                    <td>watchcollector@email.com</td>
-                    <td>Jan 18, 2024</td>
-                    <td><span style="color:#2E7D32;"><i class="fas fa-check-circle"></i> Under Review</span></td>
-                    <td><button class="btn-review"><i class="fas fa-eye"></i> Review</button><button class="btn-remove"><i class="fas fa-trash"></i> Remove</button><button class="btn-ignore"><i class="fas fa-check"></i> Ignore</button></td>
-                </tr>
-                <tr>
-                    <td><div style="display: flex; align-items: center; gap: 12px;"><img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=100&q=80" class="listing-image"><div><strong>Industrial Solar 500kW</strong><br><span style="font-size: 11px; color:#666;">ID: #12789</span></div></div></td>
-                    <td>KINAS Volt</td>
-                    <td><span class="flag-reason flag-spam"><i class="fas fa-ban"></i> Duplicate Listing</span></td>
-                    <td>solarbuyer@domain.com</td>
-                    <td>Jan 17, 2024</td>
-                    <td><span style="color:#F57C00;"><i class="fas fa-clock"></i> Pending</span></td>
-                    <td><button class="btn-review"><i class="fas fa-eye"></i> Review</button><button class="btn-remove"><i class="fas fa-trash"></i> Remove</button><button class="btn-ignore"><i class="fas fa-check"></i> Ignore</button></td>
-                </tr>
-                <tr>
-                    <td colspan="7" style="text-align: center; color: #666; padding: 40px;"><i class="fas fa-check-circle" style="color: #2E7D32; font-size: 24px; margin-bottom: 10px; display: block;"></i> All caught up! No more flagged listings to review.</td>
-                </tr>
+            <?php endforeach; ?>
             </tbody>
         </table>
-    </div>
-
-    <div class="pagination">
-        <span class="active">1</span><a href="#">2</a><a href="#">3</a><a href="#">Next →</a>
+        <?php endif; ?>
     </div>
 </main>
 </div>

@@ -1,10 +1,24 @@
 <?php
+/**
+ * KINAS GROUP — Admin: System Settings
+ *
+ * The application does not yet have a settings table; most platform
+ * settings are managed via the .env file (loaded by includes/env.php).
+ * This page summarises the current configuration and the actions
+ * available elsewhere in the admin panel.
+ */
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
+require_once __DIR__ . '/../api/config/constants.php';
+
 SessionManager::requireAdmin();
-require_once __DIR__ . '/../api/config/database.php';
-$db = Database::getInstance()->getConnection();
+
+$flashSuccess = $_SESSION['flash_success'] ?? null;
+$flashError   = $_SESSION['flash_error'] ?? null;
+unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
 $headerDepth = '../';
+require_once __DIR__ . '/../templates/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -20,128 +34,129 @@ $headerDepth = '../';
         body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
         .admin-layout { display: flex; min-height: 100vh; }
         .admin-main { flex: 1; padding: 30px; background: #F5F7FA; }
+        .admin-container { max-width: 1200px; margin: 0 auto; }
         .page-header { margin-bottom: 30px; }
         .page-header h1 { font-family: 'Prata', serif; font-size: 28px; color: #0A0A0A; margin-bottom: 8px; }
         .page-header p { color: #666; font-size: 14px; }
-        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 25px; }
-        .settings-card { background: white; border-radius: 20px; border: 1px solid #E0E0E0; overflow: hidden; }
-        .card-header { padding: 20px 25px; background: #F8F8F8; border-bottom: 1px solid #E0E0E0; }
-        .card-header h2 { font-family: 'Prata', serif; font-size: 20px; color: #0A0A0A; }
-        .card-header h2 i { color: #C6A43F; margin-right: 10px; }
+        .flash { padding: 14px 18px; border-radius: 12px; margin-bottom: 20px; font-weight: 600; }
+        .flash.success { background: #E8F5E9; color: #2E7D32; border: 1px solid #C8E6C9; }
+        .flash.error { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+        .settings-card { background: white; border-radius: 16px; border: 1px solid #E0E0E0; margin-bottom: 24px; overflow: hidden; }
+        .card-header { padding: 20px 25px; border-bottom: 1px solid #E0E0E0; display: flex; align-items: center; gap: 12px; }
+        .card-header h2 { font-family: 'Prata', serif; font-size: 18px; color: #0A0A0A; }
+        .card-header i { color: #C6A43F; font-size: 20px; }
         .card-body { padding: 25px; }
-        .form-group { margin-bottom: 22px; }
-        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 6px; }
-        .form-group label i { color: #C6A43F; margin-right: 6px; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 14px; border: 1px solid #E0E0E0; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 14px; transition: all 0.3s; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #C6A43F; box-shadow: 0 0 0 3px rgba(198,164,63,0.1); }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .checkbox-group { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
-        .checkbox-group input { width: 18px; height: 18px; cursor: pointer; accent-color: #C6A43F; }
-        .checkbox-group label { margin: 0; cursor: pointer; font-weight: normal; }
-        .btn-save { background: #C6A43F; color: #0A0A0A; border: none; padding: 14px 28px; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.3s; width: 100%; }
-        .btn-save:hover { background: #A8882E; transform: translateY(-2px); }
-        .danger-zone { margin-top: 30px; border: 2px solid #DC2626; background: #FEF2F2; }
-        .danger-zone .card-header { background: #FEE; border-bottom-color: #DC2626; }
-        .danger-zone .card-header h2 { color: #DC2626; }
-        .btn-danger { background: #DC2626; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
-        .btn-danger:hover { background: #B91C1C; transform: translateY(-2px); }
-        @media (max-width: 768px) { .admin-main { padding: 20px; } .settings-grid { grid-template-columns: 1fr; } .form-row { grid-template-columns: 1fr; gap: 0; } }
+        .kv-grid { display: grid; grid-template-columns: 200px 1fr; gap: 14px 24px; }
+        .kv-grid dt { font-size: 12px; color: #666; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+        .kv-grid dd { font-size: 14px; color: #0A0A0A; margin: 0; font-family: 'Inter', sans-serif; }
+        .kv-grid dd code { background: #F8F8F8; padding: 3px 8px; border-radius: 6px; font-size: 13px; color: #C6A43F; }
+        .notice { background: #FFF8E1; border: 1px solid #FFE0B2; border-radius: 12px; padding: 16px 20px; color: #5D4037; font-size: 14px; display: flex; gap: 12px; align-items: flex-start; margin-bottom: 24px; }
+        .notice i { color: #F57C00; font-size: 20px; margin-top: 2px; }
+        .quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+        .action-link { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: #F8F8F8; border: 1px solid #E0E0E0; border-radius: 12px; text-decoration: none; color: #0A0A0A; transition: all 0.3s; }
+        .action-link:hover { background: #C6A43F; border-color: #C6A43F; color: #0A0A0A; transform: translateY(-2px); }
+        .action-link i { color: #C6A43F; font-size: 18px; }
+        .action-link:hover i { color: #0A0A0A; }
+        .action-link strong { display: block; font-size: 14px; }
+        .action-link small { display: block; color: #666; font-size: 12px; }
+        .action-link:hover small { color: #0A0A0A; }
+        @media (max-width: 768px) { .admin-main { padding: 20px; } .kv-grid { grid-template-columns: 1fr; gap: 4px 0; } .kv-grid dt { margin-top: 12px; } }
     </style>
-
 </head>
 <body>
 <?php include __DIR__ . '/../includes/partials/header.php'; ?>
 <div class="je-dash-shell">
 <?php include __DIR__ . "/../includes/partials/admin-sidebar.php"; ?>
 <main class="je-dash-main">
+<div class="admin-container">
+    <?php if ($flashSuccess): ?><div class="flash success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($flashSuccess) ?></div><?php endif; ?>
+    <?php if ($flashError):   ?><div class="flash error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($flashError) ?></div><?php endif; ?>
+
     <div class="page-header">
-        <h1><i class="fas fa-sliders-h" style="color: #C6A43F; margin-right: 10px;"></i>Platform Settings</h1>
-        <p>Configure your marketplace settings and preferences</p>
+        <h1><i class="fas fa-cog" style="color: #C6A43F; margin-right: 10px;"></i>System Settings</h1>
+        <p>Platform configuration. Most settings are managed via environment variables.</p>
     </div>
 
-    <div class="settings-grid">
-        <!-- General Settings -->
-        <div class="settings-card">
-            <div class="card-header">
-                <h2><i class="fas fa-globe"></i> General Settings</h2>
-            </div>
-            <div class="card-body">
-                <div class="form-group"><label><i class="fas fa-building"></i> Site Name</label><input type="text" value="KINAS GROUP" class="form-control"></div>
-                <div class="form-group"><label><i class="fas fa-envelope"></i> Admin Email</label><input type="email" value="admin@kinasgroup.com" class="form-control"></div>
-                <div class="form-group"><label><i class="fas fa-phone"></i> Support Phone</label><input type="tel" value="+234 800 123 4567" class="form-control"></div>
-                <div class="form-group"><label><i class="fas fa-language"></i> Default Language</label><select class="form-control"><option>English</option><option>French</option><option>Arabic</option></select></div>
-            </div>
-        </div>
-
-        <!-- Commission & Fees -->
-        <div class="settings-card">
-            <div class="card-header">
-                <h2><i class="fas fa-percent"></i> Commission & Fees</h2>
-            </div>
-            <div class="card-body">
-                <div class="form-row">
-                    <div class="form-group"><label><i class="fas fa-car"></i> Automobile Commission</label><input type="number" value="5" class="form-control"><small style="color:#666;">% of sale price</small></div>
-                    <div class="form-group"><label><i class="fas fa-home"></i> Real Estate Commission</label><input type="number" value="3" class="form-control"><small style="color:#666;">% of sale price</small></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label><i class="fas fa-store"></i> Marketplace Fee</label><input type="number" value="8" class="form-control"><small style="color:#666;">% of product price</small></div>
-                    <div class="form-group"><label><i class="fas fa-solar-panel"></i> Solar Commission</label><input type="number" value="10" class="form-control"><small style="color:#666;">% of project value</small></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Listing Settings -->
-        <div class="settings-card">
-            <div class="card-header">
-                <h2><i class="fas fa-list-ul"></i> Listing Settings</h2>
-            </div>
-            <div class="card-body">
-                <div class="form-row">
-                    <div class="form-group"><label><i class="fas fa-clock"></i> Listing Duration (days)</label><input type="number" value="90" class="form-control"></div>
-                    <div class="form-group"><label><i class="fas fa-images"></i> Max Images Per Listing</label><input type="number" value="20" class="form-control"></div>
-                </div>
-                <div class="form-group"><label><i class="fas fa-check-circle"></i> Auto-approve Listings</label><select class="form-control"><option>Yes, auto-approve</option><option>No, require review</option></select></div>
-                <div class="checkbox-group"><input type="checkbox" checked><label>Allow featured listings</label></div>
-                <div class="checkbox-group"><input type="checkbox" checked><label>Enable virtual tours</label></div>
-            </div>
-        </div>
-
-        <!-- Notification Settings -->
-        <div class="settings-card">
-            <div class="card-header">
-                <h2><i class="fas fa-bell"></i> Notification Settings</h2>
-            </div>
-            <div class="card-body">
-                <div class="checkbox-group"><input type="checkbox" checked><label>New user registration alerts</label></div>
-                <div class="checkbox-group"><input type="checkbox" checked><label>Agent approval requests</label></div>
-                <div class="checkbox-group"><input type="checkbox" checked><label>Flagged listing alerts</label></div>
-                <div class="checkbox-group"><input type="checkbox"><label>Daily digest emails</label></div>
-                <div class="form-group"><label><i class="fas fa-envelope"></i> Notification Email</label><input type="email" value="notifications@kinasgroup.com" class="form-control"></div>
-            </div>
+    <div class="notice">
+        <i class="fas fa-info-circle"></i>
+        <div>
+            <strong>Runtime configuration only.</strong> Platform-level settings (database credentials, API keys, feature flags) live in the <code>.env</code> file on the server. To change them, edit <code>env.example</code> in the repo and redeploy, or update the live environment on Railway.
         </div>
     </div>
 
-    <!-- Save Button -->
-    <div style="margin-top: 25px; text-align: right;">
-        <button class="btn-save"><i class="fas fa-save"></i> Save All Settings</button>
-    </div>
-
-    <!-- Danger Zone -->
-    <div class="settings-card danger-zone" style="margin-top: 30px;">
-        <div class="card-header">
-            <h2><i class="fas fa-exclamation-triangle"></i> Danger Zone</h2>
-        </div>
+    <div class="settings-card">
+        <div class="card-header"><i class="fas fa-globe"></i><h2>General</h2></div>
         <div class="card-body">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
-                <div><strong>Clear All System Cache</strong><br><small style="color:#666;">Remove temporary files and cached data</small></div>
-                <button class="btn-danger"><i class="fas fa-trash-alt"></i> Clear Cache</button>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #FEE;">
-                <div><strong>Reset All Settings to Default</strong><br><small style="color:#666;">Restore factory default configuration</small></div>
-                <button class="btn-danger"><i class="fas fa-undo-alt"></i> Reset Settings</button>
+            <dl class="kv-grid">
+                <dt>Site name</dt><dd><?= htmlspecialchars(defined('SITE_NAME') ? SITE_NAME : 'KINAS GROUP') ?></dd>
+                <dt>Site URL</dt><dd><code><?= htmlspecialchars(SITE_URL) ?></code></dd>
+                <dt>Admin email</dt><dd><code><?= htmlspecialchars(ADMIN_EMAIL) ?></code></dd>
+                <dt>Support email</dt><dd><code><?= htmlspecialchars(SUPPORT_EMAIL) ?></code></dd>
+                <dt>Default country</dt><dd>Nigeria</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="settings-card">
+        <div class="card-header"><i class="fas fa-percentage"></i><h2>Integrations</h2></div>
+        <div class="card-body">
+            <dl class="kv-grid">
+                <dt>R2 storage</dt><dd><?= getenv('R2_ENABLED') === 'true' ? '<span style="color:#2E7D32;">✓ Enabled</span>' : '<span style="color:#F57C00;">Disabled (local fallback)</span>' ?></dd>
+                <dt>SMS provider</dt><dd>Termii</dd>
+                <dt>Email provider</dt><dd>Resend</dd>
+                <dt>Identity KYC</dt><dd>MetaMap</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="settings-card">
+        <div class="card-header"><i class="fas fa-link"></i><h2>Social</h2></div>
+        <div class="card-body">
+            <dl class="kv-grid">
+                <?php
+                    $socials = defined('SOCIAL_MEDIA') ? SOCIAL_MEDIA : [];
+                ?>
+                <?php foreach (['facebook','twitter','instagram','linkedin'] as $net): ?>
+                    <dt><?= ucfirst($net) ?></dt>
+                    <dd><code><?= htmlspecialchars($socials[$net] ?? '—') ?></code></dd>
+                <?php endforeach; ?>
+            </dl>
+        </div>
+    </div>
+
+    <div class="settings-card">
+        <div class="card-header"><i class="fas fa-bolt"></i><h2>Quick Admin Actions</h2></div>
+        <div class="card-body">
+            <p style="color:#666; font-size:13px; margin-bottom:16px;">Manage the platform from these entry points:</p>
+            <div class="quick-actions">
+                <a href="user-management.php" class="action-link">
+                    <i class="fas fa-users"></i>
+                    <div><strong>Manage Users</strong><small>Roles, status, suspensions</small></div>
+                </a>
+                <a href="agent-management.php" class="action-link">
+                    <i class="fas fa-user-tie"></i>
+                    <div><strong>Manage Agents</strong><small>Approve, suspend, verify</small></div>
+                </a>
+                <a href="agent-approvals.php" class="action-link">
+                    <i class="fas fa-user-check"></i>
+                    <div><strong>Agent Approvals</strong><small>Review pending KYC submissions</small></div>
+                </a>
+                <a href="listing-management.php" class="action-link">
+                    <i class="fas fa-list-ul"></i>
+                    <div><strong>Manage Listings</strong><small>Flag, approve, remove</small></div>
+                </a>
+                <a href="flagged-listings.php" class="action-link">
+                    <i class="fas fa-flag"></i>
+                    <div><strong>Flagged Listings</strong><small>Review reported content</small></div>
+                </a>
+                <a href="activity-logs.php" class="action-link">
+                    <i class="fas fa-history"></i>
+                    <div><strong>Activity Logs</strong><small>Audit trail of admin & user actions</small></div>
+                </a>
             </div>
         </div>
     </div>
+</div>
 </main>
 </div>
 

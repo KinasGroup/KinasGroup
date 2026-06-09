@@ -1,14 +1,114 @@
 <?php
 /**
- * Kinas Group - Listing Management
- * Luxury Design - Nigerian Naira Currency
+ * KINAS GROUP — Admin: Listing Management
+ * Pulls live data from all 4 listings tables (cars, properties, solar, marketplace).
  */
 require_once __DIR__ . '/../api/config/database.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
 
-// Auth: handled by SessionManager::requireAdmin()
+SessionManager::requireAdmin();
 
+$db = Database::getInstance()->getConnection();
+
+// ── Filters ──────────────────────────────────────────────────
+$division = $_GET['division'] ?? '';
+$status   = $_GET['status']   ?? '';
+$search   = trim($_GET['q']   ?? '');
+$page     = max(1, (int)($_GET['page'] ?? 1));
+$perPage  = 20;
+$offset   = ($page - 1) * $perPage;
+
+// ── Build union across the 4 listings tables ────────────────
+$tableMap = [
+    'car'         => ['table' => 'car_listings',         'label' => 'Kinas Automobile',      'class' => 'automobile',  'div_slug' => 'kinas-automobile'],
+    'property'    => ['table' => 'property_listings',    'label' => 'Williams Connect Home', 'class' => 'realestate',  'div_slug' => 'williams-connect-home'],
+    'solar'       => ['table' => 'solar_listings',       'label' => 'Kinas Volt',            'class' => 'solar',       'div_slug' => 'kinas-volt'],
+    'marketplace' => ['table' => 'marketplace_listings', 'label' => 'Kinas Marketplace',     'class' => 'marketplace', 'div_slug' => 'kinas-marketplace'],
+];
+
+$unions = [];
+foreach ($tableMap as $type => $cfg) {
+    if ($division !== '' && $division !== $type) continue;
+
+    $where = [];
+    $params = [];
+    if ($status !== '') { $where[] = 'status = ?'; $params[] = $status; }
+    if ($search !== '') {
+        $where[] = '(title LIKE ? OR id = ?)';
+        $params[] = "%$search%";
+        $params[] = is_numeric($search) ? (int)$search : 0;
+    }
+    $whereSQL = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+    $unions[] = [
+        'type'   => $type,
+        'sql'    => "SELECT '$type' AS ltype, id, title, price, status, created_at, agent_id,
+                            NULL AS division
+                     FROM {$cfg['table']} $whereSQL",
+        'params' => $params,
+        'cfg'    => $cfg,
+    ];
+}
+
+if (empty($unions)) {
+    // No division filter (all divisions)
+    foreach ($tableMap as $type => $cfg) {
+        $where = [];
+        $params = [];
+        if ($status !== '') { $where[] = 'status = ?'; $params[] = $status; }
+        if ($search !== '') {
+            $where[] = '(title LIKE ? OR id = ?)';
+            $params[] = "%$search%";
+            $params[] = is_numeric($search) ? (int)$search : 0;
+        }
+        $whereSQL = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+        $unions[] = [
+            'type'   => $type,
+            'sql'    => "SELECT '$type' AS ltype, id, title, price, status, created_at, agent_id, NULL AS division FROM {$cfg['table']} $whereSQL",
+            'params' => $params,
+            'cfg'    => $cfg,
+        ];
+    }
+}
+
+$allRows = [];
+foreach ($unions as $u) {
+    $stmt = $db->prepare($u['sql']);
+    $stmt->execute($u['params']);
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $r['_cfg'] = $u['cfg'];
+        $r['_type'] = $u['type'];
+        $allRows[] = $r;
+    }
+}
+// Sort by created_at DESC and paginate
+usort($allRows, fn($a, $b) => strcmp((string)$b['created_at'], (string)$a['created_at']));
+$total = count($allRows);
+$rows  = array_slice($allRows, $offset, $perPage);
+
+// Look up agent names in a single batch
+$agentIds = array_values(array_unique(array_filter(array_column($rows, 'agent_id'))));
+$agentMap = [];
+if ($agentIds) {
+    $ph = implode(',', array_fill(0, count($agentIds), '?'));
+    $stmt = $db->prepare("SELECT id, name, email FROM users WHERE id IN ($ph)");
+    $stmt->execute($agentIds);
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $u) {
+        $agentMap[(int)$u['id']] = $u;
+    }
+}
+
+// ── Counts per division ──────────────────────────────────────
+$divCounts = [];
+foreach ($tableMap as $type => $cfg) {
+    $c = (int)$db->query("SELECT COUNT(*) FROM {$cfg['table']}")->fetchColumn();
+    $divCounts[$type] = $c;
+}
+$totalListings = array_sum($divCounts);
+$totalPages    = max(1, (int)ceil($total / $perPage));
+
+$headerDepth = '../';
 require_once __DIR__ . '/../templates/header.php';
 ?>
 <div class="je-dash-shell">
@@ -17,45 +117,145 @@ require_once __DIR__ . '/../templates/header.php';
 <div class="admin-container">
     <div class="admin-header">
         <h1><i class="fas fa-list-ul" style="color: #C6A43F; margin-right: 12px;"></i>Listing Management</h1>
-        <p>Manage all listings across all divisions</p>
+        <p>Manage all <?= number_format($totalListings) ?> listings across all divisions</p>
     </div>
 
-    <!-- Statistics Cards -->
     <div class="stats-mini">
-        <div class="stat-mini-card"><i class="fas fa-car"></i><div class="stat-mini-info"><span class="stat-mini-label">Automobiles</span><span class="stat-mini-number">342</span></div></div>
-        <div class="stat-mini-card"><i class="fas fa-home"></i><div class="stat-mini-info"><span class="stat-mini-label">Real Estate</span><span class="stat-mini-number">256</span></div></div>
-        <div class="stat-mini-card"><i class="fas fa-solar-panel"></i><div class="stat-mini-info"><span class="stat-mini-label">Solar Energy</span><span class="stat-mini-number">128</span></div></div>
-        <div class="stat-mini-card"><i class="fas fa-store"></i><div class="stat-mini-info"><span class="stat-mini-label">Marketplace</span><span class="stat-mini-number">508</span></div></div>
+        <div class="stat-mini-card"><i class="fas fa-car"></i><div class="stat-mini-info"><span class="stat-mini-label">Automobiles</span><span class="stat-mini-number"><?= number_format($divCounts['car']) ?></span></div></div>
+        <div class="stat-mini-card"><i class="fas fa-home"></i><div class="stat-mini-info"><span class="stat-mini-label">Real Estate</span><span class="stat-mini-number"><?= number_format($divCounts['property']) ?></span></div></div>
+        <div class="stat-mini-card"><i class="fas fa-solar-panel"></i><div class="stat-mini-info"><span class="stat-mini-label">Solar</span><span class="stat-mini-number"><?= number_format($divCounts['solar']) ?></span></div></div>
+        <div class="stat-mini-card"><i class="fas fa-store"></i><div class="stat-mini-info"><span class="stat-mini-label">Marketplace</span><span class="stat-mini-number"><?= number_format($divCounts['marketplace']) ?></span></div></div>
     </div>
 
-    <!-- Filters -->
-    <div class="filters-bar">
-        <div class="search-wrapper"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Search listings by title, ID, or agent..."></div>
+    <form class="filters-bar" method="GET">
+        <div class="search-wrapper"><i class="fas fa-search"></i><input type="text" name="q" placeholder="Search by title or ID…" value="<?= htmlspecialchars($search) ?>"></div>
         <div class="filter-group">
-            <select id="divisionFilter"><option value="all">All Divisions</option><option value="automobile">Kinas Automobile</option><option value="realestate">Williams Connect Home</option><option value="solar">Kinas Volt</option><option value="marketplace">Kinas Marketplace</option></select>
-            <select id="statusFilter"><option value="all">All Status</option><option value="active">Active</option><option value="pending">Pending</option><option value="flagged">Flagged</option><option value="expired">Expired</option></select>
-            <button class="btn-filter" onclick="exportData()"><i class="fas fa-download"></i> Export</button>
+            <select name="division">
+                <option value="">All Divisions</option>
+                <option value="car"         <?= $division === 'car'         ? 'selected' : '' ?>>Kinas Automobile</option>
+                <option value="property"    <?= $division === 'property'    ? 'selected' : '' ?>>Williams Connect Home</option>
+                <option value="solar"       <?= $division === 'solar'       ? 'selected' : '' ?>>Kinas Volt</option>
+                <option value="marketplace" <?= $division === 'marketplace' ? 'selected' : '' ?>>Kinas Marketplace</option>
+            </select>
+            <select name="status">
+                <option value="">All Status</option>
+                <option value="active"  <?= $status === 'active'  ? 'selected' : '' ?>>Active</option>
+                <option value="pending" <?= $status === 'pending' ? 'selected' : '' ?>>Pending</option>
+                <option value="flagged" <?= $status === 'flagged' ? 'selected' : '' ?>>Flagged</option>
+                <option value="removed" <?= $status === 'removed' ? 'selected' : '' ?>>Removed</option>
+                <option value="sold"    <?= $status === 'sold'    ? 'selected' : '' ?>>Sold</option>
+            </select>
+            <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> Filter</button>
+            <a href="listing-management.php" class="btn-filter" style="background:#F5F5F5; color:#333; border:1px solid #E0E0E0; text-decoration:none; display:inline-block;">Reset</a>
+            <a href="listing-management-export.php?<?= htmlspecialchars(http_build_query(['division'=>$division,'status'=>$status,'q'=>$search])) ?>" class="btn-filter" style="background:#666; color:white; text-decoration:none; display:inline-block;"><i class="fas fa-download"></i> Export</a>
         </div>
-    </div>
+    </form>
 
-    <!-- Data Table -->
     <div class="table-container">
         <div class="table-responsive">
+            <?php if (empty($rows)): ?>
+                <div style="padding: 80px 20px; text-align:center; color:#999;">
+                    <i class="fas fa-inbox" style="font-size:48px; color:#C6A43F; opacity:0.4; display:block; margin-bottom:14px;"></i>
+                    <p style="font-size:14px;">No listings match the current filter.</p>
+                    <?php if ($search || $division || $status): ?>
+                        <p style="margin-top:8px;"><a href="listing-management.php" style="color:#C6A43F;">Clear filters</a></p>
+                    <?php else: ?>
+                        <p style="margin-top:8px; color:#bbb; font-size:12px;">Listings will appear here once agents create them.</p>
+                    <?php endif; ?>
+                </div>
+            <?php else: ?>
             <table class="data-table">
                 <thead><tr><th>ID</th><th>Title</th><th>Division</th><th>Agent</th><th>Price (₦)</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
                 <tbody id="listingTableBody">
-                    <tr><td>#LK-001</td><td>2024 Mercedes-Benz S-Class</td><td><span class="division-badge automobile">Automobile</span></td><td>John Smith</td><td>₦185,000,000</td><td><span class="status-badge active">Active</span></td><td>2024-01-15</td><td><div class="action-buttons"><button class="action-btn view" onclick="viewListing(1)"><i class="fas fa-eye"></i></button><button class="action-btn edit" onclick="editListing(1)"><i class="fas fa-edit"></i></button><button class="action-btn flag" onclick="flagListing(1)"><i class="fas fa-flag"></i></button></div></td></tr>
-                    <tr><td>#LK-002</td><td>Luxury Villa with Ocean View</td><td><span class="division-badge realestate">Real Estate</span></td><td>Sarah Johnson</td><td>₦3,450,000,000</td><td><span class="status-badge active">Active</span></td><td>2024-02-20</td><td><div class="action-buttons"><button class="action-btn view" onclick="viewListing(2)"><i class="fas fa-eye"></i></button><button class="action-btn edit" onclick="editListing(2)"><i class="fas fa-edit"></i></button><button class="action-btn flag" onclick="flagListing(2)"><i class="fas fa-flag"></i></button></div></td></tr>
-                    <tr><td>#LK-003</td><td>10kW Solar Panel Installation</td><td><span class="division-badge solar">Solar</span></td><td>Mike Chen</td><td>₦28,500,000</td><td><span class="status-badge pending">Pending</span></td><td>2024-03-05</td><td><div class="action-buttons"><button class="action-btn view" onclick="viewListing(3)"><i class="fas fa-eye"></i></button><button class="action-btn edit" onclick="editListing(3)"><i class="fas fa-edit"></i></button><button class="action-btn approve" onclick="approveListing(3)"><i class="fas fa-check"></i></button></div></td></tr>
-                    <tr><td>#LK-004</td><td>Vintage Rolex Watch</td><td><span class="division-badge marketplace">Marketplace</span></td><td>David Wilson</td><td>₦12,500,000</td><td><span class="status-badge flagged">Flagged</span></td><td>2024-03-10</td><td><div class="action-buttons"><button class="action-btn view" onclick="viewListing(4)"><i class="fas fa-eye"></i></button><button class="action-btn edit" onclick="editListing(4)"><i class="fas fa-edit"></i></button><button class="action-btn resolve" onclick="resolveFlag(4)"><i class="fas fa-check-circle"></i></button></div></td></tr>
+                    <?php foreach ($rows as $r):
+                        $cfg  = $r['_cfg'];
+                        $type = $r['_type'];
+                        $agent = $agentMap[(int)$r['agent_id']] ?? null;
+                        $detailUrl = "/divisions/{$cfg['div_slug']}/detail.php?id=" . (int)$r['id'];
+                    ?>
+                    <tr>
+                        <td>#<?= str_pad((string)$r['id'], 4, '0', STR_PAD_LEFT) ?></td>
+                        <td><a href="<?= $detailUrl ?>" target="_blank" style="color:#0A0A0A; text-decoration:none; font-weight:600;"><?= htmlspecialchars($r['title']) ?></a></td>
+                        <td><span class="division-badge <?= htmlspecialchars($cfg['class']) ?>"><?= htmlspecialchars($cfg['label']) ?></span></td>
+                        <td>
+                            <?php if ($agent): ?>
+                                <?= htmlspecialchars($agent['name']) ?>
+                                <br><span style="font-size:11px; color:#999;"><?= htmlspecialchars($agent['email']) ?></span>
+                            <?php else: ?>
+                                <span style="color:#999;">—</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>₦<?= number_format((float)$r['price']) ?></td>
+                        <td><span class="status-badge <?= htmlspecialchars($r['status']) ?>"><?= htmlspecialchars(ucfirst($r['status'])) ?></span></td>
+                        <td><?= htmlspecialchars($r['created_at']) ?></td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="<?= $detailUrl ?>" target="_blank" class="action-btn view" title="View"><i class="fas fa-eye"></i></a>
+                                <a href="<?= $detailUrl ?>" target="_blank" class="action-btn edit" title="Open in admin view"><i class="fas fa-external-link-alt"></i></a>
+                                <?php if ($r['status'] !== 'flagged'): ?>
+                                <form method="POST" action="/api/admin/review-listing.php" style="display:inline" onsubmit="return confirm('Flag this listing for review?');">
+                                    <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
+                                    <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
+                                    <input type="hidden" name="listing_type" value="<?= htmlspecialchars($type) ?>">
+                                    <input type="hidden" name="action" value="flag">
+                                    <button type="submit" class="action-btn flag" title="Flag"><i class="fas fa-flag"></i></button>
+                                </form>
+                                <?php else: ?>
+                                <form method="POST" action="/api/admin/review-listing.php" style="display:inline" onsubmit="return confirm('Clear flag and set back to active?');">
+                                    <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
+                                    <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
+                                    <input type="hidden" name="listing_type" value="<?= htmlspecialchars($type) ?>">
+                                    <input type="hidden" name="action" value="approve">
+                                    <button type="submit" class="action-btn approve" title="Approve & unflag"><i class="fas fa-check"></i></button>
+                                </form>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
+            <?php endif; ?>
         </div>
-        <div class="pagination"><button class="page-btn" disabled><i class="fas fa-chevron-left"></i></button><button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">3</button><button class="page-btn"><i class="fas fa-chevron-right"></i></button></div>
+        <?php if ($totalPages > 1): ?>
+        <div class="pagination">
+            <?php
+                $baseQuery = array_diff_key($_GET, ['page' => '']);
+                $base = '?' . http_build_query($baseQuery);
+                $pageUrl = fn($p) => ($p <= 1 ? '?' . http_build_query($baseQuery) : $base . '&page=' . $p);
+            ?>
+            <?php if ($page > 1): ?>
+                <a class="page-btn" href="<?= $pageUrl($page-1) ?>"><i class="fas fa-chevron-left"></i></a>
+            <?php else: ?>
+                <button class="page-btn" disabled><i class="fas fa-chevron-left"></i></button>
+            <?php endif; ?>
+
+            <?php
+                $start = max(1, $page - 2);
+                $end   = min($totalPages, $page + 2);
+                for ($i = $start; $i <= $end; $i++):
+            ?>
+                <?php if ($i === $page): ?>
+                    <button class="page-btn active"><?= $i ?></button>
+                <?php else: ?>
+                    <a class="page-btn" href="<?= $pageUrl($i) ?>"><?= $i ?></a>
+                <?php endif; ?>
+            <?php endfor; ?>
+
+            <?php if ($page < $totalPages): ?>
+                <a class="page-btn" href="<?= $pageUrl($page+1) ?>"><i class="fas fa-chevron-right"></i></a>
+            <?php else: ?>
+                <button class="page-btn" disabled><i class="fas fa-chevron-right"></i></button>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
     </div>
 
+</div>
+</div>
+
 <!-- View Listing Modal -->
-<div class="modal" id="viewModal"><div class="modal-content modal-large"><div class="modal-header"><h3>Listing Details</h3><button class="modal-close" onclick="closeViewModal()">&times;</button></div><div class="modal-body" id="viewModalBody"><div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#C6A43F;"></i><p>Loading listing details...</p></div></div></div></div>
+<div class="modal" id="viewModal"><div class="modal-content modal-large"><div class="modal-header"><h3>Listing Details</h3><button class="modal-close" onclick="closeViewModal()">&times;</button></div><div class="modal-body" id="viewModalBody"></div></div></div>
 
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -95,9 +295,10 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .status-badge.active { background: #E8F5E9; color: #2E7D32; }
 .status-badge.pending { background: #FFF3E0; color: #F57C00; }
 .status-badge.flagged { background: #FEF2F2; color: #DC2626; }
-.status-badge.expired { background: #F3F4F6; color: #6B7280; }
-.action-buttons { display: flex; gap: 8px; }
-.action-btn { width: 32px; height: 32px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.3s; }
+.status-badge.removed { background: #F3F4F6; color: #6B7280; }
+.status-badge.sold    { background: #E3F2FD; color: #1565C0; }
+.action-buttons { display: flex; gap: 8px; align-items: center; }
+.action-btn { width: 32px; height: 32px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; justify-content: center; }
 .action-btn.view { background: rgba(59,130,246,0.1); color: #3B82F6; }
 .action-btn.edit { background: rgba(198,164,63,0.1); color: #C6A43F; }
 .action-btn.flag { background: rgba(220,38,38,0.1); color: #DC2626; }
@@ -105,8 +306,9 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .action-btn.resolve { background: rgba(34,197,94,0.1); color: #22C55E; }
 .action-btn:hover { transform: scale(1.05); }
 .pagination { display: flex; justify-content: center; gap: 8px; padding: 20px; border-top: 1px solid #E0E0E0; }
-.page-btn { padding: 8px 14px; background: white; border: 1px solid #E0E0E0; border-radius: 8px; cursor: pointer; transition: all 0.3s; }
-.page-btn.active, .page-btn:hover { background: #C6A43F; border-color: #C6A43F; color: #0A0A0A; }
+.page-btn { padding: 8px 14px; background: white; border: 1px solid #E0E0E0; border-radius: 8px; cursor: pointer; transition: all 0.3s; text-decoration: none; color: #333; font-size: 13px; }
+.page-btn.active, .page-btn:hover:not(:disabled) { background: #C6A43F; border-color: #C6A43F; color: #0A0A0A; }
+.page-btn:disabled { color: #CCC; cursor: not-allowed; }
 .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 10000; align-items: center; justify-content: center; }
 .modal.show { display: flex; }
 .modal-content { background: white; border-radius: 20px; max-width: 600px; width: 90%; }
@@ -120,17 +322,8 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
 
 <script>
-function filterTable() { const term = document.getElementById('searchInput')?.value.toLowerCase() || ''; const division = document.getElementById('divisionFilter')?.value; const status = document.getElementById('statusFilter')?.value; const rows = document.querySelectorAll('#listingTableBody tr'); rows.forEach(row => { const title = row.cells[1]?.textContent.toLowerCase() || ''; const div = row.cells[2]?.textContent.toLowerCase() || ''; const stat = row.cells[5]?.textContent.toLowerCase() || ''; const matchesSearch = title.includes(term); const matchesDivision = division === 'all' || div.includes(division); const matchesStatus = status === 'all' || stat.includes(status); row.style.display = matchesSearch && matchesDivision && matchesStatus ? '' : 'none'; }); }
-document.getElementById('searchInput')?.addEventListener('input', filterTable);
-document.getElementById('divisionFilter')?.addEventListener('change', filterTable);
-document.getElementById('statusFilter')?.addEventListener('change', filterTable);
-function viewListing(id) { const modal = document.getElementById('viewModal'); const body = document.getElementById('viewModalBody'); body.innerHTML = `<div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#C6A43F;"></i><p>Loading listing details...</p></div>`; modal.classList.add('show'); setTimeout(() => { body.innerHTML = `<div style="display:grid;gap:16px;"><div><strong>Listing ID:</strong> #LK-00${id}</div><div><strong>Title:</strong> Sample Listing Title</div><div><strong>Division:</strong> Kinas Automobile</div><div><strong>Agent:</strong> John Smith</div><div><strong>Price:</strong> ₦185,000,000</div><div><strong>Status:</strong> Active</div><div><strong>Created:</strong> 2024-01-15</div><div><strong>Description:</strong> This is a premium luxury listing.</div></div>`; }, 500); }
 function closeViewModal() { document.getElementById('viewModal').classList.remove('show'); }
-function editListing(id) { alert(`Edit listing ${id}`); }
-function flagListing(id) { if (confirm('Flag this listing for review?')) alert(`Listing ${id} has been flagged`); }
-function approveListing(id) { if (confirm('Approve this listing?')) alert(`Listing ${id} has been approved`); }
-function resolveFlag(id) { if (confirm('Resolve flag on this listing?')) alert(`Flag on listing ${id} has been resolved`); }
-function exportData() { alert('Exporting listing data...'); }
+document.getElementById('viewModal')?.addEventListener('click', function(e) { if (e.target === this) closeViewModal(); });
 </script>
 </main>
 </div>
