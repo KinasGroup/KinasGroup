@@ -3,6 +3,7 @@
  * KINAS GROUP — Contact
  */
 require_once dirname(__DIR__) . '/includes/session.php';
+require_once dirname(__DIR__) . '/api/config/constants.php';
 
 $pageTitle = 'Contact Us - KINAS GROUP';
 $pageDescription = 'Get in touch with KINAS GROUP — we\'re here to help 24/7.';
@@ -21,7 +22,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Please enter a valid email address.';
     } else {
-        // In production, dispatch via EmailService
+        // Send notification email to the team
+        try {
+            require_once dirname(__DIR__) . '/includes/notify.php';
+            $body  = "New contact form submission:\n\n";
+            $body .= "From: {$name} <{$email}>\n";
+            $body .= "Subject: " . ($subject !== '' ? $subject : '(no subject)') . "\n\n";
+            $body .= "Message:\n{$message}\n\n";
+            $body .= "--\nSent from " . SITE_URL . " on " . date('Y-m-d H:i:s') . "\n";
+            Notify::email(SUPPORT_EMAIL, '[Contact Form] ' . ($subject !== '' ? $subject : 'New message'), $body);
+        } catch (Throwable $e) {
+            error_log('contact form email failed: ' . $e->getMessage());
+        }
         $success = true;
     }
 }
@@ -44,7 +56,7 @@ include dirname(__DIR__) . '/templates/header.php';
                 <div style="width: 44px; height: 44px; background: rgba(198,164,63,0.1); color: #C6A43F; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-envelope"></i></div>
                 <div>
                     <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px;">Email</h4>
-                    <p style="font-size: 14px; color: #0A0A0A;"><a href="mailto:hello@kinasgroup.com" style="color: #C6A43F; text-decoration: none;">hello@kinasgroup.com</a></p>
+                    <p style="font-size: 14px; color: #0A0A0A;"><a href="mailto:hello@kinas-group.com" style="color: #C6A43F; text-decoration: none;">hello@kinas-group.com</a></p>
                 </div>
             </div>
 
@@ -52,7 +64,7 @@ include dirname(__DIR__) . '/templates/header.php';
                 <div style="width: 44px; height: 44px; background: rgba(198,164,63,0.1); color: #C6A43F; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-headset"></i></div>
                 <div>
                     <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px;">Support</h4>
-                    <p style="font-size: 14px; color: #0A0A0A;"><a href="mailto:support@kinasgroup.com" style="color: #C6A43F; text-decoration: none;">support@kinasgroup.com</a></p>
+                    <p style="font-size: 14px; color: #0A0A0A;"><a href="mailto:support@kinas-group.com" style="color: #C6A43F; text-decoration: none;">support@kinas-group.com</a></p>
                 </div>
             </div>
 
@@ -60,7 +72,7 @@ include dirname(__DIR__) . '/templates/header.php';
                 <div style="width: 44px; height: 44px; background: rgba(198,164,63,0.1); color: #C6A43F; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-newspaper"></i></div>
                 <div>
                     <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px;">Press</h4>
-                    <p style="font-size: 14px; color: #0A0A0A;"><a href="mailto:press@kinasgroup.com" style="color: #C6A43F; text-decoration: none;">press@kinasgroup.com</a></p>
+                    <p style="font-size: 14px; color: #0A0A0A;"><a href="mailto:press@kinas-group.com" style="color: #C6A43F; text-decoration: none;">press@kinas-group.com</a></p>
                 </div>
             </div>
 
