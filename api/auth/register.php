@@ -164,17 +164,16 @@ try {
     $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
     $verificationCode = bin2hex(random_bytes(32));
 
-    // Insert user (without verification_code column if it doesn't exist)
+    // Insert user — division is stored in agent_profiles, not the users table
     $stmt = $db->prepare("
-        INSERT INTO users (name, email, password, phone, role, division, status, created_at)
-        VALUES (?, ?, ?, ?, 'agent', ?, 'active', NOW())
+        INSERT INTO users (name, email, password, phone, role, status, created_at)
+        VALUES (?, ?, ?, ?, 'agent', 'active', NOW())
     ");
     $stmt->execute([
         Security::sanitizeInput($data['name']),
         strtolower(trim($data['email'])),
         $hashedPassword,
-        Security::sanitizeInput($data['phone']),
-        $data['division']
+        Security::sanitizeInput($data['phone'])
     ]);
 
     $userId = $db->lastInsertId();
