@@ -135,17 +135,30 @@ try {
     // Rotate session ID on privilege change (login)
     SessionManager::regenerateSession();
 
-    // Populate session via SessionManager
-    SessionManager::setUser($user);
-
     // Issue DB-persisted token for API clients
     $token = Security::generateToken(32);
     $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
 
-    // Clean up old sessions for this user
-    $db->prepare("DELETE FROM sessions WHERE user_id = ? AND expires_at < NOW()")->execute([$user['id']]);
-    $db->prepare("INSERT INTO sessions (user_id, token, expires_at, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)")
-       ->execute([$user['id'], $token, $expires, $ip, $_SERVER['HTTP_USER_AGENT'] ?? '']);
+    // Persist API session row. The web UI relies on the PHP session
+    // (set below) so a failure here must NOT fail the whole login —
+    // we just log it and omit the token from the response.
+    $tokenIssued = false;
+    try {
+        // Clean up expired sessions for this user (best-effort)
+        $db->prepare("DELETE FROM sessions WHERE user_id = ? AND expires_at < NOW()")
+           ->execute([$user['id']]);
+        $db->prepare("INSERT INTO sessions (user_id, token, expires_at, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)")
+           ->execute([$user['id'], $token, $expires, $ip, $_SERVER['HTTP_USER_AGENT'] ?? '']);
+        $tokenIssued = true;
+    } catch (\Throwable $sessionErr) {
+        // Most likely the `sessions` table is missing on this deploy.
+        // Don't block login — web auth uses the PHP session.
+        error_log('Session row insert failed (non-fatal, web auth will still work): ' . $sessionErr->getMessage());
+    }
+
+    // Populate session via SessionManager AFTER any DB writes so the
+    // session cookie always reflects a successful login (no half-state).
+    SessionManager::setUser($user);
 
     Security::logActivity($user['id'], 'login', 'Successful login from ' . $ip);
 
@@ -153,9 +166,8 @@ try {
     $newCsrfToken = Security::generate_csrf_token();
 
     http_response_code(200);
-    echo json_encode([
+    $response = [
         'success' => true,
-        'token' => $token,
         'csrf_token' => $newCsrfToken,
         'user' => [
             'id' => $user['id'],
@@ -164,7 +176,11 @@ try {
             'role' => $user['role'],
             'verified' => (bool)$user['verified'],
         ],
-    ]);
+    ];
+    if ($tokenIssued) {
+        $response['token'] = $token;
+    }
+    echo json_encode($response);
 
 } catch (\Throwable $e) {
     error_log('Login error: ' . $e->getMessage());
