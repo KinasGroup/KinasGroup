@@ -29,7 +29,9 @@ $responses_received = $stmt->fetch()['total'];
 // Get recent saved listings - use UNION to combine all listing types
 $stmt = $db->prepare("
     SELECT * FROM (
-        SELECT CONCAT('car_', sl.listing_id) as unique_id, sl.saved_at, cl.title, cl.price, cl.location, cl.status,
+        SELECT CONCAT('car_', sl.listing_id) as unique_id, sl.saved_at, cl.title, cl.price,
+               COALESCE(NULLIF(cl.location, ''), CONCAT_WS(0x2C20, cl.city, cl.state)) AS location,
+               cl.status,
                (SELECT url FROM listing_images WHERE listing_id = cl.id AND listing_type = 'car' ORDER BY sort_order LIMIT 1) as thumbnail,
                'car' as listing_type
         FROM saved_listings sl
@@ -38,7 +40,7 @@ $stmt = $db->prepare("
 
         UNION ALL
 
-        SELECT CONCAT('property_', sl.listing_id) as unique_id, sl.saved_at, pl.title, pl.price, pl.city as location, pl.status,
+        SELECT CONCAT('property_', sl.listing_id) as unique_id, sl.saved_at, pl.title, pl.price, CONCAT_WS(0x2C20, pl.city, pl.state) AS location, pl.status,
                (SELECT url FROM listing_images WHERE listing_id = pl.id AND listing_type = 'property' ORDER BY sort_order LIMIT 1) as thumbnail,
                'property' as listing_type
         FROM saved_listings sl
@@ -47,7 +49,7 @@ $stmt = $db->prepare("
 
         UNION ALL
 
-        SELECT CONCAT('marketplace_', sl.listing_id) as unique_id, sl.saved_at, ml.title, ml.price, 'Marketplace' as location, ml.status,
+        SELECT CONCAT('marketplace_', sl.listing_id) as unique_id, sl.saved_at, ml.title, ml.price, CONCAT_WS(0x2C20, ml.city, ml.state) AS location, ml.status,
                (SELECT url FROM listing_images WHERE listing_id = ml.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) as thumbnail,
                'marketplace' as listing_type
         FROM saved_listings sl
