@@ -75,13 +75,21 @@ class Security {
     // ── CSRF ────────────────────────────────────────────────────────────────
 
     /**
-     * Generate CSRF token (stored in session)
+     * Generate CSRF token (stored in session).
+     * Canonical method — all internal code should call this.
      */
-    public static function generate_csrf_token(): string {
+    public static function generateCSRFToken(): string {
         if (!isset($_SESSION['csrf_token'])) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
         return $_SESSION['csrf_token'];
+    }
+
+    /**
+     * Alias for generateCSRFToken() — kept for backward compatibility.
+     */
+    public static function generate_csrf_token(): string {
+        return self::generateCSRFToken();
     }
 
     /**
@@ -399,12 +407,6 @@ class Security {
         }
     }
 
-    public static function generateCSRFToken(): string {
-        if (!isset($_SESSION["csrf_token"])) {
-            $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
-        }
-        return $_SESSION["csrf_token"];
-    }
 
 }
 
