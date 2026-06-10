@@ -119,7 +119,11 @@ class SessionManager {
 
     public static function regenerateSession(): void {
         if (session_status() === PHP_SESSION_ACTIVE) {
-            session_regenerate_id(true);
+            // Use false to keep old session data accessible during the redirect window.
+            // Using true (delete old session) causes a race condition: the browser may
+            // present the old session cookie on the next request before the new Set-Cookie
+            // is applied, resulting in "Login Failed" even though credentials were correct.
+            session_regenerate_id(false);
         }
     }
 
