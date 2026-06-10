@@ -152,7 +152,7 @@ try {
     // Using 'verification_code' column (matches your table, not 'email_verification_code')
     $stmt = $db->prepare("
         INSERT INTO users (name, email, phone, password, role, status, verification_code, created_at)
-        VALUES (?, ?, ?, ?, 'user', 'pending', ?, NOW())
+        VALUES (?, ?, ?, ?, 'user', 'active', ?, NOW())
     ");
     $stmt->execute([$name, strtolower($email), $phone, $passwordHash, $verificationCode]);
     $userId = $db->lastInsertId();
