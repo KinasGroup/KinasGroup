@@ -26,9 +26,23 @@ ALTER TABLE users
   );
 
 -- ============================================================
--- PATCH 3: Add missing columns to sessions table
--- (Bug 3: login.php inserts ip_address and user_agent)
+-- PATCH 3: Create sessions table if missing, then add columns
+-- (Bug 3: login.php inserts ip_address and user_agent; the table
+--  itself is not in fresh_schema.sql on older deploys, so login
+--  fails on Railway with Table 'kinas_group.sessions' doesn't exist)
 -- ============================================================
+CREATE TABLE IF NOT EXISTS sessions (
+    id          INT PRIMARY KEY AUTO_INCREMENT,
+    user_id     INT NOT NULL,
+    token       VARCHAR(128) NOT NULL,
+    expires_at  TIMESTAMP NOT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_token (token),
+    INDEX idx_user_id    (user_id),
+    INDEX idx_expires_at (expires_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 ALTER TABLE sessions
   ADD COLUMN IF NOT EXISTS ip_address VARCHAR(45) NULL,
   ADD COLUMN IF NOT EXISTS user_agent TEXT NULL;
