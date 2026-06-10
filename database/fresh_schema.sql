@@ -84,6 +84,27 @@ CREATE TABLE agent_profiles (
 ) ENGINE=InnoDB;
 
 -- =====================================================================
+-- SESSIONS — DB-persisted login tokens (API clients / remember-me)
+-- Web UI uses PHP's native session, but we still persist these for
+-- mobile/API clients and for admin-side "active sessions" tracking.
+-- Created here because api/auth/login.php INSERTs into it.
+-- =====================================================================
+
+CREATE TABLE sessions (
+    id          INT PRIMARY KEY AUTO_INCREMENT,
+    user_id     INT NOT NULL,
+    token       VARCHAR(128) NOT NULL,
+    expires_at  TIMESTAMP NOT NULL,
+    ip_address  VARCHAR(45) NULL,
+    user_agent  TEXT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_token (token),
+    INDEX idx_user_id    (user_id),
+    INDEX idx_expires_at (expires_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- =====================================================================
 -- PHONE OTP (Termii) — only the hash is stored
 -- =====================================================================
 
