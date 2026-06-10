@@ -183,18 +183,101 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 -- ============================================================
--- PATCH 8: Seed Admin Account
--- Password = Admin@Kinas2025  (bcrypt hash below)
--- CHANGE THIS PASSWORD immediately after first login!
+-- PATCH 9: Add `divisions` (multi-value) column to agent_profiles
+-- The existing `division` column holds ONE division. The new
+-- `divisions` column holds a comma-separated list of all divisions
+-- an agent has access to. When set, it OVERRIDES `division` for
+-- access-control checks — this is how the Super Agent gets all 4.
+-- Idempotent: ADD COLUMN IF NOT EXISTS is safe to re-run.
 -- ============================================================
+ALTER TABLE agent_profiles
+  ADD COLUMN IF NOT EXISTS divisions VARCHAR(255) NULL
+    COMMENT 'Comma-separated list of division slugs. When non-NULL, grants access to ALL listed divisions (used for the Super Agent).'
+    AFTER division,
+  ADD INDEX IF NOT EXISTS idx_divisions (divisions);
+
+-- ============================================================
+-- PATCH 10: Seed Admin + Super Agent Accounts
+-- Both rows are inserted idempotently with WHERE NOT EXISTS, so
+-- re-running this script will not duplicate them.
+--
+-- PASSWORDS (bcrypt, cost 12) — CHANGE immediately after first login:
+--   admin@kinas-group.com    → Admin@Kinas2025
+--   listing@kinas-group.com → Agent@Kinas2025
+--
+-- To generate a fresh bcrypt hash from the command line:
+--   python3 -c "import bcrypt; print(bcrypt.hashpw(b'NEW_PASSWORD', bcrypt.gensalt(rounds=12)).decode().replace('\$2b\$','\$2y\$'))"
+--
+-- The Super Agent has role='agent' and an agent_profiles row
+-- with `divisions` set to all 4 division slugs and `division`
+-- set to the primary one (kinas-automobile). The `users.division`
+-- column is a single-value ENUM, so we set it to the primary too.
+-- ============================================================
+
+-- ============================================================
+-- 10-PREP: Expunge any pre-existing admin / super-agent accounts
+-- The goal: after this patch runs, ONLY these two accounts exist
+-- with these roles. Anything stale (wrong email, wrong hash,
+-- leftover from a previous deploy) is wiped clean first.
+--
+-- We use a CTE-style capture of the two well-known user ids and
+-- cascade-clean every referencing row in the auxiliary tables
+-- (sessions, login_attempts, activity_logs, audit_log). FKs on
+-- agent_profiles.user_id are already ON DELETE CASCADE, but the
+-- marketplace / inquiries / messages tables use RESTRICT, so we
+-- either null them out (keep the data, drop the link) or remove
+-- the rows. We go with NULL the link for audit-trail preservation.
+-- ============================================================
+
+-- Capture the user ids we're about to expunge
+DROP TEMPORARY TABLE IF EXISTS _exunge_ids;
+CREATE TEMPORARY TABLE _exunge_ids (user_id INT PRIMARY KEY);
+
+INSERT IGNORE INTO _exunge_ids (user_id)
+  SELECT id FROM users
+   WHERE email IN ('admin@kinas-group.com', 'listing@kinas-group.com')
+      OR role = 'admin';  -- also catch any other stray admin rows
+
+-- Null out RESTRICT-mode references so the user deletes don't fail
+UPDATE agent_profiles
+   SET business_doc_reviewed_by = NULL
+ WHERE business_doc_reviewed_by IN (SELECT user_id FROM _exunge_ids);
+
+UPDATE business_documents     SET reviewed_by = NULL
+ WHERE reviewed_by IN (SELECT user_id FROM _exunge_ids);
+
+UPDATE audit_log              SET user_id     = NULL
+ WHERE user_id     IN (SELECT user_id FROM _exunge_ids);
+
+UPDATE blog_posts             SET author_id   = NULL
+ WHERE author_id   IN (SELECT user_id FROM _exunge_ids);
+
+UPDATE activity_logs          SET user_id     = NULL
+ WHERE user_id     IN (SELECT user_id FROM _exunge_ids);
+
+-- Drop rows in CASCADE-mode / unrelated auxiliary tables
+DELETE FROM sessions       WHERE user_id IN (SELECT user_id FROM _exunge_ids);
+DELETE FROM login_attempts WHERE email    IN ('admin@kinas-group.com','listing@kinas-group.com');
+DELETE FROM rate_limits    WHERE rate_key REGEXP '(login|register)_(admin@kinas-group\.com|listing@kinas-group\.com)';
+
+-- Now delete the actual user rows (agent_profiles row goes via CASCADE)
+DELETE FROM users WHERE id IN (SELECT user_id FROM _exunge_ids);
+
+DROP TEMPORARY TABLE _exunge_ids;
+
+-- ============================================================
+-- 10a. Super Admin
+-- ============================================================
+
+-- ---- 10a. Super Admin ----
 INSERT INTO users (
-    name, email, password, phone, role, 
+    name, email, password, phone, role,
     division, status, verified, phone_verified,
-    email_verified_at, created_at
-) 
-SELECT 
+    email_verified_at, created_at, updated_at
+)
+SELECT
     'KINAS Admin',
-    'info7admin@gmail.com',
+    'admin@kinas-group.com',
     -- bcrypt hash of 'Admin@Kinas2025' (cost 12)
     '$2y$12$5s5rRcK9aTp.muylFLm6n.vR52uonPr7Kaq61S.kKUCxmbLCTfy6q',
     '+2340000000000',
@@ -204,18 +287,72 @@ SELECT
     TRUE,
     TRUE,
     NOW(),
+    NOW(),
     NOW()
 WHERE NOT EXISTS (
-    SELECT 1 FROM users WHERE email = 'info7admin@gmail.com'
+    SELECT 1 FROM users WHERE email = 'admin@kinas-group.com'
 );
+
+-- ---- 10b. Super Agent (access to all 4 divisions) ----
+INSERT INTO users (
+    name, email, password, phone, role,
+    division, status, verified, phone_verified,
+    email_verified_at, created_at, updated_at
+)
+SELECT
+    'KINAS Listing Agent',
+    'listing@kinas-group.com',
+    -- bcrypt hash of 'Agent@Kinas2025' (cost 12) — CHANGE before going live!
+    '$2y$12$qsr0Islu5oYuF9LuP/0D9.i87igLVDpSgPcjns010ah6./Sl927NW',
+    '+2340000000000',
+    'agent',
+    'kinas-automobile',
+    'active',
+    TRUE,
+    TRUE,
+    NOW(),
+    NOW(),
+    NOW()
+WHERE NOT EXISTS (
+    SELECT 1 FROM users WHERE email = 'listing@kinas-group.com'
+);
+
+-- Create agent_profiles row for the Super Agent with all 4 divisions
+INSERT INTO agent_profiles (
+    user_id, division, divisions,
+    company_name, company_legal_name,
+    verification_status, kyc_provider, kyc_passed_at,
+    business_doc_reviewed_by, business_doc_reviewed_at,
+    created_at, updated_at
+)
+SELECT
+    u.id,
+    'kinas-automobile',
+    'kinas-automobile,williams-connect-home,kinas-volt,kinas-marketplace',
+    'KINAS GROUP',
+    'KINAS GROUP OF COMPANY LIMITED',
+    'approved',
+    'manual',
+    NOW(),
+    (SELECT id FROM (SELECT id FROM users WHERE email='admin@kinas-group.com') AS a),
+    NOW(),
+    NOW(),
+    NOW()
+FROM users u
+WHERE u.email = 'listing@kinas-group.com'
+  AND NOT EXISTS (
+    SELECT 1 FROM agent_profiles ap WHERE ap.user_id = u.id
+  );
 
 -- ============================================================
 -- DONE
 -- ============================================================
-SELECT 
+SELECT
     'complete_patch.sql applied successfully!' AS status,
     (SELECT COUNT(*) FROM users WHERE role='admin') AS admin_count,
-    (SELECT COUNT(*) FROM information_schema.TABLES 
-     WHERE TABLE_SCHEMA = DATABASE() 
-     AND TABLE_NAME IN ('agent_profiles','login_attempts','rate_limits','marketplace_categories','marketplace_listings')
+    (SELECT COUNT(*) FROM users WHERE role='agent' AND email='listing@kinas-group.com') AS super_agent_count,
+    (SELECT COUNT(*) FROM users WHERE email IN ('admin@kinas-group.com','listing@kinas-group.com') AND status='active') AS seeded_accounts_active,
+    (SELECT COUNT(*) FROM information_schema.TABLES
+     WHERE TABLE_SCHEMA = DATABASE()
+     AND TABLE_NAME IN ('agent_profiles','login_attempts','rate_limits','marketplace_categories','marketplace_listings','sessions')
     ) AS critical_tables_present;
