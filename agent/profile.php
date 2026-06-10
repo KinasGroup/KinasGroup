@@ -237,17 +237,32 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
             <div class="form-group">
                 <label>Current Password</label>
-                <input type="password" name="current_password" placeholder="Enter current password to make changes" autocomplete="current-password">
+                <div class="je-password-wrap">
+                    <input type="password" name="current_password" placeholder="Enter current password to make changes" autocomplete="current-password">
+                    <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                    </button>
+                </div>
                 <div class="photo-note">Leave blank to keep your current password. Required to set a new one.</div>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label>New Password</label>
-                    <input type="password" name="new_password" placeholder="Min. 8 characters" minlength="8" autocomplete="new-password">
+                    <div class="je-password-wrap">
+                        <input type="password" name="new_password" placeholder="Min. 8 characters" minlength="8" autocomplete="new-password">
+                        <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Confirm New Password</label>
-                    <input type="password" name="confirm_password" placeholder="Repeat the new password" minlength="8" autocomplete="new-password">
+                    <div class="je-password-wrap">
+                        <input type="password" name="confirm_password" placeholder="Repeat the new password" minlength="8" autocomplete="new-password">
+                        <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -296,4 +311,5 @@ document.getElementById('profileForm')?.addEventListener('submit', function() {
 </main>
 </div>
 
+<?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
