@@ -2,13 +2,13 @@
 header('Content-Type: application/json');
 
 // Load environment variables from .env file
-require_once '../../includes/dotenv.php';
+require_once __DIR__ . '/../../includes/dotenv.php';
 
-require_once '../config/database.php';
-require_once '../config/constants.php';
-require_once '../../includes/session.php';
-require_once '../../includes/security.php';
-require_once '../../includes/email.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/constants.php';
+require_once __DIR__ . '/../../includes/session.php';
+require_once __DIR__ . '/../../includes/security.php';
+require_once __DIR__ . '/../../includes/email.php';
 
 // CORS headers for API access
 header('Access-Control-Allow-Origin: *');
@@ -157,13 +157,27 @@ try {
     $stmt->execute([$name, strtolower($email), $phone, $passwordHash, $verificationCode]);
     $userId = $db->lastInsertId();
 
-    // Send verification email (optional - don't rollback if fails)
+    // Send verification email (REQUIRED — registration only succeeds if delivery succeeds)
+    $emailSent = false;
+    $emailError = 'Email service is unavailable. Please try again later.';
     try {
         $emailService = new EmailService();
-        $emailService->sendVerificationEmail(strtolower($email), $name, $verificationCode);
+        $emailSent = (bool) $emailService->sendVerificationEmail(strtolower($email), $name, $verificationCode);
+        if (!$emailSent) {
+            $emailError = 'We were unable to deliver the verification email to the address you provided. Please double-check the email and try again.';
+        }
     } catch (Exception $e) {
-        error_log('Email sending failed (non-fatal): ' . $e->getMessage());
-        // Don't rollback - just log the error
+        error_log('Email sending failed: ' . $e->getMessage());
+        $emailSent = false;
+        $emailError = 'We were unable to deliver the verification email. Please try again later.';
+    }
+
+    if (!$emailSent) {
+        // Roll back the user insert so a fake/invalid email cannot create an account
+        $db->rollBack();
+        http_response_code(502);
+        echo json_encode(['error' => $emailError]);
+        exit;
     }
 
     // Log registration

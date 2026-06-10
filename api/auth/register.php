@@ -2,14 +2,14 @@
 header('Content-Type: application/json');
 
 // Load environment variables from .env file
-require_once '../../includes/dotenv.php';
+require_once __DIR__ . '/../../includes/dotenv.php';
 
-require_once '../config/database.php';
-require_once '../config/constants.php';
-require_once '../../includes/session.php';
-require_once '../../includes/validation.php';
-require_once '../../includes/security.php';
-require_once '../../includes/email.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/constants.php';
+require_once __DIR__ . '/../../includes/session.php';
+require_once __DIR__ . '/../../includes/validation.php';
+require_once __DIR__ . '/../../includes/security.php';
+require_once __DIR__ . '/../../includes/email.php';
 
 // CORS headers for API access
 header('Access-Control-Allow-Origin: *');
@@ -185,14 +185,32 @@ try {
     ");
     $stmt->execute([$userId, $data['division']]);
 
-    // Send verification email (optional - skip if email service not configured)
+    // Send verification email (REQUIRED — registration only succeeds if delivery succeeds)
+    $emailSent = false;
+    $emailError = 'Email service is not configured.';
     try {
         if (class_exists('EmailService')) {
             $emailService = new EmailService();
-            $emailService->sendVerificationEmail($data['email'], $data['name'], $verificationCode);
+            $emailSent = (bool) $emailService->sendVerificationEmail($data['email'], $data['name'], $verificationCode);
+            if (!$emailSent) {
+                $emailError = 'We were unable to deliver the verification email to the address you provided. Please double-check the email and try again.';
+            }
+        } else {
+            $emailSent = false;
+            $emailError = 'Email service is unavailable. Please try again later.';
         }
     } catch (Exception $e) {
-        error_log('Email sending failed (non-fatal): ' . $e->getMessage());
+        error_log('Email sending failed: ' . $e->getMessage());
+        $emailSent = false;
+        $emailError = 'We were unable to deliver the verification email. Please try again later.';
+    }
+
+    if (!$emailSent) {
+        // Roll back the user + agent profile so a fake/invalid email cannot create an account
+        $db->rollBack();
+        http_response_code(502);
+        echo json_encode(['error' => $emailError]);
+        exit;
     }
 
     // Log activity
