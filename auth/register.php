@@ -1,243 +1,193 @@
 <?php
-header('Content-Type: application/json');
+require_once __DIR__ . '/../includes/dotenv.php';
+require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/security.php';
 
-// Load environment variables from .env file
-require_once __DIR__ . '/../../includes/dotenv.php';
-
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../config/constants.php';
-require_once __DIR__ . '/../../includes/session.php';
-require_once __DIR__ . '/../../includes/validation.php';
-require_once __DIR__ . '/../../includes/security.php';
-require_once __DIR__ . '/../../includes/email.php';
-
-// CORS headers for API access
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-// Handle preflight
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+if (SessionManager::isLoggedIn()) {
+    $role = SessionManager::getUserRole();
+    header('Location: ' . ($role === 'admin' ? '../admin/dashboard.php' : ($role === 'agent' ? '../agent/dashboard.php' : '../user/dashboard.php')));
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['error' => 'Method not allowed']);
-    exit;
-}
+$csrfToken = Security::generateCSRFToken();
+$errorMessage = SessionManager::getFlash('error');
+$successMessage = SessionManager::getFlash('success');
 
-// IP-based rate limiting (DB-backed)
-$ip = Security::getClientIP();
-Security::rateLimitDB('register_' . $ip, 3, 3600);
-
-$data = json_decode(file_get_contents('php://input'), true);
-
-if (!$data) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Invalid JSON data']);
-    exit;
-}
-
-// CSRF token validation
-$csrfToken = $data['csrf_token'] ?? '';
-if (empty($csrfToken) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrfToken)) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Invalid security token. Please refresh the page and try again.']);
-    exit;
-}
-
-// Rotate CSRF token after successful validation
-unset($_SESSION['csrf_token']);
-
-// CAPTCHA verification (skip if not configured)
-$captchaToken = $data['captcha_token'] ?? '';
-$captchaSecretKey = $_ENV['CAPTCHA_SECRET_KEY'] ?? getenv('CAPTCHA_SECRET_KEY') ?? '';
-$captchaEnabled = !empty($captchaSecretKey) && $captchaSecretKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX';
-
-if ($captchaEnabled && empty($captchaToken)) {
-    http_response_code(422);
-    echo json_encode(['error' => 'CAPTCHA verification required']);
-    exit;
-}
-
-if ($captchaEnabled && !empty($captchaToken)) {
-    $verifyResponse = @file_get_contents(
-        'https://www.google.com/recaptcha/api/siteverify?' . http_build_query([
-            'secret' => $captchaSecretKey,
-            'response' => $captchaToken,
-            'remoteip' => $ip
-        ])
-    );
-    if ($verifyResponse !== false) {
-        $verifyData = json_decode($verifyResponse, true);
-        if (!$verifyData || !$verifyData['success']) {
-            http_response_code(422);
-            echo json_encode(['error' => 'CAPTCHA verification failed. Please try again.']);
-            exit;
-        }
-    }
-}
-
-// Map frontend division values to database values
-$divisionMap = [
-    'automobile' => 'kinas-automobile',
-    'real_estate' => 'williams-connect-home',
-    'solar' => 'kinas-volt',
-    'marketplace' => 'kinas-marketplace'
+$divisions = [
+    'automobile'    => 'KINAS Automobile',
+    'real_estate'   => 'Williams Connect Home',
+    'solar'         => 'KINAS Volt',
+    'marketplace'   => 'KINAS Marketplace',
 ];
-
-// Convert division if needed
-$originalDivision = $data['division'] ?? '';
-$data['division'] = $divisionMap[$originalDivision] ?? $originalDivision;
-
-// Validate input
-$validator = new Validator();
-$rules = [
-    'name' => 'required|min:2|max:100',
-    'email' => 'required|email',
-    'phone' => 'required',
-    'password' => 'required|min:8',
-    'password_confirmation' => 'required',
-    'division' => 'required'
-];
-
-if (!$validator->validate($data, $rules)) {
-    http_response_code(422);
-    echo json_encode([
-        'error' => 'Validation failed',
-        'errors' => $validator->getErrors()
-    ]);
-    exit;
-}
-
-// Verify password confirmation
-if ($data['password'] !== $data['password_confirmation']) {
-    http_response_code(422);
-    echo json_encode(['error' => 'Passwords do not match']);
-    exit;
-}
-
-// Validate division
-$validDivisions = ['kinas-automobile', 'williams-connect-home', 'kinas-volt', 'kinas-marketplace'];
-if (!in_array($data['division'], $validDivisions, true)) {
-    http_response_code(422);
-    echo json_encode(['error' => 'Invalid division selected']);
-    exit;
-}
-
-// Password strength validation
-if (!preg_match('/[A-Z]/', $data['password'])) {
-    http_response_code(422);
-    echo json_encode(['error' => 'Password must contain at least one uppercase letter']);
-    exit;
-}
-
-if (!preg_match('/[a-z]/', $data['password'])) {
-    http_response_code(422);
-    echo json_encode(['error' => 'Password must contain at least one lowercase letter']);
-    exit;
-}
-
-if (!preg_match('/[0-9]/', $data['password'])) {
-    http_response_code(422);
-    echo json_encode(['error' => 'Password must contain at least one number']);
-    exit;
-}
-
-try {
-    $db = Database::getInstance()->getConnection();
-    
-    // Check if email already exists
-    $stmt = $db->prepare("SELECT id FROM users WHERE email = ?");
-    $stmt->execute([strtolower(trim($data['email']))]);
-    if ($stmt->fetch()) {
-        http_response_code(409);
-        echo json_encode(['error' => 'An account with this email already exists']);
-        exit;
-    }
-    
-    $db->beginTransaction();
-
-    // Hash password
-    $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
-    $verificationCode = bin2hex(random_bytes(32));
-
-    // Insert user — division is stored in agent_profiles, not the users table
-    $stmt = $db->prepare("
-        INSERT INTO users (name, email, password, phone, role, status, created_at)
-        VALUES (?, ?, ?, ?, 'agent', 'active', NOW())
-    ");
-    $stmt->execute([
-        Security::sanitizeInput($data['name']),
-        strtolower(trim($data['email'])),
-        $hashedPassword,
-        Security::sanitizeInput($data['phone'])
-    ]);
-
-    $userId = $db->lastInsertId();
-
-    // Create agent profile
-    $stmt = $db->prepare("
-        INSERT INTO agent_profiles (user_id, division, verification_status, created_at)
-        VALUES (?, ?, 'pending', NOW())
-    ");
-    $stmt->execute([$userId, $data['division']]);
-
-    // Send verification email (REQUIRED — registration only succeeds if delivery succeeds)
-    $emailSent = false;
-    $emailError = 'Email service is not configured.';
-    try {
-        if (class_exists('EmailService')) {
-            $emailService = new EmailService();
-            $emailSent = (bool) $emailService->sendVerificationEmail($data['email'], $data['name'], $verificationCode);
-            if (!$emailSent) {
-                $emailError = 'We were unable to deliver the verification email to the address you provided. Please double-check the email and try again.';
-            }
-        } else {
-            $emailSent = false;
-            $emailError = 'Email service is unavailable. Please try again later.';
-        }
-    } catch (Exception $e) {
-        error_log('Email sending failed: ' . $e->getMessage());
-        $emailSent = false;
-        $emailError = 'We were unable to deliver the verification email. Please try again later.';
-    }
-
-    if (!$emailSent) {
-        // Roll back the user + agent profile so a fake/invalid email cannot create an account
-        $db->rollBack();
-        http_response_code(502);
-        echo json_encode(['error' => $emailError]);
-        exit;
-    }
-
-    // Log activity
-    Security::logActivity($userId, 'agent_registration', "New agent registration for {$data['division']} from $ip");
-
-    $db->commit();
-
-    // Generate new CSRF token for next request
-    $newCsrfToken = Security::generate_csrf_token();
-
-    http_response_code(201);
-    echo json_encode([
-        'success' => true,
-        'csrf_token' => $newCsrfToken,
-        'message' => 'Registration successful! Please login to continue.',
-        'user_id' => $userId
-    ]);
-
-} catch (PDOException $e) {
-    if (isset($db)) $db->rollBack();
-    error_log('Registration error: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['error' => 'Registration failed. Please try again.']);
-} catch (Exception $e) {
-    if (isset($db)) $db->rollBack();
-    error_log('Registration error: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['error' => 'Registration failed. Please try again.']);
-}
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Registration - KINAS GROUP | Luxury Marketplace</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/james-edition.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div class="je-auth-shell">
+    <aside class="je-auth-aside">
+        <a href="../index.php" class="je-auth-brand">
+            <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
+            <span></span>
+        </a>
+        <div>
+            <h1 class="je-auth-headline">Become a KINAS Agent.</h1>
+            <p class="je-auth-sub">List luxury vehicles, properties, solar systems or curated goods to a global audience of qualified buyers. KYC verification is fast and free.</p>
+        </div>
+        <blockquote class="je-auth-quote">
+            <p>"KINAS made cross-border selling simple. Our Lagos dealership saw international buyers within the first week."</p>
+            <cite>— M. Adebayo, Verified Dealer</cite>
+        </blockquote>
+    </aside>
+
+    <main class="je-auth-main">
+        <div class="je-auth-form" style="max-width:520px;">
+            <h2>Create agent account</h2>
+            <p class="je-auth-sub-form">After registration you'll complete MetaMap identity verification — usually under 2 minutes.</p>
+
+            <?php if ($errorMessage): ?><div class="je-form-error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div><?php endif; ?>
+            <?php if ($successMessage): ?><div class="je-form-success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($successMessage) ?></div><?php endif; ?>
+
+            <form id="registerForm" method="POST" action="../api/auth/register.php" novalidate>
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+
+                <div class="je-form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" placeholder="Your full name" required minlength="2" maxlength="100">
+                </div>
+
+                <div class="je-form-row">
+                    <div class="je-form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
+                    </div>
+                    <div class="je-form-group">
+                        <label for="phone">Phone</label>
+                        <input type="tel" id="phone" name="phone" placeholder="+234 800 000 0000" required>
+                    </div>
+                </div>
+
+                <div class="je-form-group">
+                    <label for="division">Select Your Division</label>
+                    <select id="division" name="division" required>
+                        <option value="">Choose your division</option>
+                        <?php foreach ($divisions as $key => $label): ?>
+                        <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($label) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="je-form-row">
+                    <div class="je-form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Min. 8 characters" required minlength="8">
+                        <p style="font-size:11px; color:#888; margin-top:4px;">At least 8 characters with uppercase, lowercase, and numbers.</p>
+                    </div>
+                    <div class="je-form-group">
+                        <label for="password_confirmation">Confirm Password</label>
+                        <input type="password" id="password_confirmation" name="password_confirmation" placeholder="Confirm password" required>
+                    </div>
+                </div>
+
+                <div class="je-form-group" id="captcha-group">
+                    <div id="captcha-container"></div>
+                    <input type="hidden" id="captcha-token" name="captcha_token">
+                    <p style="font-size:11px; color:#888; margin-top:6px;">
+                        <i class="fas fa-shield-alt"></i> Protected by reCAPTCHA. <a href="https://policies.google.com/privacy" target="_blank" style="color:#C6A43F;">Privacy</a> · <a href="https://policies.google.com/terms" target="_blank" style="color:#C6A43F;">Terms</a>
+                    </p>
+                </div>
+
+                <p style="font-size:12px; color:#666; margin-bottom:20px; line-height:1.5;">
+                    <i class="fas fa-shield-alt" style="color:#C6A43F;"></i> By registering, you agree to our
+                    <a href="../pages/terms-of-use.php" style="color:#C6A43F;">Terms</a> and
+                    <a href="../pages/privacy-policy.php" style="color:#C6A43F;">Privacy Policy</a>.
+                    KYC verification is required before listing.
+                </p>
+
+                <button type="submit" id="submitBtn" class="je-btn je-btn-gold je-btn-block je-btn-lg">
+                    Create Account &amp; Continue
+                </button>
+            </form>
+
+            <div class="je-auth-switch">
+                Already have an account? <a href="login.php">Sign in</a> · <a href="register-buyer.php">Register as buyer</a>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+const captchaSiteKey = '<?= htmlspecialchars($_ENV['CAPTCHA_SITE_KEY'] ?? '') ?>';
+const isCaptchaConfigured = captchaSiteKey && captchaSiteKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX' && captchaSiteKey.length > 30;
+if (isCaptchaConfigured) {
+    var s = document.createElement('script');
+    s.src = 'https://www.google.com/recaptcha/api.js?onload=onCaptchaLoad&render=explicit';
+    s.async = true; s.defer = true;
+    document.head.appendChild(s);
+} else {
+    document.addEventListener('DOMContentLoaded', function() {
+        const c = document.getElementById('captcha-group'); if (c) c.style.display = 'none';
+    });
+}
+function onCaptchaLoad() {
+    if (!isCaptchaConfigured) return;
+    const c = document.getElementById('captcha-container');
+    if (c) grecaptcha.render('captcha-container', {
+        sitekey: captchaSiteKey,
+        callback: r => document.getElementById('captcha-token').value = r,
+        'expired-callback': () => document.getElementById('captcha-token').value = ''
+    });
+}
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this, submitBtn = document.getElementById('submitBtn');
+    const name = form.name.value.trim(), email = form.email.value.trim(), phone = form.phone.value.trim();
+    const division = form.division.value, password = form.password.value, passwordConfirmation = form.password_confirmation.value;
+    if (!name || !email || !phone || !division || !password || !passwordConfirmation) { alert('Please fill in all required fields'); return; }
+    if (password !== passwordConfirmation) { alert('Passwords do not match'); return; }
+    if (password.length < 8) { alert('Password must be at least 8 characters'); return; }
+    if (isCaptchaConfigured && !document.getElementById('captcha-token').value) { alert('Please complete the CAPTCHA verification'); return; }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account…';
+
+    try {
+        const res = await fetch(form.action, {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name, email, phone, division, password, password_confirmation: passwordConfirmation,
+                csrf_token: form.csrf_token.value,
+                captcha_token: isCaptchaConfigured ? document.getElementById('captcha-token').value : ''
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            const successMessage = data.message || 'Registration successful! Please login to continue.';
+            window.location.href = 'login.php?registered=1&message=' + encodeURIComponent(successMessage);
+        } else {
+            let errorMsg = data.error || 'Registration failed';
+            if (data.errors) errorMsg = Object.values(data.errors).join(', ');
+            alert(errorMsg);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Create Account &amp; Continue';
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Network error. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Create Account &amp; Continue';
+    }
+});
+</script>
+</body>
+</html>
