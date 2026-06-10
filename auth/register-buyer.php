@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../includes/dotenv.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
 
@@ -71,12 +72,22 @@ $successMessage = SessionManager::getFlash('success');
                 <div class="je-form-row">
                     <div class="je-form-group">
                         <label for="password">Password</label>
-                        <input type="password" id="password" name="password" placeholder="Min. 8 characters" required minlength="8">
+                        <div class="je-password-wrap">
+                            <input type="password" id="password" name="password" placeholder="Min. 8 characters" required minlength="8">
+                            <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
                         <p style="font-size:11px; color:#888; margin-top:4px;">At least 8 characters with uppercase, lowercase, and numbers.</p>
                     </div>
                     <div class="je-form-group">
                         <label for="password_confirmation">Confirm Password</label>
-                        <input type="password" id="password_confirmation" name="password_confirmation" placeholder="Confirm password" required>
+                        <div class="je-password-wrap">
+                            <input type="password" id="password_confirmation" name="password_confirmation" placeholder="Confirm password" required>
+                            <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -167,5 +178,6 @@ document.getElementById('registerForm').addEventListener('submit', async functio
     }
 });
 </script>
+<?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
 </body>
 </html>

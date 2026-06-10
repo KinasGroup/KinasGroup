@@ -51,12 +51,22 @@ $success = !empty($_GET['success']);
 
                     <div class="je-form-group">
                         <label for="password">New Password</label>
-                        <input type="password" id="password" name="password" placeholder="Enter new password" required minlength="8">
+                        <div class="je-password-wrap">
+                            <input type="password" id="password" name="password" placeholder="Enter new password" required minlength="8">
+                            <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
                         <p style="font-size:11px; color:#888; margin-top:4px;">At least 8 characters with uppercase, lowercase, and numbers.</p>
                     </div>
                     <div class="je-form-group">
                         <label for="password_confirmation">Confirm New Password</label>
-                        <input type="password" id="password_confirmation" name="password_confirmation" placeholder="Confirm new password" required>
+                        <div class="je-password-wrap">
+                            <input type="password" id="password_confirmation" name="password_confirmation" placeholder="Confirm new password" required>
+                            <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <button type="submit" class="je-btn je-btn-gold je-btn-block je-btn-lg">Update Password</button>
@@ -70,5 +80,6 @@ $success = !empty($_GET['success']);
     </main>
 </div>
 
+<?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
 </body>
 </html>
