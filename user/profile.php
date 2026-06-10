@@ -540,16 +540,26 @@ require_once __DIR__ . '/../templates/header.php';
                         <div class="form-grid" style="margin-bottom:4px;">
                             <div class="je-form-group">
                                 <label>Current Password</label>
-                                <input type="password" name="current_password"
-                                       autocomplete="current-password"
-                                       placeholder="Enter current password">
+                                <div class="je-password-wrap">
+                                    <input type="password" name="current_password"
+                                           autocomplete="current-password"
+                                           placeholder="Enter current password">
+                                    <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
+                                        <i class="fas fa-eye" aria-hidden="true"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="je-form-group">
                                 <label>New Password</label>
-                                <input type="password" name="new_password"
-                                       minlength="8" autocomplete="new-password"
-                                       placeholder="Minimum 8 characters"
-                                       id="new-pw-input">
+                                <div class="je-password-wrap">
+                                    <input type="password" name="new_password"
+                                           minlength="8" autocomplete="new-password"
+                                           placeholder="Minimum 8 characters"
+                                           id="new-pw-input">
+                                    <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
+                                        <i class="fas fa-eye" aria-hidden="true"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div id="pw-strength" style="margin-bottom:16px;height:4px;border-radius:2px;background:#f0f0f0;overflow:hidden;">
@@ -615,4 +625,5 @@ function confirmDelete() {
 </main>
 </div>
 
+<?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
