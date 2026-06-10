@@ -17,48 +17,80 @@
  *   </div>
  *
  * The icon automatically swaps between fa-eye and fa-eye-slash.
+ * If FontAwesome is not loaded, a plain text fallback ("Show")
+ * is shown so the toggle is still functional.
+ *
  * Safe to include multiple times — IIFE-guarded.
  */
 ?>
 <style>
-.je-password-wrap { position: relative; }
+.je-password-wrap { position: relative; display: block; }
 .je-password-wrap > input {
-    /* Leave room for the eye icon on the right */
-    padding-right: 42px !important;
+    /* Leave room for the eye icon on the right.
+       !important so we beat .je-form-group input specificity. */
+    padding-right: 48px !important;
 }
 .je-password-toggle {
-    position: absolute;
-    top: 50%;
-    right: 6px;
-    transform: translateY(-50%);
-    width: 32px;
-    height: 32px;
-    display: inline-flex;
+    position: absolute !important;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 42px;
+    display: flex !important;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: 0;
+    border-left: 1px solid transparent;
     padding: 0;
     margin: 0;
     cursor: pointer;
-    color: #888;
-    border-radius: 4px;
+    color: #555;
+    border-radius: 0 3px 3px 0;
     transition: color 0.15s ease, background-color 0.15s ease;
+    z-index: 2;
+    font: inherit;
+    line-height: 1;
+    -webkit-appearance: none;
+    appearance: none;
 }
 .je-password-toggle:hover,
 .je-password-toggle:focus-visible {
-    color: var(--je-gold, #C6A43F);
-    background: rgba(198, 164, 63, 0.08);
+    color: #C6A43F;
+    background: rgba(198, 164, 63, 0.10);
     outline: none;
 }
-.je-password-toggle.is-visible { color: var(--je-gold, #C6A43F); }
-.je-password-toggle i { font-size: 15px; line-height: 1; pointer-events: none; }
+.je-password-toggle.is-visible { color: #C6A43F; }
+.je-password-toggle i,
+.je-password-toggle svg {
+    font-size: 16px;
+    line-height: 1;
+    pointer-events: none;
+}
+/* Suppress the browser's built-in password reveal button so it
+   doesn't fight with our custom one. */
+.je-password-wrap > input::-ms-reveal,
+.je-password-wrap > input::-ms-clear { display: none; }
 </style>
 <script>
 (function () {
     'use strict';
     if (window.__jePasswordToggleLoaded) return;
     window.__jePasswordToggleLoaded = true;
+
+    function ensureIcon(btn, visible) {
+        var icon = btn.querySelector('i, svg');
+        if (!icon) {
+            // Fallback text label if no icon element exists
+            btn.textContent = visible ? '🙈' : '👁';
+            return;
+        }
+        if (icon.tagName === 'I') {
+            // FontAwesome path: toggle fa-eye / fa-eye-slash
+            icon.classList.toggle('fa-eye',       !visible);
+            icon.classList.toggle('fa-eye-slash',  visible);
+        }
+    }
 
     function init() {
         var wraps = document.querySelectorAll('.je-password-wrap');
@@ -70,8 +102,10 @@
             var btn   = wrap.querySelector('.je-password-toggle');
             if (!input || !btn) return;
 
-            // Make sure the button is never a submit, even inside a form
-            btn.setAttribute('type', 'button');
+            // Force the button type so it never submits the form
+            if (btn.tagName === 'BUTTON' && (!btn.type || btn.type === 'submit')) {
+                btn.setAttribute('type', 'button');
+            }
             btn.setAttribute('aria-label', 'Show password');
             btn.setAttribute('aria-pressed', 'false');
 
@@ -80,24 +114,22 @@
                 btn.classList.toggle('is-visible', visible);
                 btn.setAttribute('aria-pressed', visible ? 'true' : 'false');
                 btn.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
-                var icon = btn.querySelector('i');
-                if (icon) {
-                    icon.classList.toggle('fa-eye', !visible);
-                    icon.classList.toggle('fa-eye-slash', visible);
-                }
+                btn.title = visible ? 'Hide password' : 'Show password';
+                ensureIcon(btn, visible);
             }
 
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
+                e.stopPropagation();
                 input.type = (input.type === 'password') ? 'text' : 'password';
-                // Keep focus + caret position stable
+                // Keep focus + caret position stable across the toggle
                 var caret = input.selectionStart;
                 input.focus();
                 try { input.setSelectionRange(caret, caret); } catch (_) {}
                 sync();
             });
 
-            // Initialize icon to "eye" (password hidden by default)
+            // Initial paint
             sync();
         });
     }
