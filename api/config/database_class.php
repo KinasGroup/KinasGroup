@@ -4,15 +4,12 @@ class Database {
     private $connection;
 
     private function __construct() {
-        $host = getenv('DB_HOST') ?: 'localhost';
-        $port = getenv('DB_PORT') ?: '3306';
-        $dbname = getenv('DB_NAME') ?: 'kinas_group';
-        $username = getenv('DB_USER') ?: 'root';
-        $password = getenv('DB_PASS') ?: '';
-        
-        // Write to a debug file
-        $debug = "/tmp/db_debug.log";
-        file_put_contents($debug, date('Y-m-d H:i:s') . " - Host: $host, Port: $port, DB: $dbname, User: $username\n", FILE_APPEND);
+        // HARDCODED for Railway production
+        $host = 'mainline.proxy.rlwy.net';
+        $port = '50184';
+        $dbname = 'kinas_group';
+        $username = 'root';
+        $password = 'qUqBNxCgzyWDaKhQvomKbyvBQJwvQpKo';
         
         try {
             $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
@@ -21,9 +18,8 @@ class Database {
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false
             ]);
-            file_put_contents($debug, "✅ Connection SUCCESS\n", FILE_APPEND);
         } catch (PDOException $e) {
-            file_put_contents($debug, "❌ Connection FAILED: " . $e->getMessage() . "\n", FILE_APPEND);
+            error_log("Database connection failed: " . $e->getMessage());
             $this->connection = null;
         }
     }
