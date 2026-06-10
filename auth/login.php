@@ -1,175 +1,189 @@
 <?php
-// Load environment variables from .env file
-require_once __DIR__ . '/../includes/dotenv.php';
+header('Content-Type: application/json');
+require_once '../config/env.php';
+require_once '../config/database.php';
+require_once '../config/constants.php';
+require_once '../../includes/session.php';
+require_once '../../includes/security.php';
 
-require_once __DIR__ . '/../includes/session.php';
-require_once __DIR__ . '/../includes/security.php';
+// CORS headers for API access (adjust origin in production)
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// Redirect already-logged-in users away from auth pages
-if (SessionManager::isLoggedIn()) {
-    $role = SessionManager::getUserRole();
-    header('Location: ' . ($role === 'admin' ? '../admin/dashboard.php' : ($role === 'agent' ? '../agent/dashboard.php' : '../user/dashboard.php')));
+// Handle preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
     exit;
 }
 
-$csrfToken = Security::generateCSRFToken();
-$errorMessage = SessionManager::getFlash('error');
-$successMessage = SessionManager::getFlash('success');
-
-$registrationSuccess = isset($_GET['registered']) && $_GET['registered'] == 1;
-if ($registrationSuccess) {
-    $successMessage = isset($_GET['message']) ? urldecode($_GET['message']) : 'Registration successful! Please sign in below.';
-}
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In - KINAS GROUP | Luxury Marketplace</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/james-edition.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
-
-<div class="je-auth-shell">
-    <!-- ── Left aside ── -->
-    <aside class="je-auth-aside">
-        <a href="../index.php" class="je-auth-brand">
-            <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
-            <span></span>
-        </a>
-        <div>
-            <h1 class="je-auth-headline">The World's Luxury Marketplace.</h1>
-            <p class="je-auth-sub">Homes, cars, solar energy and curated goods — verified, transparent, secure. Sign in to your dealer or buyer account.</p>
-        </div>
-        <blockquote class="je-auth-quote">
-            <p>"We bought our Lagos penthouse through KINAS. The verification process gave us total confidence in the agent."</p>
-            <cite>— A. Okonkwo, Lagos</cite>
-        </blockquote>
-    </aside>
-
-    <!-- ── Right form ── -->
-    <main class="je-auth-main">
-        <div class="je-auth-form">
-            <h2>Welcome back</h2>
-            <p class="je-auth-sub-form">Sign in to access your dashboard, saved listings and messages.</p>
-
-            <?php if ($errorMessage): ?>
-                <div class="je-form-error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div>
-            <?php endif; ?>
-            <?php if ($successMessage): ?>
-                <div class="je-form-success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($successMessage) ?></div>
-            <?php endif; ?>
-
-            <form id="loginForm" method="POST" action="../api/auth/login.php" novalidate>
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-
-                <div class="je-form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
-                </div>
-                <div class="je-form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
-                </div>
-
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; font-size:13px;">
-                    <label style="display:flex; align-items:center; gap:6px; color:#666; cursor:pointer;">
-                        <input type="checkbox" name="remember" value="1" style="accent-color:#C6A43F;"> Remember me
-                    </label>
-                    <a href="forgot-password.php" style="color:#C6A43F; text-decoration:none; font-weight:500;">Forgot password?</a>
-                </div>
-
-                <div class="je-form-group" id="captcha-group">
-                    <div id="login-captcha-container"></div>
-                    <input type="hidden" id="login-captcha-token" name="captcha_token">
-                </div>
-
-                <button type="submit" id="submitBtn" class="je-btn je-btn-gold je-btn-block je-btn-lg">
-                    Sign In
-                </button>
-            </form>
-
-            <div class="je-auth-switch">
-                Don't have an account? <a href="register.php">Register as Agent</a> · <a href="register-buyer.php">Register as Buyer</a>
-            </div>
-        </div>
-    </main>
-</div>
-
-<script>
-const loginCaptchaSiteKey = '<?= htmlspecialchars($_ENV['CAPTCHA_SITE_KEY'] ?? getenv('CAPTCHA_SITE_KEY') ?? '') ?>';
-const isLoginCaptchaConfigured = loginCaptchaSiteKey && loginCaptchaSiteKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX' && loginCaptchaSiteKey.length > 30;
-
-if (isLoginCaptchaConfigured) {
-    var s = document.createElement('script');
-    s.src = 'https://www.google.com/recaptcha/api.js?onload=onLoginCaptchaLoad&render=explicit';
-    s.async = true; s.defer = true;
-    document.head.appendChild(s);
-} else {
-    const g = document.getElementById('captcha-group');
-    if (g) g.style.display = 'none';
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Method not allowed']);
+    exit;
 }
 
-function onLoginCaptchaLoad() {
-    if (!isLoginCaptchaConfigured) return;
-    const c = document.getElementById('login-captcha-container');
-    if (c) {
-        grecaptcha.render('login-captcha-container', {
-            sitekey: loginCaptchaSiteKey,
-            callback: r => document.getElementById('login-captcha-token').value = r,
-            'expired-callback': () => document.getElementById('login-captcha-token').value = ''
-        });
+// IP-based rate limiting
+$ip = Security::getClientIP();
+Security::rateLimitDB('login_' . $ip, MAX_LOGIN_ATTEMPTS, LOGIN_TIMEOUT);
+
+$data = json_decode(file_get_contents('php://input'), true);
+
+if (!$data) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid JSON data']);
+    exit;
+}
+
+$email = trim($data['email'] ?? '');
+$password = $data['password'] ?? '';
+$csrfToken = $data['csrf_token'] ?? '';
+
+// Validate CSRF token — require it to be present and correct
+if (empty($csrfToken)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Invalid security token. Please refresh the page and try again.']);
+    exit;
+}
+
+if (!isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrfToken)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Invalid security token. Please refresh the page and try again.']);
+    exit;
+}
+
+// Rotate CSRF token after successful validation (only now, after it passed)
+unset($_SESSION['csrf_token']);
+
+// CAPTCHA verification (skip if not configured)
+$captchaToken = $data['captcha_token'] ?? '';
+$captchaSecretKey = $_ENV['CAPTCHA_SECRET_KEY'] ?? getenv('CAPTCHA_SECRET_KEY') ?? '';
+$captchaEnabled = !empty($captchaSecretKey) && $captchaSecretKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX';
+
+if ($captchaEnabled) {
+    if (empty($captchaToken)) {
+        http_response_code(422);
+        echo json_encode(['error' => 'Please complete the CAPTCHA verification.']);
+        exit;
     }
-}
-
-if (window.location.search.includes('registered=1')) {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('registered');
-    url.searchParams.delete('message');
-    window.history.replaceState({}, document.title, url.pathname);
-}
-
-document.getElementById('loginForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const form = this;
-    const submitBtn = document.getElementById('submitBtn');
-    const email = form.email.value.trim();
-    const password = form.password.value;
-    if (!email || !password) { alert('Please enter both email and password'); return; }
-    const captchaToken = document.getElementById('login-captcha-token')?.value || '';
-    if (isLoginCaptchaConfigured && !captchaToken) { alert('Please complete the CAPTCHA verification.'); return; }
-
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
-
-    try {
-        const res = await fetch(form.action, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password, csrf_token: form.csrf_token.value, captcha_token: captchaToken })
-        });
-        const data = await res.json();
-        if (data.success) {
-            localStorage.setItem('kinas_token', data.token);
-            window.location.href = data.user.role === 'admin' ? '../admin/dashboard.php' :
-                                   (data.user.role === 'agent' ? '../agent/dashboard.php' : '../user/dashboard.php');
-        } else {
-            alert(data.error || 'Login failed');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Sign In';
+    // Verify with Google reCAPTCHA
+    $verifyResponse = @file_get_contents(
+        'https://www.google.com/recaptcha/api/siteverify?' . http_build_query([
+            'secret' => $captchaSecretKey,
+            'response' => $captchaToken,
+            'remoteip' => $ip
+        ])
+    );
+    if ($verifyResponse === false) {
+        // Network failure reaching Google — fail open with a log entry
+        error_log('reCAPTCHA verification network failure for IP: ' . $ip);
+    } else {
+        $verifyData = json_decode($verifyResponse, true);
+        if (!$verifyData || !$verifyData['success']) {
+            http_response_code(422);
+            echo json_encode(['error' => 'CAPTCHA verification failed. Please try again.']);
+            exit;
         }
-    } catch (err) {
-        console.error(err);
-        alert('Network error. Please try again.');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Sign In';
     }
-});
-</script>
-</body>
-</html>
+}
+
+if (!$email || !$password) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Email and password required']);
+    exit;
+}
+
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(422);
+    echo json_encode(['error' => 'Invalid email format']);
+    exit;
+}
+
+try {
+    $db = Database::getInstance()->getConnection();
+
+    // Always use consistent timing to prevent user enumeration timing attacks
+    $stmt = $db->prepare(
+        "SELECT id, name, email, password, role, verified, status FROM users WHERE email = ?"
+    );
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
+
+    // Use constant-time password verification
+    $passwordHash = $user['password'] ?? '';
+    $passwordValid = password_verify($password, $passwordHash);
+
+    // Always perform a dummy hash to maintain consistent timing
+    if (!$user) {
+        password_hash('dummy_password_for_timing', PASSWORD_BCRYPT, ['cost' => 12]);
+    }
+
+    if (!$user || !password_verify($password, $user['password'])) {
+        Security::logActivity($user['id'] ?? null, 'login_failed', "Failed login attempt for: $email from $ip");
+        http_response_code(401);
+        echo json_encode(['error' => 'Invalid credentials']);
+        exit;
+    }
+
+    // Check user status
+    if ($user['status'] !== 'active') {
+        http_response_code(403);
+        echo json_encode(['error' => 'Account is ' . $user['status']]);
+        exit;
+    }
+
+    // Rotate session ID on privilege change (login)
+    SessionManager::regenerateSession();
+
+    // Issue DB-persisted token for API clients
+    $token = Security::generateToken(32);
+    $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
+
+    // Persist API session row. The web UI relies on the PHP session
+    // (set below) so a failure here must NOT fail the whole login —
+    // we just log it and omit the token from the response.
+    $tokenIssued = false;
+    try {
+        // Clean up expired sessions for this user (best-effort)
+        $db->prepare("DELETE FROM sessions WHERE user_id = ? AND expires_at < NOW()")
+           ->execute([$user['id']]);
+        $db->prepare("INSERT INTO sessions (user_id, token, expires_at, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)")
+           ->execute([$user['id'], $token, $expires, $ip, $_SERVER['HTTP_USER_AGENT'] ?? '']);
+        $tokenIssued = true;
+    } catch (\Throwable $sessionErr) {
+        // Most likely the `sessions` table is missing on this deploy.
+        // Don't block login — web auth uses the PHP session.
+        error_log('Session row insert failed (non-fatal, web auth will still work): ' . $sessionErr->getMessage());
+    }
+
+    // Populate session via SessionManager AFTER any DB writes so the
+    // session cookie always reflects a successful login (no half-state).
+    SessionManager::setUser($user);
+
+    Security::logActivity($user['id'], 'login', 'Successful login from ' . $ip);
+
+    // Generate new CSRF token for next request
+    $newCsrfToken = Security::generate_csrf_token();
+
+    http_response_code(200);
+    $response = [
+        'success' => true,
+        'csrf_token' => $newCsrfToken,
+        'user' => [
+            'id' => $user['id'],
+            'name' => $user['name'],
+            'email' => $user['email'],
+            'role' => $user['role'],
+            'verified' => (bool)$user['verified'],
+        ],
+    ];
+    if ($tokenIssued) {
+        $response['token'] = $token;
+    }
+    echo json_encode($response);
+
+} catch (\Throwable $e) {
+    error_log('Login error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'Login failed']);
+}

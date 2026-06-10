@@ -2,14 +2,14 @@
 header('Content-Type: application/json');
 
 // Load environment variables from .env file
-require_once '../../includes/dotenv.php';
+require_once __DIR__ . '/../../includes/dotenv.php';
 
-require_once '../config/database.php';
-require_once '../config/constants.php';
-require_once '../../includes/session.php';
-require_once '../../includes/validation.php';
-require_once '../../includes/security.php';
-require_once '../../includes/email.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/constants.php';
+require_once __DIR__ . '/../../includes/session.php';
+require_once __DIR__ . '/../../includes/validation.php';
+require_once __DIR__ . '/../../includes/security.php';
+require_once __DIR__ . '/../../includes/email.php';
 
 // CORS headers for API access
 header('Access-Control-Allow-Origin: *');
