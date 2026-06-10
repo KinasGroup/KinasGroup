@@ -1,20 +1,18 @@
 <?php
-/**
- * Database Singleton Class for KINAS GROUP
- * This class provides a single database connection instance
- */
-
 class Database {
     private static $instance = null;
     private $connection;
-    
+
     private function __construct() {
-        // Get database credentials from environment or config
         $host = getenv('DB_HOST') ?: 'localhost';
         $port = getenv('DB_PORT') ?: '3306';
         $dbname = getenv('DB_NAME') ?: 'kinas_group';
         $username = getenv('DB_USER') ?: 'root';
         $password = getenv('DB_PASS') ?: '';
+        
+        // Write to a debug file
+        $debug = "/tmp/db_debug.log";
+        file_put_contents($debug, date('Y-m-d H:i:s') . " - Host: $host, Port: $port, DB: $dbname, User: $username\n", FILE_APPEND);
         
         try {
             $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
@@ -23,8 +21,9 @@ class Database {
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false
             ]);
+            file_put_contents($debug, "✅ Connection SUCCESS\n", FILE_APPEND);
         } catch (PDOException $e) {
-            error_log("Database connection failed: " . $e->getMessage());
+            file_put_contents($debug, "❌ Connection FAILED: " . $e->getMessage() . "\n", FILE_APPEND);
             $this->connection = null;
         }
     }
@@ -40,4 +39,3 @@ class Database {
         return $this->connection;
     }
 }
-?>
