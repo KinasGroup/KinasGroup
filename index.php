@@ -5,7 +5,8 @@ require_once 'includes/dotenv.php';
 require_once 'includes/session.php';
 require_once 'includes/functions.php';
 require_once 'includes/helpers.php';
-require_once 'api/config/database.php';
+require_once "api/config/database.php";
+require_once "api/config/database_class.php";
 require_once 'api/config/constants.php';
 
 $pageTitle = 'KINAS GROUP | The World\'s Luxury Marketplace';
