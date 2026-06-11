@@ -104,7 +104,7 @@ try {
 
     // Always use consistent timing to prevent user enumeration timing attacks
     $stmt = $db->prepare(
-        "SELECT id, name, email, password, role, verified, status FROM users WHERE email = ?"
+        "SELECT id, name, email, password, role, verified, status, email_verified_at FROM users WHERE email = ?"
     );
     $stmt->execute([$email]);
     $user = $stmt->fetch();
@@ -129,6 +129,24 @@ try {
     if ($user['status'] !== 'active') {
         http_response_code(403);
         echo json_encode(['error' => 'Account is ' . $user['status']]);
+        exit;
+    }
+
+    // Block login if the email has not been verified. Admins are
+    // seeded with email_verified_at already set, so they are never
+    // affected. Everyone else (buyers, agents) must click the link in
+    // the verification email before they can sign in. This is the
+    // enforcement that makes the "Account Verification email should
+    // deliver" requirement from product actually mean something —
+    // without this gate, the verification flow was decorative.
+    if (($user['role'] ?? '') !== 'admin' && empty($user['email_verified_at'])) {
+        Security::logActivity($user['id'], 'login_blocked_unverified', "Login blocked — email not verified. email=$email from $ip");
+        http_response_code(403);
+        echo json_encode([
+            'error' => 'Please verify your email before signing in. Check your inbox (and spam folder) for the verification link, or request a new one below.',
+            'error_code' => 'email_not_verified',
+            'email' => $user['email'],
+        ]);
         exit;
     }
 
