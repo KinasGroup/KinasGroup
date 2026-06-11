@@ -54,8 +54,10 @@ $stmt = $db->prepare("SELECT COUNT(*) FROM inquiries WHERE agent_id = ? AND is_r
 $stmt->execute([$userId]);
 $stat_unread = (int)$stmt->fetchColumn();
 
-// Total earnings (paid commissions)
-$stmt = $db->prepare("SELECT COALESCE(SUM(commission_amt), 0) FROM earnings WHERE agent_id = ? AND status = 'paid'");
+// Total earnings (paid commissions).
+// Reads from `transactions` (the source of truth — matches
+// agent/earnings.php and database/fresh_schema.sql).
+$stmt = $db->prepare("SELECT COALESCE(SUM(commission), 0) FROM transactions WHERE agent_id = ? AND status = 'paid'");
 $stmt->execute([$userId]);
 $stat_earnings = (float)$stmt->fetchColumn();
 
