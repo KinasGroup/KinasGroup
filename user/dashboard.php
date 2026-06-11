@@ -105,8 +105,13 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .stat-card { background: white; border-radius: 16px; padding: 25px; border: 1px solid #E0E0E0; transition: all 0.3s; position: relative; overflow: hidden; }
 .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #C6A43F; }
 .stat-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
-.stat-icon { width: 50px; height: 50px; background: rgba(198,164,63,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; }
-.stat-icon i { font-size: 24px; color: #C6A43F; }
+.stat-icon { width: 50px; height: 50px; background: rgba(198,164,63,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; color: #C6A43F; font-size: 24px; }
+.stat-icon.blue   { background: rgba(59,130,246,.1);  color: #3B82F6; }
+.stat-icon.green  { background: rgba(34,197,94,.1);   color: #22C55E; }
+.stat-icon.gold   { background: rgba(198,164,63,.12); color: #C6A43F; }
+.stat-icon.orange { background: rgba(245,158,11,.12); color: #F59E0B; }
+.stat-icon.purple { background: rgba(139,92,246,.12); color: #8B5CF6; }
+.stat-icon.red    { background: rgba(220,38,38,.12);  color: #DC2626; }
 .stat-number { font-size: 32px; font-weight: 700; color: #0A0A0A; margin-bottom: 5px; }
 .stat-label { color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
@@ -163,17 +168,17 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-heart"></i></div>
+            <div class="stat-icon red"><i class="fas fa-heart"></i></div>
             <div class="stat-number"><?php echo $saved_listings; ?></div>
             <div class="stat-label">Saved Listings</div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-paper-plane"></i></div>
+            <div class="stat-icon blue"><i class="fas fa-paper-plane"></i></div>
             <div class="stat-number"><?php echo $inquiries_sent; ?></div>
             <div class="stat-label">Inquiries Sent</div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-reply-all"></i></div>
+            <div class="stat-icon green"><i class="fas fa-reply-all"></i></div>
             <div class="stat-number"><?php echo $responses_received; ?></div>
             <div class="stat-label">Responses Received</div>
         </div>
