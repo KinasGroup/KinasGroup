@@ -17,14 +17,38 @@ if (!empty($code)) {
     } else {
         try {
             $db = Database::getInstance()->getConnection();
-            $stmt = $db->prepare("SELECT id, name, role FROM users WHERE verification_code = ? AND status = 'pending' LIMIT 1");
+            // Match on the code itself — NOT on users.status. New
+            // registrations are inserted as 'active' (so they can log in
+            // immediately for buyers) which made the old
+            // "AND status='pending'" condition fail for every legitimate
+            // link. Email verification is now a soft signal: it sets
+            // email_verified_at and the user_verified flag, but does
+            // not gate login.
+            $stmt = $db->prepare(
+                "SELECT id, name, role, verification_code_expires, email_verified_at
+                 FROM users
+                 WHERE verification_code = ?
+                 LIMIT 1"
+            );
             $stmt->execute([$code]);
             $user = $stmt->fetch();
             if (!$user) {
                 $error = 'This verification link is invalid or has already been used.';
+            } elseif (!empty($user['email_verified_at'])) {
+                // Already verified — treat as success and just direct to login.
+                $verified = true;
+                SessionManager::setFlash('success', 'Your email is already verified. You can sign in.');
+            } elseif (!empty($user['verification_code_expires']) && strtotime((string)$user['verification_code_expires']) < time()) {
+                $error = 'This verification link has expired. Please request a new one below.';
             } else {
-                $db->prepare("UPDATE users SET status='active', verified=1, verification_code=NULL, email_verified_at=NOW() WHERE id=?")
-                    ->execute([$user['id']]);
+                $db->prepare(
+                    "UPDATE users
+                        SET verified=1,
+                            verification_code=NULL,
+                            verification_code_expires=NULL,
+                            email_verified_at=NOW()
+                      WHERE id=?"
+                )->execute([$user['id']]);
                 Security::logActivity($user['id'], 'email_verified', 'Email verified via link');
                 $verified = true;
                 // Agents should go through phone verification next, then MetaMap.
@@ -102,13 +126,16 @@ document.getElementById('resend-link')?.addEventListener('click', async function
     if (!email) return;
     this.textContent = 'Sending…';
     try {
-        const res = await fetch('/api/auth/forgot-password.php', {
+        // Dedicated resend endpoint — the old /api/auth/forgot-password.php
+        // only handles password resets and silently no-ops for fresh
+        // registrations, which is why users got "no more email" before.
+        const res = await fetch('/api/auth/resend-verification.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, type: 'verification' })
+            body: JSON.stringify({ email })
         });
         const data = await res.json();
-        alert(data.message || 'If that email is registered, a new verification link has been sent.');
+        alert(data.message || 'If that email is registered and unverified, a new link has been sent.');
     } catch (err) {
         alert('Request failed. Please try again.');
     }
