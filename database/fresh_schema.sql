@@ -208,6 +208,11 @@ CREATE TABLE car_listings (
     city            VARCHAR(100),
     state           VARCHAR(100),
     country         VARCHAR(100) DEFAULT 'Nigeria',
+    -- Generated column: same shape as the 2026_06_10 migration adds.
+    -- user/dashboard.php and user/saved-listings.php read `cl.location`
+    -- directly, so this MUST be part of the base schema, not just a
+    -- migration. MySQL 5.7+ supports STORED generated columns.
+    location        VARCHAR(255) GENERATED ALWAYS AS (TRIM(CONCAT_WS(0x2C20, city, state))) STORED,
     status          ENUM('active', 'sold', 'pending', 'flagged', 'removed') DEFAULT 'active',
     featured        BOOLEAN DEFAULT FALSE,
     views           INT DEFAULT 0,
