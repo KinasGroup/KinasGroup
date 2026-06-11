@@ -74,8 +74,14 @@ require_once __DIR__ . '/../templates/header.php';
         .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:30px}
         .stat-card{background:white;border-radius:16px;padding:24px;border:1px solid #E0E0E0;display:flex;align-items:center;gap:18px;transition:all .3s}
         .stat-card:hover{transform:translateY(-3px);border-color:#C6A43F;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-        .stat-icon{width:56px;height:56px;border-radius:14px;background:rgba(198,164,63,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-        .stat-icon i{font-size:1.6rem;color:#C6A43F}
+        /* Bigger than admin.css's default 48x48; the icon gets a strong
+           color via the variant class so it never blends into the bg. */
+        .stat-card .stat-icon{width:56px;height:56px;border-radius:14px;background:rgba(198,164,63,.1);color:#C6A43F;font-size:1.6rem}
+        .stat-card .stat-icon.blue{background:rgba(59,130,246,.1);color:#3B82F6}
+        .stat-card .stat-icon.green{background:rgba(34,197,94,.1);color:#22C55E}
+        .stat-card .stat-icon.gold{background:rgba(198,164,63,.12);color:#C6A43F}
+        .stat-card .stat-icon.orange{background:rgba(245,158,11,.12);color:#F59E0B}
+        .stat-card .stat-icon.purple{background:rgba(139,92,246,.12);color:#8B5CF6}
         .stat-info h3{font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
         .stat-number{font-size:28px;font-weight:700;color:#0A0A0A;margin-bottom:2px}
         .stat-sub{font-size:12px;color:#2E7D32}
@@ -121,7 +127,7 @@ require_once __DIR__ . '/../templates/header.php';
     <!-- Live Stats -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-icon blue"><i class="fas fa-users"></i></div>
             <div class="stat-info">
                 <h3>Total Users</h3>
                 <div class="stat-number"><?= number_format($stats['total_users']) ?></div>
@@ -129,7 +135,7 @@ require_once __DIR__ . '/../templates/header.php';
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-list-ul"></i></div>
+            <div class="stat-icon gold"><i class="fas fa-list-ul"></i></div>
             <div class="stat-info">
                 <h3>Total Listings</h3>
                 <div class="stat-number"><?= number_format($stats['total_listings']) ?></div>
@@ -137,7 +143,7 @@ require_once __DIR__ . '/../templates/header.php';
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+            <div class="stat-icon green"><i class="fas fa-user-check"></i></div>
             <div class="stat-info">
                 <h3>Active Agents</h3>
                 <div class="stat-number"><?= number_format($stats['total_agents']) ?></div>
@@ -149,7 +155,7 @@ require_once __DIR__ . '/../templates/header.php';
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-naira-sign"></i></div>
+            <div class="stat-icon purple"><i class="fas fa-naira-sign"></i></div>
             <div class="stat-info">
                 <h3>Total Revenue</h3>
                 <div class="stat-number"><?= fmt_ngn((float)$stats['revenue']) ?></div>
@@ -157,7 +163,7 @@ require_once __DIR__ . '/../templates/header.php';
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon" style="background:#FFF3E0;color:#F57C00"><i class="fas fa-envelope"></i></div>
+            <div class="stat-icon orange"><i class="fas fa-envelope"></i></div>
             <div class="stat-info">
                 <h3>Unverified Emails</h3>
                 <div class="stat-number"><?= number_format($stats['unverified_users']) ?></div>
