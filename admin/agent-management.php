@@ -15,7 +15,7 @@ $page     = max(1, (int)($_GET['page'] ?? 1));
 $perPage  = 20;
 $offset   = ($page - 1) * $perPage;
 
-$where = ["u.role = 'agent'"];
+$where = ["u.role = 'agent'", "u.status != 'deleted'"];   // soft-deleted agents are hidden by default
 $params = [];
 if ($search !== '') {
     $where[] = "(u.name LIKE ? OR u.email LIKE ?)";
@@ -53,7 +53,7 @@ $agents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // ── Stats ────────────────────────────────────────────────────
 $stats = [
-    'total'    => (int)$db->query("SELECT COUNT(*) FROM users WHERE role='agent'")->fetchColumn(),
+    'total'    => (int)$db->query("SELECT COUNT(*) FROM users WHERE role='agent' AND status != 'deleted'")->fetchColumn(),
     'active'   => (int)$db->query("SELECT COUNT(*) FROM users WHERE role='agent' AND status='active'")->fetchColumn(),
     'pending'  => (int)$db->query("SELECT COUNT(*) FROM agent_profiles WHERE verification_status IN ('documents_submitted','phone_verified','kyc_passed')")->fetchColumn(),
     'suspend'  => (int)$db->query("SELECT COUNT(*) FROM users WHERE role='agent' AND status='suspended'")->fetchColumn(),
@@ -116,11 +116,13 @@ require_once __DIR__ . '/../templates/header.php';
         .status-badge.pending { background: #FFF3E0; color: #F57C00; }
         .status-badge.suspended { background: #FEF2F2; color: #DC2626; }
         .status-badge.banned { background: #1A1A1A; color: white; }
+        .status-badge.deleted { background: #1A1A1A; color: #fff; text-decoration: line-through; }
         .action-buttons { display: flex; gap: 8px; align-items: center; }
         .action-btn { width: 32px; height: 32px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; justify-content: center; }
         .action-btn.view { background: rgba(59,130,246,0.1); color: #3B82F6; }
         .action-btn.edit { background: rgba(198,164,63,0.1); color: #C6A43F; }
         .action-btn.suspend { background: rgba(220,38,38,0.1); color: #DC2626; }
+        .action-btn.delete { background: rgba(185,28,28,0.15); color: #B91C1C; }
         .action-btn.verify { background: rgba(34,197,94,0.1); color: #22C55E; }
         .action-btn.activate { background: rgba(34,197,94,0.1); color: #22C55E; }
         .action-btn:hover { transform: scale(1.05); }
@@ -174,10 +176,11 @@ require_once __DIR__ . '/../templates/header.php';
                     <option value="marketplace" <?= $division === 'marketplace' ? 'selected' : '' ?>>Kinas Marketplace</option>
                 </select>
                 <select name="status">
-                    <option value="">All Status</option>
+                    <option value="">All (non-deleted)</option>
                     <option value="active"    <?= $status === 'active'    ? 'selected' : '' ?>>Active</option>
                     <option value="suspended" <?= $status === 'suspended' ? 'selected' : '' ?>>Suspended</option>
                     <option value="banned"    <?= $status === 'banned'    ? 'selected' : '' ?>>Banned</option>
+                    <option value="deleted"   <?= $status === 'deleted'   ? 'selected' : '' ?>>Deleted</option>
                 </select>
                 <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> Apply</button>
                 <a href="agent-management.php" class="btn-secondary">Reset</a>
@@ -254,6 +257,13 @@ require_once __DIR__ . '/../templates/header.php';
                                             <input type="hidden" name="action" value="suspend">
                                             <button type="submit" class="action-btn suspend" title="Suspend"><i class="fas fa-ban"></i></button>
                                         </form>
+                                    <?php endif; ?>
+                                    <?php if ($a['status'] !== 'deleted' && (int)$a['id'] !== (int)$_SESSION['user_id']): ?>
+                                    <form method="POST" action="/api/admin/delete-user.php" style="display:inline" onsubmit="return confirm('Delete this agent? Their account will be deactivated and their active listings hidden. This cannot be undone from the admin UI.');">
+                                        <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
+                                        <input type="hidden" name="user_id" value="<?= (int)$a['id'] ?>">
+                                        <button type="submit" class="action-btn delete" title="Delete agent" aria-label="Delete agent"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
                                     <?php endif; ?>
                                 </div>
                             </td>

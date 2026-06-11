@@ -209,6 +209,14 @@ require_once __DIR__ . '/../templates/header.php';
                                     <button type="submit" class="action-btn approve" title="Approve & unflag"><i class="fas fa-check"></i></button>
                                 </form>
                                 <?php endif; ?>
+                                <?php if ($r['status'] !== 'removed'): ?>
+                                <form method="POST" action="/api/admin/remove-listing.php" style="display:inline" onsubmit="return confirm('Delete this listing? It will be hidden from public view (soft delete — the row is kept for audit).');">
+                                    <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
+                                    <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
+                                    <input type="hidden" name="listing_type" value="<?= htmlspecialchars($type) ?>">
+                                    <button type="submit" class="action-btn delete" title="Delete listing" aria-label="Delete listing"><i class="fas fa-trash-alt"></i></button>
+                                </form>
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>
@@ -302,6 +310,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .action-btn.view { background: rgba(59,130,246,0.1); color: #3B82F6; }
 .action-btn.edit { background: rgba(198,164,63,0.1); color: #C6A43F; }
 .action-btn.flag { background: rgba(220,38,38,0.1); color: #DC2626; }
+.action-btn.delete { background: rgba(185,28,28,0.15); color: #B91C1C; }
 .action-btn.approve { background: rgba(34,197,94,0.1); color: #22C55E; }
 .action-btn.resolve { background: rgba(34,197,94,0.1); color: #22C55E; }
 .action-btn:hover { transform: scale(1.05); }

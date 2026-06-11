@@ -35,7 +35,7 @@ $search = trim($_GET['search'] ?? '');
 $page   = max(1,(int)($_GET['page'] ?? 1));
 $limit  = 20; $offset = ($page-1)*$limit;
 
-$where = ["1=1"];
+$where = ["status != 'deleted'"];   // soft-deleted users are hidden by default
 $params = [];
 if ($role !== 'all')   { $where[] = "role = ?";   $params[] = $role; }
 if ($status !== 'all') { $where[] = "status = ?";  $params[] = $status; }
@@ -89,13 +89,13 @@ require_once __DIR__ . '/../templates/header.php';
         .user-avatar{width:36px;height:36px;border-radius:50%;background:#C6A43F;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#0A0A0A;flex-shrink:0}
         .role-badge,.status-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
         .role-badge.admin{background:#F3E5F5;color:#7B1FA2}.role-badge.agent{background:#E3F2FD;color:#1565C0}.role-badge.user{background:#E8F5E9;color:#2E7D32}
-        .status-badge.active{background:#E8F5E9;color:#2E7D32}.status-badge.pending{background:#FFF3E0;color:#F57C00}.status-badge.suspended,.status-badge.banned{background:#FEF2F2;color:#DC2626}
+        .status-badge.active{background:#E8F5E9;color:#2E7D32}.status-badge.pending{background:#FFF3E0;color:#F57C00}.status-badge.suspended,.status-badge.banned{background:#FEF2F2;color:#DC2626}.status-badge.deleted{background:#1A1A1A;color:#fff}
         .email-verified-badge,.email-unverified-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
         .email-verified-badge{background:#E8F5E9;color:#2E7D32}
         .email-unverified-badge{background:#FFF3E0;color:#F57C00}
         .action-btns{display:flex;gap:6px;flex-wrap:wrap}
         .act-btn{height:30px;min-width:30px;padding:0 12px;border-radius:7px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;font-family:inherit;transition:all .2s;line-height:1}
-        .act-btn.activate{background:#E8F5E9;color:#2E7D32}.act-btn.suspend{background:#FFF3E0;color:#F57C00}.act-btn.ban{background:#FEF2F2;color:#DC2626}
+        .act-btn.activate{background:#E8F5E9;color:#2E7D32}.act-btn.suspend{background:#FFF3E0;color:#F57C00}.act-btn.ban{background:#FEF2F2;color:#DC2626}.act-btn.delete{background:#FEE2E2;color:#B91C1C}
         .act-btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,0.08)}
         .act-btn-label{display:inline-block}
         /* If the FA CDN is blocked the <i> shows up empty — the
@@ -137,11 +137,12 @@ require_once __DIR__ . '/../templates/header.php';
             <option value="user" <?= $role==='user'?'selected':'' ?>>User</option>
         </select>
         <select name="status">
-            <option value="all" <?= $status==='all'?'selected':'' ?>>All Status</option>
+            <option value="all" <?= $status==='all'?'selected':'' ?>>All (non-deleted)</option>
             <option value="active" <?= $status==='active'?'selected':'' ?>>Active</option>
             <option value="pending" <?= $status==='pending'?'selected':'' ?>>Pending</option>
             <option value="suspended" <?= $status==='suspended'?'selected':'' ?>>Suspended</option>
             <option value="banned" <?= $status==='banned'?'selected':'' ?>>Banned</option>
+            <option value="deleted" <?= $status==='deleted'?'selected':'' ?>>Deleted</option>
         </select>
         <button type="submit" class="btn-filter"><i class="fas fa-search"></i> Filter</button>
     </form>
@@ -176,21 +177,25 @@ require_once __DIR__ . '/../templates/header.php';
                     </td>
                     <td><?= date('M j, Y', strtotime($u['created_at'])) ?></td>
                     <td>
-                        <form method="POST" style="display:contents">
-                            <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
-                            <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
-                            <div class="action-btns">
+                        <div class="action-btns">
+                            <form method="POST" style="display:contents">
+                                <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+                                <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
                                 <?php if ($u['status'] !== 'active'): ?>
                                 <button class="act-btn activate" name="action" value="activate" title="Activate user"><i class="fas fa-check" aria-hidden="true"></i><span class="act-btn-label">Activate</span></button>
                                 <?php endif; ?>
-                                <?php if ($u['status'] !== 'suspended'): ?>
+                                <?php if ($u['status'] !== 'suspended' && $u['status'] !== 'deleted'): ?>
                                 <button class="act-btn suspend" name="action" value="suspend" title="Suspend user"><i class="fas fa-pause" aria-hidden="true"></i><span class="act-btn-label">Suspend</span></button>
                                 <?php endif; ?>
-                                <?php if ($u['status'] !== 'banned' && $u['role'] !== 'admin'): ?>
-                                <button class="act-btn ban" name="action" value="ban" title="Ban user" onclick="return confirm('Ban this user?')"><i class="fas fa-ban" aria-hidden="true"></i><span class="act-btn-label">Ban</span></button>
-                                <?php endif; ?>
-                            </div>
-                        </form>
+                            </form>
+                            <?php if ($u['status'] !== 'deleted' && $u['id'] !== (int)$_SESSION['user_id']): ?>
+                            <form method="POST" action="/api/admin/delete-user.php" style="display:inline" onsubmit="return confirm('Delete this user? Their account will be deactivated. This cannot be undone from the admin UI.');">
+                                <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+                                <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                                <button type="submit" class="act-btn delete" title="Delete user"><i class="fas fa-trash-alt" aria-hidden="true"></i><span class="act-btn-label">Delete</span></button>
+                            </form>
+                            <?php endif; ?>
+                        </div>
                     </td>
                 </tr>
                 <?php endforeach; ?>
