@@ -190,15 +190,15 @@ require_once __DIR__ . '/../templates/header.php';
                         <td><?= htmlspecialchars($r['created_at']) ?></td>
                         <td>
                             <div class="action-buttons">
-                                <a href="<?= $detailUrl ?>" target="_blank" class="action-btn view" title="View"><i class="fas fa-eye"></i></a>
-                                <a href="<?= $detailUrl ?>" target="_blank" class="action-btn edit" title="Open in admin view"><i class="fas fa-external-link-alt"></i></a>
+                                <a href="<?= $detailUrl ?>" target="_blank" class="action-btn view" title="View listing"><i class="fas fa-eye" aria-hidden="true"></i><span class="action-btn-label">View</span></a>
+                                <a href="<?= $detailUrl ?>" target="_blank" class="action-btn edit" title="Open in admin view"><i class="fas fa-external-link-alt" aria-hidden="true"></i><span class="action-btn-label">Open</span></a>
                                 <?php if ($r['status'] !== 'flagged'): ?>
                                 <form method="POST" action="/api/admin/review-listing.php" style="display:inline" onsubmit="return confirm('Flag this listing for review?');">
                                     <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                                     <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
                                     <input type="hidden" name="listing_type" value="<?= htmlspecialchars($type) ?>">
                                     <input type="hidden" name="action" value="flag">
-                                    <button type="submit" class="action-btn flag" title="Flag"><i class="fas fa-flag"></i></button>
+                                    <button type="submit" class="action-btn flag" title="Flag listing"><i class="fas fa-flag" aria-hidden="true"></i><span class="action-btn-label">Flag</span></button>
                                 </form>
                                 <?php else: ?>
                                 <form method="POST" action="/api/admin/review-listing.php" style="display:inline" onsubmit="return confirm('Clear flag and set back to active?');">
@@ -206,7 +206,7 @@ require_once __DIR__ . '/../templates/header.php';
                                     <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
                                     <input type="hidden" name="listing_type" value="<?= htmlspecialchars($type) ?>">
                                     <input type="hidden" name="action" value="approve">
-                                    <button type="submit" class="action-btn approve" title="Approve & unflag"><i class="fas fa-check"></i></button>
+                                    <button type="submit" class="action-btn approve" title="Approve & unflag"><i class="fas fa-check" aria-hidden="true"></i><span class="action-btn-label">Approve</span></button>
                                 </form>
                                 <?php endif; ?>
                                 <?php if ($r['status'] !== 'removed'): ?>
@@ -214,7 +214,7 @@ require_once __DIR__ . '/../templates/header.php';
                                     <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                                     <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
                                     <input type="hidden" name="listing_type" value="<?= htmlspecialchars($type) ?>">
-                                    <button type="submit" class="action-btn delete" title="Delete listing" aria-label="Delete listing"><i class="fas fa-trash-alt"></i></button>
+                                    <button type="submit" class="action-btn delete" title="Delete listing"><i class="fas fa-trash-alt" aria-hidden="true"></i><span class="action-btn-label">Delete</span></button>
                                 </form>
                                 <?php endif; ?>
                             </div>
@@ -305,15 +305,17 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .status-badge.flagged { background: #FEF2F2; color: #DC2626; }
 .status-badge.removed { background: #F3F4F6; color: #6B7280; }
 .status-badge.sold    { background: #E3F2FD; color: #1565C0; }
-.action-buttons { display: flex; gap: 8px; align-items: center; }
-.action-btn { width: 32px; height: 32px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; justify-content: center; }
+.action-buttons { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.action-btn { height: 30px; min-width: 30px; padding: 0 12px; border-radius: 7px; border: none; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 600; font-family: inherit; line-height: 1; text-decoration: none; }
+.action-btn-label { display: inline-block; }
 .action-btn.view { background: rgba(59,130,246,0.1); color: #3B82F6; }
 .action-btn.edit { background: rgba(198,164,63,0.1); color: #C6A43F; }
-.action-btn.flag { background: rgba(220,38,38,0.1); color: #DC2626; }
-.action-btn.delete { background: rgba(185,28,28,0.15); color: #B91C1C; }
-.action-btn.approve { background: rgba(34,197,94,0.1); color: #22C55E; }
-.action-btn.resolve { background: rgba(34,197,94,0.1); color: #22C55E; }
-.action-btn:hover { transform: scale(1.05); }
+.action-btn.flag { background: rgba(245,158,11,0.12); color: #B45309; }
+.action-btn.delete { background: rgba(220,38,38,0.12); color: #B91C1C; }
+.action-btn.approve { background: rgba(34,197,94,0.12); color: #15803D; }
+.action-btn.resolve { background: rgba(34,197,94,0.12); color: #15803D; }
+.action-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.action-btn i { font-style: normal; min-width: 14px; text-align: center; }
 .pagination { display: flex; justify-content: center; gap: 8px; padding: 20px; border-top: 1px solid #E0E0E0; }
 .page-btn { padding: 8px 14px; background: white; border: 1px solid #E0E0E0; border-radius: 8px; cursor: pointer; transition: all 0.3s; text-decoration: none; color: #333; font-size: 13px; }
 .page-btn.active, .page-btn:hover:not(:disabled) { background: #C6A43F; border-color: #C6A43F; color: #0A0A0A; }
