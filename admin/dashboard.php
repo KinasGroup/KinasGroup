@@ -23,8 +23,11 @@ $stats['total_listings'] = (int)$db->query("SELECT COUNT(*) FROM car_listings")-
     + (int)$db->query("SELECT COUNT(*) FROM solar_listings")->fetchColumn()
     + (int)$db->query("SELECT COUNT(*) FROM marketplace_listings")->fetchColumn();
 
-// Revenue (sum of paid earnings)
-$rev = $db->query("SELECT COALESCE(SUM(commission_amt),0) FROM earnings WHERE status='paid'")->fetchColumn();
+// Revenue (sum of paid commissions).
+// Reads from the `transactions` table (the source of truth — see
+// database/fresh_schema.sql and agent/earnings.php). The old query
+// referenced a non-existent `earnings` table + `commission_amt` column.
+$rev = $db->query("SELECT COALESCE(SUM(commission), 0) FROM transactions WHERE status = 'paid'")->fetchColumn();
 $stats['revenue'] = $rev;
 
 // Recent activity logs
