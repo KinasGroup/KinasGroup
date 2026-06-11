@@ -71,6 +71,12 @@ CREATE TABLE agent_profiles (
     business_doc_reviewed_at TIMESTAMP NULL,
     business_doc_notes  TEXT         NULL,
 
+    -- Super-agent flag: 1 = can list across ALL 4 divisions,
+    --                    0 = restricted to the single division chosen at registration.
+    -- Enforced in api/listings/create.php.
+    is_super_agent      TINYINT(1)   NOT NULL DEFAULT 0,
+
+
     tax_id              VARCHAR(100) NULL,
     years_in_business   ENUM('lt_1','1_3','3_5','5_plus') NULL,
     professional_affiliations VARCHAR(500) NULL,
@@ -407,11 +413,29 @@ CREATE TABLE rate_limits (
 -- SEED DATA
 -- =====================================================================
 
--- Admin user (password: 'Admin@2026' — CHANGE IN PRODUCTION)
--- bcrypt hash: $2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi
+-- ─────────────────────────────────────────────────────────────────────
+-- SEED ACCOUNTS — passwords below match tests/creds.json.example and
+-- seed-accounts.php. CHANGE IMMEDIATELY on any non-local environment.
+--   admin@kinas-group.com   / Admin@Kinas2025!   (role: admin,     full access)
+--   listing@kinas-group.com / Agent@Kinas2025!   (role: agent,     SUPER AGENT — can list across all 4 divisions)
+-- Regular agent accounts registered via the signup form are limited to
+-- the single division they chose at registration (see is_super_agent
+-- flag in agent_profiles + the division check in api/listings/create.php).
+-- Hashes are bcrypt cost-10 ($2y$) generated with PHP's password_hash().
+-- ─────────────────────────────────────────────────────────────────────
+
 INSERT INTO users (name, email, password, phone, role, verified, status, email_verified_at, division)
-VALUES ('Site Admin', 'admin@kinas-group.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
-        '+2348000000000', 'admin', 1, 'active', NOW(), NULL);
+VALUES ('Kinas Admin',         'admin@kinas-group.com',   '$2y$10$Y7TYG5vprY014P6h7z.1AOfsBt1zjM5InM.cgxfUI7b4wfNmsKQfu', '+2348107576042', 'admin', 1, 'active', NOW(), NULL),
+       ('Kinas Listing Agent', 'listing@kinas-group.com', '$2y$10$/4QJQrSrQNRumRxPvl.ZzuH1rEpyeG1xQuCN0au9MyqLFrh8VUNsu', '+2348107576042', 'agent', 1, 'active', NOW(), 'automobile');
+
+-- Pre-create the agent_profiles row for the seeded SUPER AGENT.
+--   is_super_agent = 1  →  can list in all 4 divisions (car / property / solar / marketplace)
+--   is_super_agent = 0  →  restricted to the agent's chosen division (enforced in api/listings/create.php)
+INSERT INTO agent_profiles
+    (user_id, division, company_name, verification_status, is_super_agent, kyc_passed_at, created_at, updated_at)
+SELECT id, 'automobile', 'KINAS GROUP', 'approved', 1, NOW(), NOW(), NOW()
+FROM users WHERE email = 'listing@kinas-group.com'
+  AND NOT EXISTS (SELECT 1 FROM agent_profiles ap WHERE ap.user_id = users.id);
 
 -- Default marketplace categories
 INSERT INTO marketplace_categories (name, slug, description) VALUES
