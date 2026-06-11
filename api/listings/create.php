@@ -55,6 +55,32 @@ if (!isset($tables[$listingType])) {
 }
 $table = $tables[$listingType];
 
+// ── Division guard ────────────────────────────────────────────────────────────
+// Admins can list anywhere. Super agents (is_super_agent=1) can list in
+// any of the 4 divisions. Regular agents are LOCKED to the single division
+// they chose at registration (agent_profiles.division). The form-level
+// <select> is also restricted, but this server-side check is the source of
+// truth — never trust the client.
+$listingTypeToDivision = [
+    'car'         => 'automobile',          // 'kinas-automobile' on the frontend
+    'property'    => 'williams-connect-home',
+    'solar'       => 'kinas-volt',
+    'marketplace' => 'kinas-marketplace',
+];
+$agentDivision = $_SESSION['user_division'] ?? null;
+$isSuperAgent  = !empty($_SESSION['is_super_agent']);
+
+if (SessionManager::getUserRole() !== 'admin' && !$isSuperAgent) {
+    if (!$agentDivision || $agentDivision !== $listingTypeToDivision[$listingType]) {
+        http_response_code(403);
+        echo json_encode([
+            'error' => 'You can only create listings in your assigned division (' .
+                       ($agentDivision ? $agentDivision : 'none assigned') . ').',
+        ]);
+        exit;
+    }
+}
+
 $title = Security::sanitizeInput((string)($data['title'] ?? ''));
 $price = (float)($data['price'] ?? 0);
 $description = Security::sanitizeInput((string)($data['description'] ?? ''));
