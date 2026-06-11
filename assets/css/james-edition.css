@@ -672,9 +672,19 @@
 /* ──────────────────────────────────────────────────────────
    DASHBOARD LAYOUT
    ────────────────────────────────────────────────────────── */
+/* The site header (.je3-header) is `position: fixed; height: 66px;`
+   so every dashboard layout MUST start 66px below the viewport
+   top, otherwise its H1 / page title gets hidden behind the bar.
+   We add 66px of top margin to the shell so the grid starts clear
+   of the fixed header, and we adjust the sidebar / main min-height
+   to account for the now-smaller available viewport.
+
+   If you ever change .je3-header height, change these 66px values
+   to match (or refactor to a CSS custom property). */
 .je-dash-shell {
     display: grid;
     grid-template-columns: 260px 1fr;
+    margin-top: 66px;
     min-height: calc(100vh - 66px);
 }
 .je-dash-sidebar {
