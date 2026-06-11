@@ -37,6 +37,10 @@ $accounts = [
     ],
 
     // ── 2. Super Agent ────────────────────────────────────────────────────────
+    // Super agents can create listings in ANY of the 4 divisions
+    // (car / property / solar / marketplace). Regular agents registered
+    // via the public signup form are restricted to the single division
+    // they chose at registration. Enforced in api/listings/create.php.
     [
         'type'     => 'agent',
         'name'     => 'Kinas Listing Agent',
@@ -47,12 +51,14 @@ $accounts = [
         'division' => 'automobile',         // primary division; admin can reassign
         'status'   => 'active',
         'verified' => 1,
-        // agent_profiles row: fully approved, all KYC stages cleared
+        // agent_profiles row: fully approved, all KYC stages cleared,
+        // and flagged as a super agent (can list across all 4 divisions).
         'agent'    => true,
         'agent_profile' => [
             'division'            => 'automobile',
             'company_name'        => 'KINAS GROUP',
             'verification_status' => 'approved',
+            'is_super_agent'      => 1,
         ],
     ],
 ];
@@ -112,9 +118,9 @@ foreach ($accounts as $account) {
             $stmt = $db->prepare("
                 INSERT INTO agent_profiles
                     (user_id, division, company_name, verification_status,
-                     kyc_passed_at, created_at, updated_at)
+                     is_super_agent, kyc_passed_at, created_at, updated_at)
                 VALUES
-                    (?, ?, ?, ?,
+                    (?, ?, ?, ?, ?,
                      NOW(), NOW(), NOW())
             ");
             $stmt->execute([
@@ -122,8 +128,10 @@ foreach ($accounts as $account) {
                 $ap['division'],
                 $ap['company_name'],
                 $ap['verification_status'],
+                !empty($ap['is_super_agent']) ? 1 : 0,
             ]);
-            echo "   ✔  agent_profiles row inserted (verification_status={$ap['verification_status']})\n";
+            $tag = !empty($ap['is_super_agent']) ? ' [SUPER AGENT — all divisions]' : '';
+            echo "   ✔  agent_profiles row inserted (verification_status={$ap['verification_status']})$tag\n";
         }
 
         $db->commit();
