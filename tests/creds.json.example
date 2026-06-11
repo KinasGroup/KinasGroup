@@ -1,5 +1,5 @@
 {
-  "_comment": "Optional override for tests/login_regression.php. Copy to creds.json and edit. The defaults already match seed-accounts.php.",
+  "_comment": "Optional override for tests/login_regression.php. Copy to creds.json and edit. The defaults already match seed-accounts.php. The 'buyer' entry is OPTIONAL — the test only runs the buyer scenario if the user actually exists in the DB.",
   "admin": {
     "email": "admin@kinas-group.com",
     "password": "Admin@Kinas2025!"
@@ -9,7 +9,7 @@
     "password": "Agent@Kinas2025!"
   },
   "buyer": {
-    "email": "buyer@test.local",
-    "password": "BuyerPass!2025"
+    "email": "",
+    "password": ""
   }
 }

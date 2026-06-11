@@ -35,9 +35,10 @@
  *     tests/creds.json (optional — defaults match seed-accounts.php):
  *     {
  *       "admin": { "email": "admin@kinas-group.com",   "password": "Admin@Kinas2025!" },
- *       "agent": { "email": "listing@kinas-group.com", "password": "Agent@Kinas2025!" },
- *       "buyer": { "email": "buyer@test.local",        "password": "BuyerPass!2025" }
+ *       "agent": { "email": "listing@kinas-group.com", "password": "Agent@Kinas2025!" }
+ *       // "buyer" is OPTIONAL — only included if your deployment seeds a buyer
  *     }
+ *     (buyer row is OPTIONAL — only used if the project seeds a buyer account)
  *
  * The test uses CURLOPT_COOKIEJAR / COOKIEFILE so the same session is reused
  * across requests — this is the exact path that broke before (admin/agent
@@ -103,6 +104,27 @@ $ROLES = [
 $passed = 0;
 $failed = 0;
 $failures = [];
+
+/**
+ * Cheap "does this email exist in the users table?" probe used to skip
+ * the optional buyer regression check when the project is seeded without
+ * a buyer account. Reads .env-style DB config from the project's
+ * api/config/env.php; returns false on any failure so the caller just
+ * skips the optional scenario.
+ */
+function buyerExistsInDb(string $email): bool {
+    if (!is_file(__DIR__ . '/../api/config/env.php')) return false;
+    try {
+        require_once __DIR__ . '/../api/config/env.php';
+        require_once __DIR__ . '/../api/config/database.php';
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare('SELECT 1 FROM users WHERE email = ? LIMIT 1');
+        $stmt->execute([$email]);
+        return (bool)$stmt->fetchColumn();
+    } catch (\Throwable $e) {
+        return false;
+    }
+}
 
 function ok(string $label, bool $cond, string $detail = ''): void {
     global $passed, $failed, $failures;
@@ -306,7 +328,13 @@ runLoggedOutHomepage($BASE_URL);
 runLoginAsAdminEndsOnAdminDashboard($BASE_URL);
 runRole('admin', $ROLES['admin'], $creds['admin'], $BASE_URL);
 runRole('agent', $ROLES['agent'], $creds['agent'], $BASE_URL);
-runRole('buyer', $ROLES['buyer'], $creds['buyer'], $BASE_URL);
+// Buyer account is optional — only run the buyer check if creds were supplied
+// AND the buyer actually exists in the seeded DB.
+if (!empty($creds['buyer']['email']) && buyerExistsInDb($creds['buyer']['email'])) {
+    runRole('buyer', $ROLES['buyer'], $creds['buyer'], $BASE_URL);
+} else {
+    echo "\n  \033[33m-\033[0m  Skipping buyer check (no seeded buyer account)\n";
+}
 
 // ── Summary ─────────────────────────────────────────────────────────────────
 
