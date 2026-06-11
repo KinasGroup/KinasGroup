@@ -163,17 +163,27 @@ try {
     // Hash password
     $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
     $verificationCode = bin2hex(random_bytes(32));
+    $verificationExpiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
-    // Insert user — division is stored in agent_profiles, not the users table
+    // Insert user — division is stored in agent_profiles, not the users table.
+    // verification_code + verification_code_expires MUST be persisted here;
+    // otherwise the link emailed to the user can never resolve (the
+    // verify-email lookup matches on verification_code alone).
     $stmt = $db->prepare("
-        INSERT INTO users (name, email, password, phone, role, status, created_at)
-        VALUES (?, ?, ?, ?, 'agent', 'active', NOW())
+        INSERT INTO users
+            (name, email, password, phone, role, status,
+             verification_code, verification_code_expires, created_at)
+        VALUES
+            (?, ?, ?, ?, 'agent', 'active',
+             ?, ?, NOW())
     ");
     $stmt->execute([
         Security::sanitizeInput($data['name']),
         strtolower(trim($data['email'])),
         $hashedPassword,
-        Security::sanitizeInput($data['phone'])
+        Security::sanitizeInput($data['phone']),
+        $verificationCode,
+        $verificationExpiry,
     ]);
 
     $userId = $db->lastInsertId();

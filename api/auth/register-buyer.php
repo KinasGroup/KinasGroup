@@ -147,14 +147,27 @@ try {
     // Generate verification code
     $verificationCode = Security::generateToken(32);
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+    $verificationExpiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
-    // Insert user as buyer (role = 'user')
-    // Using 'verification_code' column (matches your table, not 'email_verification_code')
+    // Insert user as buyer (role = 'user').
+    // The 24h expiry is enforced server-side in auth/verify-email.php —
+    // the email body advertises "this link will expire in 24 hours".
     $stmt = $db->prepare("
-        INSERT INTO users (name, email, phone, password, role, status, verification_code, created_at)
-        VALUES (?, ?, ?, ?, 'user', 'active', ?, NOW())
+        INSERT INTO users
+            (name, email, phone, password, role, status,
+             verification_code, verification_code_expires, created_at)
+        VALUES
+            (?, ?, ?, ?, 'user', 'active',
+             ?, ?, NOW())
     ");
-    $stmt->execute([$name, strtolower($email), $phone, $passwordHash, $verificationCode]);
+    $stmt->execute([
+        $name,
+        strtolower($email),
+        $phone,
+        $passwordHash,
+        $verificationCode,
+        $verificationExpiry,
+    ]);
     $userId = $db->lastInsertId();
 
     // Send verification email (REQUIRED — registration only succeeds if delivery succeeds)
