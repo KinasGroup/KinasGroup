@@ -107,6 +107,33 @@ class Security {
     }
 
     /**
+     * Non-destructive CSRF check — returns true/false, no exit, no output.
+     * Use this from pages / endpoints that want to control the failure
+     * response (e.g. set a flash message and re-render the form, or branch
+     * to a different handler). The companion validateCSRFToken() method
+     * above has the contract "on failure, 403 + JSON + exit" which is
+     * wrong for HTML pages that just want to show an inline error.
+     *
+     * Also rotates the session token on a successful match (same as
+     * validateCSRFToken), so the next form render picks up a fresh value.
+     *
+     * Empty / missing token is treated as invalid. Comparison uses
+     * hash_equals() to avoid timing attacks.
+     */
+    public static function verifyCSRFToken(?string $token): bool {
+        $token = (string)($token ?? '');
+        if ($token === '' || empty($_SESSION['csrf_token'])) {
+            return false;
+        }
+        if (!hash_equals((string)$_SESSION['csrf_token'], $token)) {
+            return false;
+        }
+        // Rotate after use
+        unset($_SESSION['csrf_token']);
+        return true;
+    }
+
+    /**
      * Generate HTML hidden input with CSRF token
      */
     public static function csrfField(): string {
