@@ -69,6 +69,8 @@ CREATE TABLE agent_profiles (
     ) DEFAULT 'pending',
     kyc_provider        VARCHAR(32)  NULL DEFAULT 'metamap',
     kyc_verification_id VARCHAR(64)  NULL COMMENT 'MetaMap verification id',
+    kyc_submitted_at    TIMESTAMP    NULL COMMENT 'When the agent submitted their KYC application',
+    kyc_decision_at     TIMESTAMP    NULL COMMENT 'When the final approve/reject decision was made',
     kyc_passed_at       TIMESTAMP    NULL,
     business_doc_reviewed_by INT     NULL,
     business_doc_reviewed_at TIMESTAMP NULL,
@@ -281,6 +283,7 @@ CREATE TABLE solar_listings (
     status          ENUM('active', 'inactive', 'flagged', 'removed') DEFAULT 'active',
     views           INT DEFAULT 0,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (agent_id) REFERENCES users(id),
     INDEX idx_status (status),
     INDEX idx_city   (city)
