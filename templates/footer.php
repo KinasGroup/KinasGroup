@@ -6,20 +6,28 @@ je_render_footer('site');
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Header transparent → solid on scroll
+    // Header transparent → solid on scroll.
+    //
+    // BUG FIX: the previous version called update() on page load AND on
+    // every scroll event, forcing 'transparent' on the header whenever
+    // scrollY <= 50. That's correct for the homepage (server renders
+    // class="je3-header transparent") but broken for EVERY other page
+    // (server renders class="je3-header solid" for dashboards, login,
+    // division pages, etc.) — the JS would clobber the server's choice
+    // and produce an invisible white-on-light header at the top of the
+    // page until the user scrolled past 50px.
+    //
+    // Fix: only ADD 'solid' on scroll-down. Never force 'transparent'
+    // — the server's PHP in templates/header.php has already picked the
+    // correct initial class based on whether we're on the homepage.
     var header = document.getElementById('header');
     if (header) {
-        var update = function () {
+        var onScroll = function () {
             if (window.scrollY > 50) {
-                header.classList.remove('transparent');
                 header.classList.add('solid');
-            } else {
-                header.classList.add('transparent');
-                header.classList.remove('solid');
             }
         };
-        update();
-        window.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('scroll', onScroll, { passive: true });
     }
 
     // Mobile menu
