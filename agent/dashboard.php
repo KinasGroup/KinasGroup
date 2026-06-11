@@ -153,12 +153,18 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.stat-icon i {
+    color: #C6A43F;   /* visible against the 10% gold tint */
     font-size: 28px;
-    color: #C6A43F;
 }
+/* Color variants — used via class on the <div class="stat-icon">. Each
+   uses a darker color over a faint tinted background so the icon is
+   always visible (avoids the gold-on-gold problem). */
+.stat-icon.blue   { background: rgba(59,130,246,.1);  color: #3B82F6; }
+.stat-icon.green  { background: rgba(34,197,94,.1);   color: #22C55E; }
+.stat-icon.gold   { background: rgba(198,164,63,.12); color: #C6A43F; }
+.stat-icon.orange { background: rgba(245,158,11,.12); color: #F59E0B; }
+.stat-icon.purple { background: rgba(139,92,246,.12); color: #8B5CF6; }
+.stat-icon.red    { background: rgba(220,38,38,.12);  color: #DC2626; }
 
 .stat-info h3 {
     font-size: 13px;
@@ -489,7 +495,7 @@ body {
         <!-- Stats Cards -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-list-alt"></i></div>
+                <div class="stat-icon gold"><i class="fas fa-list-alt"></i></div>
                 <div class="stat-info">
                     <h3>Total Listings</h3>
                     <div class="stat-number"><?= number_format($stat_listings) ?></div>
@@ -497,7 +503,7 @@ body {
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-eye"></i></div>
+                <div class="stat-icon blue"><i class="fas fa-eye"></i></div>
                 <div class="stat-info">
                     <h3>Total Views</h3>
                     <div class="stat-number"><?= number_format($stat_views) ?></div>
@@ -505,7 +511,7 @@ body {
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-envelope"></i></div>
+                <div class="stat-icon purple"><i class="fas fa-envelope"></i></div>
                 <div class="stat-info">
                     <h3>Inquiries</h3>
                     <div class="stat-number"><?= number_format($stat_inquiries) ?></div>
@@ -513,7 +519,7 @@ body {
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-naira-sign"></i></div>
+                <div class="stat-icon green"><i class="fas fa-naira-sign"></i></div>
                 <div class="stat-info">
                     <h3>Total Earnings</h3>
                     <div class="stat-number">₦<?= number_format($stat_earnings, 2) ?></div>
