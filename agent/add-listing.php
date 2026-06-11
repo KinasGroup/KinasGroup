@@ -15,6 +15,20 @@ try {
     $kycStatus = $st->fetchColumn() ?: 'pending';
 } catch (Exception $e) { /* table not migrated yet — allow */ }
 
+// Division + super-agent flag (set on login by SessionManager::setUser).
+// Super agents can list across all 4 divisions; regular agents are
+// restricted to the division they chose at registration.
+$agentDivision = $_SESSION['user_division']  ?? null;
+$isSuperAgent  = !empty($_SESSION['is_super_agent']);
+
+// Map: DB division value → listing_type (what the API expects) → label
+$divisionMap = [
+    'automobile'          => ['type' => 'car',         'label' => 'Kinas Automobile',      'opt' => 'automobile'],
+    'williams-connect-home'=> ['type' => 'property',   'label' => 'Williams Connect Home', 'opt' => 'realestate'],
+    'kinas-volt'          => ['type' => 'solar',       'label' => 'Kinas Volt',            'opt' => 'solar'],
+    'kinas-marketplace'   => ['type' => 'marketplace', 'label' => 'Kinas Marketplace',     'opt' => 'marketplace'],
+];
+
 $csrf_token = Security::generateCSRFToken();
 require_once __DIR__ . '/../templates/header.php';
 ?>
@@ -83,7 +97,35 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     <form class="listing-form" method="POST" action="/api/listings/create.php" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
         <div class="form-grid">
             <div class="form-section"><h3>Basic Information</h3>
-                <div class="form-group"><label><i class="fas fa-layer-group"></i> Division *</label><select name="division" id="division" required><option value="">Select Division</option><option value="automobile">Kinas Automobile</option><option value="realestate">Williams Connect Home</option><option value="solar">Kinas Volt</option><option value="marketplace">Kinas Marketplace</option></select></div>
+                <div class="form-group"><label><i class="fas fa-layer-group"></i> Division *</label>
+                    <?php
+                    // Super agent: full 4-division dropdown.
+                    // Regular agent: only their own division is available
+                    // (server-side enforcement in api/listings/create.php is
+                    // the source of truth — this is just UX).
+                    $allowed = $isSuperAgent
+                        ? array_keys($divisionMap)
+                        : ($agentDivision ? [$agentDivision] : []);
+                    ?>
+                    <select name="division" id="division" required>
+                        <option value="">Select Division</option>
+                        <?php foreach ($divisionMap as $dbDiv => $info):
+                            $sel = (!$isSuperAgent && $dbDiv === $agentDivision) ? 'selected' : '';
+                            ?>
+                            <option value="<?= htmlspecialchars($info['opt']) ?>" <?= $sel ?>>
+                                <?= htmlspecialchars($info['label']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if (!$isSuperAgent && $agentDivision): ?>
+                        <small style="color:#666; font-size:12px;">
+                            Your account is registered for <strong><?= htmlspecialchars($divisionMap[$agentDivision]['label'] ?? $agentDivision) ?></strong> only.
+                            Contact an admin to be promoted to a Super Agent.
+                        </small>
+                    <?php endif; ?>
+                    <!-- Server reads listing_type (car/property/solar/marketplace), not the frontend 'division' key. -->
+                    <input type="hidden" name="listing_type" id="listing_type" value="">
+                </div>
                 <div class="form-group"><label><i class="fas fa-heading"></i> Listing Title *</label><input type="text" name="title" placeholder="e.g., 2024 Mercedes-Benz S-Class" required></div>
                 <div class="form-group"><label><i class="fas fa-align-left"></i> Description *</label><textarea name="description" rows="6" placeholder="Provide a detailed description of your listing..." required></textarea></div>
                 <div class="form-row"><div class="form-group"><label><i class="fas fa-tag"></i> Price *</label><div class="input-prefix"><span class="prefix">₦</span><input type="number" name="price" placeholder="0" step="0.01" required></div></div><div class="form-group"><label>Price Type</label><select name="price_type"><option value="fixed">Fixed Price</option><option value="negotiable">Negotiable</option><option value="contact">Contact for Price</option></select></div></div>
@@ -105,7 +147,21 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 </div>
 
 <script>
-document.getElementById('division')?.addEventListener('change', function() { const d = this.value; document.getElementById('automobileFields').style.display = d === 'automobile' ? 'block' : 'none'; document.getElementById('realestateFields').style.display = d === 'realestate' ? 'block' : 'none'; document.getElementById('solarFields').style.display = d === 'solar' ? 'block' : 'none'; });
+// Map frontend <select name="division"> values (automobile / realestate /
+// solar / marketplace) to the listing_type the API expects
+// (car / property / solar / marketplace) and keep them in sync.
+const divisionToType = { automobile: 'car', realestate: 'property', solar: 'solar', marketplace: 'marketplace' };
+
+function syncListingType() {
+    const d = document.getElementById('division')?.value || '';
+    document.getElementById('listing_type').value = divisionToType[d] || '';
+    document.getElementById('automobileFields').style.display = d === 'automobile'  ? 'block' : 'none';
+    document.getElementById('realestateFields').style.display = d === 'realestate' ? 'block' : 'none';
+    document.getElementById('solarFields').style.display       = d === 'solar'      ? 'block' : 'none';
+}
+document.getElementById('division')?.addEventListener('change', syncListingType);
+syncListingType(); // initialise (regular-agent pre-selected option needs to set listing_type too)
+
 const imageUpload = document.getElementById('imageUpload'), previewGrid = document.getElementById('imagePreviewGrid'); let selectedFiles = [];
 imageUpload?.addEventListener('change', function(e) { selectedFiles = [...selectedFiles, ...Array.from(e.target.files)]; updatePreview(); });
 function updatePreview() { previewGrid.innerHTML = ''; selectedFiles.forEach((file, index) => { const reader = new FileReader(); reader.onload = function(e) { const div = document.createElement('div'); div.className = 'preview-item'; div.innerHTML = `<img src="${e.target.result}"><div class="preview-remove" onclick="removeImage(${index})">&times;</div>`; previewGrid.appendChild(div); }; reader.readAsDataURL(file); }); }
