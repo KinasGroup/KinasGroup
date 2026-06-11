@@ -90,14 +90,21 @@ require_once __DIR__ . '/../templates/header.php';
         .role-badge,.status-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
         .role-badge.admin{background:#F3E5F5;color:#7B1FA2}.role-badge.agent{background:#E3F2FD;color:#1565C0}.role-badge.user{background:#E8F5E9;color:#2E7D32}
         .status-badge.active{background:#E8F5E9;color:#2E7D32}.status-badge.pending{background:#FFF3E0;color:#F57C00}.status-badge.suspended,.status-badge.banned{background:#FEF2F2;color:#DC2626}
-        .action-btns{display:flex;gap:6px}
-        .act-btn{width:30px;height:30px;border-radius:7px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:12px;transition:all .2s}
+        .email-verified-badge,.email-unverified-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+        .email-verified-badge{background:#E8F5E9;color:#2E7D32}
+        .email-unverified-badge{background:#FFF3E0;color:#F57C00}
+        .action-btns{display:flex;gap:6px;flex-wrap:wrap}
+        .act-btn{height:30px;min-width:30px;padding:0 12px;border-radius:7px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;font-family:inherit;transition:all .2s;line-height:1}
         .act-btn.activate{background:#E8F5E9;color:#2E7D32}.act-btn.suspend{background:#FFF3E0;color:#F57C00}.act-btn.ban{background:#FEF2F2;color:#DC2626}
-        .act-btn:hover{transform:scale(1.1)}
+        .act-btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+        .act-btn-label{display:inline-block}
+        /* If the FA CDN is blocked the <i> shows up empty — the
+           button still works because the label is there. */
+        .act-btn i{font-style:normal;min-width:14px;text-align:center}
         .pagination{display:flex;justify-content:center;gap:6px;padding:18px;border-top:1px solid #E0E0E0}
         .page-btn{padding:7px 12px;border:1px solid #E0E0E0;border-radius:7px;background:white;color:#333;text-decoration:none;font-size:13px;transition:all .2s}
         .page-btn:hover,.page-btn.active{background:#C6A43F;border-color:#C6A43F;color:#0A0A0A}
-        @media(max-width:768px){.admin-main{padding:20px}.data-table th:nth-child(4),.data-table td:nth-child(4){display:none}}
+        @media(max-width:768px){.admin-main{padding:20px}.data-table th:nth-child(4),.data-table td:nth-child(4),.data-table th:nth-child(7),.data-table td:nth-child(7){display:none}}
     </style>
 
 </head>
@@ -142,10 +149,10 @@ require_once __DIR__ . '/../templates/header.php';
     <div class="table-container">
         <div class="table-responsive">
             <table class="data-table">
-                <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Division</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+                <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Division</th><th>Status</th><th>Email</th><th>Joined</th><th>Actions</th></tr></thead>
                 <tbody>
                 <?php if (empty($users)): ?>
-                <tr><td colspan="7" style="text-align:center;padding:40px;color:#999">No users match the current filter.</td></tr>
+                <tr><td colspan="8" style="text-align:center;padding:40px;color:#999">No users match the current filter.</td></tr>
                 <?php else: ?>
                 <?php foreach ($users as $u):
                     $initials = strtoupper(substr($u['name'],0,1) . (strpos($u['name'],' ')!==false ? substr($u['name'],strpos($u['name'],' ')+1,1) : ''));
@@ -156,6 +163,17 @@ require_once __DIR__ . '/../templates/header.php';
                     <td><span class="role-badge <?= $u['role'] ?>"><?= ucfirst($u['role']) ?></span></td>
                     <td><?= htmlspecialchars($u['division'] ?? '—') ?></td>
                     <td><span class="status-badge <?= $u['status'] ?>"><?= ucfirst($u['status']) ?></span></td>
+                    <td>
+                        <?php if (!empty($u['email_verified_at'])): ?>
+                            <span class="email-verified-badge" title="Verified <?= htmlspecialchars(date('M j, Y H:i', strtotime($u['email_verified_at']))) ?>">
+                                <i class="fas fa-check-circle" style="color:#2E7D32"></i> Verified
+                            </span>
+                        <?php else: ?>
+                            <span class="email-unverified-badge" title="This user has not clicked the verification link in their email">
+                                <i class="fas fa-exclamation-triangle" style="color:#F57C00"></i> Unverified
+                            </span>
+                        <?php endif; ?>
+                    </td>
                     <td><?= date('M j, Y', strtotime($u['created_at'])) ?></td>
                     <td>
                         <form method="POST" style="display:contents">
@@ -163,13 +181,13 @@ require_once __DIR__ . '/../templates/header.php';
                             <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
                             <div class="action-btns">
                                 <?php if ($u['status'] !== 'active'): ?>
-                                <button class="act-btn activate" name="action" value="activate" title="Activate"><i class="fas fa-check"></i></button>
+                                <button class="act-btn activate" name="action" value="activate" title="Activate user"><i class="fas fa-check" aria-hidden="true"></i><span class="act-btn-label">Activate</span></button>
                                 <?php endif; ?>
                                 <?php if ($u['status'] !== 'suspended'): ?>
-                                <button class="act-btn suspend" name="action" value="suspend" title="Suspend"><i class="fas fa-pause"></i></button>
+                                <button class="act-btn suspend" name="action" value="suspend" title="Suspend user"><i class="fas fa-pause" aria-hidden="true"></i><span class="act-btn-label">Suspend</span></button>
                                 <?php endif; ?>
                                 <?php if ($u['status'] !== 'banned' && $u['role'] !== 'admin'): ?>
-                                <button class="act-btn ban" name="action" value="ban" title="Ban" onclick="return confirm('Ban this user?')"><i class="fas fa-ban"></i></button>
+                                <button class="act-btn ban" name="action" value="ban" title="Ban user" onclick="return confirm('Ban this user?')"><i class="fas fa-ban" aria-hidden="true"></i><span class="act-btn-label">Ban</span></button>
                                 <?php endif; ?>
                             </div>
                         </form>

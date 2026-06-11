@@ -16,6 +16,11 @@ $stats = [];
 $stats['total_users']    = $db->query("SELECT COUNT(*) FROM users WHERE role='user'")->fetchColumn();
 $stats['total_agents']   = $db->query("SELECT COUNT(*) FROM users WHERE role='agent' AND status='active'")->fetchColumn();
 $stats['pending_agents'] = $db->query("SELECT COUNT(*) FROM agent_profiles WHERE verification_status='pending'")->fetchColumn();
+// Unverified users: accounts that registered but never clicked the
+// verification link. These accounts exist in the DB but cannot log
+// in. Surfacing the count here makes the verification state visible
+// on the admin overview.
+$stats['unverified_users'] = $db->query("SELECT COUNT(*) FROM users WHERE email_verified_at IS NULL")->fetchColumn();
 
 // Total listings across all division tables
 $stats['total_listings'] = (int)$db->query("SELECT COUNT(*) FROM car_listings")->fetchColumn()
@@ -149,6 +154,18 @@ require_once __DIR__ . '/../templates/header.php';
                 <h3>Total Revenue</h3>
                 <div class="stat-number"><?= fmt_ngn((float)$stats['revenue']) ?></div>
                 <span class="stat-sub">Paid commissions</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#FFF3E0;color:#F57C00"><i class="fas fa-envelope"></i></div>
+            <div class="stat-info">
+                <h3>Unverified Emails</h3>
+                <div class="stat-number"><?= number_format($stats['unverified_users']) ?></div>
+                <?php if ($stats['unverified_users'] > 0): ?>
+                <span class="stat-sub warn">Cannot log in until verified</span>
+                <?php else: ?>
+                <span class="stat-sub">All users verified</span>
+                <?php endif; ?>
             </div>
         </div>
     </div>
