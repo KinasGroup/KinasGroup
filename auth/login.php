@@ -164,7 +164,31 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             window.location.href = data.user.role === 'admin' ? '../admin/dashboard.php' :
                                    (data.user.role === 'agent' ? '../agent/dashboard.php' : '../user/dashboard.php');
         } else {
-            alert(data.error || 'Login failed');
+            // Special case: the account exists but the email hasn't been
+            // verified. Show a clear message and offer a "resend the
+            // verification link" action. The API tells us the user's email
+            // so we can re-issue the code without them re-typing it.
+            if (data.error_code === 'email_not_verified') {
+                const wantResend = confirm(
+                    (data.error || 'Please verify your email.') +
+                    '\n\nWould you like us to send a new verification link to ' + (data.email || email) + '?'
+                );
+                if (wantResend) {
+                    try {
+                        const r = await fetch('/api/auth/resend-verification.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: data.email || email })
+                        });
+                        const rd = await r.json();
+                        alert(rd.message || 'If that email is registered and unverified, a new link has been sent.');
+                    } catch (err) {
+                        alert('Could not resend the verification email. Please try again later.');
+                    }
+                }
+            } else {
+                alert(data.error || 'Login failed');
+            }
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Sign In';
         }
