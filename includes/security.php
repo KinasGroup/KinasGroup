@@ -408,6 +408,83 @@ class Security {
     }
 
 
+    // ── Email deliverability ────────────────────────────────────────────────
+    //
+    // PHP's mail() returns true as soon as the local MTA accepts the
+    // message — it does NOT verify the recipient exists. That meant we
+    // were happily creating accounts for any syntactically-valid email
+    // (e.g. fake@nonexistentdomain12345.com) because the registration
+    // code's "rollback if email failed" guard was checking a return
+    // value that always said success. The user-facing symptom was
+    // "I created an account with a non-existing email and got the
+    // success message".
+    //
+    // Fix: BEFORE we hand the address to mail()/Resend, do a real DNS
+    // check on the domain. If the domain has no MX record (and no A
+    // record as a fallback), the message is guaranteed to bounce, so we
+    // reject the registration up front. This is the standard pattern
+    // recommended by e.g. Postmark, Mailgun, and the PHP docs.
+    //
+    // Note: this catches "fake@thisdomainreallydoesnotexist.com" but
+    // NOT typos on real domains (e.g. me@gmial.com — gmial.com does
+    // have an MX). That's an acceptable trade-off: full SMTP
+    // verification (RCPT TO probe) requires a real outbound SMTP
+    // connection and is much heavier. The DNS check is the 90% solution.
+    //
+    // Returns null if the address looks deliverable, or a human-readable
+    // error string if it should be rejected. NEVER throw — the caller
+    // needs to use the result to decide between 422 and a successful
+    // insert.
+    public static function checkEmailDeliverable(?string $email): ?string {
+        if (!is_string($email) || $email === '') {
+            return 'Email address is required.';
+        }
+        $email = trim(strtolower($email));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return 'Please enter a valid email address.';
+        }
+
+        $domain = substr($email, strpos($email, '@') + 1);
+
+        // Reject literal placeholder / RFC-5733 / RFC-2606 addresses
+        // (example.com, example.org, .test, .invalid, .localhost).
+        $blocked = [
+            'example.com', 'example.org', 'example.net',
+            'localhost', 'localdomain',
+            'test.com', 'test.org', 'test.net',
+            'invalid', 'localhost.localdomain',
+        ];
+        if (in_array($domain, $blocked, true) || str_ends_with($domain, '.test') || str_ends_with($domain, '.invalid') || str_ends_with($domain, '.localhost')) {
+            return 'That email domain is not allowed.';
+        }
+
+        // Try MX first, then fall back to A record (some small / misconfigured
+        // domains still accept mail on their A record).
+        $hasMx = false;
+        if (function_exists('getmxrr')) {
+            $mxHosts = [];
+            // getmxrr emits a warning and returns false on lookup failure.
+            // The @ suppresses the warning; the return value is the truth.
+            if (@getmxrr($domain, $mxHosts) && !empty($mxHosts)) {
+                $hasMx = true;
+            }
+        }
+
+        if ($hasMx) {
+            return null; // looks good
+        }
+
+        // No MX — fall back to an A record. This matches what most
+        // real mail servers do when an MX is missing.
+        $a = @gethostbyname($domain);
+        if ($a !== $domain && filter_var($a, FILTER_VALIDATE_IP)) {
+            return null; // A record exists, treat as deliverable
+        }
+
+        return 'We could not find a mail server for that email domain. Please double-check the address and try again.';
+    }
+
+
 }
 
 // Apply security headers on every PHP request
