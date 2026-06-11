@@ -33,6 +33,18 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     exit;
 }
 
+// DNS-based deliverability check (same helper as the registration
+// endpoints). The resend path is supposed to be a no-op for users on
+// dead domains — catching that here gives a clearer error than
+// silently swallowing the failure (and the per-IP rate limit does
+// not get burned for the user's typo).
+$deliverableError = Security::checkEmailDeliverable($email);
+if ($deliverableError !== null) {
+    http_response_code(422);
+    echo json_encode(['error' => $deliverableError]);
+    exit;
+}
+
 try {
     $db = Database::getInstance()->getConnection();
 

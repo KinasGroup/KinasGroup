@@ -157,7 +157,19 @@ try {
         echo json_encode(['error' => 'An account with this email already exists']);
         exit;
     }
-    
+
+    // DNS-based deliverability check on the email domain. PHP's mail()
+    // returns true even for undeliverable addresses, so without this we
+    // would happily create agent accounts for fake domains. Reject
+    // before opening the transaction so the rollback path doesn't need
+    // to fire.
+    $deliverableError = Security::checkEmailDeliverable($data['email'] ?? '');
+    if ($deliverableError !== null) {
+        http_response_code(422);
+        echo json_encode(['error' => $deliverableError]);
+        exit;
+    }
+
     $db->beginTransaction();
 
     // Hash password

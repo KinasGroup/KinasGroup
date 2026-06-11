@@ -125,6 +125,20 @@ if (!empty($errors)) {
     exit;
 }
 
+// DNS-based deliverability check: rejects addresses on domains that
+// have no MX and no A record. PHP's mail() returns true even for
+// undeliverable addresses (it hands off to the local MTA and lies), so
+// without this check we were creating accounts for any string that
+// passed filter_var(FILTER_VALIDATE_EMAIL) — the user could register
+// with `fake@thisdomainreallydoesnotexist.com` and the rollback guard
+// in the email-send path was never triggered.
+$deliverableError = Security::checkEmailDeliverable($email);
+if ($deliverableError !== null) {
+    http_response_code(422);
+    echo json_encode(['error' => $deliverableError]);
+    exit;
+}
+
 try {
     $db = Database::getInstance()->getConnection();
 
