@@ -34,6 +34,9 @@ CREATE TABLE users (
     division        ENUM('automobile', 'real_estate', 'solar', 'marketplace'),
     email_verified_at   TIMESTAMP NULL,
     verification_code   VARCHAR(128) NULL,
+    -- When the verification_code becomes invalid (NULL = no expiry / already used).
+    -- Server-side checked in auth/verify-email.php and api/auth/verify-email.php.
+    verification_code_expires TIMESTAMP NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_email (email),
