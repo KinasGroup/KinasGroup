@@ -19,33 +19,75 @@ $csrf_token = Security::generateCSRFToken();
     <link rel="stylesheet" href="../assets/css/james-edition.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .forgot-icon-wrap {
+            width: 96px; height: 96px; border-radius: 50%;
+            margin: 0 auto 28px; display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #FFF8E1 0%, #FCE4B6 100%);
+            box-shadow: 0 12px 32px rgba(198,164,63,0.18);
+        }
+        .forgot-icon-wrap i { font-size: 2.4rem; color: #B45309; }
+        .security-list {
+            background: rgba(255,255,255,0.05); border-radius: 12px;
+            padding: 22px; border: 1px solid rgba(255,255,255,0.08);
+        }
+        .security-list .label {
+            font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+            color: #C6A43F; margin-bottom: 12px; font-weight: 700;
+        }
+        .security-list ul { list-style: none; padding: 0; margin: 0; color: rgba(255,255,255,0.75); font-size: 14px; line-height: 2; }
+        .security-list i { color: #C6A43F; width: 22px; text-align: center; margin-right: 8px; }
+    </style>
 </head>
 <body>
 
-<div class="je-auth-shell" style="grid-template-columns: 1fr;">
+<div class="je-auth-shell">
+    <!-- ── Left aside: account security themed ── -->
+    <aside class="je-auth-aside">
+        <a href="../index.php" class="je-auth-brand">
+            <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
+            <span>KINAS GROUP</span>
+        </a>
+        <div>
+            <h1 class="je-auth-headline">Secure your account.</h1>
+            <p class="je-auth-sub">Resetting your password takes a minute. We'll email you a one-time link — valid for 30 minutes — that lets you choose a new one.</p>
+        </div>
+        <div class="security-list">
+            <div class="label">Your account is protected by</div>
+            <ul>
+                <li><i class="fas fa-shield-alt"></i> Bcrypt-hashed passwords (cost 12)</li>
+                <li><i class="fas fa-lock"></i> Single-use, time-limited reset tokens</li>
+                <li><i class="fas fa-history"></i> Full login &amp; activity audit trail</li>
+                <li><i class="fas fa-user-shield"></i> Automatic lockout after 5 failed attempts</li>
+            </ul>
+        </div>
+    </aside>
+
+    <!-- ── Right form: email + reset trigger ── -->
     <main class="je-auth-main">
-        <div class="je-auth-form" style="max-width:460px;">
-            <a href="../index.php" class="je-auth-brand" style="margin-bottom:32px; justify-content:center; color:#0A0A0A;">
-                <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'" style="height:30px;">
-                <span style="color:#0A0A0A; font-family:'Prata',serif;">KINAS GROUP</span>
-            </a>
-            <h2>Forgot your password?</h2>
-            <p class="je-auth-sub-form">Enter your email and we'll send you a secure link to reset it.</p>
+        <div class="je-auth-form" style="max-width: 460px;">
+            <div class="forgot-icon-wrap">
+                <i class="fas fa-key" aria-hidden="true"></i>
+            </div>
+            <h2 style="text-align:center;">Forgot your password?</h2>
+            <p class="je-auth-sub-form" style="text-align:center;">Enter your email and we'll send you a secure link to reset it.</p>
 
             <?php if ($message): ?><div class="je-form-success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($message) ?></div><?php endif; ?>
-            <?php if ($error): ?><div class="je-form-error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($error) ?></div><?php endif; ?>
+            <?php if ($error):   ?><div class="je-form-error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($error) ?></div><?php endif; ?>
 
             <form method="POST" action="/api/auth/forgot-password.php" id="forgotForm">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
                 <div class="je-form-group">
                     <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" placeholder="your@email.com" required>
+                    <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
                 </div>
-                <button type="submit" class="je-btn je-btn-gold je-btn-block je-btn-lg">Send Reset Link</button>
+                <button type="submit" class="je-btn je-btn-gold je-btn-block je-btn-lg">
+                    <i class="fas fa-paper-plane"></i>&nbsp; Send Reset Link
+                </button>
             </form>
 
-            <div class="je-auth-switch">
-                <a href="login.php"><i class="fas fa-arrow-left"></i> Back to Sign In</a>
+            <div class="je-auth-switch" style="text-align:center;">
+                <a href="login.php"><i class="fas fa-arrow-left"></i>&nbsp; Back to Sign In</a>
             </div>
         </div>
     </main>
