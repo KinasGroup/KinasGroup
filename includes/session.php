@@ -18,6 +18,28 @@ class SessionManager {
         $_SESSION['user_role']     = $user['role'];
         $_SESSION['user_verified'] = (bool)($user['verified'] ?? false);
         $_SESSION['logged_in']     = true;
+
+        // For agents, also stash their division + super-agent flag so the
+        // server can enforce "regular agents are locked to their chosen
+        // division" without an extra DB round-trip on every request.
+        // Defaults to 0 (restricted) for everyone else. A failure here
+        // must NOT block login — we just leave the flags empty and let
+        // api/listings/create.php fall back to a safe "no access" decision.
+        if (($user['role'] ?? '') === 'agent') {
+            try {
+                $db = Database::getInstance()->getConnection();
+                $stmt = $db->prepare(
+                    'SELECT division, is_super_agent FROM agent_profiles WHERE user_id = ?'
+                );
+                $stmt->execute([(int)$user['id']]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                $_SESSION['user_division']  = $row['division']       ?? null;
+                $_SESSION['is_super_agent'] = !empty($row['is_super_agent']);
+            } catch (\Throwable $e) {
+                $_SESSION['user_division']  = null;
+                $_SESSION['is_super_agent'] = false;
+            }
+        }
     }
 
     public static function isLoggedIn(): bool {
