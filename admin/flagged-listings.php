@@ -77,6 +77,7 @@ $countRemoved = (int)$db->query("SELECT
 $countHigh = count(array_filter($rows, fn($r) => empty($r['image'])));
 
 $headerDepth = '../';
+require_once __DIR__ . '/../templates/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">

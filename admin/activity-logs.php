@@ -51,6 +51,7 @@ $stats = [
 ];
 
 $headerDepth = '../';
+require_once __DIR__ . '/../templates/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">

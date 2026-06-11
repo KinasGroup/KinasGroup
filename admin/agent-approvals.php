@@ -157,7 +157,6 @@ require_once __DIR__ . '/../templates/header.php';
 <div class="je-dash-shell">
 <?php include __DIR__ . "/../includes/partials/admin-sidebar.php"; ?>
 <main class="je-dash-main">
-<main class="je-dash-main">
     <div class="page-header">
         <h1><i class="fas fa-user-check" style="color:#C6A43F;margin-right:10px"></i>Agent Approval Queue</h1>
         <p>Review and approve agent KYC submissions before they go live</p>
@@ -319,9 +318,6 @@ require_once __DIR__ . '/../templates/header.php';
         </div>
     </div>
     <?php endforeach; ?>
-
-</main>
-</div>
 
 </main>
 </div>
