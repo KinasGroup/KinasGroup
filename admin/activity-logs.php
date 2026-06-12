@@ -78,7 +78,8 @@ require_once __DIR__ . '/../templates/header.php';
         .btn-filter:hover { background: #A8882E; }
         .btn-secondary { background: #F5F5F5; color: #333; border: 1px solid #E0E0E0; padding: 10px 16px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 13px; }
         .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: white; border-radius: 12px; padding: 15px 20px; border: 1px solid #E0E0E0; }
+        .stat-card { background: white; border-radius: 12px; padding: 15px 20px; border: 1.5px solid #C6A43F; transition: all 0.3s; }
+        .stat-card:hover { border-color: #C6A43F; box-shadow: 0 8px 24px rgba(198,164,63,0.15); transform: translateY(-3px); }
         .stat-card .number { font-size: 24px; font-weight: 700; color: #C6A43F; font-family: 'Prata', serif; }
         .stat-card .label { font-size: 12px; color: #666; margin-top: 4px; }
         .logs-card { background: white; border-radius: 20px; border: 1px solid #E0E0E0; overflow: hidden; }

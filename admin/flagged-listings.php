@@ -97,7 +97,8 @@ require_once __DIR__ . '/../templates/header.php';
         .page-header h1 { font-family: 'Prata', serif; font-size: 28px; color: #0A0A0A; margin-bottom: 8px; }
         .page-header p { color: #666; font-size: 14px; }
         .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: white; border-radius: 16px; padding: 25px; text-align: center; border: 1px solid #E0E0E0; }
+        .stat-card { background: white; border-radius: 16px; padding: 25px; text-align: center; border: 1.5px solid #C6A43F; transition: all 0.3s; }
+        .stat-card:hover { border-color: #C6A43F; box-shadow: 0 8px 24px rgba(198,164,63,0.15); transform: translateY(-3px); }
         .stat-card.danger .stat-number { color: #DC2626; }
         .stat-number { font-size: 32px; font-weight: 700; color: #C6A43F; font-family: 'Prata', serif; }
         .stat-label { color: #666; font-size: 13px; margin-top: 5px; }

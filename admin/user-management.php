@@ -74,7 +74,8 @@ require_once __DIR__ . '/../templates/header.php';
         .flash{padding:14px 20px;border-radius:10px;margin-bottom:18px;font-size:14px;font-weight:500}
         .flash.success{background:#E8F5E9;color:#2E7D32}.flash.error{background:#FEF2F2;color:#DC2626}
         .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
-        .stat-card{background:white;border-radius:14px;padding:20px;text-align:center;border:1px solid #E0E0E0}
+        .stat-card{background:white;border-radius:14px;padding:20px;text-align:center;border:1.5px solid #C6A43F;transition:all .3s}
+        .stat-card:hover{border-color:#C6A43F;box-shadow:0 8px 24px rgba(198,164,63,0.15);transform:translateY(-3px)}
         .stat-number{font-size:28px;font-weight:700;color:#C6A43F;font-family:'Prata',serif}.stat-label{color:#666;font-size:12px;margin-top:4px}
         .filters-bar{background:white;border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;border:1px solid #E0E0E0}
         .filters-bar input,.filters-bar select{padding:9px 14px;border:1px solid #E0E0E0;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px}

@@ -92,10 +92,10 @@ require_once __DIR__ . '/../templates/header.php';
         .btn-filter:hover { background: #A8882E; }
         .btn-secondary { background: #F5F5F5; color: #333; border: 1px solid #E0E0E0; padding: 10px 16px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 13px; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: white; border-radius: 16px; padding: 25px; border: 1px solid #E0E0E0; transition: all 0.3s; }
-        .stat-card:hover { transform: translateY(-3px); border-color: #C6A43F; }
+        .stat-card { background: white; border-radius: 16px; padding: 25px; border: 1.5px solid #C6A43F; transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-3px); border-color: #C6A43F; box-shadow: 0 8px 24px rgba(198,164,63,0.15); }
         .stat-card .icon { font-size: 32px; color: #C6A43F; margin-bottom: 15px; }
-        .stat-card h3 { font-family: 'Prata', serif; font-size: 32px; color: #0A0A0A; margin-bottom: 5px; }
+        .stat-card h3 { font-family: 'Prata', serif; font-size: 32px; color: #C6A43F; margin-bottom: 5px; }
         .stat-card p { color: #666; font-size: 13px; }
         .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; margin-bottom: 30px; }
         .chart-card { background: white; border-radius: 16px; padding: 25px; border: 1px solid #E0E0E0; }

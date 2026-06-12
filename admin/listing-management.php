@@ -275,7 +275,8 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .admin-header h1 { font-family: 'Prata', serif; font-size: 28px; color: #0A0A0A; margin-bottom: 8px; }
 .admin-header p { color: #666; font-size: 14px; }
 .stats-mini { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-.stat-mini-card { background: white; border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 16px; border: 1px solid #E0E0E0; }
+.stat-mini-card { background: white; border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 16px; border: 1.5px solid #C6A43F; transition: all 0.3s; }
+.stat-mini-card:hover { border-color: #C6A43F; box-shadow: 0 8px 24px rgba(198,164,63,0.15); transform: translateY(-3px); }
 .stat-mini-card i { font-size: 32px; color: #C6A43F; }
 .stat-mini-info { display: flex; flex-direction: column; }
 .stat-mini-label { font-size: 12px; color: #666; }

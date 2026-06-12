@@ -120,7 +120,8 @@ require_once __DIR__ . '/../templates/header.php';
         .flash.error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}
         .flash.info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
         .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;margin-bottom:28px}
-        .stat-card{background:white;border-radius:14px;padding:20px;text-align:center;border:1px solid #E0E0E0}
+        .stat-card{background:white;border-radius:14px;padding:20px;text-align:center;border:1.5px solid #C6A43F;transition:all .3s}
+        .stat-card:hover{border-color:#C6A43F;box-shadow:0 8px 24px rgba(198,164,63,0.15);transform:translateY(-3px)}
         .stat-number{font-size:32px;font-weight:700;color:#C6A43F;font-family:'Prata',serif}
         .stat-label{color:#666;font-size:13px;margin-top:4px}
         .approval-card{background:white;border-radius:18px;border:1px solid #E0E0E0;overflow:hidden;margin-bottom:24px;transition:all .3s}

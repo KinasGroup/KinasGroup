@@ -72,8 +72,8 @@ require_once __DIR__ . '/../templates/header.php';
         .page-header h1{font-family:'Prata',serif;font-size:28px;color:#0A0A0A;margin-bottom:6px}
         .page-header p{color:#666;font-size:14px}
         .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:30px}
-        .stat-card{background:white;border-radius:16px;padding:24px;border:1px solid #E0E0E0;display:flex;align-items:center;gap:18px;transition:all .3s}
-        .stat-card:hover{transform:translateY(-3px);border-color:#C6A43F;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+        .stat-card{background:white;border-radius:16px;padding:24px;border:1.5px solid #C6A43F;display:flex;align-items:center;gap:18px;transition:all .3s}
+        .stat-card:hover{transform:translateY(-3px);border-color:#C6A43F;box-shadow:0 8px 24px rgba(198,164,63,0.15)}
         /* Bigger than admin.css's default 48x48; the icon gets a strong
            color via the variant class so it never blends into the bg. */
         .stat-card .stat-icon{width:56px;height:56px;border-radius:14px;background:rgba(198,164,63,.1);color:#C6A43F;font-size:1.6rem}
@@ -83,7 +83,7 @@ require_once __DIR__ . '/../templates/header.php';
         .stat-card .stat-icon.orange{background:rgba(245,158,11,.12);color:#F59E0B}
         .stat-card .stat-icon.purple{background:rgba(139,92,246,.12);color:#8B5CF6}
         .stat-info h3{font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-        .stat-number{font-size:28px;font-weight:700;color:#0A0A0A;margin-bottom:2px}
+        .stat-number{font-size:28px;font-weight:700;color:#C6A43F;font-family:'Prata',serif;margin-bottom:2px}
         .stat-sub{font-size:12px;color:#2E7D32}
         .stat-sub.warn{color:#F57C00}
         .charts-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:24px;margin-bottom:30px}
