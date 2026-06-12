@@ -42,7 +42,7 @@ if ($registrationSuccess) {
             <span></span>
         </a>
         <div>
-            <h1 class="je-auth-headline">The World's Luxury Marketplace.</h1>
+            <h1 class="je-auth-headline">A Luxurious Marketplace.</h1>
             <p class="je-auth-sub"></p>
         </div>
         <blockquote class="je-auth-quote">
