@@ -62,7 +62,7 @@ $successMessage = SessionManager::getFlash('success');
                 </span>
             </div>
 
-            <h2>Welcome back</h2>
+            <h2>Welcome Back</h2>
             <p class="je-auth-sub-form">Sign in to access the administration dashboard.</p>
 
             <?php if ($errorMessage): ?>
