@@ -77,7 +77,7 @@ $successMessage = SessionManager::getFlash('success');
 
                 <div class="je-form-group">
                     <label for="email">Admin Email Address</label>
-                    <input type="email" id="email" name="email" placeholder="admin@kinasgroup.com" required autocomplete="email">
+                    <input type="email" id="email" name="email" placeholder="admin@kinas-group.com" required autocomplete="email">
                 </div>
                 <div class="je-form-group">
                     <label for="password">Password</label>
