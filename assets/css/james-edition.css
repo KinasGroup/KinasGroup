@@ -966,8 +966,19 @@
     .je-dash-nav a { white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; padding: 14px 18px; }
     .je-dash-nav a.is-active { border-bottom-color: var(--je-gold); border-left: none; }
     .je-auth-shell { grid-template-columns: 1fr; }
-    .je-auth-aside { padding: 40px 28px; }
-    .je-auth-headline { font-size: 28px; }
+    .je-auth-aside {
+        /* Mobile: stack the brand / headline / quote with explicit
+           gaps so they don't squeeze together when the explanation
+           paragraph is removed. Also keep a min-height so the dark
+           aside still has presence above the form on narrow screens. */
+        padding: 36px 28px 44px;
+        gap: 32px;
+        min-height: 320px;
+    }
+    .je-auth-aside > div:not(.je-auth-brand) { margin: 0; }
+    .je-auth-headline { font-size: 26px; margin-bottom: 0; }
+    .je-auth-sub:empty { display: none; }   /* hide the empty <p> from the markup */
+    .je-auth-quote { padding-left: 16px; }
 }
 @media (max-width: 768px) {
     .je-container { padding: 0 20px; }
