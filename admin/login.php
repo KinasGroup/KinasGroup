@@ -44,7 +44,7 @@ $successMessage = SessionManager::getFlash('success');
         </a>
         <div>
             <h1 class="je-auth-headline">Platform Administration.</h1>
-            <p class="je-auth-sub">Manage listings, users, transactions and platform settings — secure access for authorised administrators only.</p>
+            <p class="je-auth-sub"></p>
         </div>
         <blockquote class="je-auth-quote">
             <p>"Operational clarity and control — everything you need to keep the marketplace running at its best."</p>
