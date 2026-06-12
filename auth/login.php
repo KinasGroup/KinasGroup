@@ -43,7 +43,7 @@ if ($registrationSuccess) {
         </a>
         <div>
             <h1 class="je-auth-headline">The World's Luxury Marketplace.</h1>
-            <p class="je-auth-sub">Homes, cars, solar energy and curated goods — verified, transparent, secure. Sign in to your dealer or buyer account.</p>
+            <p class="je-auth-sub"></p>
         </div>
         <blockquote class="je-auth-quote">
             <p>"We bought our Lagos penthouse through KINAS. The verification process gave us total confidence in the agent."</p>
