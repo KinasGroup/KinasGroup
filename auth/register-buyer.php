@@ -34,7 +34,7 @@ $successMessage = SessionManager::getFlash('success');
         </a>
         <div>
             <h1 class="je-auth-headline">Discover. Acquire. Belong.</h1>
-            <p class="je-auth-sub">Create a free buyer account to save listings, contact agents, and access exclusive off-market opportunities across all four KINAS divisions.</p>
+            <p class="je-auth-sub"></p>
         </div>
         <blockquote class="je-auth-quote">
             <p>"The saved-listing alerts and direct agent messaging made finding our home effortless."</p>
