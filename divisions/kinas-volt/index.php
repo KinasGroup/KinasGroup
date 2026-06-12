@@ -35,14 +35,14 @@ $pageDescription = 'Premium solar panels, inverters, batteries, and energy servi
 include '../../templates/header.php';
 ?>
 
-<section style="position:relative; height:70vh; min-height:480px; background:linear-gradient(135deg, rgba(10,40,20,0.5), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=2000&q=80') center/cover no-repeat; display:flex; align-items:center;">
+<section style="position:relative; height:70vh; min-height:480px; padding-top:90px; box-sizing:border-box; background:linear-gradient(135deg, rgba(10,40,20,0.5), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=2000&q=80') center/cover no-repeat; display:flex; align-items:center;">
     <div class="je-container" style="color:#fff; position:relative; z-index:1;">
         <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">KINAS VOLT</div>
-        <h1 style="font-family:'Prata',serif; font-size:56px; line-height:1.1; max-width:680px; margin-bottom:18px;">Premium Solar &amp; Energy Solutions</h1>
+        <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Premium Solar &amp; Energy Solutions</h1>
         <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">From residential rooftop systems to industrial installations — discover <?= number_format($totalSystems) ?>+ trusted solar solutions from verified providers.</p>
         <div class="je-flex" style="gap:14px;">
             <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Systems</a>
-            <a href="search.php?service_type=residential" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Residential →</a>
+            <a href="search.php?service_type=residential" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Residential</a>
         </div>
     </div>
 </section>
