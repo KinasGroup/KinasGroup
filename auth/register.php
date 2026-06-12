@@ -41,7 +41,7 @@ $divisions = [
         </a>
         <div>
             <h1 class="je-auth-headline">Become a KINAS Agent.</h1>
-            <p class="je-auth-sub">List luxury vehicles, properties, solar systems or curated goods to a global audience of qualified buyers. KYC verification is fast and free.</p>
+            <p class="je-auth-sub"></p>
         </div>
         <blockquote class="je-auth-quote">
             <p>"KINAS made cross-border selling simple. Our Lagos dealership saw international buyers within the first week."</p>
