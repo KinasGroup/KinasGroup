@@ -935,30 +935,12 @@ html, body {
             <?php endforeach; ?>
 
             <?php if (empty($featuredListings)): ?>
-                <div class="listing-card">
-                    <a href="/divisions/kinas-automobile/detail.php">
-                        <div class="listing-img"><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80" alt="Mercedes-Benz S-Class" loading="lazy"><span class="listing-badge">Featured</span><button class="favorite-btn" onclick="event.preventDefault();">♡</button></div>
-                        <div class="listing-info"><span class="listing-dealer">KINAS Automobile</span><h3 class="listing-title">2024 Mercedes-Benz S-Class</h3><p class="listing-specs">5,000 km · Automatic · Petrol</p><p class="listing-price">₦110,000,000</p><span class="verified-tag">✓ Verified</span></div>
-                    </a>
-                </div>
-                <div class="listing-card">
-                    <a href="/divisions/williams-connect-home/detail.php">
-                        <div class="listing-img"><img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80" alt="Beverly Hills Mansion" loading="lazy"><span class="listing-badge">Featured</span><button class="favorite-btn" onclick="event.preventDefault();">♡</button></div>
-                        <div class="listing-info"><span class="listing-dealer">Williams Connect Home</span><h3 class="listing-title">Lagos Waterfront Mansion</h3><p class="listing-specs">6 Beds · 8 Baths · 12,000 sqft</p><p class="listing-price">₦850,000,000</p><span class="verified-tag">✓ Verified</span></div>
-                    </a>
-                </div>
-                <div class="listing-card">
-                    <a href="/divisions/kinas-automobile/detail.php">
-                        <div class="listing-img"><img src="https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?w=600&q=80" alt="Porsche 911 Turbo" loading="lazy"><button class="favorite-btn" onclick="event.preventDefault();">♡</button></div>
-                        <div class="listing-info"><span class="listing-dealer">KINAS Automobile</span><h3 class="listing-title">2024 Porsche 911 Turbo S</h3><p class="listing-specs">1,200 km · Automatic · Petrol</p><p class="listing-price">₦195,000,000</p><span class="verified-tag">✓ Verified</span></div>
-                    </a>
-                </div>
-                <div class="listing-card">
-                    <a href="/divisions/williams-connect-home/detail.php">
-                        <div class="listing-img"><img src="https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=600&q=80" alt="Modern Villa" loading="lazy"><button class="favorite-btn" onclick="event.preventDefault();">♡</button></div>
-                        <div class="listing-info"><span class="listing-dealer">Williams Connect Home</span><h3 class="listing-title">Abuja Presidential Villa</h3><p class="listing-specs">4 Beds · 5 Baths · 5,800 sqft</p><p class="listing-price">₦1,200,000,000</p><span class="verified-tag">✓ Verified</span></div>
-                    </a>
-                </div>
+                <!--
+                    No hardcoded fallback listings.
+                    When the database has no featured/active listings, the grid
+                    stays empty until listings arrive from the Agent / Super Agent
+                    dashboards.
+                -->
             <?php endif; ?>
         </div>
     </div>
