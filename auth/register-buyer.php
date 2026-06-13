@@ -44,7 +44,7 @@ $successMessage = SessionManager::getFlash('success');
 
     <main class="je-auth-main">
         <div class="je-auth-form">
-            <h2>Create buyer account</h2>
+            <h2>Create Buyer Account</h2>
             <p class="je-auth-sub-form">Free forever. No credit card required.</p>
 
             <?php if ($errorMessage): ?><div class="je-form-error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div><?php endif; ?>
