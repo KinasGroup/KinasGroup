@@ -36,7 +36,7 @@ $pageDescription = 'Watches, jewelry, art, fashion and other curated luxury good
 include '../../templates/header.php';
 ?>
 
-<section style="position:relative; height:70vh; min-height:480px; padding-top:90px; box-sizing:border-box; background:linear-gradient(135deg, rgba(40,20,40,0.5), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=2000&q=80') center/cover no-repeat; display:flex; align-items:center;">
+<section id="heroSection" style="position:relative; height:70vh; min-height:480px; padding-top:90px; box-sizing:border-box; background:linear-gradient(135deg, rgba(40,20,40,0.5), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=2000&q=80') center/cover no-repeat; display:flex; align-items:center;">
     <div class="je-container" style="color:#fff; position:relative; z-index:1;">
         <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">KINAS MARKETPLACE</div>
         <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Curated Luxury Goods</h1>
