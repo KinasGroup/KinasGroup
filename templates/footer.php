@@ -4,32 +4,11 @@ require_once __DIR__ . '/../includes/je-components.php';
 je_render_footer('site');
 ?>
 
+<!-- Shared transparent-header scroll effect (hero pages only) -->
+<script src="/assets/js/header-scroll.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Header transparent → solid on scroll.
-    //
-    // BUG FIX: the previous version called update() on page load AND on
-    // every scroll event, forcing 'transparent' on the header whenever
-    // scrollY <= 50. That's correct for the homepage (server renders
-    // class="je3-header transparent") but broken for EVERY other page
-    // (server renders class="je3-header solid" for dashboards, login,
-    // division pages, etc.) — the JS would clobber the server's choice
-    // and produce an invisible white-on-light header at the top of the
-    // page until the user scrolled past 50px.
-    //
-    // Fix: only ADD 'solid' on scroll-down. Never force 'transparent'
-    // — the server's PHP in templates/header.php has already picked the
-    // correct initial class based on whether we're on the homepage.
-    var header = document.getElementById('header');
-    if (header) {
-        var onScroll = function () {
-            if (window.scrollY > 50) {
-                header.classList.add('solid');
-            }
-        };
-        window.addEventListener('scroll', onScroll, { passive: true });
-    }
-
     // Mobile menu
     var btn = document.getElementById('mobileMenuBtn');
     var drawer = document.getElementById('mobileNavDrawer');

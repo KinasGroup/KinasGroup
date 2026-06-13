@@ -6,9 +6,26 @@ $isLoggedIn = isset($_SESSION['user_id']);
 $userRole = $_SESSION['user_role'] ?? null;
 $userName = $_SESSION['user_name'] ?? '';
 
-// Check if this is the homepage (for transparent header)
-$isHomepage = basename($_SERVER['PHP_SELF']) === 'index.php' && $_SERVER['REQUEST_URI'] === '/';
-$transparentClass = $isHomepage ? 'transparent' : 'solid';
+// Check if this is a "hero page" (for transparent header overlay effect).
+// Hero pages start with the header transparent over a full-bleed hero
+// section; on scroll the JS in /assets/js/header-scroll.js flips it to
+// 'solid' once the hero leaves the viewport.
+$isHeroPage = false;
+$scriptName = basename($_SERVER['PHP_SELF']);
+$requestUri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+
+// Homepage: / and /index.php
+if ($scriptName === 'index.php' && in_array($requestUri, ['/', '/index.php'], true)) {
+    $isHeroPage = true;
+}
+
+// Division landings: /divisions/*/index.php
+if ($scriptName === 'index.php'
+    && preg_match('#^/divisions/[^/]+/?$#', $requestUri)) {
+    $isHeroPage = true;
+}
+
+$transparentClass = $isHeroPage ? 'transparent' : 'solid';
 ?>
 <!DOCTYPE html>
 <html lang="en">
