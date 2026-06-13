@@ -1023,32 +1023,9 @@ function switchSearchTab(btn, tab) {
 // ============================================
 // TRANSPARENT HEADER SCROLL EFFECT
 // ============================================
-var header = document.getElementById('header');
-var heroSection = document.getElementById('heroSection');
-
-function updateHeader() {
-    var scrollY = window.pageYOffset || document.documentElement.scrollTop;
-    if (scrollY > 50) {
-        header.classList.remove('transparent');
-        header.classList.add('solid');
-    } else {
-        header.classList.add('transparent');
-        header.classList.remove('solid');
-    }
-}
-
-updateHeader();
-
-var ticking = false;
-window.addEventListener('scroll', function() {
-    if (!ticking) {
-        window.requestAnimationFrame(function() {
-            updateHeader();
-            ticking = false;
-        });
-        ticking = true;
-    }
-});
+// Moved to /assets/js/header-scroll.js (loaded by templates/footer.php
+// on every page). It no-ops automatically on pages that don't have a
+// hero section.
 
 // Mobile menu handled by /assets/js/mobile-menu.js (loaded in footer)
 
