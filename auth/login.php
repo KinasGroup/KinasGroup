@@ -54,7 +54,7 @@ if ($registrationSuccess) {
     <!-- ── Right form ── -->
     <main class="je-auth-main">
         <div class="je-auth-form">
-            <h2>Welcome back</h2>
+            <h2>Welcome Back</h2>
             <p class="je-auth-sub-form">Sign in to access your dashboard, saved listings and messages.</p>
 
             <?php if ($errorMessage): ?>
