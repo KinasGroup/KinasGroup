@@ -47,7 +47,7 @@ $similar = $similar->fetchAll();
 
 $features = [];
 if (!empty($item['features'])) {
-    $features = is_array($item['features']) ? $item['features'] : json_decode($item['features'], true) ?: [];
+    $features = is_array($item['features']) ? $item['features'] : (json_decode($item['features'], true) ?: []);
 }
 
 $pageTitle = trim(($item['brand'] ?? '') . ' ' . ($item['model'] ?? '') . ' ' . ($item['year'] ?? '')) . ' - KINAS AUTOMOBILE';
