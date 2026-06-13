@@ -124,22 +124,22 @@ include '../../templates/header.php';
     <div class="je-container">
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:40px; text-align:center;">
             <div>
-                <div style="width:60px; height:60px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:16px; box-shadow:0 4px 12px rgba(0,0,0,0.08);"><img src="/assets/images/trust/verified-dealers-icon-120.png" alt="Verified Dealers" width="60" height="60" loading="lazy" style="width:60px; height:60px; display:block;"></div>
+                <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,0.12);"><img src="/assets/images/trust/verified-dealers-icon-120.png" srcset="/assets/images/trust/verified-dealers-icon-240.png 2x" alt="Verified Dealers" width="120" height="120" loading="lazy" style="width:120px; height:120px; display:block;"></div>
                 <h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Verified Dealers</h3>
                 <p style="font-size:13px; color:#666; line-height:1.6;">Every dealer on KINAS is identity-verified through our secure KYC partner.</p>
             </div>
             <div>
-                <div style="width:60px; height:60px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:16px; box-shadow:0 4px 12px rgba(0,0,0,0.08);"><img src="/assets/images/trust/global-inventory-icon-120.png" alt="Global Inventory" width="60" height="60" loading="lazy" style="width:60px; height:60px; display:block;"></div>
+                <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,0.12);"><img src="/assets/images/trust/global-inventory-icon-120.png" srcset="/assets/images/trust/global-inventory-icon-240.png 2x" alt="Global Inventory" width="120" height="120" loading="lazy" style="width:120px; height:120px; display:block;"></div>
                 <h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Global Inventory</h3>
                 <p style="font-size:13px; color:#666; line-height:1.6;">Browse vehicles from dealers across 100+ countries, all in one place.</p>
             </div>
             <div>
-                <div style="width:60px; height:60px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:16px; box-shadow:0 4px 12px rgba(0,0,0,0.08);"><img src="/assets/images/trust/secure-transactions-icon-120.png" alt="Secure Transactions" width="60" height="60" loading="lazy" style="width:60px; height:60px; display:block;"></div>
+                <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,0.12);"><img src="/assets/images/trust/secure-transactions-icon-120.png" srcset="/assets/images/trust/secure-transactions-icon-240.png 2x" alt="Secure Transactions" width="120" height="120" loading="lazy" style="width:120px; height:120px; display:block;"></div>
                 <h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Secure Transactions</h3>
                 <p style="font-size:13px; color:#666; line-height:1.6;">End-to-end encrypted messaging and escrow-protected payments.</p>
             </div>
             <div>
-                <div style="width:60px; height:60px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:16px; box-shadow:0 4px 12px rgba(0,0,0,0.08);"><img src="/assets/images/trust/concierge-service-icon-120.png" alt="Concierge Service" width="60" height="60" loading="lazy" style="width:60px; height:60px; display:block;"></div>
+                <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,0.12);"><img src="/assets/images/trust/concierge-service-icon-120.png" srcset="/assets/images/trust/concierge-service-icon-240.png 2x" alt="Concierge Service" width="120" height="120" loading="lazy" style="width:120px; height:120px; display:block;"></div>
                 <h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Concierge Service</h3>
                 <p style="font-size:13px; color:#666; line-height:1.6;">Our specialists can source specific vehicles on request.</p>
             </div>
