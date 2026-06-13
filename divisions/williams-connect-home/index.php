@@ -35,7 +35,7 @@ $pageDescription = 'Discover luxury homes, villas, penthouses, and estates from 
 include '../../templates/header.php';
 ?>
 
-<section style="position:relative; height:70vh; min-height:480px; padding-top:90px; box-sizing:border-box; background:linear-gradient(135deg, rgba(10,10,10,0.5), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=2000&q=80') center/cover no-repeat; display:flex; align-items:center;">
+<section id="heroSection" style="position:relative; height:70vh; min-height:480px; padding-top:90px; box-sizing:border-box; background:linear-gradient(135deg, rgba(10,10,10,0.5), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=2000&q=80') center/cover no-repeat; display:flex; align-items:center;">
     <div class="je-container" style="color:#fff; position:relative; z-index:1;">
         <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">WILLIAMS CONNECT HOME</div>
         <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Where Luxury Meets Address</h1>
