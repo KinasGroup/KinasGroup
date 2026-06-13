@@ -51,7 +51,7 @@ $divisions = [
 
     <main class="je-auth-main">
         <div class="je-auth-form" style="max-width:520px;">
-            <h2>Create agent account</h2>
+            <h2>Create Agent Account</h2>
             <p class="je-auth-sub-form">After registration you'll complete MetaMap identity verification — usually under 2 minutes.</p>
 
             <?php if ($errorMessage): ?><div class="je-form-error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div><?php endif; ?>
