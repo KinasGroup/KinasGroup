@@ -81,12 +81,12 @@ include '../../templates/header.php';
 </style>
 
 <!-- Hero with Rotating Backgrounds -->
+<!-- Hero with Rotating Backgrounds - CORRECTED IMAGES -->
 <section id="heroSection">
     <div class="hero-slides">
-        <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1920&q=80');"></div>
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1613665813446-82a78c468a1d?w=1920&q=80');"></div>
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=1920&q=80');"></div>
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1532601224476-15c79f2f7a51?w=1920&q=80');"></div>
+        <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1920&q=80'); background-position: center 30%;"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1613665813446-82a78c468a1d?w=1920&q=80'); background-position: center 25%;"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=1920&q=80'); background-position: center 35%;"></div>
     </div>
     <div class="hero-overlay"></div>
     
