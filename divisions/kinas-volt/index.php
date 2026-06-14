@@ -499,7 +499,7 @@ include '../../templates/header.php';
     
     sunSelect.addEventListener('change', calculateSolarSavings);
     
-    // FIXED: Submit enquiry with better error handling
+    // FIXED: Submit enquiry with proper error handling and correct URL
     submitBtn.addEventListener('click', async function() {
         const name = nameInput.value.trim();
         const email = emailInput.value.trim();
@@ -537,8 +537,14 @@ include '../../templates/header.php';
         
         console.log('Sending data:', postData);
         
+        // Get the correct URL path - works regardless of where the file is
+        const currentPath = window.location.pathname;
+        const basePath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+        const apiUrl = basePath + '/send_solar_enquiry.php';
+        console.log('API URL:', apiUrl);
+        
         try {
-            const response = await fetch('/divisions/kinas-volt/send_solar_enquiry.php', {
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -550,14 +556,13 @@ include '../../templates/header.php';
             console.log('Response status:', response.status);
             
             let result;
-            const responseText = await response.text();
-            console.log('Raw response:', responseText);
-            
             try {
-                result = JSON.parse(responseText);
+                result = await response.json();
+                console.log('Response data:', result);
             } catch (e) {
-                console.error('JSON parse error:', e);
-                throw new Error('Server returned invalid response format');
+                const text = await response.text();
+                console.error('Raw response:', text);
+                throw new Error('Server returned: ' + text.substring(0, 100));
             }
             
             if (result && result.success === true) {
@@ -574,7 +579,7 @@ include '../../templates/header.php';
             }
         } catch (error) {
             console.error('Fetch error:', error);
-            statusDiv.innerHTML = '<div class="solar-status error">❌ Network error: ' + error.message + '. Please try again.</div>';
+            statusDiv.innerHTML = '<div class="solar-status error">❌ Error: ' + error.message + '. Please try again.</div>';
         }
         
         submitBtn.disabled = false;
