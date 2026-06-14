@@ -86,7 +86,7 @@ include '../../templates/header.php';
     <div class="hero-slides">
         <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1920&q=80'); background-position: center 30%;"></div>
         <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1613665813446-82a78c468a1d?w=1920&q=80'); background-position: center 25%;"></div>
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1563299796-17596ed6b017?w=1920&h=1080&fit=crop'); background-position: center 35%;"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1611365892117-00ac5ef43c90?w=1920&h=1080&fit=crop'); background-position: center 30%;"></div>
     </div>
     <div class="hero-overlay"></div>
     
