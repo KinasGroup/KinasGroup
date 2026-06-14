@@ -61,7 +61,7 @@ include '../../templates/header.php';
             <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Systems</a>
             <!-- REPLACED: "Residential" button is now GREEN "Solar Calculator" button (NIGERIAN NAIRA VERSION) -->
             <button type="button" id="openSolarCalculatorBtn" class="solar-calculator-green-btn">
-                <i class="fas fa-calculator"></i> Solar Calculator (₦)
+                <i class="fas fa-calculator"></i> Solar Calculator
             </button>
         </div>
     </div>
