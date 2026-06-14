@@ -43,7 +43,8 @@ include '../../templates/header.php';
 
 <!-- Hero Carousel Styles -->
 <style>
-.hero-section {
+/* Hero Section with Rotating Backgrounds - preserving original positioning */
+#heroSection {
     position: relative;
     height: 70vh;
     min-height: 480px;
@@ -76,13 +77,20 @@ include '../../templates/header.php';
 }
 
 @media (max-width: 768px) {
-    .hero-slide { background-position: 65% center; }
-}
-@media (max-width: 480px) {
-    .hero-slide { background-position: 70% center; }
+    .hero-slide {
+        background-position: 65% center;
+    }
 }
 
-.hero-slide.active { opacity: 1; }
+@media (max-width: 480px) {
+    .hero-slide {
+        background-position: 70% center;
+    }
+}
+
+.hero-slide.active {
+    opacity: 1;
+}
 
 .hero-overlay {
     position: absolute;
@@ -94,11 +102,15 @@ include '../../templates/header.php';
     z-index: 1;
 }
 
-.hero-content { position: relative; z-index: 2; width: 100%; }
+/* Original content stays exactly as was - no extra wrappers */
+.je-container {
+    position: relative;
+    z-index: 2;
+}
 </style>
 
 <!-- ── Hero with Rotating Backgrounds ── -->
-<section id="heroSection" class="hero-section">
+<section id="heroSection">
     <!-- Rotating Background Slides -->
     <div class="hero-slides">
         <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1920&q=80');"></div>
@@ -108,16 +120,14 @@ include '../../templates/header.php';
     </div>
     <div class="hero-overlay"></div>
     
-    <!-- ORIGINAL CONTENT - EXACTLY AS WAS -->
-    <div class="hero-content">
-        <div class="je-container" style="color:#fff; position:relative; z-index:1;">
-            <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">KINAS AUTOMOBILE</div>
-            <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Finest Luxury &amp; Exotic Vehicles</h1>
-            <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">From supercars to grand tourers — discover <?= number_format($totalCars) ?>+ verified luxury vehicles from trusted dealers worldwide.</p>
-            <div class="je-flex" style="gap:14px;">
-                <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Inventory</a>
-                <a href="search.php?sort=price_high" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Car Rentals</a>
-            </div>
+    <!-- ORIGINAL CONTENT - EXACTLY AS IT WAS, NO CHANGES TO STRUCTURE -->
+    <div class="je-container" style="color:#fff; position:relative; z-index:1;">
+        <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">KINAS AUTOMOBILE</div>
+        <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Finest Luxury &amp; Exotic Vehicles</h1>
+        <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">From supercars to grand tourers — discover <?= number_format($totalCars) ?>+ verified luxury vehicles from trusted dealers worldwide.</p>
+        <div class="je-flex" style="gap:14px;">
+            <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Inventory</a>
+            <a href="search.php?sort=price_high" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Car Rentals</a>
         </div>
     </div>
 </section>
