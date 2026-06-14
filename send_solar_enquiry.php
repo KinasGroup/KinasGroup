@@ -1,9 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once '../../api/config/database.php';
-require_once '../../vendor/autoload.php'; // Resend SDK
-
-use Resend\Resend;
+require_once '../../includes/email.php'; // Your existing EmailService class
 
 $db = Database::getInstance()->getConnection();
 
@@ -24,19 +22,35 @@ if (empty($full_name) || empty($email) || empty($phone)) {
     exit;
 }
 
+// Create solar_enquiries table if not exists
+try {
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS solar_enquiries (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            full_name VARCHAR(100) NOT NULL,
+            email VARCHAR(100) NOT NULL,
+            phone VARCHAR(20) NOT NULL,
+            monthly_bill DECIMAL(10,2) NOT NULL,
+            system_size DECIMAL(10,2) NOT NULL,
+            annual_savings DECIMAL(12,2) NOT NULL,
+            payback_years DECIMAL(5,2) NOT NULL,
+            status ENUM('new', 'contacted', 'converted') DEFAULT 'new',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+} catch (PDOException $e) {
+    // Table probably already exists
+}
+
 // Save to database
 $stmt = $db->prepare("INSERT INTO solar_enquiries (full_name, email, phone, monthly_bill, system_size, annual_savings, payback_years) VALUES (?, ?, ?, ?, ?, ?, ?)");
 $stmt->execute([$full_name, $email, $phone, $monthly_bill, $system_size, $annual_savings, $payback_years]);
 
-// Get API key from environment variable (CASE-SENSITIVE - matches your Railway variable)
-$RESEND_API_KEY = getenv('RESEND_API_KEY');  // UPPERCASE as in Railway
-if (!$RESEND_API_KEY) {
-    // Fallback for local development
-    $RESEND_API_KEY = 're_xxxxxxxxxxxxx'; // Remove this in production
-}
+// Use your existing EmailService class
+$emailService = new EmailService();
 
-$resend = new Resend($RESEND_API_KEY);
-
+// Prepare the email content
+$subject = "New Solar Enquiry from {$full_name}";
 $html_content = "
 <!DOCTYPE html>
 <html>
@@ -58,18 +72,14 @@ $html_content = "
 </html>
 ";
 
-try {
-    $resend->emails->send([
-        'from'    => 'KINAS Solar <solar@kinasauto.com>', // Change to your verified domain
-        'to'      => ['info@kinasauto.com'], // Change to your business email
-        'subject' => "New Solar Enquiry from {$full_name}",
-        'html'    => $html_content,
-    ]);
-    
+// Send using your EmailService - it will auto-detect Resend if API key exists
+$result = $emailService->send($email, $subject, $html_content);
+
+// Also send a copy to admin (change to your business email)
+$emailService->send('info@kinasauto.com', $subject, $html_content);
+
+if ($result) {
     echo json_encode(['success' => true, 'message' => 'Enquiry sent! We will contact you within 24 hours.']);
-} catch (Exception $e) {
-    // Log error but still return success (data already saved in DB)
-    error_log("Resend email failed: " . $e->getMessage());
+} else {
     echo json_encode(['success' => true, 'message' => 'Enquiry saved! We will contact you soon.']);
 }
-?>
