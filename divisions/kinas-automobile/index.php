@@ -41,15 +41,83 @@ $pageDescription = 'Browse the world\'s finest luxury cars, supercars, and exoti
 include '../../templates/header.php';
 ?>
 
-<!-- ── Hero ── -->
-<section id="heroSection" style="position:relative; height:70vh; min-height:480px; padding-top:90px; box-sizing:border-box; background:linear-gradient(135deg, rgba(10,10,10,0.5), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=2000&q=80') center/cover no-repeat; display:flex; align-items:center;">
-    <div class="je-container" style="color:#fff; position:relative; z-index:1;">
-        <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">KINAS AUTOMOBILE</div>
-        <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Finest Luxury &amp; Exotic Vehicles</h1>
-        <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">From supercars to grand tourers — discover <?= number_format($totalCars) ?>+ verified luxury vehicles from trusted dealers worldwide.</p>
-        <div class="je-flex" style="gap:14px;">
-            <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Inventory</a>
-            <a href="search.php?sort=price_high" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Car Rentals</a>
+<!-- Hero Carousel Styles -->
+<style>
+.hero-section {
+    position: relative;
+    height: 70vh;
+    min-height: 480px;
+    padding-top: 90px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.hero-slides {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+.hero-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+}
+
+@media (max-width: 768px) {
+    .hero-slide { background-position: 65% center; }
+}
+@media (max-width: 480px) {
+    .hero-slide { background-position: 70% center; }
+}
+
+.hero-slide.active { opacity: 1; }
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(10,10,10,0.5), rgba(0,0,0,0.7));
+    z-index: 1;
+}
+
+.hero-content { position: relative; z-index: 2; width: 100%; }
+</style>
+
+<!-- ── Hero with Rotating Backgrounds ── -->
+<section id="heroSection" class="hero-section">
+    <!-- Rotating Background Slides -->
+    <div class="hero-slides">
+        <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1920&q=80');"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1580274455191-1c62238fa333?w=1920&q=80');"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=1920&q=80');"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1568605117036-5fe5e7fa0ac7?w=1920&q=80');"></div>
+    </div>
+    <div class="hero-overlay"></div>
+    
+    <!-- ORIGINAL CONTENT - EXACTLY AS WAS -->
+    <div class="hero-content">
+        <div class="je-container" style="color:#fff; position:relative; z-index:1;">
+            <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">KINAS AUTOMOBILE</div>
+            <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Finest Luxury &amp; Exotic Vehicles</h1>
+            <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">From supercars to grand tourers — discover <?= number_format($totalCars) ?>+ verified luxury vehicles from trusted dealers worldwide.</p>
+            <div class="je-flex" style="gap:14px;">
+                <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Inventory</a>
+                <a href="search.php?sort=price_high" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Car Rentals</a>
+            </div>
         </div>
     </div>
 </section>
@@ -154,7 +222,7 @@ include '../../templates/header.php';
         <p style="color:rgba(255,255,255,0.7); font-size:15px; max-width:560px; margin:0 auto 28px;">Reach an audience of qualified luxury buyers. Get verified in minutes.</p>
         <a href="/auth/register.php" class="je-btn je-btn-gold je-btn-lg">Become a Dealer</a>
         
-        <!-- Solar Calculator Button (green, replaces "Residential" button) -->
+        <!-- Solar Calculator Button -->
         <div style="margin-top: 50px; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.15);">
             <button id="openSolarEstimatorBtn" style="background: #2d6a4f; border: none; padding: 16px 40px; font-size: 1.2rem; font-weight: 700; color: white; border-radius: 60px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 8px 18px rgba(0,0,0,0.3); display: inline-flex; align-items: center; gap: 12px;">
                 🧮 Solar Calculator
@@ -164,145 +232,30 @@ include '../../templates/header.php';
     </div>
 </section>
 
-<!-- ============================================ -->
-<!-- SOLAR SAVINGS ESTIMATOR MODAL (FIXED)        -->
-<!-- ============================================ -->
-
+<!-- Solar Modal Styles (same as original) -->
 <style>
-    /* Solar Modal Styles */
-    .solar-modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.8);
-        backdrop-filter: blur(6px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10000;
-        visibility: hidden;
-        opacity: 0;
-        transition: visibility 0.2s, opacity 0.2s ease;
-    }
-    .solar-modal-overlay.active {
-        visibility: visible;
-        opacity: 1;
-    }
-    .solar-modal-container {
-        background: #ffffff;
-        max-width: 550px;
-        width: 90%;
-        border-radius: 1.5rem;
-        box-shadow: 0 30px 40px rgba(0, 0, 0, 0.4);
-        overflow: hidden;
-        transform: scale(0.96);
-        transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-    }
-    .solar-modal-overlay.active .solar-modal-container {
-        transform: scale(1);
-    }
-    .solar-modal-header {
-        background: #2d6a4f;
-        color: white;
-        padding: 1.2rem 1.5rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .solar-modal-header h3 {
-        margin: 0;
-        font-size: 1.4rem;
-        font-weight: 600;
-    }
-    .solar-close-modal {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 1.8rem;
-        cursor: pointer;
-        line-height: 1;
-        transition: opacity 0.2s;
-    }
-    .solar-close-modal:hover {
-        opacity: 0.7;
-    }
-    .solar-modal-body {
-        padding: 1.8rem;
-        max-height: 70vh;
-        overflow-y: auto;
-    }
-    .solar-group {
-        margin-bottom: 1.3rem;
-    }
-    .solar-group label {
-        font-weight: 600;
-        color: #1f3b2c;
-        display: block;
-        margin-bottom: 0.5rem;
-        font-size: 0.85rem;
-    }
-    .solar-group input, .solar-group select {
-        width: 100%;
-        padding: 0.8rem 1rem;
-        border: 1.5px solid #d0dfd4;
-        border-radius: 1rem;
-        font-size: 0.95rem;
-        background: #fefcf7;
-        transition: 0.2s;
-    }
-    .solar-group input:focus, .solar-group select:focus {
-        outline: none;
-        border-color: #e67e22;
-        box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.1);
-    }
-    .solar-calc-btn {
-        background: #e67e22;
-        color: white;
-        border: none;
-        padding: 0.9rem;
-        font-weight: bold;
-        border-radius: 2rem;
-        width: 100%;
-        cursor: pointer;
-        margin-top: 0.5rem;
-        font-size: 1rem;
-        transition: background 0.2s;
-    }
-    .solar-calc-btn:hover {
-        background: #cf711f;
-    }
-    .solar-results {
-        margin-top: 1.5rem;
-        background: #eef3ef;
-        padding: 1.2rem;
-        border-radius: 1rem;
-        font-size: 0.85rem;
-    }
-    .solar-results p {
-        margin: 0.5rem 0;
-    }
-    .solar-savings-highlight {
-        font-size: 1.3rem;
-        font-weight: 800;
-        color: #e67e22;
-    }
-    .solar-disclaimer {
-        font-size: 0.65rem;
-        color: #5a6e5e;
-        text-align: center;
-        margin-top: 1rem;
-    }
-    hr {
-        margin: 0.8rem 0;
-        border: 0;
-        height: 1px;
-        background: #d4e2d9;
-    }
+    .solar-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 10000; visibility: hidden; opacity: 0; transition: visibility 0.2s, opacity 0.2s ease; }
+    .solar-modal-overlay.active { visibility: visible; opacity: 1; }
+    .solar-modal-container { background: #ffffff; max-width: 550px; width: 90%; border-radius: 1.5rem; box-shadow: 0 30px 40px rgba(0, 0, 0, 0.4); overflow: hidden; transform: scale(0.96); transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1); }
+    .solar-modal-overlay.active .solar-modal-container { transform: scale(1); }
+    .solar-modal-header { background: #2d6a4f; color: white; padding: 1.2rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+    .solar-modal-header h3 { margin: 0; font-size: 1.4rem; font-weight: 600; }
+    .solar-close-modal { background: none; border: none; color: white; font-size: 1.8rem; cursor: pointer; line-height: 1; transition: opacity 0.2s; }
+    .solar-close-modal:hover { opacity: 0.7; }
+    .solar-modal-body { padding: 1.8rem; max-height: 70vh; overflow-y: auto; }
+    .solar-group { margin-bottom: 1.3rem; }
+    .solar-group label { font-weight: 600; color: #1f3b2c; display: block; margin-bottom: 0.5rem; font-size: 0.85rem; }
+    .solar-group input, .solar-group select { width: 100%; padding: 0.8rem 1rem; border: 1.5px solid #d0dfd4; border-radius: 1rem; font-size: 0.95rem; background: #fefcf7; transition: 0.2s; }
+    .solar-group input:focus, .solar-group select:focus { outline: none; border-color: #e67e22; box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.1); }
+    .solar-calc-btn { background: #e67e22; color: white; border: none; padding: 0.9rem; font-weight: bold; border-radius: 2rem; width: 100%; cursor: pointer; margin-top: 0.5rem; font-size: 1rem; transition: background 0.2s; }
+    .solar-calc-btn:hover { background: #cf711f; }
+    .solar-results { margin-top: 1.5rem; background: #eef3ef; padding: 1.2rem; border-radius: 1rem; font-size: 0.85rem; }
+    .solar-results p { margin: 0.5rem 0; }
+    .solar-savings-highlight { font-size: 1.3rem; font-weight: 800; color: #e67e22; }
+    .solar-disclaimer { font-size: 0.65rem; color: #5a6e5e; text-align: center; margin-top: 1rem; }
+    hr { margin: 0.8rem 0; border: 0; height: 1px; background: #d4e2d9; }
 </style>
 
-<!-- Solar Modal -->
 <div id="solarModal" class="solar-modal-overlay">
     <div class="solar-modal-container">
         <div class="solar-modal-header">
@@ -340,7 +293,7 @@ include '../../templates/header.php';
                 <p><strong>⏱️ Payback Period:</strong> <span id="paybackPeriod">--</span> years</p>
                 <p><strong>🌿 CO₂ Offset:</strong> <span id="co2Offset">--</span> tons/year</p>
                 <hr>
-                <p style="font-size:0.7rem; color:#4a6b55;">✅ No server IP required — all calculations run locally. Fixed "address not found" error.</p>
+                <p style="font-size:0.7rem; color:#4a6b55;">✅ No server IP required — all calculations run locally.</p>
             </div>
             <div class="solar-disclaimer">
                 *Estimates based on $0.16/kWh avg rate. Actual savings may vary.
@@ -350,95 +303,100 @@ include '../../templates/header.php';
 </div>
 
 <script>
-    (function() {
-        // Modal elements
-        const modal = document.getElementById('solarModal');
-        const openBtn = document.getElementById('openSolarEstimatorBtn');
-        const closeBtn = document.getElementById('closeSolarModal');
-        const calcBtn = document.getElementById('calculateSolarBtn');
+(function() {
+    const modal = document.getElementById('solarModal');
+    const openBtn = document.getElementById('openSolarEstimatorBtn');
+    const closeBtn = document.getElementById('closeSolarModal');
+    const calcBtn = document.getElementById('calculateSolarBtn');
+    
+    const billInput = document.getElementById('monthlyBill');
+    const sizeInput = document.getElementById('systemSize');
+    const sunSelect = document.getElementById('sunHours');
+    const costInput = document.getElementById('costPerWatt');
+    
+    const annualSpan = document.getElementById('annualSavings');
+    const net20Span = document.getElementById('net20Savings');
+    const paybackSpan = document.getElementById('paybackPeriod');
+    const co2Span = document.getElementById('co2Offset');
+    
+    function calculateSolar() {
+        let bill = parseFloat(billInput.value) || 0;
+        let systemKw = parseFloat(sizeInput.value) || 3;
+        let sunHours = parseFloat(sunSelect.value) || 4.5;
+        let costPerW = parseFloat(costInput.value) || 2.8;
         
-        // Inputs
-        const billInput = document.getElementById('monthlyBill');
-        const sizeInput = document.getElementById('systemSize');
-        const sunSelect = document.getElementById('sunHours');
-        const costInput = document.getElementById('costPerWatt');
+        const RATE = 0.16;
+        const PR = 0.85;
+        const DEGRADATION = 0.005;
+        const YEARS = 20;
         
-        // Result spans
-        const annualSpan = document.getElementById('annualSavings');
-        const net20Span = document.getElementById('net20Savings');
-        const paybackSpan = document.getElementById('paybackPeriod');
-        const co2Span = document.getElementById('co2Offset');
+        let annualProduction = systemKw * sunHours * 365 * PR;
+        let currentAnnualCost = bill * 12;
+        let annualConsumption = currentAnnualCost / RATE;
+        let offsetRatio = Math.min(0.98, annualProduction / (annualConsumption || 8000));
+        let year1Savings = currentAnnualCost * offsetRatio;
         
-        function calculateSolar() {
-            let bill = parseFloat(billInput.value) || 0;
-            let systemKw = parseFloat(sizeInput.value) || 3;
-            let sunHours = parseFloat(sunSelect.value) || 4.5;
-            let costPerW = parseFloat(costInput.value) || 2.8;
-            
-            const RATE = 0.16;      // $ per kWh
-            const PR = 0.85;        // performance ratio
-            const DEGRADATION = 0.005;
-            const YEARS = 20;
-            
-            let annualProduction = systemKw * sunHours * 365 * PR;
-            let currentAnnualCost = bill * 12;
-            let annualConsumption = currentAnnualCost / RATE;
-            let offsetRatio = Math.min(0.98, annualProduction / (annualConsumption || 8000));
-            let year1Savings = currentAnnualCost * offsetRatio;
-            
-            let totalInstalledCost = systemKw * 1000 * costPerW;
-            let payback = year1Savings > 0 ? totalInstalledCost / year1Savings : 0;
-            payback = Math.min(30, Math.max(0, payback));
-            
-            // Simplified 20-year net (linear with degradation)
-            let cumulative = 0;
-            let prodFactor = 1;
-            let annualCost = currentAnnualCost;
-            for (let y = 1; y <= YEARS; y++) {
-                if (y > 1) {
-                    annualCost *= 1.025; // 2.5% inflation
-                    prodFactor *= (1 - DEGRADATION);
-                }
-                let adjOffset = Math.min(0.98, offsetRatio * prodFactor);
-                cumulative += annualCost * adjOffset;
+        let totalInstalledCost = systemKw * 1000 * costPerW;
+        let payback = year1Savings > 0 ? totalInstalledCost / year1Savings : 0;
+        payback = Math.min(30, Math.max(0, payback));
+        
+        let cumulative = 0;
+        let prodFactor = 1;
+        let annualCost = currentAnnualCost;
+        for (let y = 1; y <= YEARS; y++) {
+            if (y > 1) {
+                annualCost *= 1.025;
+                prodFactor *= (1 - DEGRADATION);
             }
-            let netSavings = cumulative - totalInstalledCost;
-            
-            let co2Tons = (annualProduction * 0.85) / 2204.62; // lbs to metric tons
-            
-            annualSpan.innerHTML = '$' + Math.round(year1Savings).toLocaleString() + '/year';
-            net20Span.innerHTML = '$' + Math.round(netSavings).toLocaleString();
-            paybackSpan.innerHTML = payback.toFixed(1);
-            co2Span.innerHTML = co2Tons.toFixed(1);
+            let adjOffset = Math.min(0.98, offsetRatio * prodFactor);
+            cumulative += annualCost * adjOffset;
         }
+        let netSavings = cumulative - totalInstalledCost;
         
-        function openModal() {
-            modal.classList.add('active');
-            calculateSolar();
+        let co2Tons = (annualProduction * 0.85) / 2204.62;
+        
+        annualSpan.innerHTML = '$' + Math.round(year1Savings).toLocaleString() + '/year';
+        net20Span.innerHTML = '$' + Math.round(netSavings).toLocaleString();
+        paybackSpan.innerHTML = payback.toFixed(1);
+        co2Span.innerHTML = co2Tons.toFixed(1);
+    }
+    
+    function openModal() { modal.classList.add('active'); calculateSolar(); }
+    function closeModal() { modal.classList.remove('active'); }
+    
+    if (openBtn) openBtn.addEventListener('click', openModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (calcBtn) calcBtn.addEventListener('click', (e) => { e.preventDefault(); calculateSolar(); });
+    
+    if (modal) {
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    }
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal && modal.classList.contains('active')) closeModal();
+    });
+    
+    calculateSolar();
+    
+    // ============================================
+    // ROTATING HERO BACKGROUND
+    // ============================================
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.hero-slide');
+    const totalSlides = slides.length;
+    
+    function rotateHeroBackground() {
+        if (totalSlides > 1) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (currentSlide + 1) % totalSlides;
+            slides[currentSlide].classList.add('active');
         }
-        
-        function closeModal() {
-            modal.classList.remove('active');
-        }
-        
-        openBtn.addEventListener('click', openModal);
-        closeBtn.addEventListener('click', closeModal);
-        calcBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            calculateSolar();
-        });
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
-        
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
-        });
-        
-        // Initial calculation
-        calculateSolar();
-    })();
+    }
+    
+    if (totalSlides > 1) {
+        setInterval(rotateHeroBackground, 6000);
+    }
+})();
 </script>
 
 <?php include '../../templates/footer.php'; ?>
