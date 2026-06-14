@@ -35,14 +35,54 @@ $pageDescription = 'Discover luxury homes, villas, penthouses, and estates from 
 include '../../templates/header.php';
 ?>
 
-<section id="heroSection" style="position:relative; height:70vh; min-height:480px; padding-top:90px; box-sizing:border-box; background:linear-gradient(135deg, rgba(10,10,10,0.5), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=2000&q=80') center/cover no-repeat; display:flex; align-items:center;">
-    <div class="je-container" style="color:#fff; position:relative; z-index:1;">
-        <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">WILLIAMS CONNECT HOME</div>
-        <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Where Luxury Meets Address</h1>
-        <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">From penthouses to private estates — discover <?= number_format($totalProps) ?>+ luxury properties from verified agents across the globe.</p>
-        <div class="je-flex" style="gap:14px;">
-            <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Properties</a>
-            <a href="search.php?listing_type=rent" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">For Rent</a>
+<!-- Hero Carousel Styles -->
+<style>
+.hero-section {
+    position: relative;
+    height: 70vh;
+    min-height: 480px;
+    padding-top: 90px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+.hero-slides { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+.hero-slide {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-size: cover; background-position: center;
+    opacity: 0; transition: opacity 1.5s ease-in-out;
+}
+@media (max-width: 768px) { .hero-slide { background-position: 65% center; } }
+@media (max-width: 480px) { .hero-slide { background-position: 70% center; } }
+.hero-slide.active { opacity: 1; }
+.hero-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, rgba(10,10,10,0.5), rgba(0,0,0,0.7));
+    z-index: 1;
+}
+.hero-content { position: relative; z-index: 2; width: 100%; }
+</style>
+
+<!-- Hero with Rotating Backgrounds -->
+<section id="heroSection" class="hero-section">
+    <div class="hero-slides">
+        <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80');"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80');"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1920&q=80');"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1920&q=80');"></div>
+    </div>
+    <div class="hero-overlay"></div>
+    
+    <div class="hero-content">
+        <div class="je-container" style="color:#fff; position:relative; z-index:1;">
+            <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">WILLIAMS CONNECT HOME</div>
+            <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Where Luxury Meets Address</h1>
+            <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">From penthouses to private estates — discover <?= number_format($totalProps) ?>+ luxury properties from verified agents across the globe.</p>
+            <div class="je-flex" style="gap:14px;">
+                <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Properties</a>
+                <a href="search.php?listing_type=rent" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">For Rent</a>
+            </div>
         </div>
     </div>
 </section>
@@ -125,5 +165,26 @@ include '../../templates/header.php';
         <a href="/auth/register.php" class="je-btn je-btn-gold je-btn-lg">Become an Agent</a>
     </div>
 </section>
+
+<script>
+// ============================================
+// ROTATING HERO BACKGROUND
+// ============================================
+let currentSlide = 0;
+const slides = document.querySelectorAll('.hero-slide');
+const totalSlides = slides.length;
+
+function rotateHeroBackground() {
+    if (totalSlides > 1) {
+        slides[currentSlide].classList.remove('active');
+        currentSlide = (currentSlide + 1) % totalSlides;
+        slides[currentSlide].classList.add('active');
+    }
+}
+
+if (totalSlides > 1) {
+    setInterval(rotateHeroBackground, 6000);
+}
+</script>
 
 <?php include '../../templates/footer.php'; ?>
