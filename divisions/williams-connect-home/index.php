@@ -67,11 +67,11 @@ include '../../templates/header.php';
 <!-- Hero with Rotating Backgrounds -->
 <section id="heroSection">
     <div class="hero-slides">
-        <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80');"></div>
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80');"></div>
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1920&q=80');"></div>
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1920&q=80');"></div>
-    </div>
+    <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80'); background-position: center 30%;"></div>
+    <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80'); background-position: center 35%;"></div>
+    <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1920&q=80'); background-position: center 25%;"></div>
+    <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1920&q=80'); background-position: center 30%;"></div>
+</div>
     <div class="hero-overlay"></div>
     
     <!-- ORIGINAL CONTENT - EXACTLY AS WAS -->
