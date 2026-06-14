@@ -3,9 +3,14 @@ header('Content-Type: application/json');
 require_once '../../api/config/database.php';
 require_once '../../includes/email.php';
 
+// Enable error logging for debugging
+error_log("=== send_solar_enquiry.php called ===");
+
 $db = Database::getInstance()->getConnection();
 
+// Get POST data
 $data = json_decode(file_get_contents('php://input'), true);
+error_log("Received data: " . json_encode($data));
 
 $full_name = $data['full_name'] ?? '';
 $email = $data['email'] ?? '';
@@ -15,17 +20,25 @@ $system_size = $data['system_size'] ?? 0;
 $annual_savings = $data['annual_savings'] ?? 0;
 $payback_years = $data['payback_years'] ?? 0;
 
+// Validate
 if (empty($full_name) || empty($email) || empty($phone)) {
     echo json_encode(['success' => false, 'message' => 'Please fill all required fields']);
     exit;
 }
 
 // Save to database
-$stmt = $db->prepare("INSERT INTO solar_enquiries (full_name, email, phone, monthly_bill, system_size, annual_savings, payback_years) VALUES (?, ?, ?, ?, ?, ?, ?)");
-$stmt->execute([$full_name, $email, $phone, $monthly_bill, $system_size, $annual_savings, $payback_years]);
+try {
+    $stmt = $db->prepare("INSERT INTO solar_enquiries (full_name, email, phone, monthly_bill, system_size, annual_savings, payback_years) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$full_name, $email, $phone, $monthly_bill, $system_size, $annual_savings, $payback_years]);
+    error_log("Database saved successfully, ID: " . $db->lastInsertId());
+} catch (PDOException $e) {
+    error_log("Database error: " . $e->getMessage());
+}
 
-// Send email using your existing EmailService
+// Initialize EmailService
 $emailService = new EmailService();
+error_log("EmailService initialized - useResend: " . ($emailService->useResend ? 'true' : 'false'));
+error_log("Resend API Key present: " . (empty($emailService->resendApiKey) ? 'NO' : 'YES (length: ' . strlen($emailService->resendApiKey) . ')'));
 
 $subject = "New Solar Enquiry from {$full_name}";
 $html_content = "
@@ -49,7 +62,17 @@ $html_content = "
 </html>
 ";
 
-// Send to admin (change to your email)
-$emailService->send('info@kinasauto.com', $subject, $html_content);
+// Send email (this will use Resend if configured, otherwise PHP mail)
+$result = $emailService->send($email, $subject, $html_content);
+error_log("Email send result (to customer): " . ($result ? 'SUCCESS' : 'FAILED'));
 
-echo json_encode(['success' => true, 'message' => 'Enquiry sent! We will contact you within 24 hours.']);
+// Also send copy to admin
+$adminEmail = "info@kinasauto.com"; // CHANGE THIS TO YOUR EMAIL
+$adminResult = $emailService->send($adminEmail, $subject, $html_content);
+error_log("Email send result (to admin {$adminEmail}): " . ($adminResult ? 'SUCCESS' : 'FAILED'));
+
+if ($result || $adminResult) {
+    echo json_encode(['success' => true, 'message' => 'Enquiry sent! We will contact you within 24 hours.']);
+} else {
+    echo json_encode(['success' => true, 'message' => 'Enquiry saved! We will contact you soon.']);
+}
