@@ -43,6 +43,10 @@ include '../../templates/header.php';
         <div class="je-flex" style="gap:14px;">
             <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Systems</a>
             <a href="search.php?service_type=residential" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Residential</a>
+            <!-- Solar Calculator Button -->
+            <button type="button" id="openSolarCalcBtn" style="background:#2c7a47; border:none; color:#fff; font-family:Inter,sans-serif; font-weight:600; padding:0 24px; border-radius:40px; height:48px; cursor:pointer;">
+                <i class="fas fa-calculator"></i> Solar Calculator
+            </button>
         </div>
     </div>
 </section>
@@ -124,5 +128,160 @@ include '../../templates/header.php';
         <a href="/auth/register.php" class="je-btn je-btn-gold je-btn-lg">List Your Services</a>
     </div>
 </section>
+
+<!-- ========== STANDALONE SOLAR CALCULATOR LIGHTBOX ========== -->
+<style>
+  /* Lightbox CSS - completely independent */
+  .solar-calc-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+  }
+  .solar-calc-modal.show { display: flex; }
+  .solar-calc-modal-content {
+    background: #fff;
+    width: 90%;
+    max-width: 1200px;
+    height: 85%;
+    border-radius: 16px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  }
+  .solar-calc-modal-header {
+    padding: 16px 20px;
+    background: #0A0A0A;
+    color: #fff;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .solar-calc-modal-header h3 {
+    margin: 0;
+    font-family: 'Prata', serif;
+    font-size: 1.2rem;
+  }
+  .solar-calc-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .solar-calc-body {
+    flex: 1;
+    position: relative;
+    background: #f5f5f5;
+  }
+  .solar-calc-body iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  .solar-calc-footer {
+    padding: 12px 20px;
+    background: #F8F6F1;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    border-radius: 0 0 16px 16px;
+    border-top: 1px solid #e0e0e0;
+  }
+  .calc-loader {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .calc-spinner {
+    width: 40px; height: 40px;
+    border: 4px solid #e0e0e0;
+    border-top-color: #2c7a47;
+    border-radius: 50%;
+    animation: calc-spin 1s linear infinite;
+    margin: 0 auto;
+  }
+  @keyframes calc-spin { to { transform: rotate(360deg); } }
+  @media (max-width: 768px) {
+    .solar-calc-modal-content { width: 95%; height: 90%; }
+    .solar-calc-modal-header h3 { font-size: 1rem; }
+  }
+</style>
+
+<div id="solarCalcModal" class="solar-calc-modal">
+  <div class="solar-calc-modal-content">
+    <div class="solar-calc-modal-header">
+      <h3><i class="fas fa-sun" style="color:#C6A43F;"></i> Solar Savings Estimator</h3>
+      <button class="solar-calc-close" id="closeSolarCalcBtn">&times;</button>
+    </div>
+    <div class="solar-calc-body">
+      <div id="calcLoader" class="calc-loader">
+        <div class="calc-spinner"></div>
+        <p style="margin-top:12px; color:#666;">Loading official NREL PVWatts® calculator...</p>
+      </div>
+      <iframe id="pvWattsFrame" src="https://pvwatts.nrel.gov/index.php" title="NREL Solar Calculator" allow="geolocation"></iframe>
+    </div>
+    <div class="solar-calc-footer">
+      <span><i class="fas fa-chart-line"></i> Powered by <strong>NREL PVWatts®</strong> — U.S. government solar data (accuracy ±10%)</span>
+      <a href="https://pvwatts.nrel.gov/" target="_blank" style="color:#2c7a47; text-decoration:none;">Open in new tab →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const modal = document.getElementById('solarCalcModal');
+    const openBtn = document.getElementById('openSolarCalcBtn');
+    const closeBtn = document.getElementById('closeSolarCalcBtn');
+    const iframe = document.getElementById('pvWattsFrame');
+    const loader = document.getElementById('calcLoader');
+    
+    function openModal() {
+      modal.classList.add('show');
+      document.body.style.overflow = 'hidden';
+      // Reset iframe and show loader
+      iframe.src = iframe.src;
+      loader.style.display = 'block';
+      iframe.style.opacity = '0';
+    }
+    
+    function closeModal() {
+      modal.classList.remove('show');
+      document.body.style.overflow = '';
+    }
+    
+    if (openBtn) openBtn.addEventListener('click', openModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    
+    // Close when clicking outside the white content area
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) closeModal();
+    });
+    
+    // When iframe loads, hide loader and show iframe
+    iframe.addEventListener('load', function() {
+      loader.style.display = 'none';
+      iframe.style.opacity = '1';
+    });
+    
+    // Fallback after 12 seconds
+    setTimeout(function() {
+      if (iframe.style.opacity !== '1') {
+        loader.innerHTML = '<div style="color:#c0392b;"><i class="fas fa-exclamation-triangle" style="font-size:24px;"></i><p>Unable to load calculator. <a href="https://pvwatts.nrel.gov/" target="_blank">Click here to open PVWatts in a new tab</a>.</p></div>';
+      }
+    }, 12000);
+  })();
+</script>
+<!-- ========== END SOLAR CALCULATOR ========== -->
 
 <?php include '../../templates/footer.php'; ?>
