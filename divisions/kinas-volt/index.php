@@ -59,7 +59,7 @@ include '../../templates/header.php';
         <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">From residential rooftop systems to industrial installations — discover <?= number_format($totalSystems) ?>+ trusted solar solutions from verified providers.</p>
         <div class="je-flex" style="gap:14px;">
             <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Systems</a>
-            <!-- REPLACED: "Residential" button is now GREEN "Solar Calculator" button (NIGERIAN NAIRA VERSION) -->
+            <!-- REPLACED: "Residential" button is now GREEN "Solar Calculator" button -->
             <button type="button" id="openSolarCalculatorBtn" class="solar-calculator-green-btn">
                 <i class="fas fa-calculator"></i> Solar Calculator
             </button>
@@ -148,11 +148,9 @@ include '../../templates/header.php';
 <!-- ============================================ -->
 <!-- SOLAR SAVINGS ESTIMATOR - NIGERIAN NAIRA    -->
 <!-- Fully functional, captures leads, emails you -->
-<!-- "Residential" button replaced with this      -->
 <!-- ============================================ -->
 
 <style>
-    /* Green Solar Calculator Button */
     .solar-calculator-green-btn {
         background: #2c7a47;
         border: none;
@@ -175,11 +173,6 @@ include '../../templates/header.php';
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
-    .solar-calculator-green-btn:active {
-        transform: translateY(1px);
-    }
-
-    /* Solar Modal Styles */
     .solar-modal-overlay {
         position: fixed;
         top: 0;
@@ -237,10 +230,6 @@ include '../../templates/header.php';
         font-size: 1.8rem;
         cursor: pointer;
         line-height: 1;
-        transition: opacity 0.2s;
-    }
-    .solar-close-modal:hover {
-        opacity: 0.7;
     }
     .solar-modal-body {
         padding: 1.8rem;
@@ -262,28 +251,11 @@ include '../../templates/header.php';
         border-radius: 1rem;
         font-size: 0.95rem;
         background: #fefcf7;
-        transition: 0.2s;
     }
     .solar-group input:focus, .solar-group select:focus {
         outline: none;
         border-color: #2c7a47;
         box-shadow: 0 0 0 3px rgba(44, 122, 71, 0.1);
-    }
-    .solar-calc-action-btn {
-        background: #2c7a47;
-        color: white;
-        border: none;
-        padding: 0.9rem;
-        font-weight: bold;
-        border-radius: 2rem;
-        width: 100%;
-        cursor: pointer;
-        margin-top: 0.8rem;
-        font-size: 1rem;
-        transition: background 0.2s;
-    }
-    .solar-calc-action-btn:hover {
-        background: #1e5a36;
     }
     .solar-submit-btn {
         background: #e67e22;
@@ -311,9 +283,6 @@ include '../../templates/header.php';
         padding: 1.2rem;
         border-radius: 1rem;
         font-size: 0.85rem;
-    }
-    .solar-results-area p {
-        margin: 0.5rem 0;
     }
     .solar-savings-highlight {
         font-size: 1.4rem;
@@ -350,6 +319,10 @@ include '../../templates/header.php';
         background: #f8d7da;
         color: #721c24;
     }
+    .solar-status.info {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
     hr {
         margin: 1rem 0;
         border: 0;
@@ -358,7 +331,6 @@ include '../../templates/header.php';
     }
 </style>
 
-<!-- Solar Calculator Modal -->
 <div id="solarCalculatorModal" class="solar-modal-overlay">
     <div class="solar-modal-container">
         <div class="solar-modal-header">
@@ -370,7 +342,6 @@ include '../../templates/header.php';
                 <span class="solar-success-badge">✓ Get Instant Quote • No Server Errors</span>
             </div>
             
-            <!-- Customer Details Section -->
             <div class="solar-group">
                 <label>👤 Your Full Name *</label>
                 <input type="text" id="customerFullName" placeholder="e.g., John Okonkwo">
@@ -386,7 +357,6 @@ include '../../templates/header.php';
             
             <hr>
             
-            <!-- Calculator Section -->
             <div class="solar-group">
                 <label>🏠 Average monthly electricity bill (₦)</label>
                 <input type="number" id="estimateMonthlyBill" placeholder="e.g., 50000" value="50000" step="10000">
@@ -430,22 +400,18 @@ include '../../templates/header.php';
 
 <script>
 (function() {
-    // Modal elements
     const modal = document.getElementById('solarCalculatorModal');
     const openBtn = document.getElementById('openSolarCalculatorBtn');
     const closeBtn = document.getElementById('closeSolarModalBtn');
     
-    // Input fields
     const billInput = document.getElementById('estimateMonthlyBill');
     const sizeInput = document.getElementById('estimateSystemSize');
     const sunSelect = document.getElementById('estimateSunHours');
     
-    // Customer fields
     const nameInput = document.getElementById('customerFullName');
     const emailInput = document.getElementById('customerEmailAddr');
     const phoneInput = document.getElementById('customerPhoneNum');
     
-    // Result spans
     const annualSpan = document.getElementById('resultAnnualSavings');
     const net20Span = document.getElementById('resultNet20Savings');
     const paybackSpan = document.getElementById('resultPayback');
@@ -454,16 +420,14 @@ include '../../templates/header.php';
     const submitBtn = document.getElementById('submitSolarEnquiry');
     const statusDiv = document.getElementById('formStatus');
     
-    // Nigerian constants
-    const NGN_RATE_PER_KWH = 225;      // NERC average tariff 2024 (₦/kWh)
+    const NGN_RATE_PER_KWH = 225;
     const PERFORMANCE_RATIO = 0.85;
     const CO2_PER_KWH_LBS = 0.85;
-    const SYSTEM_COST_PER_WATT = 650;   // ₦650 per watt (approx cost in Nigeria)
-    const DEGRADATION = 0.005;          // 0.5% annual panel degradation
-    const INFLATION = 0.05;             // 5% annual tariff increase in Nigeria
+    const SYSTEM_COST_PER_WATT = 650;
+    const DEGRADATION = 0.005;
+    const INFLATION = 0.05;
     const YEARS = 20;
     
-    // Calculate recommended system size based on monthly bill
     function calculateSystemSize(bill) {
         if (bill <= 0) return 3;
         let annualConsumption = (bill * 12) / NGN_RATE_PER_KWH;
@@ -471,37 +435,21 @@ include '../../templates/header.php';
         return Math.max(2, Math.min(20, Math.round(recommendedKw * 2) / 2));
     }
     
-    // Core calculation engine (Nigerian Naira version)
     function calculateSolarSavings() {
-        // Get values with validation
-        let monthlyBill = parseFloat(billInput.value);
-        if (isNaN(monthlyBill) || monthlyBill < 0) monthlyBill = 0;
+        let monthlyBill = parseFloat(billInput.value) || 0;
+        let systemSizeKw = parseFloat(sizeInput.value) || 5;
+        let sunHours = parseFloat(sunSelect.value) || 4.5;
         
-        let systemSizeKw = parseFloat(sizeInput.value);
-        if (isNaN(systemSizeKw) || systemSizeKw <= 0) systemSizeKw = 5;
-        
-        let sunHours = parseFloat(sunSelect.value);
-        if (isNaN(sunHours)) sunHours = 4.5;
-        
-        // Annual energy production (kWh)
         let annualProductionKwh = systemSizeKw * sunHours * 365 * PERFORMANCE_RATIO;
-        
-        // Current annual electricity cost
         let currentAnnualCost = monthlyBill * 12;
-        
-        // Calculate offset ratio (solar production vs consumption)
         let annualConsumptionKwh = currentAnnualCost / NGN_RATE_PER_KWH;
-        if (annualConsumptionKwh <= 0 || isNaN(annualConsumptionKwh)) {
-            annualConsumptionKwh = 8000;
-        }
+        if (annualConsumptionKwh <= 0 || isNaN(annualConsumptionKwh)) annualConsumptionKwh = 8000;
         
         let offsetRatio = Math.min(0.95, annualProductionKwh / annualConsumptionKwh);
         if (annualProductionKwh <= 0) offsetRatio = 0;
         
-        // Year 1 savings
         let year1Savings = currentAnnualCost * offsetRatio;
         
-        // Calculate cumulative savings over 20 years with inflation and degradation
         let cumulativeSavings = 0;
         let yearlyProductionFactor = 1.0;
         let annualCostYear = currentAnnualCost;
@@ -517,37 +465,23 @@ include '../../templates/header.php';
             cumulativeSavings += savingsThisYear;
         }
         
-        // Total installed cost in Naira
         let totalInstalledCost = systemSizeKw * 1000 * SYSTEM_COST_PER_WATT;
-        
-        // Payback period (years)
         let paybackYears = (year1Savings > 0) ? totalInstalledCost / year1Savings : 0;
         if (isNaN(paybackYears) || paybackYears < 0) paybackYears = 0;
         paybackYears = Math.min(20, paybackYears);
         
-        // Net savings after 20 years
         let netSavings = cumulativeSavings - totalInstalledCost;
         netSavings = Math.max(-totalInstalledCost, netSavings);
-        
-        // CO2 offset (metric tons per year)
         let co2MetricTons = (annualProductionKwh * CO2_PER_KWH_LBS) / 2204.62;
         co2MetricTons = Math.max(0, co2MetricTons);
         
-        // Format currency in Naira
-        const formatter = new Intl.NumberFormat('en-NG', { 
-            style: 'currency', 
-            currency: 'NGN', 
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0 
-        });
+        const formatter = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0, maximumFractionDigits: 0 });
         
-        // Update DOM
         annualSpan.innerHTML = formatter.format(year1Savings) + '/year';
         net20Span.innerHTML = formatter.format(netSavings);
         paybackSpan.innerHTML = paybackYears.toFixed(1);
         co2Span.innerHTML = co2MetricTons.toFixed(1);
         
-        // Special case: show message if bill is zero
         if (monthlyBill <= 0) {
             annualSpan.innerHTML = '₦0/year (enter bill amount)';
             net20Span.innerHTML = formatter.format(-totalInstalledCost);
@@ -557,7 +491,6 @@ include '../../templates/header.php';
         return { year1Savings, systemSizeKw, paybackYears };
     }
     
-    // Auto-update system size when bill changes
     billInput.addEventListener('input', function() {
         let newSize = calculateSystemSize(parseFloat(this.value) || 0);
         sizeInput.value = newSize;
@@ -566,7 +499,7 @@ include '../../templates/header.php';
     
     sunSelect.addEventListener('change', calculateSolarSavings);
     
-    // Submit enquiry to backend
+    // FIXED: Submit enquiry with better error handling
     submitBtn.addEventListener('click', async function() {
         const name = nameInput.value.trim();
         const email = emailInput.value.trim();
@@ -574,7 +507,6 @@ include '../../templates/header.php';
         const monthlyBill = parseFloat(billInput.value) || 0;
         const systemSize = parseFloat(sizeInput.value) || 5;
         
-        // Get current savings from display
         let annualSavingsText = annualSpan.innerText;
         let annualSavings = parseFloat(annualSavingsText.replace(/[^0-9.-]+/g, '')) || 0;
         let payback = parseFloat(paybackSpan.innerText) || 0;
@@ -584,57 +516,76 @@ include '../../templates/header.php';
             return;
         }
         
-        if (!email.includes('@')) {
+        if (!email.includes('@') || !email.includes('.')) {
             statusDiv.innerHTML = '<div class="solar-status error">⚠️ Please enter a valid email address</div>';
             return;
         }
         
         submitBtn.disabled = true;
         submitBtn.textContent = 'Sending...';
+        statusDiv.innerHTML = '<div class="solar-status info">⏳ Submitting your enquiry...</div>';
+        
+        const postData = {
+            full_name: name,
+            email: email,
+            phone: phone,
+            monthly_bill: monthlyBill,
+            system_size: systemSize,
+            annual_savings: annualSavings,
+            payback_years: payback
+        };
+        
+        console.log('Sending data:', postData);
         
         try {
-            const response = await fetch('/send_solar_enquiry.php', {
+            const response = await fetch('/divisions/kinas-volt/send_solar_enquiry.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    full_name: name,
-                    email: email,
-                    phone: phone,
-                    monthly_bill: monthlyBill,
-                    system_size: systemSize,
-                    annual_savings: annualSavings,
-                    payback_years: payback
-                })
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(postData)
             });
             
-            const result = await response.json();
+            console.log('Response status:', response.status);
             
-            if (result.success) {
+            let result;
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+            
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                console.error('JSON parse error:', e);
+                throw new Error('Server returned invalid response format');
+            }
+            
+            if (result && result.success === true) {
                 statusDiv.innerHTML = '<div class="solar-status success">✅ ' + result.message + '</div>';
-                // Clear form after successful submission
                 nameInput.value = '';
                 emailInput.value = '';
                 phoneInput.value = '';
                 setTimeout(() => {
                     modal.classList.remove('active');
                     statusDiv.innerHTML = '';
-                }, 2000);
+                }, 3000);
             } else {
-                statusDiv.innerHTML = '<div class="solar-status error">❌ ' + result.message + '</div>';
+                statusDiv.innerHTML = '<div class="solar-status error">❌ ' + (result?.message || 'Unknown error occurred') + '</div>';
             }
         } catch (error) {
-            statusDiv.innerHTML = '<div class="solar-status error">❌ Network error. Please try again.</div>';
+            console.error('Fetch error:', error);
+            statusDiv.innerHTML = '<div class="solar-status error">❌ Network error: ' + error.message + '. Please try again.</div>';
         }
         
         submitBtn.disabled = false;
         submitBtn.textContent = '📩 Send Enquiry — Get Custom Quote';
     });
     
-    // Modal controls
     function openModal() {
         modal.classList.add('active');
         document.body.style.overflow = 'hidden';
         calculateSolarSavings();
+        statusDiv.innerHTML = '';
     }
     
     function closeModal() {
@@ -646,24 +597,20 @@ include '../../templates/header.php';
     if (openBtn) openBtn.addEventListener('click', openModal);
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     
-    // Close when clicking overlay
     if (modal) {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) closeModal();
         });
     }
     
-    // Close with Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
             closeModal();
         }
     });
     
-    // Initial calculation
     calculateSolarSavings();
-    
-    console.log("Solar Calculator ready — Nigerian Naira version. Residential button replaced with green Solar Calculator button.");
+    console.log("Solar Calculator ready — Nigerian Naira version.");
 })();
 </script>
 
