@@ -227,10 +227,10 @@ include '../../templates/header.php';
 <section id="heroSection" style="position:relative; height:70vh; min-height:480px; padding-top:90px; box-sizing:border-box; display:flex; align-items:center; overflow:hidden;">
     <!-- Rotating Background Slides -->
     <div class="hero-slides">
-        <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920&q=80');"></div>
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1920&q=80');"></div>
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1585386959984-a4155221c2c9?w=1920&q=80');"></div>
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1537832816519-689ad163238b?w=1920&q=80');"></div>
+        <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920&q=80'); background-position: center 35%;"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1920&q=80'); background-position: center 30%;"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1585386959984-a4155221c2c9?w=1920&q=80'); background-position: center 25%;"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1537832816519-689ad163238b?w=1920&q=80'); background-position: center 40%;"></div>
     </div>
     <div class="hero-overlay"></div>
     
