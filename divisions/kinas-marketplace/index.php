@@ -36,6 +36,126 @@ $pageDescription = 'Watches, jewelry, art, fashion and other curated luxury good
 include '../../templates/header.php';
 ?>
 
+<!-- Custom Dropdown Styles -->
+<style>
+/* Custom Dropdown Styles */
+.custom-dropdown {
+    position: relative;
+    display: inline-block;
+    min-width: 180px;
+    font-family: 'Inter', sans-serif;
+}
+
+.custom-dropdown-toggle {
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.custom-dropdown-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.custom-dropdown-toggle .arrow {
+    font-size: 12px;
+    transition: transform 0.2s ease;
+}
+
+.custom-dropdown.open .custom-dropdown-toggle .arrow {
+    transform: rotate(180deg);
+}
+
+.custom-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    margin-top: 4px;
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.custom-dropdown.open .custom-dropdown-menu {
+    display: block;
+}
+
+.custom-dropdown-item {
+    padding: 12px 18px;
+    color: #e0e0e0;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.custom-dropdown-item:hover {
+    background: rgba(198, 164, 63, 0.15);
+    color: #C6A43F;
+}
+
+.custom-dropdown-item.selected {
+    background: rgba(198, 164, 63, 0.25);
+    color: #C6A43F;
+    font-weight: 500;
+}
+
+.custom-dropdown-item .count {
+    font-size: 11px;
+    color: #888;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.custom-dropdown-item:hover .count {
+    background: rgba(198, 164, 63, 0.2);
+    color: #C6A43F;
+}
+
+/* Scrollbar styling */
+.custom-dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-dropdown-menu::-webkit-scrollbar-track {
+    background: #2a2a2a;
+    border-radius: 3px;
+}
+
+.custom-dropdown-menu::-webkit-scrollbar-thumb {
+    background: #C6A43F;
+    border-radius: 3px;
+}
+
+@media (max-width: 768px) {
+    .custom-dropdown {
+        width: 100%;
+    }
+    .custom-dropdown-menu {
+        max-height: 240px;
+    }
+}
+</style>
+
 <section id="heroSection" style="position:relative; height:70vh; min-height:480px; padding-top:90px; box-sizing:border-box; background:linear-gradient(135deg, rgba(40,20,40,0.5), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=2000&q=80') center/cover no-repeat; display:flex; align-items:center;">
     <div class="je-container" style="color:#fff; position:relative; z-index:1;">
         <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">KINAS MARKETPLACE</div>
@@ -50,12 +170,32 @@ include '../../templates/header.php';
 
 <section style="background:#0A0A0A; padding:24px 0;">
     <div class="je-container">
-        <form method="GET" action="search.php" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <form method="GET" action="search.php" id="searchForm" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <input type="text" name="q" placeholder="Brand, item, category…" style="flex:1; min-width:240px; padding:14px 18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:3px; color:#fff; font-family:Inter,sans-serif; font-size:14px;">
-            <select name="category" style="padding:14px 18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:3px; color:#fff; font-family:Inter,sans-serif; font-size:14px; min-width:160px;">
-                <option value="">Any Category</option>
-                <?php foreach ($categories as $c): ?><option value="<?= (int)$c['id'] ?>"><?= htmlspecialchars($c['name']) ?> (<?= (int)$c['cnt'] ?>)</option><?php endforeach; ?>
-            </select>
+            
+            <!-- Custom Dropdown for Categories -->
+            <div class="custom-dropdown" id="categoryDropdown">
+                <div class="custom-dropdown-toggle">
+                    <span id="selectedCategoryText">Any Category</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="custom-dropdown-menu">
+                    <div class="custom-dropdown-item" data-value="" data-count="<?= $totalItems ?>">
+                        <span>Any Category</span>
+                        <span class="count"><?= $totalItems ?></span>
+                    </div>
+                    <?php foreach ($categories as $c): ?>
+                        <div class="custom-dropdown-item" data-value="<?= (int)$c['id'] ?>" data-count="<?= (int)$c['cnt'] ?>">
+                            <span><?= htmlspecialchars($c['name']) ?></span>
+                            <span class="count"><?= (int)$c['cnt'] ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            
+            <!-- Hidden input to store selected category value -->
+            <input type="hidden" name="category" id="categoryInput" value="">
+            
             <button type="submit" class="je-btn je-btn-gold"><i class="fas fa-search"></i> Search</button>
         </form>
     </div>
@@ -72,21 +212,29 @@ include '../../templates/header.php';
         </div>
 
         <?php
-        $cards = array_map(function ($r) {
-            $specParts = array_filter([$r['category_name'] ?? null, $r['brand'] ?? null, $r['condition_status'] ?? null]);
-            $locParts = array_filter([$r['city'] ?? null, $r['state'] ?? null, $r['country'] ?? null]);
-            return [
-                'id' => $r['id'], 'title' => $r['title'] ?? '',
-                'price' => $r['price'], 'thumbnail' => $r['thumbnail'] ?: '',
-                'specs' => implode(' • ', array_map('ucfirst', $specParts)),
-                'location' => implode(', ', $locParts),
-                'detail_url' => 'detail.php?id=' . (int)$r['id'],
-                'featured' => !empty($r['featured']),
-                'verified' => !empty($r['agent_verified']),
-                'views' => $r['views'] ?? 0,
-            ];
-        }, array_slice($items, 0, 9));
-        je_render_listing_grid($cards);
+        if (empty($items)) {
+            echo '<div style="text-align:center; padding:60px 20px; background:#fafafa; border-radius:8px;">
+                    <div style="font-size:48px; margin-bottom:16px;">🏛️</div>
+                    <h3 style="font-family:\'Prata\',serif; font-size:20px; margin-bottom:8px;">No listings found</h3>
+                    <p style="color:#666;">Try adjusting your filters or check back soon.</p>
+                  </div>';
+        } else {
+            $cards = array_map(function ($r) {
+                $specParts = array_filter([$r['category_name'] ?? null, $r['brand'] ?? null, $r['condition_status'] ?? null]);
+                $locParts = array_filter([$r['city'] ?? null, $r['state'] ?? null, $r['country'] ?? null]);
+                return [
+                    'id' => $r['id'], 'title' => $r['title'] ?? '',
+                    'price' => $r['price'], 'thumbnail' => $r['thumbnail'] ?: '',
+                    'specs' => implode(' • ', array_map('ucfirst', $specParts)),
+                    'location' => implode(', ', $locParts),
+                    'detail_url' => 'detail.php?id=' . (int)$r['id'],
+                    'featured' => !empty($r['featured']),
+                    'verified' => !empty($r['agent_verified']),
+                    'views' => $r['views'] ?? 0,
+                ];
+            }, array_slice($items, 0, 9));
+            je_render_listing_grid($cards);
+        }
         ?>
     </div>
 </section>
@@ -126,5 +274,84 @@ include '../../templates/header.php';
         <a href="/auth/register.php" class="je-btn je-btn-gold je-btn-lg">Become a Seller</a>
     </div>
 </section>
+
+<!-- Custom Dropdown JavaScript -->
+<script>
+(function() {
+    const dropdown = document.getElementById('categoryDropdown');
+    const toggle = dropdown.querySelector('.custom-dropdown-toggle');
+    const menu = dropdown.querySelector('.custom-dropdown-menu');
+    const items = dropdown.querySelectorAll('.custom-dropdown-item');
+    const selectedText = document.getElementById('selectedCategoryText');
+    const categoryInput = document.getElementById('categoryInput');
+    
+    let isOpen = false;
+    
+    // Toggle dropdown on click
+    toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        isOpen = !isOpen;
+        if (isOpen) {
+            dropdown.classList.add('open');
+            // Close other dropdowns if any (for future expansion)
+            document.addEventListener('click', closeDropdownOnClickOutside);
+        } else {
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeDropdownOnClickOutside);
+        }
+    });
+    
+    // Handle item selection
+    items.forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const value = this.getAttribute('data-value');
+            const text = this.querySelector('span:first-child').innerText;
+            const count = this.getAttribute('data-count');
+            
+            // Update selected text display
+            selectedText.innerHTML = text;
+            
+            // Update hidden input value
+            categoryInput.value = value;
+            
+            // Update selected class on items
+            items.forEach(function(i) {
+                i.classList.remove('selected');
+            });
+            this.classList.add('selected');
+            
+            // Close dropdown
+            isOpen = false;
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeDropdownOnClickOutside);
+        });
+    });
+    
+    // Close dropdown when clicking outside
+    function closeDropdownOnClickOutside(e) {
+        if (!dropdown.contains(e.target)) {
+            isOpen = false;
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeDropdownOnClickOutside);
+        }
+    }
+    
+    // Prevent form submission when clicking dropdown items
+    const form = document.getElementById('searchForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Form will submit normally with the hidden input value
+            // No need to prevent default
+        });
+    }
+    
+    // Initialize: set "Any Category" as selected by default
+    const defaultItem = dropdown.querySelector('.custom-dropdown-item[data-value=""]');
+    if (defaultItem) {
+        defaultItem.classList.add('selected');
+    }
+})();
+</script>
 
 <?php include '../../templates/footer.php'; ?>
