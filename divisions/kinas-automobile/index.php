@@ -115,8 +115,8 @@ include '../../templates/header.php';
     <div class="hero-slides">
         <div class="hero-slide active" style="background-image: url('https://images.pexels.com/photos/170811/pexels-photo-170811.jpeg?w=1920&q=80'); background-position: center 40%;"></div>
         <div class="hero-slide" style="background-image: url('https://images.pexels.com/photos/919073/pexels-photo-919073.jpeg?w=1920&q=80'); background-position: center 35%;"></div>
-        <div class="hero-slide" style="background-image: url('https://images.pexels.com/photos/210673/pexels-photo-210673.jpeg?w=1920&q=80'); background-position: center 30%;"></div>
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=1920&fit=crop'); background-position: center 30%;"></div>
+        <div class="hero-slide" style="background-image: url('https://images.pexels.com/photos/120049/pexels-photo-120049.jpeg?w=1920&q=80'); background-position: center 40%;"></div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=1920&fit=crop'); background-position: center 40%;"></div>
     </div>
     <div class="hero-overlay"></div>
     
