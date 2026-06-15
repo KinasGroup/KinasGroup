@@ -25,6 +25,12 @@ if ($scriptName === 'index.php'
     $isHeroPage = true;
 }
 
+// About page
+if ($scriptName === 'about.php'
+    && preg_match('#^/pages/about\.php$#', $requestUri)) {
+    $isHeroPage = true;
+}
+
 $transparentClass = $isHeroPage ? 'transparent' : 'solid';
 ?>
 <!DOCTYPE html>
@@ -207,7 +213,7 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
                 <?php else: ?>
                     <a href="/user/dashboard.php" class="je2-button nav-btn-outline">Dashboard</a>
                 <?php endif; ?>
-                <a href="/auth/logout.php" class="je2-button">Sign Out</a>
+                <a href="/auth/logout.php" class="je2-button nav-btn-outline">Sign Out</a>
             <?php else: ?>
                 <a href="/auth/login.php" class="je2-button nav-btn-outline">Sign In</a>
                 <a href="/auth/register.php" class="je2-button nav-btn-filled">Register</a>
