@@ -32,11 +32,40 @@ $successMessage = SessionManager::getFlash('success');
     <link rel="stylesheet" href="../assets/css/james-edition.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Hard reset for password toggle */
+        .je-password-wrap {
+            position: relative !important;
+            display: block !important;
+        }
+        .je-password-wrap input {
+            padding-right: 48px !important;
+            width: 100% !important;
+        }
+        .je-password-toggle {
+            position: absolute !important;
+            right: 0 !important;
+            top: 0 !important;
+            height: 100% !important;
+            width: 44px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: transparent !important;
+            border: none !important;
+            cursor: pointer !important;
+            color: #888 !important;
+            font-size: 18px !important;
+            z-index: 10 !important;
+        }
+        .je-password-toggle:hover {
+            color: #C6A43F !important;
+        }
+    </style>
 </head>
 <body>
 
 <div class="je-auth-shell">
-    <!-- ── Left aside ── -->
     <aside class="je-auth-aside">
         <a href="../index.php" class="je-auth-brand">
             <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
@@ -52,10 +81,8 @@ $successMessage = SessionManager::getFlash('success');
         </blockquote>
     </aside>
 
-    <!-- ── Right form ── -->
     <main class="je-auth-main">
         <div class="je-auth-form">
-            <!-- Admin badge -->
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:28px;">
                 <span style="display:inline-flex; align-items:center; gap:7px; background:#0A0A0A; color:#C6A43F; font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; padding:6px 14px; border-radius:20px; border:1px solid #C6A43F;">
                     <i class="fas fa-shield-alt"></i> Admin Portal
@@ -83,7 +110,7 @@ $successMessage = SessionManager::getFlash('success');
                     <label for="password">Password</label>
                     <div class="je-password-wrap">
                         <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
-                        <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
+                        <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false">
                             <i class="fas fa-eye" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -176,7 +203,35 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to Admin';
     }
 });
+
+// ============================================
+// SIMPLE PASSWORD TOGGLE (Standalone)
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    var pwd = document.getElementById('password');
+    var btn = document.querySelector('.je-password-toggle');
+    
+    if (!pwd || !btn) {
+        console.log('❌ Password toggle elements missing');
+        return;
+    }
+    
+    btn.onclick = function(e) {
+        e.preventDefault();
+        if (pwd.type === 'password') {
+            pwd.type = 'text';
+            btn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+            btn.setAttribute('aria-label', 'Hide password');
+        } else {
+            pwd.type = 'password';
+            btn.innerHTML = '<i class="fas fa-eye"></i>';
+            btn.setAttribute('aria-label', 'Show password');
+        }
+        pwd.focus();
+    };
+    
+    console.log('✅ Password toggle working');
+});
 </script>
-<?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
 </body>
 </html>
