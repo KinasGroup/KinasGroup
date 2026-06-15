@@ -32,36 +32,6 @@ $successMessage = SessionManager::getFlash('success');
     <link rel="stylesheet" href="../assets/css/james-edition.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Hard reset for password toggle */
-        .je-password-wrap {
-            position: relative !important;
-            display: block !important;
-        }
-        .je-password-wrap input {
-            padding-right: 48px !important;
-            width: 100% !important;
-        }
-        .je-password-toggle {
-            position: absolute !important;
-            right: 0 !important;
-            top: 0 !important;
-            height: 100% !important;
-            width: 44px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            background: transparent !important;
-            border: none !important;
-            cursor: pointer !important;
-            color: #888 !important;
-            font-size: 18px !important;
-            z-index: 10 !important;
-        }
-        .je-password-toggle:hover {
-            color: #C6A43F !important;
-        }
-    </style>
 </head>
 <body>
 
@@ -108,9 +78,9 @@ $successMessage = SessionManager::getFlash('success');
                 </div>
                 <div class="je-form-group">
                     <label for="password">Password</label>
-                    <div class="je-password-wrap">
+                    <div class="je-password-wrap" id="password-wrap">
                         <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
-                        <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false">
+                        <button type="button" class="je-password-toggle" id="password-toggle-btn" aria-label="Show password" aria-pressed="false" tabindex="0">
                             <i class="fas fa-eye" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -205,33 +175,86 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
 });
 
 // ============================================
-// SIMPLE PASSWORD TOGGLE (Standalone)
+// PASSWORD TOGGLE FIX (Embedded)
 // ============================================
-document.addEventListener('DOMContentLoaded', function() {
-    var pwd = document.getElementById('password');
-    var btn = document.querySelector('.je-password-toggle');
+(function() {
+    'use strict';
     
-    if (!pwd || !btn) {
-        console.log('❌ Password toggle elements missing');
-        return;
+    function initPasswordToggle() {
+        var passwordInput = document.getElementById('password');
+        var toggleBtn = document.getElementById('password-toggle-btn');
+        var wrapper = document.getElementById('password-wrap');
+        
+        if (!passwordInput || !toggleBtn || !wrapper) {
+            console.log('Password toggle elements not found');
+            return;
+        }
+        
+        // Force inline styles on wrapper
+        wrapper.style.position = 'relative';
+        wrapper.style.display = 'block';
+        
+        // Force inline styles on input
+        passwordInput.style.paddingRight = '48px';
+        passwordInput.style.width = '100%';
+        
+        // Force inline styles on button
+        toggleBtn.style.position = 'absolute';
+        toggleBtn.style.right = '0';
+        toggleBtn.style.top = '0';
+        toggleBtn.style.height = '100%';
+        toggleBtn.style.width = '44px';
+        toggleBtn.style.display = 'flex';
+        toggleBtn.style.alignItems = 'center';
+        toggleBtn.style.justifyContent = 'center';
+        toggleBtn.style.background = 'transparent';
+        toggleBtn.style.border = 'none';
+        toggleBtn.style.cursor = 'pointer';
+        toggleBtn.style.color = '#888';
+        toggleBtn.style.fontSize = '18px';
+        toggleBtn.style.zIndex = '10';
+        
+        // Remove any existing listeners and add fresh one
+        var newBtn = toggleBtn.cloneNode(true);
+        toggleBtn.parentNode.replaceChild(newBtn, toggleBtn);
+        toggleBtn = newBtn;
+        
+        // Get the icon
+        var icon = toggleBtn.querySelector('i');
+        
+        toggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                if (icon) {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                }
+                toggleBtn.setAttribute('aria-label', 'Hide password');
+                toggleBtn.setAttribute('aria-pressed', 'true');
+            } else {
+                passwordInput.type = 'password';
+                if (icon) {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+                toggleBtn.setAttribute('aria-label', 'Show password');
+                toggleBtn.setAttribute('aria-pressed', 'false');
+            }
+            passwordInput.focus();
+        });
+        
+        console.log('✅ Password toggle is active');
     }
     
-    btn.onclick = function(e) {
-        e.preventDefault();
-        if (pwd.type === 'password') {
-            pwd.type = 'text';
-            btn.innerHTML = '<i class="fas fa-eye-slash"></i>';
-            btn.setAttribute('aria-label', 'Hide password');
-        } else {
-            pwd.type = 'password';
-            btn.innerHTML = '<i class="fas fa-eye"></i>';
-            btn.setAttribute('aria-label', 'Show password');
-        }
-        pwd.focus();
-    };
-    
-    console.log('✅ Password toggle working');
-});
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPasswordToggle);
+    } else {
+        initPasswordToggle();
+    }
+})();
 </script>
 </body>
 </html>
