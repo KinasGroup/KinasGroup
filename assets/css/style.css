@@ -74,14 +74,12 @@ a { color:inherit; text-decoration:none; }
   display: flex;
   justify-content: space-between;
   align-items: center;
+  /* Always span the full header — never let .container's max-width shrink this */
   width: 100%;
-  /* Override whatever max-width .container gets from responsive.css —
-     the header must always span the full viewport so nav items never wrap */
-  max-width: 100% !important;
+  max-width: 100%;
   flex-wrap: nowrap;
   gap: 0;
   box-sizing: border-box;
-  /* Override container's 5vw padding — header needs tighter sides */
   padding-left: clamp(16px, 2.5vw, 40px);
   padding-right: clamp(16px, 2.5vw, 40px);
 }

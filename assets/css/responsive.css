@@ -6,9 +6,13 @@
         max-width: 1200px;
         margin: 0 auto;
     }
-    /* Header inner must never be capped by .container's max-width */
+    /* The header uses class="container header-inner".
+       We must never let the 1200px cap squeeze the nav items onto a second line.
+       Specificity: two classes beats one class, and this rule is in the same
+       file as the offending rule so source-order wins cleanly. */
     .container.header-inner {
-        max-width: 100% !important;
+        max-width: 100%;
+        width: 100%;
     }
     
     .hero-title {
