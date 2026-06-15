@@ -369,6 +369,10 @@ html, body {
     margin: 0 auto;
     padding: 0 40px;
 }
+/* Header must always span full width regardless of .container constraints */
+.container.header-inner {
+    max-width: 100% !important;
+}
 
 @media (max-width: 768px) {
     .container {
