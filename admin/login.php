@@ -36,6 +36,7 @@ $successMessage = SessionManager::getFlash('success');
 <body>
 
 <div class="je-auth-shell">
+    <!-- ── Left aside ── -->
     <aside class="je-auth-aside">
         <a href="../index.php" class="je-auth-brand">
             <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
@@ -51,8 +52,10 @@ $successMessage = SessionManager::getFlash('success');
         </blockquote>
     </aside>
 
+    <!-- ── Right form ── -->
     <main class="je-auth-main">
         <div class="je-auth-form">
+            <!-- Admin badge -->
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:28px;">
                 <span style="display:inline-flex; align-items:center; gap:7px; background:#0A0A0A; color:#C6A43F; font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; padding:6px 14px; border-radius:20px; border:1px solid #C6A43F;">
                     <i class="fas fa-shield-alt"></i> Admin Portal
@@ -78,9 +81,9 @@ $successMessage = SessionManager::getFlash('success');
                 </div>
                 <div class="je-form-group">
                     <label for="password">Password</label>
-                    <div class="je-password-wrap" id="password-wrap">
+                    <div class="je-password-wrap">
                         <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
-                        <button type="button" class="je-password-toggle" id="password-toggle-btn" aria-label="Show password" aria-pressed="false" tabindex="0">
+                        <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
                             <i class="fas fa-eye" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -173,88 +176,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to Admin';
     }
 });
-
-// ============================================
-// PASSWORD TOGGLE FIX (Embedded)
-// ============================================
-(function() {
-    'use strict';
-    
-    function initPasswordToggle() {
-        var passwordInput = document.getElementById('password');
-        var toggleBtn = document.getElementById('password-toggle-btn');
-        var wrapper = document.getElementById('password-wrap');
-        
-        if (!passwordInput || !toggleBtn || !wrapper) {
-            console.log('Password toggle elements not found');
-            return;
-        }
-        
-        // Force inline styles on wrapper
-        wrapper.style.position = 'relative';
-        wrapper.style.display = 'block';
-        
-        // Force inline styles on input
-        passwordInput.style.paddingRight = '48px';
-        passwordInput.style.width = '100%';
-        
-        // Force inline styles on button
-        toggleBtn.style.position = 'absolute';
-        toggleBtn.style.right = '0';
-        toggleBtn.style.top = '0';
-        toggleBtn.style.height = '100%';
-        toggleBtn.style.width = '44px';
-        toggleBtn.style.display = 'flex';
-        toggleBtn.style.alignItems = 'center';
-        toggleBtn.style.justifyContent = 'center';
-        toggleBtn.style.background = 'transparent';
-        toggleBtn.style.border = 'none';
-        toggleBtn.style.cursor = 'pointer';
-        toggleBtn.style.color = '#888';
-        toggleBtn.style.fontSize = '18px';
-        toggleBtn.style.zIndex = '10';
-        
-        // Remove any existing listeners and add fresh one
-        var newBtn = toggleBtn.cloneNode(true);
-        toggleBtn.parentNode.replaceChild(newBtn, toggleBtn);
-        toggleBtn = newBtn;
-        
-        // Get the icon
-        var icon = toggleBtn.querySelector('i');
-        
-        toggleBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                if (icon) {
-                    icon.classList.remove('fa-eye');
-                    icon.classList.add('fa-eye-slash');
-                }
-                toggleBtn.setAttribute('aria-label', 'Hide password');
-                toggleBtn.setAttribute('aria-pressed', 'true');
-            } else {
-                passwordInput.type = 'password';
-                if (icon) {
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
-                }
-                toggleBtn.setAttribute('aria-label', 'Show password');
-                toggleBtn.setAttribute('aria-pressed', 'false');
-            }
-            passwordInput.focus();
-        });
-        
-        console.log('✅ Password toggle is active');
-    }
-    
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initPasswordToggle);
-    } else {
-        initPasswordToggle();
-    }
-})();
 </script>
+<?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
 </body>
 </html>
