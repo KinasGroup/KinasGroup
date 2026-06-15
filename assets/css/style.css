@@ -75,8 +75,12 @@ a { color:inherit; text-decoration:none; }
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  /* Override whatever max-width .container gets from responsive.css —
+     the header must always span the full viewport so nav items never wrap */
+  max-width: 100% !important;
   flex-wrap: nowrap;
   gap: 0;
+  box-sizing: border-box;
   /* Override container's 5vw padding — header needs tighter sides */
   padding-left: clamp(16px, 2.5vw, 40px);
   padding-right: clamp(16px, 2.5vw, 40px);

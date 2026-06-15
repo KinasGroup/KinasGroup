@@ -6,6 +6,10 @@
         max-width: 1200px;
         margin: 0 auto;
     }
+    /* Header inner must never be capped by .container's max-width */
+    .container.header-inner {
+        max-width: 100% !important;
+    }
     
     .hero-title {
         font-size: 68px;
