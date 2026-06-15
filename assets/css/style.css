@@ -272,6 +272,33 @@ a { color:inherit; text-decoration:none; }
   text-shadow: none;
 }
 
+/* ── Solid header: ensure any je2-button without an explicit nav-btn-* class
+   still renders readable (dark text, visible border). This covers edge cases
+   like a Sign Out link that only has class="je2-button". ── */
+.je3-header.solid .header-nav .je2-button:not(.nav-btn-outline):not(.nav-btn-filled) {
+  color: var(--primary) !important;
+  border: 1px solid var(--border);
+  background: transparent;
+  text-shadow: none;
+}
+.je3-header.solid .header-nav .je2-button:not(.nav-btn-outline):not(.nav-btn-filled):hover {
+  border-color: var(--primary);
+  color: var(--primary) !important;
+}
+
+/* ── Transparent header: same fallback — white text + white border ── */
+.je3-header.transparent .header-nav .je2-button:not(.nav-btn-outline):not(.nav-btn-filled) {
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.5);
+  background: transparent;
+  text-shadow: none;
+}
+.je3-header.transparent .header-nav .je2-button:not(.nav-btn-outline):not(.nav-btn-filled):hover {
+  background: rgba(255,255,255,0.15);
+  border-color: #fff;
+  color: #fff !important;
+}
+
 /* ── Mobile hamburger button — single source of truth ── */
 .mobile-menu-btn {
   display: none;         /* hidden on desktop */
