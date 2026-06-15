@@ -92,28 +92,15 @@
         }
     }
 
-    function bindPasswordToggles() {
+    function init() {
         var wraps = document.querySelectorAll('.je-password-wrap');
-        var bound = 0;
-        
         wraps.forEach(function (wrap) {
-            // Skip if already bound
             if (wrap.dataset.jeBound === '1') return;
-            
-            var input = wrap.querySelector('input[type="password"]');
-            var btn   = wrap.querySelector('.je-password-toggle');
-            
-            if (!input || !btn) {
-                // Debug: log missing elements (remove in production)
-                if (window.console && window.location.hostname === 'localhost') {
-                    console.warn('Password toggle: missing input or button', {wrap: wrap, input: input, btn: btn});
-                }
-                return;
-            }
-            
-            // Mark as bound
             wrap.dataset.jeBound = '1';
-            bound++;
+
+            var input = wrap.querySelector('input[type="password"], input[data-password-toggle]');
+            var btn   = wrap.querySelector('.je-password-toggle');
+            if (!input || !btn) return;
 
             // Force the button type so it never submits the form
             if (btn.tagName === 'BUTTON' && (!btn.type || btn.type === 'submit')) {
@@ -131,11 +118,7 @@
                 ensureIcon(btn, visible);
             }
 
-            // Remove any existing listeners to prevent duplicates
-            var newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-            
-            newBtn.addEventListener('click', function (e) {
+            btn.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 input.type = (input.type === 'password') ? 'text' : 'password';
@@ -149,32 +132,6 @@
             // Initial paint
             sync();
         });
-        
-        return bound;
-    }
-
-    function init() {
-        // First attempt immediately
-        var bound = bindPasswordToggles();
-        
-        // If nothing was bound, retry after a short delay (DOM might still be loading)
-        if (bound === 0) {
-            setTimeout(function() {
-                bindPasswordToggles();
-            }, 100);
-        }
-        
-        // Also set up a MutationObserver to catch dynamically added password fields
-        if (window.MutationObserver && typeof MutationObserver === 'function') {
-            var observer = new MutationObserver(function(mutations) {
-                // Check if any new password-wrap elements were added
-                var needsBinding = document.querySelectorAll('.je-password-wrap:not([data-je-bound="1"])').length > 0;
-                if (needsBinding) {
-                    bindPasswordToggles();
-                }
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
     }
 
     if (document.readyState === 'loading') {
