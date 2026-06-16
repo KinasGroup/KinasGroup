@@ -954,29 +954,29 @@ html, body {
 <section class="section">
     <div class="container">
         <div class="trust-row">
-            <div class="trust-item">
-                <img src="/assets/images/trust/verified-agents.png" alt="Verified Agents" width="120" height="120" style="margin-bottom:15px; object-fit:contain;">
+            <div class="trust-item" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <img src="/assets/images/trust/verified-agents.png" alt="Verified Agents" width="120" height="120" style="margin:0 auto 15px auto; display:block; object-fit:contain;">
                 <h4>Verified Agents</h4>
                 <p>All agents undergo KYC verification</p>
             </div>
-            <div class="trust-item">
-                <img src="/assets/images/trust/secure-payment.png" alt="Secure Transactions" width="120" height="120" style="margin-bottom:15px; object-fit:contain;">
+            <div class="trust-item" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <img src="/assets/images/trust/secure-payment.png" alt="Secure Transactions" width="120" height="120" style="margin:0 auto 15px auto; display:block; object-fit:contain;">
                 <h4>Secure Transactions</h4>
                 <p>Your safety is our priority</p>
             </div>
-            <div class="trust-item">
-                <img src="/assets/images/trust/quality-assurance.png" alt="Quality Assurance" width="120" height="120" style="margin-bottom:15px; object-fit:contain;">
+            <div class="trust-item" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <img src="/assets/images/trust/quality-assurance.png" alt="Quality Assurance" width="120" height="120" style="margin:0 auto 15px auto; display:block; object-fit:contain;">
                 <h4>Quality Assurance</h4>
                 <p>Every listing reviewed by our team</p>
             </div>
-            <div class="trust-item">
-                <img src="/assets/images/trust/global-reach.png" alt="Global Reach" width="120" height="120" style="margin-bottom:15px; object-fit:contain;">
+            <div class="trust-item" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <img src="/assets/images/trust/global-reach.png" alt="Global Reach" width="120" height="120" style="margin:0 auto 15px auto; display:block; object-fit:contain;">
                 <h4>Global Reach</h4>
                 <p>Listings from verified agents worldwide</p>
             </div>
         </div>
     </div>
-</section>
+</section>>
 
 <!-- CTA BANNER -->
 <section class="cta-banner">
