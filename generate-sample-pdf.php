@@ -2,7 +2,6 @@
 // generate-sample-pdf.php
 // Place this in your project root: /workspaces/KinasGroup/
 
-// Fix: Use the correct path relative to this file
 require_once __DIR__ . '/vendor/autoload.php';
 
 use Mpdf\Mpdf;
@@ -70,217 +69,43 @@ function generateSampleSolarPDF() {
         </tr>
     </table>');
 
-    // Build the HTML content
+    // Build the HTML content (full comprehensive version)
     $html = '
     <!DOCTYPE html>
     <html>
     <head>
         <style>
-            body {
-                font-family: "dejavusans", "Helvetica", "Arial", sans-serif;
-                line-height: 1.5;
-                color: #2C2C2C;
-                font-size: 11px;
-            }
-            .proposal-title {
-                text-align: center;
-                margin: 20px 0 12px 0;
-            }
-            .proposal-title h1 {
-                font-size: 24px;
-                font-weight: bold;
-                color: #C6A43F;
-                margin: 0;
-                letter-spacing: 1px;
-            }
-            .proposal-title p {
-                font-size: 11px;
-                color: #666;
-                margin: 4px 0 0 0;
-            }
-            .ref-box {
-                text-align: center;
-                background: #F8F6F1;
-                padding: 10px;
-                margin-bottom: 20px;
-                border: 1px solid #E8E0D0;
-            }
-            .ref-box strong {
-                color: #C6A43F;
-                font-size: 12px;
-            }
-            .ref-box .label {
-                color: #666;
-                font-size: 10px;
-            }
-            .section-title {
-                font-size: 16px;
-                font-weight: bold;
-                color: #C6A43F;
-                margin: 20px 0 12px 0;
-                padding-bottom: 4px;
-                border-bottom: 2px solid #C6A43F;
-            }
-            .info-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 18px;
-                font-size: 11px;
-            }
-            .info-table td {
-                padding: 8px 12px;
-                border: 1px solid #E0E0E0;
-                vertical-align: top;
-            }
-            .info-table td:first-child {
-                width: 30%;
-                background: #FAFAFA;
-                font-weight: 600;
-                font-size: 10px;
-                text-transform: uppercase;
-                color: #555;
-                letter-spacing: 0.5px;
-            }
-            .load-summary {
-                width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 18px;
-                text-align: center;
-            }
-            .load-summary td {
-                padding: 12px;
-                border: 1px solid #E0E0E0;
-                background: #FEFBF5;
-            }
-            .load-value {
-                font-size: 20px;
-                font-weight: bold;
-                color: #C6A43F;
-            }
-            .load-label {
-                font-size: 9px;
-                color: #666;
-                margin-top: 3px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            .system-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 18px;
-                font-size: 11px;
-            }
-            .system-table th {
-                background: #C6A43F;
-                color: #0A0A0A;
-                padding: 10px;
-                text-align: left;
-                font-weight: bold;
-                font-size: 11px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            .system-table td {
-                padding: 10px;
-                border: 1px solid #E0E0E0;
-                vertical-align: top;
-            }
-            .system-table .spec-note {
-                font-size: 9px;
-                color: #888;
-            }
-            .cost-box {
-                background: #FEFBF5;
-                border: 2px solid #C6A43F;
-                padding: 16px;
-                text-align: center;
-                margin: 18px 0;
-                border-radius: 4px;
-            }
-            .cost-label {
-                font-size: 11px;
-                color: #666;
-                margin-bottom: 4px;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-            }
-            .cost-value {
-                font-size: 28px;
-                font-weight: bold;
-                color: #C6A43F;
-            }
-            .cost-note {
-                font-size: 9px;
-                color: #999;
-                margin-top: 4px;
-            }
-            .warranty-box {
-                background: #F0F0F0;
-                padding: 14px;
-                margin: 16px 0;
-                border-left: 4px solid #C6A43F;
-                font-size: 10px;
-            }
-            .warranty-box strong {
-                color: #C6A43F;
-            }
-            .appliance-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 12px 0 18px 0;
-                font-size: 10px;
-            }
-            .appliance-table th {
-                background: #F5F5F5;
-                padding: 8px 10px;
-                text-align: left;
-                font-weight: bold;
-                font-size: 9px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                border: 1px solid #E0E0E0;
-                color: #555;
-            }
-            .appliance-table td {
-                padding: 6px 10px;
-                border: 1px solid #E0E0E0;
-            }
-            .appliance-table .total-row {
-                background: #FAFAFA;
-                font-weight: bold;
-            }
-            .badge {
-                display: inline-block;
-                background: #C6A43F;
-                color: #0A0A0A;
-                padding: 2px 12px;
-                border-radius: 20px;
-                font-size: 8px;
-                font-weight: bold;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-            }
-            .footer-note {
-                text-align: center;
-                margin-top: 30px;
-                padding-top: 16px;
-                border-top: 1px solid #E0E0E0;
-                font-size: 10px;
-                color: #888;
-            }
-            .highlight {
-                font-weight: bold;
-                color: #C6A43F;
-            }
-            .green-badge {
-                display: inline-block;
-                background: #E8F5E9;
-                color: #2E7D32;
-                padding: 2px 10px;
-                border-radius: 12px;
-                font-size: 8px;
-                font-weight: bold;
-            }
+            body { font-family: "dejavusans", "Helvetica", "Arial", sans-serif; line-height: 1.5; color: #2C2C2C; font-size: 11px; }
+            .proposal-title { text-align: center; margin: 20px 0 12px 0; }
+            .proposal-title h1 { font-size: 24px; font-weight: bold; color: #C6A43F; margin: 0; letter-spacing: 1px; }
+            .proposal-title p { font-size: 11px; color: #666; margin: 4px 0 0 0; }
+            .ref-box { text-align: center; background: #F8F6F1; padding: 10px; margin-bottom: 20px; border: 1px solid #E8E0D0; }
+            .ref-box strong { color: #C6A43F; font-size: 12px; }
+            .ref-box .label { color: #666; font-size: 10px; }
+            .section-title { font-size: 16px; font-weight: bold; color: #C6A43F; margin: 20px 0 12px 0; padding-bottom: 4px; border-bottom: 2px solid #C6A43F; }
+            .info-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 11px; }
+            .info-table td { padding: 8px 12px; border: 1px solid #E0E0E0; vertical-align: top; }
+            .info-table td:first-child { width: 30%; background: #FAFAFA; font-weight: 600; font-size: 10px; text-transform: uppercase; color: #555; letter-spacing: 0.5px; }
+            .load-summary { width: 100%; border-collapse: collapse; margin-bottom: 18px; text-align: center; }
+            .load-summary td { padding: 12px; border: 1px solid #E0E0E0; background: #FEFBF5; }
+            .load-value { font-size: 20px; font-weight: bold; color: #C6A43F; }
+            .load-label { font-size: 9px; color: #666; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+            .system-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 11px; }
+            .system-table th { background: #C6A43F; color: #0A0A0A; padding: 10px; text-align: left; font-weight: bold; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+            .system-table td { padding: 10px; border: 1px solid #E0E0E0; vertical-align: top; }
+            .system-table .spec-note { font-size: 9px; color: #888; }
+            .cost-box { background: #FEFBF5; border: 2px solid #C6A43F; padding: 16px; text-align: center; margin: 18px 0; border-radius: 4px; }
+            .cost-label { font-size: 11px; color: #666; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+            .cost-value { font-size: 28px; font-weight: bold; color: #C6A43F; }
+            .cost-note { font-size: 9px; color: #999; margin-top: 4px; }
+            .warranty-box { background: #F0F0F0; padding: 14px; margin: 16px 0; border-left: 4px solid #C6A43F; font-size: 10px; }
+            .warranty-box strong { color: #C6A43F; }
+            .appliance-table { width: 100%; border-collapse: collapse; margin: 12px 0 18px 0; font-size: 10px; }
+            .appliance-table th { background: #F5F5F5; padding: 8px 10px; text-align: left; font-weight: bold; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #E0E0E0; color: #555; }
+            .appliance-table td { padding: 6px 10px; border: 1px solid #E0E0E0; }
+            .appliance-table .total-row { background: #FAFAFA; font-weight: bold; }
+            .badge { display: inline-block; background: #C6A43F; color: #0A0A0A; padding: 2px 12px; border-radius: 20px; font-size: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+            .green-badge { display: inline-block; background: #E8F5E9; color: #2E7D32; padding: 2px 10px; border-radius: 12px; font-size: 8px; font-weight: bold; }
         </style>
     </head>
     <body>';
@@ -496,77 +321,11 @@ try {
     }
     
     $pdfPath = generateSampleSolarPDF();
-    
-    // Get the URL path
-    $documentRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
-    $pdfUrl = str_replace($documentRoot, '', $pdfPath);
-    
-    echo '<!DOCTYPE html>
-    <html>
-    <head>
-        <title>Sample Solar PDF Generated</title>
-        <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
-            .card { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
-            h1 { color: #C6A43F; font-family: "Prata", serif; }
-            .success { color: #2E7D32; font-size: 48px; }
-            .btn { display: inline-block; padding: 14px 32px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px; }
-            .btn:hover { background: #A8882E; }
-            .info { color: #666; margin: 20px 0; }
-            .file-info { background: #f0f0f0; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left; }
-            .folder-created { background: #E8F5E9; padding: 10px; border-radius: 8px; border-left: 4px solid #2E7D32; margin: 20px 0; }
-            .error-box { background: #FFEBEE; border-left: 4px solid #C62828; padding: 15px; border-radius: 8px; margin: 20px 0; }
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <div class="success">✅</div>
-            <h1>Sample Solar Proposal PDF Generated!</h1>
-            <p class="info">Your professional sample PDF has been created successfully.</p>
-            
-            <div class="folder-created">
-                📁 <strong>New folder created:</strong> /generated-pdfs/<br>
-                <span style="font-size: 12px; color: #555;">(The folder was automatically created by the script)</span>
-            </div>
-            
-            <div class="file-info">
-                <strong>📄 File Details:</strong><br>
-                <strong>Name:</strong> ' . basename($pdfPath) . '<br>
-                <strong>Location:</strong> ' . $pdfPath . '<br>
-                <strong>Size:</strong> ' . number_format(filesize($pdfPath)) . ' bytes<br>
-                <strong>Created:</strong> ' . date('Y-m-d H:i:s') . '
-            </div>
-            
-            <a href="' . $pdfUrl . '" target="_blank" class="btn">📄 View PDF</a>
-            <a href="' . $pdfUrl . '" download class="btn" style="background: #0A0A0A; color: white;">⬇️ Download PDF</a>
-            
-            <p style="margin-top: 30px; font-size: 12px; color: #999;">
-                The <strong>/generated-pdfs/</strong> folder was automatically created in your project root.<br>
-                You can find the PDF there or use the buttons above.
-            </p>
-        </div>
-    </body>
-    </html>';
+    echo "✅ PDF generated successfully!\n";
+    echo "📄 File: " . $pdfPath . "\n";
+    echo "📊 Size: " . number_format(filesize($pdfPath)) . " bytes\n";
     
 } catch (Exception $e) {
-    echo '<!DOCTYPE html>
-    <html>
-    <head>
-        <title>Error</title>
-        <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-            .error-box { background: #FFEBEE; border-left: 4px solid #C62828; padding: 20px; border-radius: 8px; }
-            h1 { color: #C62828; }
-            code { background: #f5f5f5; padding: 2px 8px; border-radius: 4px; }
-        </style>
-    </head>
-    <body>
-        <div class="error-box">
-            <h1>❌ Error</h1>
-            <p>' . htmlspecialchars($e->getMessage()) . '</p>
-            <p>Make sure you have run: <code>composer require mpdf/mpdf</code></p>
-        </div>
-    </body>
-    </html>';
+    echo "❌ Error: " . $e->getMessage() . "\n";
+    echo "💡 Make sure you have run: composer require mpdf/mpdf\n";
 }
-?>
