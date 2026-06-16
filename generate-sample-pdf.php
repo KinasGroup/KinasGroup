@@ -1,8 +1,8 @@
 <?php
 // generate-sample-pdf.php
-// Run this file to generate a sample solar evaluation PDF
-// Place this file in your project root and access it via browser
+// Place this in your project root: /workspaces/KinasGroup/
 
+// Fix: Use the correct path relative to this file
 require_once __DIR__ . '/vendor/autoload.php';
 
 use Mpdf\Mpdf;
@@ -483,7 +483,6 @@ function generateSampleSolarPDF() {
     $filename = 'sample-solar-proposal-' . date('Y-m-d') . '.pdf';
     $filepath = $outputDir . $filename;
     
-    // Output to file
     $mpdf->Output($filepath, 'F');
     
     return $filepath;
@@ -491,8 +490,16 @@ function generateSampleSolarPDF() {
 
 // Run the generator
 try {
+    // Check if mPDF is installed
+    if (!class_exists('Mpdf\Mpdf')) {
+        throw new Exception('mPDF is not installed. Run: composer require mpdf/mpdf');
+    }
+    
     $pdfPath = generateSampleSolarPDF();
-    $pdfUrl = str_replace($_SERVER['DOCUMENT_ROOT'], '', $pdfPath);
+    
+    // Get the URL path
+    $documentRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+    $pdfUrl = str_replace($documentRoot, '', $pdfPath);
     
     echo '<!DOCTYPE html>
     <html>
@@ -506,31 +513,60 @@ try {
             .btn { display: inline-block; padding: 14px 32px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px; }
             .btn:hover { background: #A8882E; }
             .info { color: #666; margin: 20px 0; }
-            .file-info { background: #f0f0f0; padding: 15px; border-radius: 8px; margin: 20px 0; }
+            .file-info { background: #f0f0f0; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left; }
+            .folder-created { background: #E8F5E9; padding: 10px; border-radius: 8px; border-left: 4px solid #2E7D32; margin: 20px 0; }
+            .error-box { background: #FFEBEE; border-left: 4px solid #C62828; padding: 15px; border-radius: 8px; margin: 20px 0; }
         </style>
     </head>
     <body>
         <div class="card">
             <div class="success">✅</div>
             <h1>Sample Solar Proposal PDF Generated!</h1>
-            <p class="info">Your sample PDF has been created with professional formatting.</p>
-            <div class="file-info">
-                <strong>File:</strong> ' . basename($pdfPath) . '<br>
-                <strong>Location:</strong> ' . $pdfPath . '<br>
-                <strong>Size:</strong> ' . number_format(filesize($pdfPath)) . ' bytes
+            <p class="info">Your professional sample PDF has been created successfully.</p>
+            
+            <div class="folder-created">
+                📁 <strong>New folder created:</strong> /generated-pdfs/<br>
+                <span style="font-size: 12px; color: #555;">(The folder was automatically created by the script)</span>
             </div>
+            
+            <div class="file-info">
+                <strong>📄 File Details:</strong><br>
+                <strong>Name:</strong> ' . basename($pdfPath) . '<br>
+                <strong>Location:</strong> ' . $pdfPath . '<br>
+                <strong>Size:</strong> ' . number_format(filesize($pdfPath)) . ' bytes<br>
+                <strong>Created:</strong> ' . date('Y-m-d H:i:s') . '
+            </div>
+            
             <a href="' . $pdfUrl . '" target="_blank" class="btn">📄 View PDF</a>
             <a href="' . $pdfUrl . '" download class="btn" style="background: #0A0A0A; color: white;">⬇️ Download PDF</a>
+            
             <p style="margin-top: 30px; font-size: 12px; color: #999;">
-                This PDF demonstrates the professional formatting for Kinas Volt solar proposals.
+                The <strong>/generated-pdfs/</strong> folder was automatically created in your project root.<br>
+                You can find the PDF there or use the buttons above.
             </p>
         </div>
     </body>
     </html>';
     
 } catch (Exception $e) {
-    echo '<h1>Error</h1>';
-    echo '<p style="color: red;">' . $e->getMessage() . '</p>';
-    echo '<p>Make sure you have run <code>composer require mpdf/mpdf</code></p>';
+    echo '<!DOCTYPE html>
+    <html>
+    <head>
+        <title>Error</title>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+            .error-box { background: #FFEBEE; border-left: 4px solid #C62828; padding: 20px; border-radius: 8px; }
+            h1 { color: #C62828; }
+            code { background: #f5f5f5; padding: 2px 8px; border-radius: 4px; }
+        </style>
+    </head>
+    <body>
+        <div class="error-box">
+            <h1>❌ Error</h1>
+            <p>' . htmlspecialchars($e->getMessage()) . '</p>
+            <p>Make sure you have run: <code>composer require mpdf/mpdf</code></p>
+        </div>
+    </body>
+    </html>';
 }
 ?>
