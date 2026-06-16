@@ -1,73 +1,81 @@
 <?php
 /**
- * KINAS GROUP — Password Visibility Toggle (STRONG FIX)
+ * KINAS GROUP — Password Visibility Toggle (ULTIMATE FIX)
  */
 ?>
 <style>
-/* === STRONG OVERRIDE FOR PASSWORD TOGGLE === */
-.je-password-wrap { 
-    position: relative !important; 
-    display: block !important; 
+/* === ULTIMATE OVERRIDE - beats everything === */
+.je-password-wrap,
+.je-form-group .je-password-wrap {
+    position: relative !important;
+    display: block !important;
+    z-index: 999 !important;
 }
 
-.je-password-wrap > input {
-    padding-right: 54px !important;
+.je-password-wrap > input,
+.je-form-group input[type="password"],
+.je-form-group .je-password-wrap input {
+    padding-right: 58px !important;
     box-sizing: border-box !important;
+    position: relative !important;
+    z-index: 1 !important;
 }
 
-/* Button positioning & visibility */
-.je-password-toggle {
+/* The eye button */
+.je-password-toggle,
+.je-form-group .je-password-toggle {
     position: absolute !important;
     top: 50% !important;
-    right: 8px !important;
+    right: 12px !important;
     transform: translateY(-50%) !important;
-    height: 38px !important;
     width: 42px !important;
+    height: 42px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    background: transparent !important;
-    border: none !important;
+    background: #fff !important;
+    border: 1px solid #ddd !important;
+    border-radius: 50% !important;
     cursor: pointer !important;
     color: #555 !important;
-    z-index: 30 !important;
+    z-index: 100 !important;
     font-size: 20px !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    border-radius: 50% !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
     transition: all 0.2s ease !important;
 }
 
 .je-password-toggle:hover,
-.je-password-toggle:focus-visible {
+.je-password-toggle:focus {
     color: #C6A43F !important;
-    background: rgba(198, 164, 63, 0.2) !important;
+    background: #fff !important;
+    border-color: #C6A43F !important;
+    box-shadow: 0 2px 6px rgba(198,164,63,0.3) !important;
 }
 
-/* Icon */
-.je-password-toggle i,
-.je-password-toggle svg {
+.je-password-toggle i {
     font-size: 20px !important;
     pointer-events: none !important;
 }
 
-/* Suppress browser built-in reveal */
+/* Browser built-in password eye suppression */
+input::-ms-reveal,
+input::-ms-clear,
 .je-password-wrap input::-ms-reveal,
-.je-password-wrap input::-ms-clear { 
-    display: none !important; 
+.je-password-wrap input::-ms-clear {
+    display: none !important;
 }
 </style>
 
 <script>
-(function () {
+(function() {
     'use strict';
-    if (window.__jePasswordToggleLoaded) return;
-    window.__jePasswordToggleLoaded = true;
+    if (window.__passwordToggleInit) return;
+    window.__passwordToggleInit = true;
 
-    function init() {
+    function initToggles() {
         document.querySelectorAll('.je-password-wrap').forEach(wrap => {
-            if (wrap.dataset.jeBound) return;
-            wrap.dataset.jeBound = '1';
+            if (wrap.dataset.bound) return;
+            wrap.dataset.bound = 'true';
 
             const input = wrap.querySelector('input[type="password"]');
             const btn = wrap.querySelector('.je-password-toggle');
@@ -75,28 +83,30 @@
 
             btn.type = 'button';
 
-            function toggle() {
-                const isVisible = input.type === 'text';
-                input.type = isVisible ? 'password' : 'text';
-                btn.classList.toggle('is-visible', !isVisible);
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                
+                const isHidden = input.type === 'password';
+                input.type = isHidden ? 'text' : 'password';
+                
                 const icon = btn.querySelector('i');
                 if (icon) {
-                    icon.classList.toggle('fa-eye', isVisible);
-                    icon.classList.toggle('fa-eye-slash', !isVisible);
+                    icon.classList.toggle('fa-eye', !isHidden);
+                    icon.classList.toggle('fa-eye-slash', isHidden);
                 }
-            }
+            });
 
-            btn.addEventListener('click', toggle);
-            // Initial state
+            // Initial icon
             const icon = btn.querySelector('i');
             if (icon) icon.classList.add('fa-eye');
         });
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', initToggles);
     } else {
-        init();
+        initToggles();
     }
 })();
 </script>
