@@ -1,29 +1,19 @@
 <?php
 /**
- * KINAS GROUP — Password Visibility Toggle (ULTIMATE FIX)
+ * KINAS GROUP — Password Visibility Toggle (FINAL FIX)
  */
 ?>
 <style>
-/* === ULTIMATE OVERRIDE - beats everything === */
-.je-password-wrap,
-.je-form-group .je-password-wrap {
+.je-password-wrap {
     position: relative !important;
     display: block !important;
-    z-index: 999 !important;
 }
 
-.je-password-wrap > input,
-.je-form-group input[type="password"],
-.je-form-group .je-password-wrap input {
+.je-password-wrap input {
     padding-right: 58px !important;
-    box-sizing: border-box !important;
-    position: relative !important;
-    z-index: 1 !important;
 }
 
-/* The eye button */
-.je-password-toggle,
-.je-form-group .je-password-toggle {
+.je-password-toggle {
     position: absolute !important;
     top: 50% !important;
     right: 12px !important;
@@ -37,45 +27,33 @@
     border: 1px solid #ddd !important;
     border-radius: 50% !important;
     cursor: pointer !important;
-    color: #555 !important;
+    color: #333 !important;
     z-index: 100 !important;
     font-size: 20px !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
 }
 
-.je-password-toggle:hover,
-.je-password-toggle:focus {
+.je-password-toggle:hover {
     color: #C6A43F !important;
-    background: #fff !important;
     border-color: #C6A43F !important;
-    box-shadow: 0 2px 6px rgba(198,164,63,0.3) !important;
 }
 
-.je-password-toggle i {
-    font-size: 20px !important;
-    pointer-events: none !important;
-}
-
-/* Browser built-in password eye suppression */
-input::-ms-reveal,
-input::-ms-clear,
-.je-password-wrap input::-ms-reveal,
-.je-password-wrap input::-ms-clear {
-    display: none !important;
+/* Fallback text if icon fails */
+.je-password-toggle::after {
+    content: "👁" !important;
+    font-size: 18px !important;
 }
 </style>
 
 <script>
 (function() {
-    'use strict';
-    if (window.__passwordToggleInit) return;
-    window.__passwordToggleInit = true;
+    if (window.passwordToggleDone) return;
+    window.passwordToggleDone = true;
 
-    function initToggles() {
+    function init() {
         document.querySelectorAll('.je-password-wrap').forEach(wrap => {
-            if (wrap.dataset.bound) return;
-            wrap.dataset.bound = 'true';
+            if (wrap.dataset.init) return;
+            wrap.dataset.init = '1';
 
             const input = wrap.querySelector('input[type="password"]');
             const btn = wrap.querySelector('.je-password-toggle');
@@ -83,30 +61,32 @@ input::-ms-clear,
 
             btn.type = 'button';
 
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopImmediatePropagation();
+            btn.addEventListener('click', () => {
+                const isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
                 
-                const isHidden = input.type === 'password';
-                input.type = isHidden ? 'text' : 'password';
-                
+                // Try Font Awesome first
                 const icon = btn.querySelector('i');
                 if (icon) {
-                    icon.classList.toggle('fa-eye', !isHidden);
-                    icon.classList.toggle('fa-eye-slash', isHidden);
+                    icon.classList.toggle('fa-eye', isPassword);
+                    icon.classList.toggle('fa-eye-slash', !isPassword);
+                } else {
+                    // Emoji fallback
+                    btn.style.fontSize = isPassword ? '22px' : '18px';
                 }
             });
 
-            // Initial icon
-            const icon = btn.querySelector('i');
-            if (icon) icon.classList.add('fa-eye');
+            // Initial icon (try FA or emoji)
+            if (!btn.querySelector('i')) {
+                btn.innerHTML = '<i class="fas fa-eye"></i>';
+            }
         });
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initToggles);
+        document.addEventListener('DOMContentLoaded', init);
     } else {
-        initToggles();
+        init();
     }
 })();
 </script>
