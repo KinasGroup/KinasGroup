@@ -1,77 +1,63 @@
 <?php
 /**
- * KINAS GROUP — Password Visibility Toggle
- * --------------------------------------------------
- * Include this file in any page that has password fields.
- * It (a) prints a small CSS block, and (b) auto-wires up
- * any <div class="je-password-wrap"> on the page so the
- * eye icon toggles between type="password" and type="text".
- *
- * Usage in a form:
- *   <div class="je-password-wrap">
- *       <input type="password" name="password" id="password" ...>
- *       <button type="button" class="je-password-toggle"
- *               aria-label="Show password" aria-pressed="false">
- *           <i class="fas fa-eye" aria-hidden="true"></i>
- *       </button>
- *   </div>
- *
- * The icon automatically swaps between fa-eye and fa-eye-slash.
- * If FontAwesome is not loaded, a plain text fallback ("Show")
- * is shown so the toggle is still functional.
- *
- * Safe to include multiple times — IIFE-guarded.
+ * KINAS GROUP — Password Visibility Toggle (FIXED)
  */
 ?>
 <style>
-.je-password-wrap { position: relative; display: block; }
-.je-password-wrap > input {
-    /* Leave room for the eye icon on the right.
-       !important so we beat .je-form-group input specificity. */
-    padding-right: 48px !important;
+/* More robust password toggle — beats other .je-form-group rules */
+.je-password-wrap {
+    position: relative !important;
+    display: block !important;
 }
+
+.je-password-wrap > input {
+    padding-right: 52px !important; /* Extra room */
+    width: 100% !important;
+}
+
 .je-password-toggle {
     position: absolute !important;
-    top: 0;
-    right: 0;
-    height: 100%;
-    width: 42px;
+    top: 50% !important;
+    right: 4px !important;
+    transform: translateY(-50%) !important;
+    height: 38px !important;
+    width: 42px !important;
     display: flex !important;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: 0;
-    border-left: 1px solid transparent;
-    padding: 0;
-    margin: 0;
-    cursor: pointer;
-    color: #555;
-    border-radius: 0 3px 3px 0;
-    transition: color 0.15s ease, background-color 0.15s ease;
-    z-index: 2;
-    font: inherit;
-    line-height: 1;
-    -webkit-appearance: none;
-    appearance: none;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+    color: #555 !important;
+    z-index: 10 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 18px !important;
+    transition: all 0.2s ease !important;
 }
+
 .je-password-toggle:hover,
 .je-password-toggle:focus-visible {
-    color: #C6A43F;
-    background: rgba(198, 164, 63, 0.10);
-    outline: none;
+    color: #C6A43F !important;
+    background: rgba(198, 164, 63, 0.12) !important;
 }
-.je-password-toggle.is-visible { color: #C6A43F; }
-.je-password-toggle i,
-.je-password-toggle svg {
-    font-size: 16px;
-    line-height: 1;
-    pointer-events: none;
+
+.je-password-toggle.is-visible {
+    color: #C6A43F !important;
 }
-/* Suppress the browser's built-in password reveal button so it
-   doesn't fight with our custom one. */
-.je-password-wrap > input::-ms-reveal,
-.je-password-wrap > input::-ms-clear { display: none; }
+
+.je-password-toggle i {
+    font-size: 18px !important;
+    pointer-events: none !important;
+}
+
+/* Browser password reveal suppression */
+.je-password-wrap input::-ms-reveal,
+.je-password-wrap input::-ms-clear {
+    display: none !important;
+}
 </style>
+
 <script>
 (function () {
     'use strict';
@@ -79,58 +65,43 @@
     window.__jePasswordToggleLoaded = true;
 
     function ensureIcon(btn, visible) {
-        var icon = btn.querySelector('i, svg');
-        if (!icon) {
-            // Fallback text label if no icon element exists
-            btn.textContent = visible ? '🙈' : '👁';
-            return;
-        }
-        if (icon.tagName === 'I') {
-            // FontAwesome path: toggle fa-eye / fa-eye-slash
-            icon.classList.toggle('fa-eye',       !visible);
-            icon.classList.toggle('fa-eye-slash',  visible);
+        const icon = btn.querySelector('i.fa-eye, i.fa-eye-slash');
+        if (icon) {
+            icon.classList.toggle('fa-eye', !visible);
+            icon.classList.toggle('fa-eye-slash', visible);
+        } else {
+            // Text fallback
+            btn.innerHTML = visible ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
         }
     }
 
     function init() {
-        var wraps = document.querySelectorAll('.je-password-wrap');
-        wraps.forEach(function (wrap) {
+        document.querySelectorAll('.je-password-wrap').forEach(wrap => {
             if (wrap.dataset.jeBound === '1') return;
             wrap.dataset.jeBound = '1';
 
-            var input = wrap.querySelector('input[type="password"], input[data-password-toggle]');
-            var btn   = wrap.querySelector('.je-password-toggle');
+            const input = wrap.querySelector('input[type="password"]');
+            const btn = wrap.querySelector('.je-password-toggle');
             if (!input || !btn) return;
 
-            // Force the button type so it never submits the form
-            if (btn.tagName === 'BUTTON' && (!btn.type || btn.type === 'submit')) {
-                btn.setAttribute('type', 'button');
-            }
-            btn.setAttribute('aria-label', 'Show password');
-            btn.setAttribute('aria-pressed', 'false');
+            btn.setAttribute('type', 'button');
 
-            function sync() {
-                var visible = input.type === 'text';
-                btn.classList.toggle('is-visible', visible);
-                btn.setAttribute('aria-pressed', visible ? 'true' : 'false');
-                btn.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
-                btn.title = visible ? 'Hide password' : 'Show password';
-                ensureIcon(btn, visible);
-            }
-
-            btn.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                input.type = (input.type === 'password') ? 'text' : 'password';
-                // Keep focus + caret position stable across the toggle
-                var caret = input.selectionStart;
+            function toggle() {
+                const isVisible = input.type === 'text';
+                input.type = isVisible ? 'password' : 'text';
+                
+                const caret = input.selectionStart;
                 input.focus();
-                try { input.setSelectionRange(caret, caret); } catch (_) {}
-                sync();
-            });
+                if (caret) input.setSelectionRange(caret, caret);
 
-            // Initial paint
-            sync();
+                btn.classList.toggle('is-visible', !isVisible);
+                btn.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+                ensureIcon(btn, !isVisible);
+            }
+
+            btn.addEventListener('click', toggle);
+            // Initial state
+            ensureIcon(btn, false);
         });
     }
 
