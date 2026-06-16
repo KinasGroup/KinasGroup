@@ -954,10 +954,26 @@ html, body {
 <section class="section">
     <div class="container">
         <div class="trust-row">
-            <div class="trust-item"><span class="trust-icon">🛡️</span><h4>Verified Agents</h4><p>All agents undergo KYC verification</p></div>
-            <div class="trust-item"><span class="trust-icon">🔒</span><h4>Secure Transactions</h4><p>Your safety is our priority</p></div>
-            <div class="trust-item"><span class="trust-icon">⭐</span><h4>Quality Assurance</h4><p>Every listing reviewed by our team</p></div>
-            <div class="trust-item"><span class="trust-icon">🌍</span><h4>Global Reach</h4><p>Listings from verified agents worldwide</p></div>
+            <div class="trust-item">
+                <img src="/assets/images/verified-badge.jpg" alt="Verified Agents" style="height:60px; width:auto; margin-bottom:15px; object-fit:contain;">
+                <h4>Verified Agents</h4>
+                <p>All agents undergo KYC verification</p>
+            </div>
+            <div class="trust-item">
+                <img src="/assets/images/secure-payment.jpg" alt="Secure Transactions" style="height:60px; width:auto; margin-bottom:15px; object-fit:contain;">
+                <h4>Secure Transactions</h4>
+                <p>Your safety is our priority</p>
+            </div>
+            <div class="trust-item">
+                <img src="/assets/images/magnifying-glass.jpg" alt="Quality Assurance" style="height:60px; width:auto; margin-bottom:15px; object-fit:contain;">
+                <h4>Quality Assurance</h4>
+                <p>Every listing reviewed by our team</p>
+            </div>
+            <div class="trust-item">
+                <img src="/assets/images/world-map-phone.jpg" alt="Global Reach" style="height:60px; width:auto; margin-bottom:15px; object-fit:contain;">
+                <h4>Global Reach</h4>
+                <p>Listings from verified agents worldwide</p>
+            </div>
         </div>
     </div>
 </section>
