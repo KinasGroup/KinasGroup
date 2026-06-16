@@ -1,6 +1,6 @@
 <?php
 // generate-sample-pdf.php
-// Generates a sample solar proposal PDF with KINAS VOLT logo
+// Generates a sample solar proposal PDF with KINAS VOLT logo and timestamp
 
 require_once __DIR__ . '/vendor/autoload.php';
 
@@ -41,6 +41,7 @@ function generateSampleSolarPDF() {
     ];
     
     $reference = 'SOL-' . date('Y') . '-' . strtoupper(substr(uniqid(), -6));
+    $generationTime = date('F j, Y - h:i:s A'); // Added: Full timestamp with AM/PM
     
     $mpdf = new Mpdf([
         'margin_top'    => 45,
@@ -83,6 +84,7 @@ function generateSampleSolarPDF() {
             .ref-box { text-align: center; background: #F8F6F1; padding: 10px; margin-bottom: 20px; border: 1px solid #E8E0D0; }
             .ref-box strong { color: #C6A43F; font-size: 12px; }
             .ref-box .label { color: #666; font-size: 10px; }
+            .generation-time { text-align: center; font-size: 9px; color: #999; margin-bottom: 15px; font-style: italic; }
             .section-title { font-size: 16px; font-weight: bold; color: #C6A43F; margin: 20px 0 12px 0; padding-bottom: 4px; border-bottom: 2px solid #C6A43F; }
             .info-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 11px; }
             .info-table td { padding: 8px 12px; border: 1px solid #E0E0E0; vertical-align: top; }
@@ -124,6 +126,10 @@ function generateSampleSolarPDF() {
         <span class="label">Date Issued:</span> <strong>' . date('F j, Y') . '</strong>
         <span style="margin:0 12px; color:#CCC;">|</span>
         <span class="label">Valid Until:</span> <strong>' . date('F j, Y', strtotime('+30 days')) . '</strong>
+    </div>
+    
+    <div class="generation-time">
+        <strong>Document Generated:</strong> ' . $generationTime . '
     </div>';
 
     // Customer Information Section
@@ -325,6 +331,7 @@ try {
     echo "✅ PDF generated successfully!\n";
     echo "📄 File: " . $pdfPath . "\n";
     echo "📊 Size: " . number_format(filesize($pdfPath)) . " bytes\n";
+    echo "⏰ Generated at: " . date('F j, Y - h:i:s A') . "\n";
     
 } catch (Exception $e) {
     echo "❌ Error: " . $e->getMessage() . "\n";
