@@ -1,6 +1,7 @@
+cat > generate-sample-pdf.php << 'EOF'
 <?php
 // generate-sample-pdf.php
-// Place this in your project root: /workspaces/KinasGroup/
+// Generates a sample solar proposal PDF with KINAS VOLT logo
 
 require_once __DIR__ . '/vendor/autoload.php';
 
@@ -51,12 +52,13 @@ function generateSampleSolarPDF() {
         'default_font'  => 'dejavusans'
     ]);
 
-    // Professional Header
+    // Professional Header with Logo
     $mpdf->SetHTMLHeader('
     <div style="text-align:center; padding-bottom:12px; border-bottom:2px solid #C6A43F;">
-        <div style="font-size:24px; font-weight:bold; color:#0A0A0A; font-family:Prata,serif;">KINAS VOLT</div>
-        <div style="font-size:10px; color:#666; letter-spacing:2px; margin-top:2px;">POWERING A SUSTAINABLE FUTURE</div>
-        <div style="font-size:8px; color:#999; margin-top:4px;">Gwarimpa, 900108, Federal Capital Territory, Abuja • +234 913 717 5523</div>
+        <img src="' . __DIR__ . '/assets/images/logos/kinas-volt-logo.jpg" 
+             style="max-height:60px; width:auto;" alt="KINAS VOLT">
+        <div style="font-size:10px; color:#666; letter-spacing:2px; margin-top:4px;">POWERING A SUSTAINABLE FUTURE</div>
+        <div style="font-size:8px; color:#999; margin-top:2px;">Gwarimpa, 900108, Federal Capital Territory, Abuja • +234 913 717 5523</div>
     </div>');
 
     // Professional Footer
@@ -69,7 +71,7 @@ function generateSampleSolarPDF() {
         </tr>
     </table>');
 
-    // Build the HTML content (full comprehensive version)
+    // Build the HTML content
     $html = '
     <!DOCTYPE html>
     <html>
@@ -329,3 +331,4 @@ try {
     echo "❌ Error: " . $e->getMessage() . "\n";
     echo "💡 Make sure you have run: composer require mpdf/mpdf\n";
 }
+EOF
