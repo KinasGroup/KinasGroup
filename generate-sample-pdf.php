@@ -1,4 +1,3 @@
-cat > generate-sample-pdf.php << 'EOF'
 <?php
 // generate-sample-pdf.php
 // Generates a sample solar proposal PDF with KINAS VOLT logo
@@ -52,7 +51,7 @@ function generateSampleSolarPDF() {
         'default_font'  => 'dejavusans'
     ]);
 
-    // Professional Header with Logo
+    // Professional Header with LOGO
     $mpdf->SetHTMLHeader('
     <div style="text-align:center; padding-bottom:12px; border-bottom:2px solid #C6A43F;">
         <img src="' . __DIR__ . '/assets/images/logos/kinas-volt-logo.jpg" 
@@ -331,4 +330,3 @@ try {
     echo "❌ Error: " . $e->getMessage() . "\n";
     echo "💡 Make sure you have run: composer require mpdf/mpdf\n";
 }
-EOF
