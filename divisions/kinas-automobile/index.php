@@ -225,188 +225,34 @@ include '../../templates/header.php';
     </div>
 </section>
 
-<!-- ── CTA & Solar Calculator Button Section ── -->
+<!-- ── CTA Section (Solar Calculator removed) ── -->
 <section style="background:#0A0A0A; padding:80px 0; text-align:center; color:#fff;">
     <div class="je-container">
         <h2 style="font-family:'Prata',serif; font-size:36px; margin-bottom:14px;">List your vehicle with KINAS</h2>
         <p style="color:rgba(255,255,255,0.7); font-size:15px; max-width:560px; margin:0 auto 28px;">Reach an audience of qualified luxury buyers. Get verified in minutes.</p>
         <a href="/auth/register.php" class="je-btn je-btn-gold je-btn-lg">Become a Dealer</a>
-        
-        <!-- Solar Calculator Button -->
-        <div style="margin-top: 50px; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.15);">
-            <button id="openSolarEstimatorBtn" style="background: #2d6a4f; border: none; padding: 16px 40px; font-size: 1.2rem; font-weight: 700; color: white; border-radius: 60px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 8px 18px rgba(0,0,0,0.3); display: inline-flex; align-items: center; gap: 12px;">
-                🧮 Solar Calculator
-            </button>
-            <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 12px;">Estimate your solar savings — no server errors, instant results</p>
-        </div>
     </div>
 </section>
 
-<!-- Solar Modal Styles (same as original) -->
-<style>
-    .solar-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 10000; visibility: hidden; opacity: 0; transition: visibility 0.2s, opacity 0.2s ease; }
-    .solar-modal-overlay.active { visibility: visible; opacity: 1; }
-    .solar-modal-container { background: #ffffff; max-width: 550px; width: 90%; border-radius: 1.5rem; box-shadow: 0 30px 40px rgba(0, 0, 0, 0.4); overflow: hidden; transform: scale(0.96); transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1); }
-    .solar-modal-overlay.active .solar-modal-container { transform: scale(1); }
-    .solar-modal-header { background: #2d6a4f; color: white; padding: 1.2rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-    .solar-modal-header h3 { margin: 0; font-size: 1.4rem; font-weight: 600; }
-    .solar-close-modal { background: none; border: none; color: white; font-size: 1.8rem; cursor: pointer; line-height: 1; transition: opacity 0.2s; }
-    .solar-close-modal:hover { opacity: 0.7; }
-    .solar-modal-body { padding: 1.8rem; max-height: 70vh; overflow-y: auto; }
-    .solar-group { margin-bottom: 1.3rem; }
-    .solar-group label { font-weight: 600; color: #1f3b2c; display: block; margin-bottom: 0.5rem; font-size: 0.85rem; }
-    .solar-group input, .solar-group select { width: 100%; padding: 0.8rem 1rem; border: 1.5px solid #d0dfd4; border-radius: 1rem; font-size: 0.95rem; background: #fefcf7; transition: 0.2s; }
-    .solar-group input:focus, .solar-group select:focus { outline: none; border-color: #e67e22; box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.1); }
-    .solar-calc-btn { background: #e67e22; color: white; border: none; padding: 0.9rem; font-weight: bold; border-radius: 2rem; width: 100%; cursor: pointer; margin-top: 0.5rem; font-size: 1rem; transition: background 0.2s; }
-    .solar-calc-btn:hover { background: #cf711f; }
-    .solar-results { margin-top: 1.5rem; background: #eef3ef; padding: 1.2rem; border-radius: 1rem; font-size: 0.85rem; }
-    .solar-results p { margin: 0.5rem 0; }
-    .solar-savings-highlight { font-size: 1.3rem; font-weight: 800; color: #e67e22; }
-    .solar-disclaimer { font-size: 0.65rem; color: #5a6e5e; text-align: center; margin-top: 1rem; }
-    hr { margin: 0.8rem 0; border: 0; height: 1px; background: #d4e2d9; }
-</style>
-
-<div id="solarModal" class="solar-modal-overlay">
-    <div class="solar-modal-container">
-        <div class="solar-modal-header">
-            <h3>☀️ Solar Savings Estimator</h3>
-            <button class="solar-close-modal" id="closeSolarModal">&times;</button>
-        </div>
-        <div class="solar-modal-body">
-            <div class="solar-group">
-                <label>🏠 Monthly electricity bill ($)</label>
-                <input type="number" id="monthlyBill" value="135" step="10">
-            </div>
-            <div class="solar-group">
-                <label>🔋 Solar system size (kWp)</label>
-                <input type="number" id="systemSize" value="6.5" step="0.5">
-            </div>
-            <div class="solar-group">
-                <label>☀️ Daily peak sun hours</label>
-                <select id="sunHours">
-                    <option value="3.5">Low (3.5h) - Cloudy regions</option>
-                    <option value="4.5" selected>Average (4.5h) - Moderate climate</option>
-                    <option value="5.5">High (5.5h) - Sunny states</option>
-                    <option value="6.2">Very high (6.2h) - Desert/Southwest</option>
-                </select>
-            </div>
-            <div class="solar-group">
-                <label>💰 Installation cost ($ per watt)</label>
-                <input type="number" id="costPerWatt" value="2.8" step="0.1">
-                <small style="color: #5d7b65;">Typical: $2.50 - $3.50</small>
-            </div>
-            <button id="calculateSolarBtn" class="solar-calc-btn">📊 Calculate Savings</button>
-            
-            <div id="solarResultsArea" class="solar-results">
-                <p><strong>💰 Annual Savings:</strong> <span id="annualSavings" class="solar-savings-highlight">--</span></p>
-                <p><strong>📈 20-Year Net Savings:</strong> <span id="net20Savings">--</span></p>
-                <p><strong>⏱️ Payback Period:</strong> <span id="paybackPeriod">--</span> years</p>
-                <p><strong>🌿 CO₂ Offset:</strong> <span id="co2Offset">--</span> tons/year</p>
-                <hr>
-                <p style="font-size:0.7rem; color:#4a6b55;">✅ No server IP required — all calculations run locally.</p>
-            </div>
-            <div class="solar-disclaimer">
-                *Estimates based on $0.16/kWh avg rate. Actual savings may vary.
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-(function() {
-    const modal = document.getElementById('solarModal');
-    const openBtn = document.getElementById('openSolarEstimatorBtn');
-    const closeBtn = document.getElementById('closeSolarModal');
-    const calcBtn = document.getElementById('calculateSolarBtn');
-    
-    const billInput = document.getElementById('monthlyBill');
-    const sizeInput = document.getElementById('systemSize');
-    const sunSelect = document.getElementById('sunHours');
-    const costInput = document.getElementById('costPerWatt');
-    
-    const annualSpan = document.getElementById('annualSavings');
-    const net20Span = document.getElementById('net20Savings');
-    const paybackSpan = document.getElementById('paybackPeriod');
-    const co2Span = document.getElementById('co2Offset');
-    
-    function calculateSolar() {
-        let bill = parseFloat(billInput.value) || 0;
-        let systemKw = parseFloat(sizeInput.value) || 3;
-        let sunHours = parseFloat(sunSelect.value) || 4.5;
-        let costPerW = parseFloat(costInput.value) || 2.8;
-        
-        const RATE = 0.16;
-        const PR = 0.85;
-        const DEGRADATION = 0.005;
-        const YEARS = 20;
-        
-        let annualProduction = systemKw * sunHours * 365 * PR;
-        let currentAnnualCost = bill * 12;
-        let annualConsumption = currentAnnualCost / RATE;
-        let offsetRatio = Math.min(0.98, annualProduction / (annualConsumption || 8000));
-        let year1Savings = currentAnnualCost * offsetRatio;
-        
-        let totalInstalledCost = systemKw * 1000 * costPerW;
-        let payback = year1Savings > 0 ? totalInstalledCost / year1Savings : 0;
-        payback = Math.min(30, Math.max(0, payback));
-        
-        let cumulative = 0;
-        let prodFactor = 1;
-        let annualCost = currentAnnualCost;
-        for (let y = 1; y <= YEARS; y++) {
-            if (y > 1) {
-                annualCost *= 1.025;
-                prodFactor *= (1 - DEGRADATION);
-            }
-            let adjOffset = Math.min(0.98, offsetRatio * prodFactor);
-            cumulative += annualCost * adjOffset;
-        }
-        let netSavings = cumulative - totalInstalledCost;
-        
-        let co2Tons = (annualProduction * 0.85) / 2204.62;
-        
-        annualSpan.innerHTML = '$' + Math.round(year1Savings).toLocaleString() + '/year';
-        net20Span.innerHTML = '$' + Math.round(netSavings).toLocaleString();
-        paybackSpan.innerHTML = payback.toFixed(1);
-        co2Span.innerHTML = co2Tons.toFixed(1);
-    }
-    
-    function openModal() { modal.classList.add('active'); calculateSolar(); }
-    function closeModal() { modal.classList.remove('active'); }
-    
-    if (openBtn) openBtn.addEventListener('click', openModal);
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
-    if (calcBtn) calcBtn.addEventListener('click', (e) => { e.preventDefault(); calculateSolar(); });
-    
-    if (modal) {
-        modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    }
-    
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal && modal.classList.contains('active')) closeModal();
-    });
-    
-    calculateSolar();
-    
-    // ============================================
-    // ROTATING HERO BACKGROUND
-    // ============================================
-    let currentSlide = 0;
-    const slides = document.querySelectorAll('.hero-slide');
-    const totalSlides = slides.length;
-    
-    function rotateHeroBackground() {
-        if (totalSlides > 1) {
-            slides[currentSlide].classList.remove('active');
-            currentSlide = (currentSlide + 1) % totalSlides;
-            slides[currentSlide].classList.add('active');
-        }
-    }
-    
+// ============================================
+// ROTATING HERO BACKGROUND
+// ============================================
+let currentSlide = 0;
+const slides = document.querySelectorAll('.hero-slide');
+const totalSlides = slides.length;
+
+function rotateHeroBackground() {
     if (totalSlides > 1) {
-        setInterval(rotateHeroBackground, 6000);
+        slides[currentSlide].classList.remove('active');
+        currentSlide = (currentSlide + 1) % totalSlides;
+        slides[currentSlide].classList.add('active');
     }
-})();
+}
+
+if (totalSlides > 1) {
+    setInterval(rotateHeroBackground, 6000);
+}
 </script>
 
 <?php include '../../templates/footer.php'; ?>
