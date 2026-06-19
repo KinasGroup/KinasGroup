@@ -333,50 +333,22 @@
     }
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg-white: #1a1a1a;
-        --primary: #ffffff;
-        --secondary: #cccccc;
-        --tertiary: #999999;
-        --border-card: #333333;
-        --border-header: #333333;
-    }
-    
-    body {
-        background: #121212;
-    }
-    
-    .je3-header {
-        background: #1a1a1a;
-    }
-    
-    .je2-footer {
-        background: #000000;
-    }
-    
-    .listing-card,
-    .division-card,
-    .solar-card {
-        background: #1a1a1a;
-    }
-    
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-        background: #333;
-        color: #fff;
-        border-color: #444;
-    }
-    
-    .admin-sidebar {
-        background: #000;
-    }
-    
-    .stat-card {
-        background: #1a1a1a;
-    }
+/* Dark Mode Support
+   ------------------------------------------------------------------
+   The site has a single, intentional design (light theme). We do NOT
+   want the browser/OS "dark mode" preference to silently swap colors,
+   because only a handful of selectors were ever re-themed here, which
+   left most of the UI unstyled (e.g. white text on white backgrounds,
+   invisible form fields, etc). To guarantee that a visitor using a
+   device/browser set to dark mode sees EXACTLY the same design as a
+   visitor in normal/light mode, we explicitly opt the whole site out
+   of automatic dark theming. */
+:root {
+    color-scheme: light only;
+}
+
+html {
+    color-scheme: light only;
 }
 
 /* High Contrast Mode */
