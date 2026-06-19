@@ -11,46 +11,100 @@ require_once '../../includes/je-components.php';
 
 $db = Database::getInstance()->getConnection();
 
-$q          = trim($_GET['q'] ?? '');
-$property_type = trim($_GET['property_type'] ?? '');
-$listing_purpose = trim($_GET['listing_type'] ?? '');  // sale | rent
-$min_price  = trim($_GET['min_price'] ?? '');
-$max_price  = trim($_GET['max_price'] ?? '');
-$beds       = (int)($_GET['beds'] ?? 0);
-$baths      = (int)($_GET['baths'] ?? 0);
-$min_sqft   = (int)($_GET['min_sqft'] ?? 0);
-$max_sqft   = (int)($_GET['max_sqft'] ?? 0);
-$min_year_built = (int)($_GET['min_year_built'] ?? 0);
-$max_year_built = (int)($_GET['max_year_built'] ?? 0);
-$view_type  = trim($_GET['view_type'] ?? '');
-$city       = trim($_GET['city'] ?? '');
-$state      = trim($_GET['state'] ?? '');
-$sort       = $_GET['sort'] ?? 'newest';
-$page       = max(1, (int)($_GET['page'] ?? 1));
-$per_page   = 12;
-$offset     = ($page - 1) * $per_page;
+// ============================================
+// GET ALL FILTER PARAMETERS
+// ============================================
+$q              = isset($_GET['q']) ? trim($_GET['q']) : '';
+$property_type  = isset($_GET['property_type']) ? trim($_GET['property_type']) : '';
+$listing_type   = isset($_GET['listing_type']) ? trim($_GET['listing_type']) : '';
+$min_price      = isset($_GET['min_price']) ? trim($_GET['min_price']) : '';
+$max_price      = isset($_GET['max_price']) ? trim($_GET['max_price']) : '';
+$beds           = isset($_GET['beds']) ? (int)$_GET['beds'] : 0;
+$baths          = isset($_GET['baths']) ? (int)$_GET['baths'] : 0;
+$min_sqft       = isset($_GET['min_sqft']) ? (int)$_GET['min_sqft'] : 0;
+$max_sqft       = isset($_GET['max_sqft']) ? (int)$_GET['max_sqft'] : 0;
+$min_year_built = isset($_GET['min_year_built']) ? (int)$_GET['min_year_built'] : 0;
+$max_year_built = isset($_GET['max_year_built']) ? (int)$_GET['max_year_built'] : 0;
+$view_type      = isset($_GET['view_type']) ? trim($_GET['view_type']) : '';
+$city           = isset($_GET['city']) ? trim($_GET['city']) : '';
+$state          = isset($_GET['state']) ? trim($_GET['state']) : '';
+$sort           = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
+$page           = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$per_page       = 12;
+$offset         = ($page - 1) * $per_page;
 
+// ============================================
+// BUILD WHERE CLAUSE
+// ============================================
 $where  = ["p.status = 'active'"];
 $params = [];
+
 if ($q !== '') {
     $where[] = "(p.title LIKE ? OR p.description LIKE ? OR p.address LIKE ? OR p.city LIKE ?)";
-    $like = "%$q%"; $params[] = $like; $params[] = $like; $params[] = $like; $params[] = $like;
+    $like = "%$q%"; 
+    $params[] = $like; 
+    $params[] = $like; 
+    $params[] = $like; 
+    $params[] = $like;
 }
-if ($property_type !== '') { $where[] = "p.property_type = ?"; $params[] = $property_type; }
-if ($listing_purpose !== '' && in_array($listing_purpose, ['sale','rent'], true)) { $where[] = "p.listing_type = ?"; $params[] = $listing_purpose; }
-if ($min_price !== '' && is_numeric($min_price)) { $where[] = "p.price >= ?"; $params[] = $min_price; }
-if ($max_price !== '' && is_numeric($max_price)) { $where[] = "p.price <= ?"; $params[] = $max_price; }
-if ($beds > 0)            { $where[] = "p.beds >= ?";  $params[] = $beds; }
-if ($baths > 0)           { $where[] = "p.baths >= ?"; $params[] = $baths; }
-if ($min_sqft > 0)        { $where[] = "p.sqft >= ?";  $params[] = $min_sqft; }
-if ($max_sqft > 0)        { $where[] = "p.sqft <= ?";  $params[] = $max_sqft; }
-if ($min_year_built > 0)  { $where[] = "p.year_built >= ?"; $params[] = $min_year_built; }
-if ($max_year_built > 0)  { $where[] = "p.year_built <= ?"; $params[] = $max_year_built; }
-if ($view_type !== '')    { $where[] = "p.view_type = ?"; $params[] = $view_type; }
-if ($city !== '')         { $where[] = "p.city = ?";   $params[] = $city; }
-if ($state !== '')        { $where[] = "p.state = ?";  $params[] = $state; }
+if ($property_type !== '') { 
+    $where[] = "p.property_type = ?"; 
+    $params[] = $property_type; 
+}
+if ($listing_type !== '' && in_array($listing_type, ['sale','rent'], true)) { 
+    $where[] = "p.listing_type = ?"; 
+    $params[] = $listing_type; 
+}
+if ($min_price !== '' && is_numeric($min_price)) { 
+    $where[] = "p.price >= ?"; 
+    $params[] = $min_price; 
+}
+if ($max_price !== '' && is_numeric($max_price)) { 
+    $where[] = "p.price <= ?"; 
+    $params[] = $max_price; 
+}
+if ($beds > 0) { 
+    $where[] = "p.beds >= ?";  
+    $params[] = $beds; 
+}
+if ($baths > 0) { 
+    $where[] = "p.baths >= ?"; 
+    $params[] = $baths; 
+}
+if ($min_sqft > 0) { 
+    $where[] = "p.sqft >= ?";  
+    $params[] = $min_sqft; 
+}
+if ($max_sqft > 0) { 
+    $where[] = "p.sqft <= ?";  
+    $params[] = $max_sqft; 
+}
+if ($min_year_built > 0) { 
+    $where[] = "p.year_built >= ?"; 
+    $params[] = $min_year_built; 
+}
+if ($max_year_built > 0) { 
+    $where[] = "p.year_built <= ?"; 
+    $params[] = $max_year_built; 
+}
+if ($view_type !== '') { 
+    $where[] = "p.view_type = ?"; 
+    $params[] = $view_type; 
+}
+if ($city !== '') { 
+    $where[] = "p.city = ?";   
+    $params[] = $city; 
+}
+if ($state !== '') { 
+    $where[] = "p.state = ?";  
+    $params[] = $state; 
+}
+
 $whereSql = implode(' AND ', $where);
 
+// ============================================
+// GET TOTAL COUNT
+// ============================================
 $countStmt = $db->prepare("SELECT COUNT(*) FROM property_listings p WHERE $whereSql");
 $countStmt->execute($params);
 $total = (int)$countStmt->fetchColumn();
@@ -58,6 +112,9 @@ $totalPages = max(1, (int)ceil($total / $per_page));
 $page = min($page, $totalPages);
 $offset = ($page - 1) * $per_page;
 
+// ============================================
+// ORDER BY
+// ============================================
 $orderBy = match ($sort) {
     'price_low'  => 'p.price ASC',
     'price_high' => 'p.price DESC',
@@ -68,6 +125,9 @@ $orderBy = match ($sort) {
     default      => 'p.featured DESC, p.created_at DESC',
 };
 
+// ============================================
+// GET RESULTS
+// ============================================
 $sql = "
     SELECT p.id, p.title, p.property_type, p.listing_type, p.price,
            p.beds, p.baths, p.sqft, p.lot_size, p.year_built,
@@ -84,16 +144,45 @@ $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $rows = $stmt->fetchAll();
 
+// ============================================
+// GET FACET VALUES
+// ============================================
 $facet = function (string $col) use ($db): array {
     try {
         return $db->query("SELECT DISTINCT $col AS v FROM property_listings WHERE status='active' AND $col IS NOT NULL AND $col != '' ORDER BY $col")->fetchAll(PDO::FETCH_COLUMN);
-    } catch (Exception $e) { return []; }
+    } catch (Exception $e) { 
+        return []; 
+    }
 };
 $property_types = $facet('property_type');
 $view_types     = $facet('view_type');
 $cities         = $facet('city');
 $states         = $facet('state');
 
+// ============================================
+// BUILD CURRENT FILTERS ARRAY (NO compact()!)
+// ============================================
+$current = [
+    'q'                 => $q,
+    'property_type'     => $property_type,
+    'listing_type'      => $listing_type,
+    'min_price'         => $min_price,
+    'max_price'         => $max_price,
+    'beds'              => $beds,
+    'baths'             => $baths,
+    'min_sqft'          => $min_sqft,
+    'max_sqft'          => $max_sqft,
+    'min_year_built'    => $min_year_built,
+    'max_year_built'    => $max_year_built,
+    'view_type'         => $view_type,
+    'city'              => $city,
+    'state'             => $state,
+    'sort'              => $sort,
+];
+
+// ============================================
+// PAGE HEADER
+// ============================================
 $pageTitle = 'Search Luxury Properties - Williams Connect Home';
 $pageDescription = 'Search luxury homes, villas, penthouses, and estates. Filter by price, beds, baths, square feet, year built, view type, location and more.';
 
@@ -121,9 +210,6 @@ $filters = [
     ['name' => 'city',           'label' => 'City',            'type' => 'select', 'options' => $cities],
     ['name' => 'state',          'label' => 'State',           'type' => 'select', 'options' => $states],
 ];
-
-$current = compact('property_type','listing_type','min_price','max_price','beds','baths','min_sqft','max_sqft',
-    'min_year_built','max_year_built','view_type','city','state');
 ?>
 
 <div class="je-search-body">
