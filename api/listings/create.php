@@ -61,11 +61,13 @@ $table = $tables[$listingType];
 // they chose at registration (agent_profiles.division). The form-level
 // <select> is also restricted, but this server-side check is the source of
 // truth — never trust the client.
+require_once __DIR__ . '/../config/constants.php';
+
 $listingTypeToDivision = [
-    'car'         => 'automobile',          // 'kinas-automobile' on the frontend
-    'property'    => 'williams-connect-home',
-    'solar'       => 'kinas-volt',
-    'marketplace' => 'kinas-marketplace',
+    'car'         => DIVISION_AUTOMOBILE,    // 'kinas-automobile'
+    'property'    => DIVISION_REAL_ESTATE,   // 'williams-connect-home'
+    'solar'       => DIVISION_SOLAR,         // 'kinas-volt'
+    'marketplace' => DIVISION_MARKETPLACE,   // 'kinas-marketplace'
 ];
 $agentDivision = $_SESSION['user_division'] ?? null;
 $isSuperAgent  = !empty($_SESSION['is_super_agent']);
@@ -233,6 +235,41 @@ try {
     }
 
     $listingId = (int)$db->lastInsertId();
+
+    // ── Image uploads ───────────────────────────────────────────────────
+    // The form posts files as images[] (multipart). Previously these were
+    // silently ignored — listings published with zero photos. Save them
+    // now that we have a listing id, and record them in listing_images.
+    if (!empty($_FILES['images']) && !empty($_FILES['images']['name'][0])) {
+        require_once __DIR__ . '/../../includes/file-upload.php';
+        $uploadSubDir = [
+            'car'         => 'cars',
+            'property'    => 'properties',
+            'solar'       => 'products',
+            'marketplace' => 'products',
+        ][$listingType] ?? 'general';
+
+        try {
+            $uploader = new FileUpload($uploadSubDir);
+            $results = $uploader->uploadMultiple($_FILES['images'], ['maxWidth' => 1920, 'maxHeight' => 1080]);
+
+            $imgStmt = $db->prepare(
+                "INSERT INTO listing_images (listing_id, listing_type, url, thumbnail_url, sort_order, created_at)
+                 VALUES (?, ?, ?, ?, ?, NOW())"
+            );
+            $order = 0;
+            foreach ($results as $r) {
+                if (!empty($r['success'])) {
+                    $imgStmt->execute([$listingId, $listingType, $r['filename'], $r['thumbnail'], $order]);
+                    $order++;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Don't fail listing creation just because image processing
+            // had a problem — the listing itself was saved successfully.
+            error_log('Listing image upload error: ' . $e->getMessage());
+        }
+    }
 
     if (!empty($data['featured'])) {
         $col = $tables[$listingType];
