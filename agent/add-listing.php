@@ -23,7 +23,7 @@ $isSuperAgent  = !empty($_SESSION['is_super_agent']);
 
 // Map: DB division value → listing_type (what the API expects) → label
 $divisionMap = [
-    'automobile'          => ['type' => 'car',         'label' => 'Kinas Automobile',      'opt' => 'automobile'],
+    'kinas-automobile'    => ['type' => 'car',         'label' => 'Kinas Automobile',      'opt' => 'automobile'],
     'williams-connect-home'=> ['type' => 'property',   'label' => 'Williams Connect Home', 'opt' => 'realestate'],
     'kinas-volt'          => ['type' => 'solar',       'label' => 'Kinas Volt',            'opt' => 'solar'],
     'kinas-marketplace'   => ['type' => 'marketplace', 'label' => 'Kinas Marketplace',     'opt' => 'marketplace'],
