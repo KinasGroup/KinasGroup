@@ -398,9 +398,13 @@
     background: none; border: none; font-size: 24px; cursor: pointer; color: #333;
 }
 
-/* ──────────────────────────────────────────────────────────
-   DETAIL PAGE LAYOUT
-   ────────────────────────────────────────────────────────── */
+.je-filter-overlay .je-filter-panel {
+    position: static;
+    height: auto;
+    border-right: none;
+    padding: 0;
+}
+
 .je-detail-wrap {
     max-width: 1440px;
     margin: 0 auto;
@@ -948,7 +952,8 @@
 }
 @media (max-width: 992px) {
     .je-search-body { grid-template-columns: 1fr; }
-    .je-filter-panel { display: none; }
+    .je-search-body > .je-filter-panel { display: none; }
+    .je-filter-overlay .je-filter-panel { display: block; }
     .je-mobile-filter-btn { display: flex; }
     .je-hero-bar { padding: 20px; }
     .je-results-panel { padding: 20px; }
