@@ -77,11 +77,29 @@ include dirname(__DIR__) . '/templates/header.php';
             </div>
 
             <div style="display: flex; gap: 16px; margin-bottom: 26px;">
+                <div style="width: 44px; height: 44px; background: rgba(198,164,63,0.1); color: #C6A43F; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-map-marker-alt"></i></div>
+                <div>
+                    <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px;">Office</h4>
+                    <p style="font-size: 14px; color: #0A0A0A;">Victoria Island, Lagos, Nigeria</p>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 16px; margin-bottom: 26px;">
                 <div style="width: 44px; height: 44px; background: rgba(198,164,63,0.1); color: #C6A43F; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-clock"></i></div>
                 <div>
                     <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px;">Hours</h4>
                     <p style="font-size: 14px; color: #0A0A0A;">Concierge &amp; support — 24/7<br>Office — Mon–Fri 9:00–18:00 WAT</p>
                 </div>
+            </div>
+
+            <div style="border-radius: 4px; overflow: hidden; border: 1px solid #e8e8e8;">
+                <iframe
+                    title="KINAS GROUP office location"
+                    src="https://www.google.com/maps?q=Victoria+Island,+Lagos,+Nigeria&output=embed"
+                    width="100%" height="260" style="border:0; display:block;"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
             </div>
         </div>
 
