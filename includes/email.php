@@ -142,6 +142,22 @@ class EmailService {
         return $this->send($agentEmail, $subject, $body);
     }
 
+    /**
+     * Public method to send emails (wrapper for the private send method)
+     * This is used by the solar calculator
+     */
+    public function sendEmail($to, $subject, $body, $fromEmail = null, $fromName = null) {
+        // Override from email if provided
+        if ($fromEmail) {
+            $this->fromEmail = $fromEmail;
+        }
+        if ($fromName) {
+            $this->fromName = $fromName;
+        }
+        
+        return $this->send($to, $subject, $body);
+    }
+
     private function getEmailTemplate($title, $content) {
         return "
         <!DOCTYPE html>
@@ -228,19 +244,3 @@ class EmailService {
     }
 }
 ?>
-
-    /**
-     * Public method to send emails (wrapper for the private send method)
-     * This is used by the solar calculator
-     */
-    public function sendEmail($to, $subject, $body, $fromEmail = null, $fromName = null) {
-        // Override from email if provided
-        if ($fromEmail) {
-            $this->fromEmail = $fromEmail;
-        }
-        if ($fromName) {
-            $this->fromName = $fromName;
-        }
-        
-        return $this->send($to, $subject, $body);
-    }
