@@ -221,6 +221,62 @@ include '../../templates/header.php';
         max-height: 240px;
     }
 }
+
+/* Feature Cards with Photo-Realistic Images */
+.feature-card {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    cursor: default;
+    min-height: 280px;
+    display: flex;
+    align-items: flex-end;
+}
+.feature-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.15);
+}
+.feature-card .feature-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.6s ease;
+}
+.feature-card:hover .feature-bg {
+    transform: scale(1.05);
+}
+.feature-card .feature-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
+}
+.feature-card .feature-content {
+    position: relative;
+    z-index: 2;
+    padding: 32px 28px 28px;
+    color: #fff;
+    width: 100%;
+}
+.feature-card .feature-content h3 {
+    font-family: 'Prata', serif;
+    font-size: 22px;
+    margin-bottom: 8px;
+    font-weight: 400;
+}
+.feature-card .feature-content p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
 </style>
 
 <!-- HERO SECTION WITH ROTATING BACKGROUNDS - ORIGINAL STRUCTURE PRESERVED -->
@@ -334,13 +390,55 @@ include '../../templates/header.php';
     </div>
 </section>
 
+<!-- Why Kinas Marketplace - Photo-Realistic Feature Cards -->
 <section style="padding:80px 0;">
     <div class="je-container">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:40px; text-align:center;">
-            <div><div style="width:60px; height:60px; border-radius:50%; background:rgba(198,164,63,0.1); color:#C6A43F; display:inline-flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;"><i class="fas fa-certificate"></i></div><h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Authenticated</h3><p style="font-size:13px; color:#666; line-height:1.6;">Every item is verified for authenticity before listing.</p></div>
-            <div><div style="width:60px; height:60px; border-radius:50%; background:rgba(198,164,63,0.1); color:#C6A43F; display:inline-flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;"><i class="fas fa-lock"></i></div><h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Secure Payments</h3><p style="font-size:13px; color:#666; line-height:1.6;">Escrow-protected transactions for peace of mind.</p></div>
-            <div><div style="width:60px; height:60px; border-radius:50%; background:rgba(198,164,63,0.1); color:#C6A43F; display:inline-flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;"><i class="fas fa-truck"></i></div><h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">White-Glove Shipping</h3><p style="font-size:13px; color:#666; line-height:1.6;">Insured, door-to-door delivery for high-value items.</p></div>
-            <div><div style="width:60px; height:60px; border-radius:50%; background:rgba(198,164,63,0.1); color:#C6A43F; display:inline-flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;"><i class="fas fa-headset"></i></div><h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Dedicated Concierge</h3><p style="font-size:13px; color:#666; line-height:1.6;">Personal support from a luxury specialist, from inquiry to delivery.</p></div>
+        <div style="text-align:center; margin-bottom:48px;">
+            <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">WHY KINAS MARKETPLACE</div>
+            <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Trusted luxury commerce</h2>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px;">
+            
+            <!-- Authenticated -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/1122410/pexels-photo-1122410.jpeg?w=600&q=80'); background-color: #2c1810;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Authenticated</h3>
+                    <p>Every item is verified for authenticity before listing, with certified experts reviewing each piece.</p>
+                </div>
+            </div>
+            
+            <!-- Secure Payments -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/273155/pexels-photo-273155.jpeg?w=600&q=80'); background-color: #0c1a2e;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Secure Payments</h3>
+                    <p>Escrow-protected transactions for peace of mind, ensuring both buyer and seller are protected.</p>
+                </div>
+            </div>
+            
+            <!-- White-Glove Shipping -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/2759825/pexels-photo-2759825.jpeg?w=600&q=80'); background-color: #1a1a2e;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>White-Glove Shipping</h3>
+                    <p>Insured, door-to-door delivery for high-value items, with real-time tracking and signature confirmation.</p>
+                </div>
+            </div>
+            
+            <!-- 14-Day Returns -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/6418136/pexels-photo-6418136.jpeg?w=600&q=80'); background-color: #1a2e1a;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>14-Day Returns</h3>
+                    <p>Buyer protection with hassle-free returns on eligible items, giving you confidence in every purchase.</p>
+                </div>
+            </div>
+            
         </div>
     </div>
 </section>
