@@ -38,7 +38,6 @@ include '../../templates/header.php';
 
 <!-- Hero Carousel Styles -->
 <style>
-/* Hero Section with Rotating Backgrounds - Preserving original positioning */
 .hero-section {
     position: relative;
     height: 70vh;
@@ -71,7 +70,6 @@ include '../../templates/header.php';
     transition: opacity 1.5s ease-in-out;
 }
 
-/* Mobile-specific background positioning */
 @media (max-width: 768px) {
     .hero-slide {
         background-position: 65% center;
@@ -98,7 +96,6 @@ include '../../templates/header.php';
     z-index: 1;
 }
 
-/* Original content styling - exactly preserved */
 .hero-content {
     position: relative;
     z-index: 2;
@@ -198,7 +195,6 @@ include '../../templates/header.php';
     color: #C6A43F;
 }
 
-/* Scrollbar styling */
 .custom-dropdown-menu::-webkit-scrollbar {
     width: 6px;
 }
@@ -222,7 +218,7 @@ include '../../templates/header.php';
     }
 }
 
-/* Feature Cards with Photo-Realistic Images */
+/* Feature Cards */
 .feature-card {
     position: relative;
     border-radius: 16px;
@@ -279,9 +275,8 @@ include '../../templates/header.php';
 }
 </style>
 
-<!-- HERO SECTION WITH ROTATING BACKGROUNDS - ORIGINAL STRUCTURE PRESERVED -->
+<!-- HERO SECTION -->
 <section id="heroSection" style="position:relative; height:70vh; min-height:480px; padding-top:90px; box-sizing:border-box; display:flex; align-items:center; overflow:hidden;">
-    <!-- Rotating Background Slides -->
     <div class="hero-slides">
         <div class="hero-slide active" style="background-image: url('https://images.pexels.com/photos/298863/pexels-photo-298863.jpeg?w=1920&q=80'); background-position: center 35%;"></div>
         <div class="hero-slide" style="background-image: url('https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?w=1920&q=80'); background-position: center 30%;"></div>
@@ -290,7 +285,6 @@ include '../../templates/header.php';
     </div>
     <div class="hero-overlay"></div>
     
-    <!-- ORIGINAL CONTENT - EXACTLY AS IT WAS, NO CHANGES -->
     <div class="je-container" style="color:#fff; position:relative; z-index:1;">
         <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">KINAS MARKETPLACE</div>
         <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Curated Luxury Goods</h1>
@@ -307,7 +301,6 @@ include '../../templates/header.php';
         <form method="GET" action="search.php" id="searchForm" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <input type="text" name="q" placeholder="Brand, item, category…" style="flex:1; min-width:240px; padding:14px 18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:3px; color:#fff; font-family:Inter,sans-serif; font-size:14px;">
             
-            <!-- Custom Dropdown for Categories -->
             <div class="custom-dropdown" id="categoryDropdown">
                 <div class="custom-dropdown-toggle">
                     <span id="selectedCategoryText">Any Category</span>
@@ -327,7 +320,6 @@ include '../../templates/header.php';
                 </div>
             </div>
             
-            <!-- Hidden input to store selected category value -->
             <input type="hidden" name="category" id="categoryInput" value="">
             
             <button type="submit" class="je-btn je-btn-gold"><i class="fas fa-search"></i> Search</button>
@@ -451,11 +443,7 @@ include '../../templates/header.php';
     </div>
 </section>
 
-<!-- Carousel & Dropdown JavaScript -->
 <script>
-// ============================================
-// ROTATING HERO BACKGROUND (same as home page)
-// ============================================
 let currentSlide = 0;
 const slides = document.querySelectorAll('.hero-slide');
 const totalSlides = slides.length;
@@ -472,9 +460,6 @@ if (totalSlides > 1) {
     setInterval(rotateHeroBackground, 6000);
 }
 
-// ============================================
-// CUSTOM DROPDOWN FUNCTIONALITY
-// ============================================
 (function() {
     const dropdown = document.getElementById('categoryDropdown');
     if (!dropdown) return;
