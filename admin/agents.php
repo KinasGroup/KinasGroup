@@ -28,6 +28,7 @@ $agents = $db->query("
         u.status, 
         u.created_at, 
         u.verified,
+        u.role,
         a.verification_status as agent_verification,
         a.id as profile_id
     FROM users u
@@ -116,13 +117,18 @@ include '../templates/header.php';
                                     </span>
                                 </td>
                                 <td>
-                                    <?php if ($agent['agent_verification'] === 'verified'): ?>
-                                        <span class="status-badge status-badge-verified">✅ Verified</span>
-                                    <?php elseif ($agent['agent_verification'] === 'pending'): ?>
-                                        <span class="status-badge status-badge-pending">⏳ Pending</span>
-                                    <?php else: ?>
-                                        <span class="status-badge status-badge-unverified">❌ Unverified</span>
-                                    <?php endif; ?>
+                                    <?php 
+                                    // Super Admin (role = 'admin') should always show as verified
+                                    if ($agent['role'] === 'admin') {
+                                        echo '<span class="status-badge status-badge-verified">✅ Verified (Super Admin)</span>';
+                                    } elseif ($agent['agent_verification'] === 'verified') {
+                                        echo '<span class="status-badge status-badge-verified">✅ Verified</span>';
+                                    } elseif ($agent['agent_verification'] === 'pending') {
+                                        echo '<span class="status-badge status-badge-pending">⏳ Pending</span>';
+                                    } else {
+                                        echo '<span class="status-badge status-badge-unverified">❌ Unverified</span>';
+                                    }
+                                    ?>
                                 </td>
                                 <td><?php echo date('M j, Y', strtotime($agent['created_at'])); ?></td>
                                 <td>
@@ -139,11 +145,15 @@ include '../templates/header.php';
                                             Activate
                                         </a>
                                     <?php endif; ?>
-                                    <a href="delete-agent.php?id=<?php echo $agent['id']; ?>" 
-                                       class="action-btn action-btn-delete" 
-                                       onclick="return confirm('Delete this agent? This will permanently remove all their listings.')">
-                                        Delete
-                                    </a>
+                                    <?php if ($agent['role'] !== 'admin'): ?>
+                                        <a href="delete-agent.php?id=<?php echo $agent['id']; ?>" 
+                                           class="action-btn action-btn-delete" 
+                                           onclick="return confirm('Delete this agent? This will permanently remove all their listings.')">
+                                            Delete
+                                        </a>
+                                    <?php else: ?>
+                                        <span style="color: #999; font-size: 11px;">(Super Admin)</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

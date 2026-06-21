@@ -32,6 +32,12 @@ if (!$agent) {
     exit;
 }
 
+// Prevent deleting Super Admin
+if ($agent['role'] === 'admin') {
+    header('Location: agents.php?error=Cannot delete Super Admin');
+    exit;
+}
+
 // Begin transaction
 try {
     $db->beginTransaction();
