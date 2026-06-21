@@ -1,7 +1,7 @@
 <?php
 /**
  * Admin: Listings Management
- * Shows all listings across ALL divisions
+ * Shows all listings across ALL divisions with filter
  */
 
 require_once '../includes/session.php';
@@ -17,6 +17,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
 $db = Database::getInstance()->getConnection();
 
+// Get filter from URL
+$filterDivision = isset($_GET['division']) ? $_GET['division'] : 'all';
+
 // Get all listings from ALL divisions
 $listings = [];
 
@@ -24,17 +27,14 @@ $listings = [];
 function getTableListings($db, $tableName, $divisionName) {
     $results = [];
     try {
-        // First, check if table exists
         $exists = $db->query("SHOW TABLES LIKE '$tableName'")->fetchAll();
         if (empty($exists)) {
             return $results;
         }
         
-        // Get column names
         $columns = $db->query("DESCRIBE $tableName")->fetchAll();
         $colNames = array_column($columns, 'Field');
         
-        // Build query based on available columns
         $selectFields = ['id', 'title', 'price', 'status'];
         if (in_array('views', $colNames)) $selectFields[] = 'views';
         if (in_array('created_at', $colNames)) $selectFields[] = 'created_at';
@@ -48,7 +48,6 @@ function getTableListings($db, $tableName, $divisionName) {
         
         $selectSQL = implode(', ', $selectFields);
         
-        // Get ALL listings regardless of status (not just 'active')
         $query = "SELECT $selectSQL FROM $tableName ORDER BY created_at DESC";
         $stmt = $db->query($query);
         $rows = $stmt->fetchAll();
@@ -59,26 +58,36 @@ function getTableListings($db, $tableName, $divisionName) {
         }
         
     } catch (Exception $e) {
-        // Silently fail for missing tables
+        // Silently fail
     }
     return $results;
 }
 
-// Get listings from each division (ALL statuses)
-$solar = getTableListings($db, 'solar_listings', 'solar');
-$listings = array_merge($listings, $solar);
+// Get listings from each division
+$allListings = [];
 
-$car = getTableListings($db, 'car_listings', 'car');
-$listings = array_merge($listings, $car);
+if ($filterDivision === 'all' || $filterDivision === 'solar') {
+    $solar = getTableListings($db, 'solar_listings', 'solar');
+    $allListings = array_merge($allListings, $solar);
+}
 
-$property = getTableListings($db, 'property_listings', 'property');
-$listings = array_merge($listings, $property);
+if ($filterDivision === 'all' || $filterDivision === 'car') {
+    $car = getTableListings($db, 'car_listings', 'car');
+    $allListings = array_merge($allListings, $car);
+}
 
-$marketplace = getTableListings($db, 'marketplace_listings', 'marketplace');
-$listings = array_merge($listings, $marketplace);
+if ($filterDivision === 'all' || $filterDivision === 'property') {
+    $property = getTableListings($db, 'property_listings', 'property');
+    $allListings = array_merge($allListings, $property);
+}
+
+if ($filterDivision === 'all' || $filterDivision === 'marketplace') {
+    $marketplace = getTableListings($db, 'marketplace_listings', 'marketplace');
+    $allListings = array_merge($allListings, $marketplace);
+}
 
 // Sort all listings by created_at (newest first)
-usort($listings, function($a, $b) {
+usort($allListings, function($a, $b) {
     $timeA = isset($a['created_at']) ? strtotime($a['created_at']) : 0;
     $timeB = isset($b['created_at']) ? strtotime($b['created_at']) : 0;
     return $timeB - $timeA;
@@ -86,13 +95,21 @@ usort($listings, function($a, $b) {
 
 // Count listings by division for stats
 $divisionCounts = [];
-foreach ($listings as $listing) {
+foreach ($allListings as $listing) {
     $div = $listing['division'];
     if (!isset($divisionCounts[$div])) {
         $divisionCounts[$div] = 0;
     }
     $divisionCounts[$div]++;
 }
+
+// Division labels and colors
+$divConfig = [
+    'solar' => ['label' => '☀️ Volt', 'color' => '#FFF3E0', 'text' => '#E65100'],
+    'car' => ['label' => '🚗 Automobile', 'color' => '#E3F2FD', 'text' => '#0D47A1'],
+    'property' => ['label' => '🏠 Homes', 'color' => '#E8F5E9', 'text' => '#1B5E20'],
+    'marketplace' => ['label' => '🛍️ Marketplace', 'color' => '#F3E5F5', 'text' => '#4A148C']
+];
 
 $pageTitle = 'Listings Management - Admin';
 include '../templates/header.php';
@@ -123,27 +140,40 @@ include '../templates/header.php';
             <div>
                 <h1><i class="fas fa-list-ul" style="color: #C6A43F;"></i> Listings Management</h1>
                 <p>Manage all listings across all divisions</p>
-                <p style="font-size: 12px; color: #888; margin-top: 4px;">
-                    Total listings: <?php echo count($listings); ?>
-                    <?php foreach ($divisionCounts as $div => $count): ?>
-                        • <?php echo ucfirst($div); ?>: <?php echo $count; ?>
-                    <?php endforeach; ?>
-                </p>
             </div>
+        </div>
+
+        <!-- Division Stats & Filter -->
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; align-items: center;">
+            <a href="?division=all" style="padding: 8px 16px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 13px; 
+                background: <?php echo $filterDivision === 'all' ? '#C6A43F' : '#f0f0f0'; ?>; 
+                color: <?php echo $filterDivision === 'all' ? '#0A0A0A' : '#333'; ?>;">
+                📊 All (<?php echo count($allListings); ?>)
+            </a>
+            <?php foreach ($divisionCounts as $div => $count): 
+                $config = $divConfig[$div] ?? ['label' => ucfirst($div), 'color' => '#f0f0f0', 'text' => '#333'];
+            ?>
+                <a href="?division=<?php echo $div; ?>" style="padding: 8px 16px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 13px;
+                    background: <?php echo $filterDivision === $div ? $config['color'] : '#f0f0f0'; ?>; 
+                    color: <?php echo $filterDivision === $div ? $config['text'] : '#333'; ?>;
+                    border: <?php echo $filterDivision === $div ? '2px solid ' . $config['text'] : '1px solid #e0e0e0'; ?>;">
+                    <?php echo $config['label']; ?> (<?php echo $count; ?>)
+                </a>
+            <?php endforeach; ?>
         </div>
 
         <div class="je-panel">
             <div class="je-panel-body">
-                <?php if (empty($listings)): ?>
+                <?php if (empty($allListings)): ?>
                     <div class="je-panel-empty">
                         <i class="fas fa-list-ul"></i>
-                        <p>No listings found across any division.</p>
+                        <p>No listings found in this division.</p>
                     </div>
                 <?php else: ?>
                     <table class="je-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>#</th>
                                 <th>Title</th>
                                 <th>Division</th>
                                 <th>Price</th>
@@ -154,18 +184,18 @@ include '../templates/header.php';
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($listings as $listing): ?>
+                            <?php $counter = 1; foreach ($allListings as $listing): ?>
                             <tr>
-                                <td><?php echo $listing['id']; ?></td>
+                                <td><?php echo $counter++; ?></td>
                                 <td><strong><?php echo htmlspecialchars($listing['title']); ?></strong></td>
                                 <td>
+                                    <?php 
+                                    $config = $divConfig[$listing['division']] ?? ['label' => ucfirst($listing['division']), 'color' => '#f0f0f0', 'text' => '#333'];
+                                    ?>
                                     <span style="display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; 
-                                        background: <?php echo $listing['division'] === 'solar' ? '#FFF3E0' : ($listing['division'] === 'car' ? '#E3F2FD' : ($listing['division'] === 'property' ? '#E8F5E9' : '#F3E5F5')); ?>; 
-                                        color: <?php echo $listing['division'] === 'solar' ? '#E65100' : ($listing['division'] === 'car' ? '#0D47A1' : ($listing['division'] === 'property' ? '#1B5E20' : '#4A148C')); ?>;">
-                                        <?php 
-                                        $labels = ['solar' => '☀️ Volt', 'car' => '🚗 Automobile', 'property' => '🏠 Homes', 'marketplace' => '🛍️ Marketplace'];
-                                        echo $labels[$listing['division']] ?? ucfirst($listing['division']); 
-                                        ?>
+                                        background: <?php echo $config['color']; ?>; 
+                                        color: <?php echo $config['text']; ?>;">
+                                        <?php echo $config['label']; ?>
                                     </span>
                                 </td>
                                 <td>₦<?php echo number_format($listing['price']); ?></td>
@@ -215,6 +245,7 @@ include '../templates/header.php';
 .status-badge-inactive { background: #FFF3E0; color: #E65100; }
 .status-badge-pending { background: #FFF8E1; color: #F57F17; }
 .status-badge-flagged { background: #FFEBEE; color: #C62828; }
+.status-badge-removed { background: #FFEBEE; color: #C62828; }
 </style>
 
 <?php include '../templates/footer.php'; ?>
