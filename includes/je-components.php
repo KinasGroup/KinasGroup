@@ -23,40 +23,6 @@ function je_render_footer(string $variant = 'site'): void
     ];
     ?>
     <footer class="je-footer">
-        <style>
-            .je-footer-social {
-                display: flex;
-                gap: 12px;
-                margin-top: 16px;
-                flex-wrap: wrap;
-            }
-            .je-footer-social a {
-                display: inline-flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                width: 40px !important;
-                height: 40px !important;
-                border-radius: 50% !important;
-                border: 1px solid rgba(255,255,255,0.2) !important;
-                color: #fff !important;
-                text-decoration: none !important;
-                transition: all 0.3s ease !important;
-                font-size: 18px !important;
-                background: rgba(255,255,255,0.05) !important;
-            }
-            .je-footer-social a:hover {
-                background: #C6A43F !important;
-                border-color: #C6A43F !important;
-                color: #0A0A0A !important;
-                transform: translateY(-3px) !important;
-            }
-            .je-footer-social a i {
-                font-size: 18px !important;
-                line-height: 1 !important;
-                display: inline-block !important;
-                color: inherit !important;
-            }
-        </style>
         <div class="je-container">
             <div class="je-footer-grid">
                 <div>
@@ -97,12 +63,28 @@ function je_render_footer(string $variant = 'site'): void
                     </ul>
                 </div>
                 <div>
-                    <h4>For Agents</h4>
-                    <ul>
-                        <li><a href="/auth/login.php">Agent Login</a></li>
-                        <li><a href="/auth/register.php">Become an Agent</a></li>
-                        <li><a href="/agent/dashboard.php">Agent Dashboard</a></li>
-                    </ul>
+                    <h4>Stay Connected</h4>
+                    <p style="color:rgba(255,255,255,0.5); font-size:13px; margin-bottom:12px;">
+                        Subscribe to receive updates on new luxury listings.
+                    </p>
+                    <div class="je-footer-newsletter">
+                        <input type="email" placeholder="Your email address" aria-label="Email address" style="width:100%; padding:11px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:3px; color:#fff; font-family:'Inter',sans-serif; font-size:13px; margin-bottom:10px; box-sizing:border-box;">
+                        <button class="je-btn je-btn-gold" style="width:100%; padding:12px; background:#C6A43F; color:#0A0A0A; border:none; border-radius:3px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;">
+                            Subscribe
+                        </button>
+                    </div>
+                    <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+                        <div class="je-admin-portal-cta" style="margin-top:16px;">
+                            <a href="/admin/dashboard.php" class="je-admin-portal-btn">
+                                <span class="je-admin-portal-shield"><i class="fas fa-crown"></i></span>
+                                <span class="je-admin-portal-text">
+                                    <span class="je-admin-portal-eyebrow">KINAS GROUP</span>
+                                    <span class="je-admin-portal-label">Admin Portal</span>
+                                </span>
+                                <span class="je-admin-portal-arrow"><i class="fas fa-chevron-right"></i></span>
+                            </a>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="je-footer-bottom">
