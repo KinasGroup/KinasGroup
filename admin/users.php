@@ -16,9 +16,13 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
 $db = Database::getInstance()->getConnection();
 
-// Get all users - using 'email' instead of 'username'
+// Check for success/error messages
+$success = isset($_GET['success']) ? $_GET['success'] : '';
+$error = isset($_GET['error']) ? $_GET['error'] : '';
+
+// Get all users
 $users = $db->query("
-    SELECT id, email, role, status, verified, created_at, updated_at 
+    SELECT id, email, role, status, verified, created_at 
     FROM users 
     ORDER BY created_at DESC
 ")->fetchAll();
@@ -55,6 +59,24 @@ include '../templates/header.php';
             </div>
         </div>
 
+        <?php if ($success): ?>
+            <div class="je-banner is-success">
+                <i class="je-banner-icon fas fa-check-circle"></i>
+                <div class="je-banner-body">
+                    <div class="je-banner-text"><?php echo htmlspecialchars($success); ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($error): ?>
+            <div class="je-banner is-danger">
+                <i class="je-banner-icon fas fa-exclamation-circle"></i>
+                <div class="je-banner-body">
+                    <div class="je-banner-text"><?php echo htmlspecialchars($error); ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div class="je-panel">
             <div class="je-panel-body">
                 <?php if (empty($users)): ?>
@@ -85,8 +107,28 @@ include '../templates/header.php';
                                 <td><?php echo $user['verified'] ? '✅ Yes' : '❌ No'; ?></td>
                                 <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
                                 <td>
-                                    <a href="edit-user.php?id=<?php echo $user['id']; ?>" class="action-btn action-btn-edit">Edit</a>
-                                    <a href="delete-user.php?id=<?php echo $user['id']; ?>" class="action-btn action-btn-delete" onclick="return confirm('Are you sure?')">Delete</a>
+                                    <?php if ($user['id'] != $_SESSION['user_id']): ?>
+                                        <?php if ($user['status'] === 'active'): ?>
+                                            <a href="suspend-user.php?id=<?php echo $user['id']; ?>" 
+                                               class="action-btn action-btn-suspend" 
+                                               onclick="return confirm('Suspend this user? They will not be able to log in.')">
+                                                Suspend
+                                            </a>
+                                        <?php elseif ($user['status'] === 'suspended'): ?>
+                                            <a href="activate-user.php?id=<?php echo $user['id']; ?>" 
+                                               class="action-btn action-btn-activate" 
+                                               onclick="return confirm('Activate this user? They will be able to log in again.')">
+                                                Activate
+                                            </a>
+                                        <?php endif; ?>
+                                        <a href="delete-user.php?id=<?php echo $user['id']; ?>" 
+                                           class="action-btn action-btn-delete" 
+                                           onclick="return confirm('Delete this user? This will also remove all their listings.')">
+                                            Delete
+                                        </a>
+                                    <?php else: ?>
+                                        <span style="color: #999; font-size: 11px;">(You)</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -108,7 +150,8 @@ include '../templates/header.php';
     text-decoration: none;
     margin: 2px;
 }
-.action-btn-edit { background: #1565C0; color: white; }
+.action-btn-suspend { background: #F57C00; color: white; }
+.action-btn-activate { background: #2E7D32; color: white; }
 .action-btn-delete { background: #C62828; color: white; }
 .status-badge {
     display: inline-block;
