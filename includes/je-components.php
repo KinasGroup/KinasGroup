@@ -12,10 +12,8 @@ if (!defined('SOCIAL_MEDIA')) {
 function je_render_footer(string $variant = 'site'): void
 {
     $year = date('Y');
-    $loggedIn = !empty($_SESSION['user_id']);
-    $role     = $_SESSION['user_role'] ?? null;
+    $role = $_SESSION['user_role'] ?? null;
     
-    // Get social media from constants
     $socials = defined('SOCIAL_MEDIA') ? SOCIAL_MEDIA : [
         'facebook' => '#',
         'twitter' => '#',
@@ -27,7 +25,6 @@ function je_render_footer(string $variant = 'site'): void
     <footer class="je-footer">
         <div class="je-container">
             <div class="je-footer-grid">
-                <!-- Brand & Social -->
                 <div>
                     <div class="je-footer-brand">KINAS GROUP</div>
                     <div class="je-footer-tag">The World's Luxury Marketplace — Homes, Cars, Solar &amp; Curated Goods.</div>
@@ -39,7 +36,6 @@ function je_render_footer(string $variant = 'site'): void
                         <a href="<?= htmlspecialchars($socials['youtube'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
                     </div>
                 </div>
-                <!-- Divisions -->
                 <div>
                     <h4>Divisions</h4>
                     <ul>
@@ -49,7 +45,6 @@ function je_render_footer(string $variant = 'site'): void
                         <li><a href="/divisions/kinas-marketplace/">Kinas Marketplace</a></li>
                     </ul>
                 </div>
-                <!-- Explore -->
                 <div>
                     <h4>Explore</h4>
                     <ul>
@@ -59,7 +54,6 @@ function je_render_footer(string $variant = 'site'): void
                         <li><a href="/pages/about.php#careers">Careers</a></li>
                     </ul>
                 </div>
-                <!-- Resources -->
                 <div>
                     <h4>Resources</h4>
                     <ul>
@@ -68,7 +62,6 @@ function je_render_footer(string $variant = 'site'): void
                         <li><a href="/pages/privacy.php">Privacy Policy</a></li>
                     </ul>
                 </div>
-                <!-- Stay Connected / Newsletter -->
                 <div>
                     <h4>Stay Connected</h4>
                     <p style="color:rgba(255,255,255,0.5); font-size:13px; margin-bottom:12px;">
@@ -103,47 +96,6 @@ function je_render_footer(string $variant = 'site'): void
     </footer>
     <?php
 }
-
-function je_render_listing_grid($cards) {
-    if (empty($cards)) {
-        echo '<div class="je-empty"><div class="je-empty-icon"><i class="fas fa-search"></i></div><div class="je-empty-title">No listings found</div><div class="je-empty-text">Try adjusting your search filters</div></div>';
-        return;
-    }
-    ?>
-    <div class="je-listings-grid">
-        <?php foreach ($cards as $card): ?>
-            <a href="<?php echo htmlspecialchars($card['detail_url'] ?? '#'); ?>" class="je-card">
-                <div class="je-card-img">
-                    <?php if (!empty($card['thumbnail'])): ?>
-                        <img src="<?php echo htmlspecialchars($card['thumbnail']); ?>" alt="<?php echo htmlspecialchars($card['title'] ?? ''); ?>" loading="lazy">
-                    <?php else: ?>
-                        <div style="width:100%; height:100%; background:#f0f0f0; display:flex; align-items:center; justify-content:center; color:#ccc; font-size:40px;">
-                            <i class="fas fa-image"></i>
-                        </div>
-                    <?php endif; ?>
-                    <?php if (!empty($card['featured'])): ?>
-                        <span class="je-card-badge">⭐ Featured</span>
-                    <?php endif; ?>
-                    <?php if (!empty($card['verified'])): ?>
-                        <span class="je-card-verified-badge"><i class="fas fa-check-circle"></i> Verified</span>
-                    <?php endif; ?>
-                </div>
-                <div class="je-card-body">
-                    <div class="je-card-eyebrow"><?php echo htmlspecialchars($card['division'] ?? 'KINAS GROUP'); ?></div>
-                    <div class="je-card-title"><?php echo htmlspecialchars($card['title'] ?? ''); ?></div>
-                    <div class="je-card-specs"><?php echo htmlspecialchars($card['specs'] ?? ''); ?></div>
-                    <div class="je-card-location"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($card['location'] ?? ''); ?></div>
-                    <div class="je-card-bottom">
-                        <div class="je-card-price">₦<?php echo number_format($card['price'] ?? 0); ?></div>
-                        <div class="je-card-views"><i class="far fa-eye"></i> <?php echo number_format($card['views'] ?? 0); ?></div>
-                    </div>
-                </div>
-            </a>
-        <?php endforeach; ?>
-    </div>
-    <?php
-}
-?>
 
 /**
  * Render Hero Search Bar
@@ -295,3 +247,4 @@ function je_render_listing_grid($cards, $emptyTitle = 'No listings found', $empt
     </div>
     <?php
 }
+?>
