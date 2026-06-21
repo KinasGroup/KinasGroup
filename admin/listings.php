@@ -20,64 +20,68 @@ $db = Database::getInstance()->getConnection();
 // Get all listings from ALL divisions
 $listings = [];
 
-// 1. Solar listings (KINAS Volt)
-try {
-    $solar = $db->query("
-        SELECT id, title, price, status, views, created_at, 'solar' as division, 
-               brand, NULL as beds, NULL as baths, NULL as sqft
-        FROM solar_listings 
-        ORDER BY created_at DESC
-    ")->fetchAll();
-    $listings = array_merge($listings, $solar);
-} catch (Exception $e) {}
-
-// 2. Car listings (KINAS Automobile)
-try {
-    $cars = $db->query("
-        SELECT id, title, price, status, views, created_at, 'car' as division, 
-               brand, NULL as beds, NULL as baths, NULL as sqft
-        FROM car_listings 
-        ORDER BY created_at DESC
-    ")->fetchAll();
-    $listings = array_merge($listings, $cars);
-} catch (Exception $e) {}
-
-// 3. Property listings (Williams Connect Home)
-try {
-    $properties = $db->query("
-        SELECT id, title, price, status, views, created_at, 'property' as division, 
-               brand, beds, baths, sqft
-        FROM property_listings 
-        ORDER BY created_at DESC
-    ")->fetchAll();
-    $listings = array_merge($listings, $properties);
-} catch (Exception $e) {
-    // Try with different column names if beds/baths/sqft don't exist
+// Helper function to safely get listings from any table
+function getTableListings($db, $tableName, $divisionName) {
+    $results = [];
     try {
-        $properties = $db->query("
-            SELECT id, title, price, status, views, created_at, 'property' as division, 
-                   brand, NULL as beds, NULL as baths, NULL as sqft
-            FROM property_listings 
-            ORDER BY created_at DESC
-        ")->fetchAll();
-        $listings = array_merge($listings, $properties);
-    } catch (Exception $e2) {}
+        // First, check if table exists
+        $exists = $db->query("SHOW TABLES LIKE '$tableName'")->fetchAll();
+        if (empty($exists)) {
+            return $results;
+        }
+        
+        // Get column names
+        $columns = $db->query("DESCRIBE $tableName")->fetchAll();
+        $colNames = array_column($columns, 'Field');
+        
+        // Build query based on available columns
+        $selectFields = ['id', 'title', 'price', 'status'];
+        if (in_array('views', $colNames)) $selectFields[] = 'views';
+        if (in_array('created_at', $colNames)) $selectFields[] = 'created_at';
+        if (in_array('brand', $colNames)) $selectFields[] = 'brand';
+        if (in_array('beds', $colNames)) $selectFields[] = 'beds';
+        if (in_array('baths', $colNames)) $selectFields[] = 'baths';
+        if (in_array('sqft', $colNames)) $selectFields[] = 'sqft';
+        if (in_array('city', $colNames)) $selectFields[] = 'city';
+        if (in_array('state', $colNames)) $selectFields[] = 'state';
+        if (in_array('agent_id', $colNames)) $selectFields[] = 'agent_id';
+        
+        $selectSQL = implode(', ', $selectFields);
+        
+        // Get ALL listings regardless of status (not just 'active')
+        $query = "SELECT $selectSQL FROM $tableName ORDER BY created_at DESC";
+        $stmt = $db->query($query);
+        $rows = $stmt->fetchAll();
+        
+        foreach ($rows as $row) {
+            $row['division'] = $divisionName;
+            $results[] = $row;
+        }
+        
+    } catch (Exception $e) {
+        // Silently fail for missing tables
+    }
+    return $results;
 }
 
-// 4. Marketplace listings (KINAS Marketplace)
-try {
-    $marketplace = $db->query("
-        SELECT id, title, price, status, views, created_at, 'marketplace' as division, 
-               brand, NULL as beds, NULL as baths, NULL as sqft
-        FROM marketplace_listings 
-        ORDER BY created_at DESC
-    ")->fetchAll();
-    $listings = array_merge($listings, $marketplace);
-} catch (Exception $e) {}
+// Get listings from each division (ALL statuses)
+$solar = getTableListings($db, 'solar_listings', 'solar');
+$listings = array_merge($listings, $solar);
+
+$car = getTableListings($db, 'car_listings', 'car');
+$listings = array_merge($listings, $car);
+
+$property = getTableListings($db, 'property_listings', 'property');
+$listings = array_merge($listings, $property);
+
+$marketplace = getTableListings($db, 'marketplace_listings', 'marketplace');
+$listings = array_merge($listings, $marketplace);
 
 // Sort all listings by created_at (newest first)
 usort($listings, function($a, $b) {
-    return strtotime($b['created_at']) - strtotime($a['created_at']);
+    $timeA = isset($a['created_at']) ? strtotime($a['created_at']) : 0;
+    $timeB = isset($b['created_at']) ? strtotime($b['created_at']) : 0;
+    return $timeB - $timeA;
 });
 
 // Count listings by division for stats
@@ -119,40 +123,13 @@ include '../templates/header.php';
             <div>
                 <h1><i class="fas fa-list-ul" style="color: #C6A43F;"></i> Listings Management</h1>
                 <p>Manage all listings across all divisions</p>
+                <p style="font-size: 12px; color: #888; margin-top: 4px;">
+                    Total listings: <?php echo count($listings); ?>
+                    <?php foreach ($divisionCounts as $div => $count): ?>
+                        • <?php echo ucfirst($div); ?>: <?php echo $count; ?>
+                    <?php endforeach; ?>
+                </p>
             </div>
-        </div>
-
-        <!-- Division Stats -->
-        <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;">
-            <?php
-            $divColors = [
-                'solar' => '#FFF3E0',
-                'car' => '#E3F2FD',
-                'property' => '#E8F5E9',
-                'marketplace' => '#F3E5F5'
-            ];
-            $divLabels = [
-                'solar' => '☀️ Volt',
-                'car' => '🚗 Automobile',
-                'property' => '🏠 Homes',
-                'marketplace' => '🛍️ Marketplace'
-            ];
-            $divTextColors = [
-                'solar' => '#E65100',
-                'car' => '#0D47A1',
-                'property' => '#1B5E20',
-                'marketplace' => '#4A148C'
-            ];
-            foreach ($divisionCounts as $div => $count):
-                $color = $divColors[$div] ?? '#f0f0f0';
-                $textColor = $divTextColors[$div] ?? '#333';
-                $label = $divLabels[$div] ?? ucfirst($div);
-            ?>
-                <div style="background: <?php echo $color; ?>; padding: 12px 20px; border-radius: 8px; min-width: 120px; text-align: center;">
-                    <div style="font-size: 20px; font-weight: 700; color: <?php echo $textColor; ?>;"><?php echo $count; ?></div>
-                    <div style="font-size: 12px; color: <?php echo $textColor; ?>;"><?php echo $label; ?></div>
-                </div>
-            <?php endforeach; ?>
         </div>
 
         <div class="je-panel">
@@ -169,7 +146,6 @@ include '../templates/header.php';
                                 <th>ID</th>
                                 <th>Title</th>
                                 <th>Division</th>
-                                <th>Details</th>
                                 <th>Price</th>
                                 <th>Status</th>
                                 <th>Views</th>
@@ -184,20 +160,13 @@ include '../templates/header.php';
                                 <td><strong><?php echo htmlspecialchars($listing['title']); ?></strong></td>
                                 <td>
                                     <span style="display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; 
-                                        background: <?php echo $divColors[$listing['division']] ?? '#f0f0f0'; ?>; 
-                                        color: <?php echo $divTextColors[$listing['division']] ?? '#333'; ?>;">
-                                        <?php echo $divLabels[$listing['division']] ?? ucfirst($listing['division']); ?>
+                                        background: <?php echo $listing['division'] === 'solar' ? '#FFF3E0' : ($listing['division'] === 'car' ? '#E3F2FD' : ($listing['division'] === 'property' ? '#E8F5E9' : '#F3E5F5')); ?>; 
+                                        color: <?php echo $listing['division'] === 'solar' ? '#E65100' : ($listing['division'] === 'car' ? '#0D47A1' : ($listing['division'] === 'property' ? '#1B5E20' : '#4A148C')); ?>;">
+                                        <?php 
+                                        $labels = ['solar' => '☀️ Volt', 'car' => '🚗 Automobile', 'property' => '🏠 Homes', 'marketplace' => '🛍️ Marketplace'];
+                                        echo $labels[$listing['division']] ?? ucfirst($listing['division']); 
+                                        ?>
                                     </span>
-                                </td>
-                                <td>
-                                    <?php if ($listing['division'] === 'property'): ?>
-                                        <?php if (!empty($listing['beds'])): ?><?php echo $listing['beds']; ?> beds <?php endif; ?>
-                                        <?php if (!empty($listing['baths'])): ?><?php echo $listing['baths']; ?> baths <?php endif; ?>
-                                        <?php if (!empty($listing['sqft'])): ?><?php echo $listing['sqft']; ?> sqft <?php endif; ?>
-                                        <?php if (!empty($listing['brand'])): ?><?php echo htmlspecialchars($listing['brand']); ?><?php endif; ?>
-                                    <?php else: ?>
-                                        <?php echo htmlspecialchars($listing['brand'] ?? 'N/A'); ?>
-                                    <?php endif; ?>
                                 </td>
                                 <td>₦<?php echo number_format($listing['price']); ?></td>
                                 <td>
@@ -206,7 +175,7 @@ include '../templates/header.php';
                                     </span>
                                 </td>
                                 <td><?php echo number_format($listing['views'] ?? 0); ?></td>
-                                <td><?php echo date('M j, Y', strtotime($listing['created_at'])); ?></td>
+                                <td><?php echo isset($listing['created_at']) ? date('M j, Y', strtotime($listing['created_at'])) : 'N/A'; ?></td>
                                 <td>
                                     <a href="delete-listing.php?id=<?php echo $listing['id']; ?>&division=<?php echo $listing['division']; ?>" 
                                        class="action-btn action-btn-delete" 
