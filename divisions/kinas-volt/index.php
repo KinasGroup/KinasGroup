@@ -104,6 +104,67 @@ include '../../templates/header.php';
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     color: #fff;
 }
+
+/* Feature Cards with Photo-Realistic Images */
+.feature-card {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    cursor: default;
+    min-height: 280px;
+    display: flex;
+    align-items: flex-end;
+}
+.feature-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.15);
+}
+.feature-card .feature-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.6s ease;
+}
+.feature-card:hover .feature-bg {
+    transform: scale(1.05);
+}
+.feature-card .feature-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
+}
+.feature-card .feature-content {
+    position: relative;
+    z-index: 2;
+    padding: 32px 28px 28px;
+    color: #fff;
+    width: 100%;
+}
+.feature-card .feature-content h3 {
+    font-family: 'Prata', serif;
+    font-size: 22px;
+    margin-bottom: 8px;
+    font-weight: 400;
+}
+.feature-card .feature-content p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+.feature-card .feature-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: block;
+}
 </style>
 
 <!-- Hero with Rotating Backgrounds -->
@@ -170,39 +231,69 @@ include '../../templates/header.php';
     </div>
 </section>
 
-<section style="padding:60px 0; background:#F8F6F1;">
+<!-- Why Kinas Volt - Photo-Realistic Feature Cards -->
+<section style="padding:80px 0; background:#F8F6F1;">
     <div class="je-container">
-        <div style="text-align:center; margin-bottom:40px;">
-            <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">BROWSE BY SERVICE</div>
-            <h2 style="font-family:'Prata',serif; font-size:32px;">Find what you need</h2>
+        <div style="text-align:center; margin-bottom:48px;">
+            <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">WHY KINAS VOLT</div>
+            <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Powering a sustainable future</h2>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
-            <?php foreach ($services as $s): ?>
-                <a href="search.php?service_type=<?= urlencode($s['service_type']) ?>" style="background:#fff; border:1px solid #e8e8e8; padding:24px; text-align:center; border-radius:4px; text-decoration:none; transition:all 0.25s;">
-                    <div style="font-family:'Prata',serif; font-size:16px; color:#0A0A0A; margin-bottom:4px;"><?= htmlspecialchars(ucfirst($s['service_type'])) ?></div>
-                    <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:1px;"><?= (int)$s['cnt'] ?> listings</div>
-                </a>
-            <?php endforeach; ?>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px;">
+            
+            <!-- Premium Hardware -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1613665813446-82a78c468a1d?w=600&q=80');"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <span class="feature-icon">🔋</span>
+                    <h3>Premium Hardware</h3>
+                    <p>Only Tier-1 solar brands and components, engineered for maximum efficiency and longevity.</p>
+                </div>
+            </div>
+            
+            <!-- Certified Installers -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1581094794322-c7c5c9a0ee65?w=600&q=80');"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <span class="feature-icon">🔧</span>
+                    <h3>Certified Installers</h3>
+                    <p>Vetted installation professionals with proven track records and industry certifications.</p>
+                </div>
+            </div>
+            
+            <!-- Long Warranties -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1581091226033-d5d7e5f3c6b2?w=600&q=80');"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <span class="feature-icon">🛡️</span>
+                    <h3>Long Warranties</h3>
+                    <p>Up to 25-year performance warranties on premium systems, giving you peace of mind.</p>
+                </div>
+            </div>
+            
+            <!-- Financing Available -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&q=80');"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <span class="feature-icon">📈</span>
+                    <h3>Financing Available</h3>
+                    <p>Flexible payment options for residential and commercial projects. Get started today.</p>
+                </div>
+            </div>
+            
         </div>
     </div>
 </section>
 
-<section style="padding:80px 0;">
-    <div class="je-container">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:40px; text-align:center;">
-            <div><div style="width:60px; height:60px; border-radius:50%; background:rgba(198,164,63,0.1); color:#C6A43F; display:inline-flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;"><i class="fas fa-solar-panel"></i></div><h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Premium Hardware</h3><p style="font-size:13px; color:#666; line-height:1.6;">Only Tier-1 solar brands and components.</p></div>
-            <div><div style="width:60px; height:60px; border-radius:50%; background:rgba(198,164,63,0.1); color:#C6A43F; display:inline-flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;"><i class="fas fa-tools"></i></div><h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Certified Installers</h3><p style="font-size:13px; color:#666; line-height:1.6;">Vetted installation professionals with proven track records.</p></div>
-            <div><div style="width:60px; height:60px; border-radius:50%; background:rgba(198,164,63,0.1); color:#C6A43F; display:inline-flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;"><i class="fas fa-shield-alt"></i></div><h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Long Warranties</h3><p style="font-size:13px; color:#666; line-height:1.6;">Up to 25-year performance warranties on premium systems.</p></div>
-            <div><div style="width:60px; height:60px; border-radius:50%; background:rgba(198,164,63,0.1); color:#C6A43F; display:inline-flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;"><i class="fas fa-chart-line"></i></div><h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Financing Available</h3><p style="font-size:13px; color:#666; line-height:1.6;">Flexible payment options for residential and commercial projects.</p></div>
-        </div>
-    </div>
-</section>
-
+<!-- CTA Section - Updated -->
 <section style="background:#0A0A0A; padding:80px 0; text-align:center; color:#fff;">
     <div class="je-container">
         <h2 style="font-family:'Prata',serif; font-size:36px; margin-bottom:14px;">Power the future with KINAS Volt</h2>
-        <p style="color:rgba(255,255,255,0.7); font-size:15px; max-width:560px; margin:0 auto 28px;">List your solar services and reach customers ready to switch.</p>
-        <a href="/auth/register.php" class="je-btn je-btn-gold je-btn-lg">List Your Services</a>
+        <p style="color:rgba(255,255,255,0.7); font-size:15px; max-width:560px; margin:0 auto 28px;">Discover our range of premium solar products and solutions.</p>
+        <a href="search.php" class="je-btn je-btn-gold je-btn-lg">Explore Our Products</a>
     </div>
 </section>
 
