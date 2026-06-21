@@ -19,21 +19,66 @@ $adminName = $_SESSION['user_name'] ?? 'Admin';
 
 // Get admin stats
 $stats = [
-    'total_users' => $db->query("SELECT COUNT(*) FROM users")->fetchColumn(),
-    'total_agents' => $db->query("SELECT COUNT(*) FROM users WHERE user_role = 'agent'")->fetchColumn(),
-    'total_listings' => $db->query("
-        SELECT COUNT(*) FROM (
-            SELECT id FROM solar_listings WHERE status = 'active'
-            UNION ALL
-            SELECT id FROM car_listings WHERE status = 'active'
-            UNION ALL
-            SELECT id FROM property_listings WHERE status = 'active'
-            UNION ALL
-            SELECT id FROM marketplace_listings WHERE status = 'active'
-        ) as all_listings
-    ")->fetchColumn(),
-    'pending_verifications' => $db->query("SELECT COUNT(*) FROM agent_profiles WHERE verification_status = 'pending'")->fetchColumn(),
+    'total_users' => 0,
+    'total_agents' => 0,
+    'total_admins' => 0,
+    'total_listings' => 0,
+    'pending_verifications' => 0,
 ];
+
+try {
+    // Total users
+    $result = $db->query("SELECT COUNT(*) as count FROM users");
+    $stats['total_users'] = $result->fetchColumn();
+} catch (Exception $e) {
+    $stats['total_users'] = 'N/A';
+}
+
+try {
+    // Total agents - using the 'role' column
+    $result = $db->query("SELECT COUNT(*) as count FROM users WHERE role = 'agent'");
+    $stats['total_agents'] = $result->fetchColumn();
+} catch (Exception $e) {
+    $stats['total_agents'] = 'N/A';
+}
+
+try {
+    // Total admins
+    $result = $db->query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
+    $stats['total_admins'] = $result->fetchColumn();
+} catch (Exception $e) {
+    $stats['total_admins'] = 'N/A';
+}
+
+try {
+    // Total listings across all divisions
+    $tables = ['solar_listings', 'car_listings', 'property_listings', 'marketplace_listings'];
+    $total = 0;
+    foreach ($tables as $table) {
+        try {
+            $result = $db->query("SELECT COUNT(*) as count FROM $table WHERE status = 'active'");
+            $total += $result->fetchColumn();
+        } catch (Exception $e) {
+            // Table might not exist
+        }
+    }
+    $stats['total_listings'] = $total;
+} catch (Exception $e) {
+    $stats['total_listings'] = 'N/A';
+}
+
+try {
+    // Pending verifications - check if table exists
+    $tables = $db->query("SHOW TABLES LIKE 'agent_profiles'")->fetchAll();
+    if (!empty($tables)) {
+        $result = $db->query("SELECT COUNT(*) as count FROM agent_profiles WHERE verification_status = 'pending'");
+        $stats['pending_verifications'] = $result->fetchColumn();
+    } else {
+        $stats['pending_verifications'] = 0;
+    }
+} catch (Exception $e) {
+    $stats['pending_verifications'] = 'N/A';
+}
 
 $pageTitle = 'Admin Dashboard - KINAS GROUP';
 include '../templates/header.php';
@@ -88,6 +133,13 @@ include '../templates/header.php';
                 <div>
                     <div class="je-stat-label">Total Agents</div>
                     <div class="je-stat-value"><?php echo $stats['total_agents']; ?></div>
+                </div>
+            </div>
+            <div class="je-stat-card">
+                <div class="je-stat-icon"><i class="fas fa-user-shield"></i></div>
+                <div>
+                    <div class="je-stat-label">Total Admins</div>
+                    <div class="je-stat-value"><?php echo $stats['total_admins']; ?></div>
                 </div>
             </div>
             <div class="je-stat-card">
