@@ -404,7 +404,7 @@ include '../../templates/header.php';
                 <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/1122410/pexels-photo-1122410.jpeg?w=600&q=80'); background-color: #2c1810;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
-                    <h3>Authenticated</h3>
+                    <h3>🔍 Authenticated</h3>
                     <p>Every item is verified for authenticity before listing, with certified experts reviewing each piece.</p>
                 </div>
             </div>
@@ -414,7 +414,7 @@ include '../../templates/header.php';
                 <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/273155/pexels-photo-273155.jpeg?w=600&q=80'); background-color: #0c1a2e;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
-                    <h3>Secure Payments</h3>
+                    <h3>🔒 Secure Payments</h3>
                     <p>Escrow-protected transactions for peace of mind, ensuring both buyer and seller are protected.</p>
                 </div>
             </div>
@@ -424,18 +424,18 @@ include '../../templates/header.php';
                 <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/2759825/pexels-photo-2759825.jpeg?w=600&q=80'); background-color: #1a1a2e;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
-                    <h3>White-Glove Shipping</h3>
+                    <h3>📦 White-Glove Shipping</h3>
                     <p>Insured, door-to-door delivery for high-value items, with real-time tracking and signature confirmation.</p>
                 </div>
             </div>
             
-            <!-- 14-Day Returns -->
+            <!-- Seller Protection -->
             <div class="feature-card">
                 <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/6418136/pexels-photo-6418136.jpeg?w=600&q=80'); background-color: #1a2e1a;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
-                    <h3>14-Day Returns</h3>
-                    <p>Buyer protection with hassle-free returns on eligible items, giving you confidence in every purchase.</p>
+                    <h3>🛡️ Seller Protection</h3>
+                    <p>Comprehensive seller safeguards including payment guarantees, dispute resolution, and fraud prevention.</p>
                 </div>
             </div>
             
