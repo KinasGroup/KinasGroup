@@ -393,7 +393,7 @@ include '../../templates/header.php';
             
             <!-- Authenticated -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/1122410/pexels-photo-1122410.jpeg?w=600&q=80'); background-color: #2c1810;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/291762/pexels-photo-291762.jpeg?w=600&q=80'); background-color: #2c1810;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Authenticated</h3>
@@ -403,7 +403,7 @@ include '../../templates/header.php';
             
             <!-- Secure Payments -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/273155/pexels-photo-273155.jpeg?w=600&q=80'); background-color: #0c1a2e;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/4393984/pexels-photo-4393984.jpeg?w=600&q=80'); background-color: #0c1a2e;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Secure Payments</h3>
@@ -413,7 +413,7 @@ include '../../templates/header.php';
             
             <!-- White-Glove Shipping -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/2759825/pexels-photo-2759825.jpeg?w=600&q=80'); background-color: #1a1a2e;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/4198005/pexels-photo-4198005.jpeg?w=600&q=80'); background-color: #1a1a2e;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>White-Glove Shipping</h3>
@@ -423,7 +423,7 @@ include '../../templates/header.php';
             
             <!-- Seller Protection -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/6418136/pexels-photo-6418136.jpeg?w=600&q=80'); background-color: #1a2e1a;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/3228753/pexels-photo-3228753.jpeg?w=600&q=80'); background-color: #1a2e1a;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Seller Protection</h3>
