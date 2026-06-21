@@ -67,14 +67,20 @@ usort($listings, function($a, $b) {
     return strtotime($b['created_at']) - strtotime($a['created_at']);
 });
 
+// Division folder mapping for detail page links
+$folderMap = [
+    'solar' => 'kinas-volt',
+    'car' => 'kinas-automobile',
+    'property' => 'williams-connect-home',
+    'marketplace' => 'kinas-marketplace'
+];
+
 $pageTitle = 'My Listings - Agent Dashboard';
 include '../templates/header.php';
 ?>
 
 <style>
-/* ============================================
-   ACTION BUTTONS - FIXED CSS
-   ============================================ */
+/* Action buttons */
 .action-btn-group {
     display: flex;
     gap: 4px;
@@ -103,21 +109,21 @@ include '../templates/header.php';
 }
 
 .action-btn-view {
-    background: #2E7D32;
+    background: #1565C0;
     color: #FFFFFF !important;
 }
 .action-btn-view:hover {
-    background: #1B5E20;
+    background: #0D47A1;
     color: #FFFFFF !important;
     transform: translateY(-1px);
 }
 
 .action-btn-edit {
-    background: #1565C0;
+    background: #F57C00;
     color: #FFFFFF !important;
 }
 .action-btn-edit:hover {
-    background: #0D47A1;
+    background: #E65100;
     color: #FFFFFF !important;
     transform: translateY(-1px);
 }
@@ -133,21 +139,11 @@ include '../templates/header.php';
 }
 
 .action-btn-restore {
-    background: #F57C00;
+    background: #2E7D32;
     color: #FFFFFF !important;
 }
 .action-btn-restore:hover {
-    background: #E65100;
-    color: #FFFFFF !important;
-    transform: translateY(-1px);
-}
-
-.action-btn-permanent-delete {
-    background: #880E4F;
-    color: #FFFFFF !important;
-}
-.action-btn-permanent-delete:hover {
-    background: #4A148C;
+    background: #1B5E20;
     color: #FFFFFF !important;
     transform: translateY(-1px);
 }
@@ -246,12 +242,14 @@ include '../templates/header.php';
     <!-- Sidebar -->
     <aside class="je-dash-sidebar">
         <div class="je-dash-sidebar-brand">
-            <i class="fas fa-crown"></i> KINAS GROUP
+            <i class="fas fa-solar-panel"></i> KINAS VOLT
         </div>
         <ul class="je-dash-nav">
             <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="listings.php" class="is-active"><i class="fas fa-list-ul"></i> All Listings</a></li>
+            <li><a href="listings.php" class="is-active"><i class="fas fa-list-ul"></i> My Listings</a></li>
             <li><a href="add-listing.php"><i class="fas fa-plus-circle"></i> Add Listing</a></li>
+            <li><a href="hardware.php"><i class="fas fa-microchip"></i> Hardware Inventory</a></li>
+            <li><a href="add-hardware.php"><i class="fas fa-plus"></i> Add Hardware</a></li>
             <li><a href="messages.php"><i class="fas fa-envelope"></i> Messages</a></li>
             <li><a href="analytics.php"><i class="fas fa-chart-bar"></i> Analytics</a></li>
             <li><a href="profile.php"><i class="fas fa-user"></i> Profile</a></li>
@@ -329,33 +327,23 @@ include '../templates/header.php';
                                 <td><?php echo number_format($item['views'] ?? 0); ?></td>
                                 <td>
                                     <div class="action-btn-group">
-                                        <?php if ($item['status'] === 'active'): ?>
-                                            <a href="/divisions/<?php echo $item['division']; ?>/detail.php?id=<?php echo $item['id']; ?>" 
-                                               class="action-btn action-btn-view" target="_blank">
-                                                <i class="fas fa-eye"></i> View
-                                            </a>
-                                            <a href="edit-listing.php?id=<?php echo $item['id']; ?>&division=<?php echo $item['division']; ?>" 
-                                               class="action-btn action-btn-edit">
-                                                <i class="fas fa-edit"></i> Edit
-                                            </a>
-                                            <a href="delete-listing.php?id=<?php echo $item['id']; ?>&division=<?php echo $item['division']; ?>" 
-                                               class="action-btn action-btn-delete" 
-                                               onclick="return confirm('Are you sure you want to delete this listing?');">
-                                                <i class="fas fa-trash"></i> Delete
-                                            </a>
-                                        <?php elseif ($item['status'] === 'inactive'): ?>
-                                            <a href="restore-listing.php?id=<?php echo $item['id']; ?>&division=<?php echo $item['division']; ?>" 
-                                               class="action-btn action-btn-restore">
-                                                <i class="fas fa-undo"></i> Restore
-                                            </a>
-                                            <a href="delete-permanent.php?id=<?php echo $item['id']; ?>&division=<?php echo $item['division']; ?>" 
-                                               class="action-btn action-btn-permanent-delete" 
-                                               onclick="return confirm('⚠️ This will permanently delete this listing. Are you sure?');">
-                                                <i class="fas fa-trash-alt"></i> Perm Delete
-                                            </a>
-                                        <?php else: ?>
-                                            <span style="color: #999; font-size: 12px;">No actions</span>
-                                        <?php endif; ?>
+                                        <?php 
+                                        // Get the correct folder for this division
+                                        $folder = $folderMap[$item['division']] ?? $item['division'];
+                                        ?>
+                                        <a href="/divisions/<?php echo $folder; ?>/detail.php?id=<?php echo $item['id']; ?>" 
+                                           class="action-btn action-btn-view" target="_blank">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <a href="edit-listing.php?id=<?php echo $item['id']; ?>&division=<?php echo $item['division']; ?>" 
+                                           class="action-btn action-btn-edit">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <a href="delete-listing.php?id=<?php echo $item['id']; ?>&division=<?php echo $item['division']; ?>" 
+                                           class="action-btn action-btn-delete" 
+                                           onclick="return confirm('Are you sure you want to delete this listing?');">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </a>
                                     </div>
                                 </td>
                             </tr>
