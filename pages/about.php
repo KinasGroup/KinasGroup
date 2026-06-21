@@ -177,7 +177,7 @@ include __DIR__ . '/../templates/header.php';
 
         <!-- KINAS Marketplace -->
         <a href="/divisions/kinas-marketplace/" class="division-card">
-            <div class="card-bg" style="background-image: url('https://images.pexels.com/photos/298863/pexels-photo-298863.jpeg?w=400&q=80'); background-color: #2c1810;"></div>
+            <div class="card-bg" style="background-image: url('https://images.pexels.com/photos/1447503/pexels-photo-1447503.jpeg?w=400https://images.pexels.com/photos/298863/pexels-photo-298863.jpeg?w=400&q=80q=80'); background-color: #2c1810;"></div>
             <div class="card-overlay"></div>
             <div class="card-content">
                 <h3>KINAS MARKETPLACE</h3>
