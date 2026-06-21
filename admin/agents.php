@@ -18,8 +18,8 @@ $db = Database::getInstance()->getConnection();
 
 // Get all agents (users with role = 'agent')
 $agents = $db->query("
-    SELECT u.id, u.username, u.email, u.status, u.created_at, u.verified,
-           a.company, a.division, a.verification_status, a.verified as agent_verified
+    SELECT u.id, u.email, u.status, u.created_at, u.verified,
+           a.company, a.division, a.verification_status
     FROM users u
     LEFT JOIN agent_profiles a ON u.id = a.user_id
     WHERE u.role = 'agent'
@@ -75,7 +75,6 @@ include '../templates/header.php';
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Username</th>
                                 <th>Email</th>
                                 <th>Company</th>
                                 <th>Division</th>
@@ -89,8 +88,7 @@ include '../templates/header.php';
                             <?php foreach ($agents as $agent): ?>
                             <tr>
                                 <td><?php echo $agent['id']; ?></td>
-                                <td><strong><?php echo htmlspecialchars($agent['username']); ?></strong></td>
-                                <td><?php echo htmlspecialchars($agent['email']); ?></td>
+                                <td><strong><?php echo htmlspecialchars($agent['email']); ?></strong></td>
                                 <td><?php echo htmlspecialchars($agent['company'] ?? 'N/A'); ?></td>
                                 <td><?php echo htmlspecialchars($agent['division'] ?? 'N/A'); ?></td>
                                 <td><span class="status-badge status-badge-<?php echo $agent['status']; ?>"><?php echo ucfirst($agent['status']); ?></span></td>

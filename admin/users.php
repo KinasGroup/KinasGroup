@@ -16,9 +16,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
 $db = Database::getInstance()->getConnection();
 
-// Get all users
+// Get all users - using 'email' instead of 'username'
 $users = $db->query("
-    SELECT id, username, email, role, status, created_at, verified 
+    SELECT id, email, role, status, verified, created_at, updated_at 
     FROM users 
     ORDER BY created_at DESC
 ")->fetchAll();
@@ -67,7 +67,6 @@ include '../templates/header.php';
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Username</th>
                                 <th>Email</th>
                                 <th>Role</th>
                                 <th>Status</th>
@@ -80,8 +79,7 @@ include '../templates/header.php';
                             <?php foreach ($users as $user): ?>
                             <tr>
                                 <td><?php echo $user['id']; ?></td>
-                                <td><strong><?php echo htmlspecialchars($user['username']); ?></strong></td>
-                                <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                <td><strong><?php echo htmlspecialchars($user['email']); ?></strong></td>
                                 <td><span class="status-badge status-badge-<?php echo $user['role']; ?>"><?php echo ucfirst($user['role']); ?></span></td>
                                 <td><span class="status-badge status-badge-<?php echo $user['status']; ?>"><?php echo ucfirst($user['status']); ?></span></td>
                                 <td><?php echo $user['verified'] ? '✅ Yes' : '❌ No'; ?></td>
