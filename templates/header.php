@@ -43,6 +43,7 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <title><?php echo $pageTitle ?? 'KINAS GROUP | The World\'s Luxury Marketplace'; ?></title>
 
     <!-- Stylesheets -->
+    <link rel="stylesheet" href="/assets/css/footer-social.css">
     <link rel="stylesheet" href="/assets/css/style.css">
     <link rel="stylesheet" href="/assets/css/james-edition.css">
     <link rel="stylesheet" href="/assets/css/responsive.css">

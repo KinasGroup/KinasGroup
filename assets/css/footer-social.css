@@ -1,0 +1,34 @@
+/* Footer Social Icons Fix */
+.je-footer-social {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.je-footer-social a {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    text-decoration: none !important;
+    transition: all 0.3s ease !important;
+    font-size: 16px !important;
+    background: transparent !important;
+}
+
+.je-footer-social a:hover {
+    background: #C6A43F !important;
+    border-color: #C6A43F !important;
+    color: #0A0A0A !important;
+    transform: translateY(-2px) !important;
+}
+
+.je-footer-social a i {
+    font-size: 16px !important;
+    line-height: 1 !important;
+    display: inline-block !important;
+}

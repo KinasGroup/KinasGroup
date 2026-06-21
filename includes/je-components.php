@@ -4,13 +4,16 @@
  * Loads after style.css
  */
 
+// Load constants if not already loaded
+if (!defined('SOCIAL_MEDIA')) {
+    require_once __DIR__ . '/../api/config/constants.php';
+}
+
 function je_render_footer(string $variant = 'site'): void
 {
     $year = date('Y');
-    $loggedIn = !empty($_SESSION['user_id']);
-    $role     = $_SESSION['user_role'] ?? null;
     
-    // Load social media from constants
+    // Get social media from constants
     $socials = defined('SOCIAL_MEDIA') ? SOCIAL_MEDIA : [
         'facebook' => '#',
         'twitter' => '#',
@@ -20,6 +23,40 @@ function je_render_footer(string $variant = 'site'): void
     ];
     ?>
     <footer class="je-footer">
+        <style>
+            .je-footer-social {
+                display: flex;
+                gap: 12px;
+                margin-top: 16px;
+                flex-wrap: wrap;
+            }
+            .je-footer-social a {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 40px !important;
+                height: 40px !important;
+                border-radius: 50% !important;
+                border: 1px solid rgba(255,255,255,0.2) !important;
+                color: #fff !important;
+                text-decoration: none !important;
+                transition: all 0.3s ease !important;
+                font-size: 18px !important;
+                background: rgba(255,255,255,0.05) !important;
+            }
+            .je-footer-social a:hover {
+                background: #C6A43F !important;
+                border-color: #C6A43F !important;
+                color: #0A0A0A !important;
+                transform: translateY(-3px) !important;
+            }
+            .je-footer-social a i {
+                font-size: 18px !important;
+                line-height: 1 !important;
+                display: inline-block !important;
+                color: inherit !important;
+            }
+        </style>
         <div class="je-container">
             <div class="je-footer-grid">
                 <div>
