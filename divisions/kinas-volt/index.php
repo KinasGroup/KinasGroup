@@ -160,11 +160,6 @@ include '../../templates/header.php';
     margin-bottom: 12px;
     line-height: 1.5;
 }
-.feature-card .feature-icon {
-    font-size: 28px;
-    margin-bottom: 8px;
-    display: block;
-}
 </style>
 
 <!-- Hero with Rotating Backgrounds -->
@@ -245,7 +240,6 @@ include '../../templates/header.php';
                 <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1613665813446-82a78c468a1d?w=600&q=80');"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
-                    <span class="feature-icon">🔋</span>
                     <h3>Premium Hardware</h3>
                     <p>Only Tier-1 solar brands and components, engineered for maximum efficiency and longevity.</p>
                 </div>
@@ -256,7 +250,6 @@ include '../../templates/header.php';
                 <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1581094794322-c7c5c9a0ee65?w=600&q=80');"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
-                    <span class="feature-icon">🔧</span>
                     <h3>Certified Installers</h3>
                     <p>Vetted installation professionals with proven track records and industry certifications.</p>
                 </div>
@@ -267,7 +260,6 @@ include '../../templates/header.php';
                 <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1581091226033-d5d7e5f3c6b2?w=600&q=80');"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
-                    <span class="feature-icon">🛡️</span>
                     <h3>Long Warranties</h3>
                     <p>Up to 25-year performance warranties on premium systems, giving you peace of mind.</p>
                 </div>
@@ -278,7 +270,6 @@ include '../../templates/header.php';
                 <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&q=80');"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
-                    <span class="feature-icon">📈</span>
                     <h3>Financing Available</h3>
                     <p>Flexible payment options for residential and commercial projects. Get started today.</p>
                 </div>
@@ -288,7 +279,7 @@ include '../../templates/header.php';
     </div>
 </section>
 
-<!-- CTA Section - Updated -->
+<!-- CTA Section -->
 <section style="background:#0A0A0A; padding:80px 0; text-align:center; color:#fff;">
     <div class="je-container">
         <h2 style="font-family:'Prata',serif; font-size:36px; margin-bottom:14px;">Power the future with KINAS Volt</h2>
