@@ -1,7 +1,7 @@
 <?php
 /**
  * Global Search Page - KINAS GROUP
- * Searches across all divisions: Automobile, Volt, Homes, Marketplace
+ * Searches across all divisions with images
  */
 
 require_once 'includes/session.php';
@@ -24,6 +24,47 @@ $offset = ($page - 1) * $perPage;
 $searchTerm = '%' . $query . '%';
 $results = [];
 $totalCount = 0;
+
+// Function to get image for a listing
+function getListingImage($db, $listingId, $divisionName) {
+    $tableMap = [
+        'car' => 'car_listings',
+        'solar' => 'solar_listings',
+        'property' => 'property_listings',
+        'marketplace' => 'marketplace_listings'
+    ];
+    
+    $table = $tableMap[$divisionName] ?? '';
+    if (empty($table)) return null;
+    
+    try {
+        // First try to get image from listing_images table
+        $stmt = $db->prepare("
+            SELECT url FROM listing_images 
+            WHERE listing_id = ? AND listing_type = ? 
+            ORDER BY sort_order LIMIT 1
+        ");
+        $stmt->execute([$listingId, $divisionName]);
+        $image = $stmt->fetch();
+        
+        if ($image) {
+            return $image['url'];
+        }
+        
+        // Fallback: check if table has a thumbnail column
+        $stmt2 = $db->prepare("SELECT thumbnail FROM $table WHERE id = ?");
+        $stmt2->execute([$listingId]);
+        $thumb = $stmt2->fetch();
+        
+        if ($thumb && !empty($thumb['thumbnail'])) {
+            return $thumb['thumbnail'];
+        }
+        
+        return null;
+    } catch (Exception $e) {
+        return null;
+    }
+}
 
 // Function to search a specific table
 function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage) {
@@ -67,7 +108,10 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
                 views,
                 created_at,
                 '$divisionName' as division,
-                '" . str_replace('_listings', '', $table) . "' as type
+                '" . str_replace('_listings', '', $table) . "' as type,
+                brand,
+                city,
+                state
             FROM $table 
             WHERE ($whereSQL) 
               AND status = 'active'
@@ -133,6 +177,12 @@ if ($division === 'all') {
 $allResults = [];
 foreach ($divisionsToSearch as $table => $divName) {
     $result = searchTable($db, $table, $divName, $searchTerm, $offset, $perPage);
+    
+    // Add images to each result
+    foreach ($result['results'] as &$item) {
+        $item['image'] = getListingImage($db, $item['id'], $item['division']);
+    }
+    
     $allResults = array_merge($allResults, $result['results']);
     $totalCount += $result['count'];
 }
@@ -152,16 +202,47 @@ include 'templates/header.php';
 
 <style>
 .search-result-card {
+    display: flex;
+    gap: 20px;
     background: #fff;
     border: 1px solid #E0E0E0;
     border-radius: 12px;
-    padding: 20px;
+    padding: 16px;
     transition: all 0.3s ease;
     margin-bottom: 16px;
+    align-items: flex-start;
 }
 .search-result-card:hover {
     border-color: #C6A43F;
     box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+.search-result-image {
+    flex-shrink: 0;
+    width: 160px;
+    height: 120px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f0f0f0;
+    position: relative;
+}
+.search-result-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.search-result-image .placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f0f0;
+    color: #999;
+    font-size: 32px;
+}
+.search-result-content {
+    flex: 1;
+    min-width: 0;
 }
 .search-result-title {
     font-size: 18px;
@@ -195,13 +276,63 @@ include 'templates/header.php';
     display: flex;
     gap: 16px;
     flex-wrap: wrap;
-    margin-top: 8px;
+    margin-top: 6px;
 }
 .search-result-meta span {
     display: inline-flex;
     align-items: center;
     gap: 4px;
 }
+.search-result-brand {
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
+}
+.search-result-location {
+    font-size: 13px;
+    color: #888;
+}
+.search-result-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+.search-result-actions .btn-view {
+    display: inline-block;
+    padding: 6px 16px;
+    background: #C6A43F;
+    color: #0A0A0A;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+.search-result-actions .btn-view:hover {
+    background: #A8882E;
+}
+
+@media (max-width: 768px) {
+    .search-result-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .search-result-image {
+        width: 100%;
+        height: 180px;
+    }
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+}
+.status-badge-active { background: #E8F5E9; color: #1B5E20; }
+
 .pagination {
     display: flex;
     justify-content: center;
@@ -273,34 +404,65 @@ include 'templates/header.php';
         <?php if (!empty($paginatedResults)): ?>
             <?php foreach ($paginatedResults as $item): ?>
                 <div class="search-result-card">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
-                        <div>
-                            <a href="/divisions/<?php echo $item['division']; ?>/detail.php?id=<?php echo $item['id']; ?>" 
-                               class="search-result-title">
-                                <?php echo htmlspecialchars($item['title']); ?>
-                            </a>
-                            <div style="margin-top: 6px;">
-                                <span class="search-result-division division-<?php echo $item['division']; ?>">
-                                    <?php echo ucfirst($item['division']); ?>
-                                </span>
-                                <span style="color: #888; font-size: 13px; margin-left: 8px;">
-                                    <?php echo ucfirst($item['type']); ?>
-                                </span>
+                    <!-- Image Column -->
+                    <div class="search-result-image">
+                        <?php if (!empty($item['image'])): ?>
+                            <img src="<?php echo htmlspecialchars($item['image']); ?>" 
+                                 alt="<?php echo htmlspecialchars($item['title']); ?>"
+                                 loading="lazy">
+                        <?php else: ?>
+                            <div class="placeholder">
+                                <i class="fas fa-image"></i>
                             </div>
-                            <div class="search-result-meta">
-                                <span><i class="far fa-clock"></i> <?php echo date('M j, Y', strtotime($item['created_at'])); ?></span>
-                                <span><i class="far fa-eye"></i> <?php echo number_format($item['views'] ?? 0); ?> views</span>
-                                <span class="status-badge status-badge-<?php echo $item['status']; ?>">
-                                    <?php echo ucfirst($item['status']); ?>
-                                </span>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <!-- Content Column -->
+                    <div class="search-result-content">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <a href="/divisions/<?php echo $item['division']; ?>/detail.php?id=<?php echo $item['id']; ?>" 
+                                   class="search-result-title">
+                                    <?php echo htmlspecialchars($item['title']); ?>
+                                </a>
+                                <div style="margin-top: 4px;">
+                                    <span class="search-result-division division-<?php echo $item['division']; ?>">
+                                        <?php echo ucfirst($item['division']); ?>
+                                    </span>
+                                    <span style="color: #888; font-size: 13px; margin-left: 8px;">
+                                        <?php echo ucfirst($item['type']); ?>
+                                    </span>
+                                </div>
+                                <?php if (!empty($item['brand'])): ?>
+                                    <div class="search-result-brand">
+                                        <i class="fas fa-tag"></i> <?php echo htmlspecialchars($item['brand']); ?>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (!empty($item['city']) || !empty($item['state'])): ?>
+                                    <div class="search-result-location">
+                                        <i class="fas fa-map-marker-alt"></i> 
+                                        <?php echo htmlspecialchars($item['city'] ?? ''); ?>
+                                        <?php if (!empty($item['city']) && !empty($item['state'])): ?>, <?php endif; ?>
+                                        <?php echo htmlspecialchars($item['state'] ?? ''); ?>
+                                    </div>
+                                <?php endif; ?>
+                                <div class="search-result-meta">
+                                    <span><i class="far fa-clock"></i> <?php echo date('M j, Y', strtotime($item['created_at'])); ?></span>
+                                    <span><i class="far fa-eye"></i> <?php echo number_format($item['views'] ?? 0); ?> views</span>
+                                    <span class="status-badge status-badge-<?php echo $item['status']; ?>">
+                                        <?php echo ucfirst($item['status']); ?>
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div class="search-result-price">₦<?php echo number_format($item['price']); ?></div>
-                            <a href="/divisions/<?php echo $item['division']; ?>/detail.php?id=<?php echo $item['id']; ?>" 
-                               style="display: inline-block; margin-top: 6px; padding: 6px 16px; background: #C6A43F; color: #0A0A0A; border-radius: 4px; text-decoration: none; font-weight: 600; font-size: 13px;">
-                                View Details <i class="fas fa-arrow-right"></i>
-                            </a>
+                            <div style="text-align: right;">
+                                <div class="search-result-price">₦<?php echo number_format($item['price']); ?></div>
+                                <div class="search-result-actions">
+                                    <a href="/divisions/<?php echo $item['division']; ?>/detail.php?id=<?php echo $item['id']; ?>" 
+                                       class="btn-view">
+                                        View Details <i class="fas fa-arrow-right"></i>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
