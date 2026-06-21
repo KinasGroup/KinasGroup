@@ -17,9 +17,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 $db = Database::getInstance()->getConnection();
 
 // Get all agents (users with role = 'agent')
+// Using LEFT JOIN but only selecting columns that we know exist
 $agents = $db->query("
-    SELECT u.id, u.email, u.status, u.created_at, u.verified,
-           a.company, a.division, a.verification_status
+    SELECT 
+        u.id, 
+        u.email, 
+        u.status, 
+        u.created_at, 
+        u.verified,
+        a.verification_status as agent_verification,
+        a.id as profile_id
     FROM users u
     LEFT JOIN agent_profiles a ON u.id = a.user_id
     WHERE u.role = 'agent'
@@ -56,11 +63,6 @@ include '../templates/header.php';
                 <h1><i class="fas fa-user-tie" style="color: #C6A43F;"></i> Agents Management</h1>
                 <p>Manage all registered agents</p>
             </div>
-            <div>
-                <a href="verify-agents.php" class="je-btn je-btn-gold" style="background: #C6A43F; color: #0A0A0A;">
-                    <i class="fas fa-check-double"></i> Verify Pending
-                </a>
-            </div>
         </div>
 
         <div class="je-panel">
@@ -76,10 +78,9 @@ include '../templates/header.php';
                             <tr>
                                 <th>ID</th>
                                 <th>Email</th>
-                                <th>Company</th>
-                                <th>Division</th>
                                 <th>Status</th>
-                                <th>Verification</th>
+                                <th>Verified</th>
+                                <th>Agent Verified</th>
                                 <th>Joined</th>
                                 <th>Actions</th>
                             </tr>
@@ -89,13 +90,12 @@ include '../templates/header.php';
                             <tr>
                                 <td><?php echo $agent['id']; ?></td>
                                 <td><strong><?php echo htmlspecialchars($agent['email']); ?></strong></td>
-                                <td><?php echo htmlspecialchars($agent['company'] ?? 'N/A'); ?></td>
-                                <td><?php echo htmlspecialchars($agent['division'] ?? 'N/A'); ?></td>
                                 <td><span class="status-badge status-badge-<?php echo $agent['status']; ?>"><?php echo ucfirst($agent['status']); ?></span></td>
+                                <td><?php echo $agent['verified'] ? '✅ Yes' : '❌ No'; ?></td>
                                 <td>
-                                    <?php if ($agent['verification_status'] === 'verified'): ?>
+                                    <?php if ($agent['agent_verification'] === 'verified'): ?>
                                         <span class="status-badge status-badge-verified">✅ Verified</span>
-                                    <?php elseif ($agent['verification_status'] === 'pending'): ?>
+                                    <?php elseif ($agent['agent_verification'] === 'pending'): ?>
                                         <span class="status-badge status-badge-pending">⏳ Pending</span>
                                     <?php else: ?>
                                         <span class="status-badge status-badge-unverified">❌ Unverified</span>
