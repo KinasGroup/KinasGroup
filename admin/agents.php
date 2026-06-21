@@ -1,0 +1,149 @@
+<?php
+/**
+ * Admin: Agents Management
+ */
+
+require_once '../includes/session.php';
+require_once '../includes/functions.php';
+require_once '../includes/security.php';
+require_once '../api/config/database.php';
+
+// Check if user is admin
+if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+    header('Location: /auth/login.php');
+    exit;
+}
+
+$db = Database::getInstance()->getConnection();
+
+// Get all agents (users with role = 'agent')
+$agents = $db->query("
+    SELECT u.id, u.username, u.email, u.status, u.created_at, u.verified,
+           a.company, a.division, a.verification_status, a.verified as agent_verified
+    FROM users u
+    LEFT JOIN agent_profiles a ON u.id = a.user_id
+    WHERE u.role = 'agent'
+    ORDER BY u.created_at DESC
+")->fetchAll();
+
+$pageTitle = 'Agents Management - Admin';
+include '../templates/header.php';
+?>
+
+<div class="je-dash-shell">
+    <aside class="je-dash-sidebar">
+        <div class="je-dash-sidebar-brand">
+            <i class="fas fa-crown"></i> KINAS GROUP
+        </div>
+        <ul class="je-dash-nav">
+            <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="users.php"><i class="fas fa-users"></i> Users</a></li>
+            <li><a href="agents.php" class="is-active"><i class="fas fa-user-tie"></i> Agents</a></li>
+            <li><a href="listings.php"><i class="fas fa-list-ul"></i> Listings</a></li>
+            <li><a href="settings.php"><i class="fas fa-cog"></i> Settings</a></li>
+            <li class="je-dash-nav-heading">FEATURED MANAGEMENT</li>
+            <li><a href="test-featured.php"><i class="fas fa-chart-line"></i> Test Algorithm</a></li>
+            <li><a href="update-featured.php"><i class="fas fa-sync-alt"></i> Update Featured</a></li>
+            <li class="je-dash-nav-divider"></li>
+            <li><a href="/"><i class="fas fa-home"></i> Back to Site</a></li>
+            <li class="je-dash-signout"><a href="/auth/logout.php"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
+        </ul>
+    </aside>
+
+    <main class="je-dash-main">
+        <div class="je-dash-header">
+            <div>
+                <h1><i class="fas fa-user-tie" style="color: #C6A43F;"></i> Agents Management</h1>
+                <p>Manage all registered agents</p>
+            </div>
+            <div>
+                <a href="verify-agents.php" class="je-btn je-btn-gold" style="background: #C6A43F; color: #0A0A0A;">
+                    <i class="fas fa-check-double"></i> Verify Pending
+                </a>
+            </div>
+        </div>
+
+        <div class="je-panel">
+            <div class="je-panel-body">
+                <?php if (empty($agents)): ?>
+                    <div class="je-panel-empty">
+                        <i class="fas fa-user-tie"></i>
+                        <p>No agents found.</p>
+                    </div>
+                <?php else: ?>
+                    <table class="je-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Company</th>
+                                <th>Division</th>
+                                <th>Status</th>
+                                <th>Verification</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($agents as $agent): ?>
+                            <tr>
+                                <td><?php echo $agent['id']; ?></td>
+                                <td><strong><?php echo htmlspecialchars($agent['username']); ?></strong></td>
+                                <td><?php echo htmlspecialchars($agent['email']); ?></td>
+                                <td><?php echo htmlspecialchars($agent['company'] ?? 'N/A'); ?></td>
+                                <td><?php echo htmlspecialchars($agent['division'] ?? 'N/A'); ?></td>
+                                <td><span class="status-badge status-badge-<?php echo $agent['status']; ?>"><?php echo ucfirst($agent['status']); ?></span></td>
+                                <td>
+                                    <?php if ($agent['verification_status'] === 'verified'): ?>
+                                        <span class="status-badge status-badge-verified">✅ Verified</span>
+                                    <?php elseif ($agent['verification_status'] === 'pending'): ?>
+                                        <span class="status-badge status-badge-pending">⏳ Pending</span>
+                                    <?php else: ?>
+                                        <span class="status-badge status-badge-unverified">❌ Unverified</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo date('M j, Y', strtotime($agent['created_at'])); ?></td>
+                                <td>
+                                    <a href="edit-agent.php?id=<?php echo $agent['id']; ?>" class="action-btn action-btn-edit">Edit</a>
+                                    <a href="delete-agent.php?id=<?php echo $agent['id']; ?>" class="action-btn action-btn-delete" onclick="return confirm('Are you sure?')">Delete</a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+        </div>
+    </main>
+</div>
+
+<style>
+.action-btn {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    margin: 2px;
+}
+.action-btn-edit { background: #1565C0; color: white; }
+.action-btn-delete { background: #C62828; color: white; }
+.status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+}
+.status-badge-user { background: #E3F2FD; color: #0D47A1; }
+.status-badge-agent { background: #FFF3E0; color: #E65100; }
+.status-badge-admin { background: #E8F5E9; color: #1B5E20; }
+.status-badge-active { background: #E8F5E9; color: #1B5E20; }
+.status-badge-pending { background: #FFF8E1; color: #F57F17; }
+.status-badge-verified { background: #E8F5E9; color: #1B5E20; }
+.status-badge-unverified { background: #FFEBEE; color: #C62828; }
+</style>
+
+<?php include '../templates/footer.php'; ?>
