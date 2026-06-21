@@ -219,16 +219,24 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
             <h3 style="margin-top:24px;"><i class="fas fa-share-alt"></i> Social Links</h3>
             <div class="form-group">
-                <label><i class="fab fa-linkedin"></i> LinkedIn</label>
-                <input type="url" name="linkedin" value="<?= htmlspecialchars($profile['linkedin'] ?? '') ?>" placeholder="https://linkedin.com/in/…">
+                <label><i class="fab fa-facebook" style="color: #1877F2;"></i> Facebook</label>
+                <input type="url" name="facebook" value="<?= htmlspecialchars($profile['facebook'] ?? '') ?>" placeholder="https://facebook.com/yourpage">
             </div>
             <div class="form-group">
                 <label><i class="fab fa-twitter"></i> Twitter / X</label>
-                <input type="url" name="twitter" value="<?= htmlspecialchars($profile['twitter'] ?? '') ?>" placeholder="https://twitter.com/…">
+                <input type="url" name="twitter" value="<?= htmlspecialchars($profile['twitter'] ?? '') ?>" placeholder="https://twitter.com/yourhandle">
             </div>
             <div class="form-group">
-                <label><i class="fab fa-instagram"></i> Instagram</label>
-                <input type="url" name="instagram" value="<?= htmlspecialchars($profile['instagram'] ?? '') ?>" placeholder="https://instagram.com/…">
+                <label><i class="fab fa-instagram" style="color: #E4405F;"></i> Instagram</label>
+                <input type="url" name="instagram" value="<?= htmlspecialchars($profile['instagram'] ?? '') ?>" placeholder="https://instagram.com/yourprofile">
+            </div>
+            <div class="form-group">
+                <label><i class="fab fa-linkedin" style="color: #0A66C2;"></i> LinkedIn</label>
+                <input type="url" name="linkedin" value="<?= htmlspecialchars($profile['linkedin'] ?? '') ?>" placeholder="https://linkedin.com/in/yourprofile">
+            </div>
+            <div class="form-group">
+                <label><i class="fab fa-youtube" style="color: #FF0000;"></i> YouTube</label>
+                <input type="url" name="youtube" value="<?= htmlspecialchars($profile['youtube'] ?? '') ?>" placeholder="https://youtube.com/@yourchannel">
             </div>
         </div>
 
