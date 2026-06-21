@@ -17,14 +17,25 @@ $stmt = $db->prepare("
     FROM solar_listings s
     LEFT JOIN users a ON s.agent_id = a.id
     LEFT JOIN agent_profiles ap ON a.id = ap.user_id
-    WHERE s.id = ? AND s.status = 'active'
+    WHERE s.id = ?
 ");
 $stmt->execute([$id]);
 $item = $stmt->fetch();
 
-if (!$item) { http_response_code(404); include __DIR__ . '/../../pages/404.php'; exit; }
+$isOwnerOrAdmin = $item && SessionManager::isLoggedIn()
+    && ((int)$item['agent_id'] === SessionManager::getUserId() || SessionManager::getUserRole() === 'admin');
 
-$db->prepare("UPDATE solar_listings SET views = views + 1 WHERE id = ?")->execute([$id]);
+if (!$item || ($item['status'] !== 'active' && !$isOwnerOrAdmin)) {
+    http_response_code(404);
+    include __DIR__ . '/../../pages/404.php';
+    exit;
+}
+
+$isPreview = $item['status'] !== 'active';
+
+if (!$isPreview) {
+    $db->prepare("UPDATE solar_listings SET views = views + 1 WHERE id = ?")->execute([$id]);
+}
 
 $images = $db->prepare("SELECT * FROM listing_images WHERE listing_id = ? AND listing_type = 'solar' ORDER BY sort_order");
 $images->execute([$id]);
@@ -52,6 +63,12 @@ $location = implode(', ', $locParts);
 
 <div class="je-page">
 <div class="je-detail-wrap">
+
+<?php if ($isPreview): ?>
+<div style="background:#FFF8E1; border:1px solid #F0C419; color:#7A5B00; padding:14px 18px; border-radius:4px; margin-bottom:20px; font-size:14px;">
+    <i class="fas fa-eye"></i> <strong>Preview only</strong> — this listing is <?= htmlspecialchars(ucfirst($item['status'])) ?> and not visible to the public yet. Only you and admins can see this page.
+</div>
+<?php endif; ?>
 
     <div class="je-breadcrumb">
         <a href="/">Home</a>
