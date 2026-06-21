@@ -1,34 +1,26 @@
 <?php
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once __DIR__ . '/../api/config/database.php';
-require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
 
-// Auth: handled by SessionManager::requireAgent()
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: /auth/login.php');
+    exit;
+}
 
-// KYC soft-guard: unverified agents are warned but can still view the page
-$kycStatus = 'pending';
-try {
-    $st = Database::getInstance()->getConnection()
-        ->prepare("SELECT verification_status FROM agent_profiles WHERE user_id = ?");
-    $st->execute([(int)$_SESSION['user_id']]);
-    $kycStatus = $st->fetchColumn() ?: 'pending';
-} catch (Exception $e) { /* table not migrated yet — allow */ }
+// Check if user is an agent
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'agent') {
+    header('Location: /auth/login.php');
+    exit;
+}
 
-// Division + super-agent flag
-$agentDivision = $_SESSION['user_division']  ?? null;
-$isSuperAgent  = !empty($_SESSION['is_super_agent']);
-
-$flashSuccess = $_SESSION['flash_success'] ?? null;
-$flashError   = $_SESSION['flash_error']   ?? null;
-unset($_SESSION['flash_success'], $_SESSION['flash_error']);
-
-// Map: DB division value → listing_type (what the API expects) → label
-$divisionMap = [
-    'kinas-automobile'    => ['type' => 'car',         'label' => 'Kinas Automobile',      'opt' => 'automobile'],
-    'williams-connect-home'=> ['type' => 'property',   'label' => 'Williams Connect Home', 'opt' => 'realestate'],
-    'kinas-volt'          => ['type' => 'solar',       'label' => 'Kinas Volt',            'opt' => 'solar'],
-    'kinas-marketplace'   => ['type' => 'marketplace', 'label' => 'Kinas Marketplace',     'opt' => 'marketplace'],
-];
+$db = Database::getInstance()->getConnection();
+$agentId = (int)$_SESSION['user_id'];
 
 // Get listing ID and division
 $listingId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -53,17 +45,38 @@ if (!isset($tableMap[$divisionParam])) {
 }
 
 $table = $tableMap[$divisionParam];
-$db = Database::getInstance()->getConnection();
 
 // Get the listing
 $stmt = $db->prepare("SELECT * FROM $table WHERE id = ? AND agent_id = ?");
-$stmt->execute([$listingId, $_SESSION['user_id']]);
+$stmt->execute([$listingId, $agentId]);
 $listing = $stmt->fetch();
 
 if (!$listing) {
     header('Location: listings.php?error=Listing not found');
     exit;
 }
+
+// KYC soft-guard
+$kycStatus = 'pending';
+try {
+    $st = $db->prepare("SELECT verification_status FROM agent_profiles WHERE user_id = ?");
+    $st->execute([$agentId]);
+    $kycStatus = $st->fetchColumn() ?: 'pending';
+} catch (Exception $e) {
+    // Table not migrated yet — allow
+}
+
+$flashSuccess = $_SESSION['flash_success'] ?? null;
+$flashError   = $_SESSION['flash_error']   ?? null;
+unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
+// Division map
+$divisionMap = [
+    'kinas-automobile'    => ['type' => 'car',         'label' => 'Kinas Automobile',      'opt' => 'automobile'],
+    'williams-connect-home'=> ['type' => 'property',   'label' => 'Williams Connect Home', 'opt' => 'realestate'],
+    'kinas-volt'          => ['type' => 'solar',       'label' => 'Kinas Volt',            'opt' => 'solar'],
+    'kinas-marketplace'   => ['type' => 'marketplace', 'label' => 'Kinas Marketplace',     'opt' => 'marketplace'],
+];
 
 $csrf_token = Security::generateCSRFToken();
 require_once __DIR__ . '/../templates/header.php';
