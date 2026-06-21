@@ -17,18 +17,29 @@ $stmt = $db->prepare("
     FROM car_listings c
     LEFT JOIN users a ON c.agent_id = a.id
     LEFT JOIN agent_profiles ap ON a.id = ap.user_id
-    WHERE c.id = ? AND c.status = 'active'
+    WHERE c.id = ?
 ");
 $stmt->execute([$id]);
 $item = $stmt->fetch();
 
-if (!$item) {
+// Non-active listings (pending review, flagged, etc) are only visible to
+// the agent who owns them or an admin previewing before approval — not
+// to the general public. This also fixes agents getting a 404 when they
+// click "View" on their own just-submitted listing from the dashboard.
+$isOwnerOrAdmin = $item && SessionManager::isLoggedIn()
+    && ((int)$item['agent_id'] === SessionManager::getUserId() || SessionManager::getUserRole() === 'admin');
+
+if (!$item || ($item['status'] !== 'active' && !$isOwnerOrAdmin)) {
     http_response_code(404);
     include __DIR__ . '/../../pages/404.php';
     exit;
 }
 
-$db->prepare("UPDATE car_listings SET views = views + 1 WHERE id = ?")->execute([$id]);
+$isPreview = $item['status'] !== 'active';
+
+if (!$isPreview) {
+    $db->prepare("UPDATE car_listings SET views = views + 1 WHERE id = ?")->execute([$id]);
+}
 
 $images = $db->prepare("SELECT * FROM listing_images WHERE listing_id = ? AND listing_type = 'car' ORDER BY sort_order");
 $images->execute([$id]);
@@ -61,6 +72,12 @@ $location = implode(', ', $locParts);
 
 <div class="je-page">
 <div class="je-detail-wrap">
+
+<?php if ($isPreview): ?>
+<div style="background:#FFF8E1; border:1px solid #F0C419; color:#7A5B00; padding:14px 18px; border-radius:4px; margin-bottom:20px; font-size:14px;">
+    <i class="fas fa-eye"></i> <strong>Preview only</strong> — this listing is <?= htmlspecialchars(ucfirst($item['status'])) ?> and not visible to the public yet. Only you and admins can see this page.
+</div>
+<?php endif; ?>
 
     <div class="je-breadcrumb">
         <a href="/">Home</a>
