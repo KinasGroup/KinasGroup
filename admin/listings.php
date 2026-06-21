@@ -1,6 +1,7 @@
 <?php
 /**
  * Admin: Listings Management
+ * Shows all listings across ALL divisions
  */
 
 require_once '../includes/session.php';
@@ -16,57 +17,78 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
 $db = Database::getInstance()->getConnection();
 
-// Get all listings from all divisions
+// Get all listings from ALL divisions
 $listings = [];
 
-// Solar listings
+// 1. Solar listings (KINAS Volt)
 try {
     $solar = $db->query("
-        SELECT id, title, price, status, views, created_at, 'solar' as division, brand 
+        SELECT id, title, price, status, views, created_at, 'solar' as division, 
+               brand, NULL as beds, NULL as baths, NULL as sqft
         FROM solar_listings 
         ORDER BY created_at DESC
-        LIMIT 50
     ")->fetchAll();
     $listings = array_merge($listings, $solar);
 } catch (Exception $e) {}
 
-// Car listings
+// 2. Car listings (KINAS Automobile)
 try {
     $cars = $db->query("
-        SELECT id, title, price, status, views, created_at, 'car' as division, brand 
+        SELECT id, title, price, status, views, created_at, 'car' as division, 
+               brand, NULL as beds, NULL as baths, NULL as sqft
         FROM car_listings 
         ORDER BY created_at DESC
-        LIMIT 50
     ")->fetchAll();
     $listings = array_merge($listings, $cars);
 } catch (Exception $e) {}
 
-// Property listings
+// 3. Property listings (Williams Connect Home)
 try {
     $properties = $db->query("
-        SELECT id, title, price, status, views, created_at, 'property' as division, brand 
+        SELECT id, title, price, status, views, created_at, 'property' as division, 
+               brand, beds, baths, sqft
         FROM property_listings 
         ORDER BY created_at DESC
-        LIMIT 50
     ")->fetchAll();
     $listings = array_merge($listings, $properties);
-} catch (Exception $e) {}
+} catch (Exception $e) {
+    // Try with different column names if beds/baths/sqft don't exist
+    try {
+        $properties = $db->query("
+            SELECT id, title, price, status, views, created_at, 'property' as division, 
+                   brand, NULL as beds, NULL as baths, NULL as sqft
+            FROM property_listings 
+            ORDER BY created_at DESC
+        ")->fetchAll();
+        $listings = array_merge($listings, $properties);
+    } catch (Exception $e2) {}
+}
 
-// Marketplace listings
+// 4. Marketplace listings (KINAS Marketplace)
 try {
     $marketplace = $db->query("
-        SELECT id, title, price, status, views, created_at, 'marketplace' as division, brand 
+        SELECT id, title, price, status, views, created_at, 'marketplace' as division, 
+               brand, NULL as beds, NULL as baths, NULL as sqft
         FROM marketplace_listings 
         ORDER BY created_at DESC
-        LIMIT 50
     ")->fetchAll();
     $listings = array_merge($listings, $marketplace);
 } catch (Exception $e) {}
 
-// Sort by created_at
+// Sort all listings by created_at (newest first)
 usort($listings, function($a, $b) {
     return strtotime($b['created_at']) - strtotime($a['created_at']);
 });
+
+// Count listings by division for stats
+$divisionCounts = [];
+foreach ($listings as $listing) {
+    $div = $listing['division'];
+    if (!isset($divisionCounts[$div])) {
+        $divisionCounts[$div] = 0;
+    }
+    $divisionCounts[$div]++;
+}
 
 $pageTitle = 'Listings Management - Admin';
 include '../templates/header.php';
@@ -100,12 +122,45 @@ include '../templates/header.php';
             </div>
         </div>
 
+        <!-- Division Stats -->
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;">
+            <?php
+            $divColors = [
+                'solar' => '#FFF3E0',
+                'car' => '#E3F2FD',
+                'property' => '#E8F5E9',
+                'marketplace' => '#F3E5F5'
+            ];
+            $divLabels = [
+                'solar' => '☀️ Volt',
+                'car' => '🚗 Automobile',
+                'property' => '🏠 Homes',
+                'marketplace' => '🛍️ Marketplace'
+            ];
+            $divTextColors = [
+                'solar' => '#E65100',
+                'car' => '#0D47A1',
+                'property' => '#1B5E20',
+                'marketplace' => '#4A148C'
+            ];
+            foreach ($divisionCounts as $div => $count):
+                $color = $divColors[$div] ?? '#f0f0f0';
+                $textColor = $divTextColors[$div] ?? '#333';
+                $label = $divLabels[$div] ?? ucfirst($div);
+            ?>
+                <div style="background: <?php echo $color; ?>; padding: 12px 20px; border-radius: 8px; min-width: 120px; text-align: center;">
+                    <div style="font-size: 20px; font-weight: 700; color: <?php echo $textColor; ?>;"><?php echo $count; ?></div>
+                    <div style="font-size: 12px; color: <?php echo $textColor; ?>;"><?php echo $label; ?></div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
         <div class="je-panel">
             <div class="je-panel-body">
                 <?php if (empty($listings)): ?>
                     <div class="je-panel-empty">
                         <i class="fas fa-list-ul"></i>
-                        <p>No listings found.</p>
+                        <p>No listings found across any division.</p>
                     </div>
                 <?php else: ?>
                     <table class="je-table">
@@ -114,7 +169,7 @@ include '../templates/header.php';
                                 <th>ID</th>
                                 <th>Title</th>
                                 <th>Division</th>
-                                <th>Brand</th>
+                                <th>Details</th>
                                 <th>Price</th>
                                 <th>Status</th>
                                 <th>Views</th>
@@ -127,8 +182,23 @@ include '../templates/header.php';
                             <tr>
                                 <td><?php echo $listing['id']; ?></td>
                                 <td><strong><?php echo htmlspecialchars($listing['title']); ?></strong></td>
-                                <td><span class="division-badge"><?php echo ucfirst($listing['division']); ?></span></td>
-                                <td><?php echo htmlspecialchars($listing['brand'] ?? 'N/A'); ?></td>
+                                <td>
+                                    <span style="display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; 
+                                        background: <?php echo $divColors[$listing['division']] ?? '#f0f0f0'; ?>; 
+                                        color: <?php echo $divTextColors[$listing['division']] ?? '#333'; ?>;">
+                                        <?php echo $divLabels[$listing['division']] ?? ucfirst($listing['division']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <?php if ($listing['division'] === 'property'): ?>
+                                        <?php if (!empty($listing['beds'])): ?><?php echo $listing['beds']; ?> beds <?php endif; ?>
+                                        <?php if (!empty($listing['baths'])): ?><?php echo $listing['baths']; ?> baths <?php endif; ?>
+                                        <?php if (!empty($listing['sqft'])): ?><?php echo $listing['sqft']; ?> sqft <?php endif; ?>
+                                        <?php if (!empty($listing['brand'])): ?><?php echo htmlspecialchars($listing['brand']); ?><?php endif; ?>
+                                    <?php else: ?>
+                                        <?php echo htmlspecialchars($listing['brand'] ?? 'N/A'); ?>
+                                    <?php endif; ?>
+                                </td>
                                 <td>₦<?php echo number_format($listing['price']); ?></td>
                                 <td>
                                     <span class="status-badge status-badge-<?php echo $listing['status']; ?>">
@@ -165,15 +235,6 @@ include '../templates/header.php';
     margin: 2px;
 }
 .action-btn-delete { background: #C62828; color: white; }
-.division-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 600;
-    background: #E3F2FD;
-    color: #0D47A1;
-}
 .status-badge {
     display: inline-block;
     padding: 2px 10px;
