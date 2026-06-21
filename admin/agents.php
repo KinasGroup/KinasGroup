@@ -16,8 +16,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
 $db = Database::getInstance()->getConnection();
 
+// Check for success/error messages
+$success = isset($_GET['success']) ? $_GET['success'] : '';
+$error = isset($_GET['error']) ? $_GET['error'] : '';
+
 // Get all agents (users with role = 'agent')
-// Using LEFT JOIN but only selecting columns that we know exist
 $agents = $db->query("
     SELECT 
         u.id, 
@@ -65,6 +68,24 @@ include '../templates/header.php';
             </div>
         </div>
 
+        <?php if ($success): ?>
+            <div class="je-banner is-success">
+                <i class="je-banner-icon fas fa-check-circle"></i>
+                <div class="je-banner-body">
+                    <div class="je-banner-text"><?php echo htmlspecialchars($success); ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($error): ?>
+            <div class="je-banner is-danger">
+                <i class="je-banner-icon fas fa-exclamation-circle"></i>
+                <div class="je-banner-body">
+                    <div class="je-banner-text"><?php echo htmlspecialchars($error); ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div class="je-panel">
             <div class="je-panel-body">
                 <?php if (empty($agents)): ?>
@@ -79,8 +100,7 @@ include '../templates/header.php';
                                 <th>ID</th>
                                 <th>Email</th>
                                 <th>Status</th>
-                                <th>Verified</th>
-                                <th>Agent Verified</th>
+                                <th>Agent Verification</th>
                                 <th>Joined</th>
                                 <th>Actions</th>
                             </tr>
@@ -90,8 +110,11 @@ include '../templates/header.php';
                             <tr>
                                 <td><?php echo $agent['id']; ?></td>
                                 <td><strong><?php echo htmlspecialchars($agent['email']); ?></strong></td>
-                                <td><span class="status-badge status-badge-<?php echo $agent['status']; ?>"><?php echo ucfirst($agent['status']); ?></span></td>
-                                <td><?php echo $agent['verified'] ? '✅ Yes' : '❌ No'; ?></td>
+                                <td>
+                                    <span class="status-badge status-badge-<?php echo $agent['status']; ?>">
+                                        <?php echo ucfirst($agent['status']); ?>
+                                    </span>
+                                </td>
                                 <td>
                                     <?php if ($agent['agent_verification'] === 'verified'): ?>
                                         <span class="status-badge status-badge-verified">✅ Verified</span>
@@ -103,8 +126,24 @@ include '../templates/header.php';
                                 </td>
                                 <td><?php echo date('M j, Y', strtotime($agent['created_at'])); ?></td>
                                 <td>
-                                    <a href="edit-agent.php?id=<?php echo $agent['id']; ?>" class="action-btn action-btn-edit">Edit</a>
-                                    <a href="delete-agent.php?id=<?php echo $agent['id']; ?>" class="action-btn action-btn-delete" onclick="return confirm('Are you sure?')">Delete</a>
+                                    <?php if ($agent['status'] === 'active'): ?>
+                                        <a href="suspend-agent.php?id=<?php echo $agent['id']; ?>" 
+                                           class="action-btn action-btn-suspend" 
+                                           onclick="return confirm('Suspend this agent? They will not be able to list or manage listings.')">
+                                            Suspend
+                                        </a>
+                                    <?php elseif ($agent['status'] === 'suspended'): ?>
+                                        <a href="activate-agent.php?id=<?php echo $agent['id']; ?>" 
+                                           class="action-btn action-btn-activate" 
+                                           onclick="return confirm('Activate this agent? They will be able to list again.')">
+                                            Activate
+                                        </a>
+                                    <?php endif; ?>
+                                    <a href="delete-agent.php?id=<?php echo $agent['id']; ?>" 
+                                       class="action-btn action-btn-delete" 
+                                       onclick="return confirm('Delete this agent? This will permanently remove all their listings.')">
+                                        Delete
+                                    </a>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -126,7 +165,8 @@ include '../templates/header.php';
     text-decoration: none;
     margin: 2px;
 }
-.action-btn-edit { background: #1565C0; color: white; }
+.action-btn-suspend { background: #F57C00; color: white; }
+.action-btn-activate { background: #2E7D32; color: white; }
 .action-btn-delete { background: #C62828; color: white; }
 .status-badge {
     display: inline-block;
@@ -135,10 +175,8 @@ include '../templates/header.php';
     font-size: 10px;
     font-weight: 600;
 }
-.status-badge-user { background: #E3F2FD; color: #0D47A1; }
-.status-badge-agent { background: #FFF3E0; color: #E65100; }
-.status-badge-admin { background: #E8F5E9; color: #1B5E20; }
 .status-badge-active { background: #E8F5E9; color: #1B5E20; }
+.status-badge-suspended { background: #FFF3E0; color: #E65100; }
 .status-badge-pending { background: #FFF8E1; color: #F57F17; }
 .status-badge-verified { background: #E8F5E9; color: #1B5E20; }
 .status-badge-unverified { background: #FFEBEE; color: #C62828; }
