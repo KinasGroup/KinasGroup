@@ -11,17 +11,41 @@
  * Inserts into the correct table with sanitization and a
  * parameterized query (table name is whitelisted).
  */
-header('Content-Type: application/json');
 require_once '../config/database.php';
 require_once '../../includes/session.php';
 require_once '../../includes/security.php';
 require_once '../../includes/validation.php';
 
+// Was this submitted by a script (fetch/AJAX) expecting JSON, or by a plain
+// browser <form> post? The Add Listing form is a normal multipart form post
+// with no JS interception, so without this check the browser just navigated
+// to this endpoint and rendered the raw JSON text as a blank-looking page.
+$wantsJson = stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false
+    || stripos($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '', 'xmlhttprequest') !== false;
+
+if ($wantsJson) {
+    header('Content-Type: application/json');
+}
+
+/**
+ * Send a response appropriate to how the request was made: JSON for
+ * AJAX callers, or a flash message + redirect for plain form posts.
+ */
+function respond(int $httpCode, bool $success, string $message, array $extra = []): void {
+    global $wantsJson;
+    http_response_code($httpCode);
+    if ($wantsJson) {
+        echo json_encode(array_merge(['success' => $success, $success ? 'message' : 'error' => $message], $extra));
+    } else {
+        $_SESSION[$success ? 'flash_success' : 'flash_error'] = $message;
+        header('Location: ' . ($success ? '/agent/listings.php' : '/agent/add-listing.php'));
+    }
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['error' => 'Method not allowed']);
-    exit;
+    respond(405, false, 'Method not allowed');
 }
 
 SessionManager::requireLogin();
@@ -34,9 +58,7 @@ if (!$data) {
     $data = $_POST;
 }
 if (!$data) {
-    http_response_code(400);
-    echo json_encode(['error' => 'No data received']);
-    exit;
+    respond(400, false, 'No data received');
 }
 
 $listingType = (string)($data['listing_type'] ?? '');
@@ -49,9 +71,7 @@ $tables = [
 ];
 
 if (!isset($tables[$listingType])) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Invalid listing type']);
-    exit;
+    respond(400, false, 'Invalid listing type');
 }
 $table = $tables[$listingType];
 
@@ -74,12 +94,8 @@ $isSuperAgent  = !empty($_SESSION['is_super_agent']);
 
 if (SessionManager::getUserRole() !== 'admin' && !$isSuperAgent) {
     if (!$agentDivision || $agentDivision !== $listingTypeToDivision[$listingType]) {
-        http_response_code(403);
-        echo json_encode([
-            'error' => 'You can only create listings in your assigned division (' .
-                       ($agentDivision ? $agentDivision : 'none assigned') . ').',
-        ]);
-        exit;
+        respond(403, false, 'You can only create listings in your assigned division (' .
+            ($agentDivision ? $agentDivision : 'none assigned') . ').');
     }
 }
 
@@ -88,19 +104,13 @@ $price = (float)($data['price'] ?? 0);
 $description = Security::sanitizeInput((string)($data['description'] ?? ''));
 
 if ($title === '' || mb_strlen($title) < 3) {
-    http_response_code(422);
-    echo json_encode(['error' => 'Title is required (min 3 characters)']);
-    exit;
+    respond(422, false, 'Title is required (min 3 characters)');
 }
 if ($price <= 0) {
-    http_response_code(422);
-    echo json_encode(['error' => 'Price must be greater than zero']);
-    exit;
+    respond(422, false, 'Price must be greater than zero');
 }
 if ($price > 999999999999) {
-    http_response_code(422);
-    echo json_encode(['error' => 'Price exceeds maximum allowed value']);
-    exit;
+    respond(422, false, 'Price exceeds maximum allowed value');
 }
 
 $agentId = (int)$_SESSION['user_id'];
@@ -238,31 +248,36 @@ try {
 
     // ── Image uploads ───────────────────────────────────────────────────
     // The form posts files as images[] (multipart). Previously these were
-    // silently ignored — listings published with zero photos. Save them
-    // now that we have a listing id, and record them in listing_images.
-    if (!empty($_FILES['images']) && !empty($_FILES['images']['name'][0])) {
-        require_once __DIR__ . '/../../includes/file-upload.php';
-        $uploadSubDir = [
-            'car'         => 'cars',
-            'property'    => 'properties',
-            'solar'       => 'products',
-            'marketplace' => 'products',
-        ][$listingType] ?? 'general';
-
+    // silently ignored — listings published with zero photos. Mirrors the
+    // proven-working upload logic in api/listings/update.php so the stored
+    // `url` is a real public path (/uploads/listings/{type}/{id}/{file}),
+    // matching what api/listings/delete-image.php expects.
+    if (!empty($_FILES['images']) && is_array($_FILES['images']['name'] ?? null) && !empty($_FILES['images']['name'][0])) {
         try {
-            $uploader = new FileUpload($uploadSubDir);
-            $results = $uploader->uploadMultiple($_FILES['images'], ['maxWidth' => 1920, 'maxHeight' => 1080]);
+            $uploadDir = __DIR__ . '/../../uploads/listings/' . $listingType . '/' . $listingId . '/';
+            if (!is_dir($uploadDir)) {
+                @mkdir($uploadDir, 0755, true);
+            }
 
+            $imageCount = count($_FILES['images']['name']);
             $imgStmt = $db->prepare(
-                "INSERT INTO listing_images (listing_id, listing_type, url, thumbnail_url, sort_order, created_at)
-                 VALUES (?, ?, ?, ?, ?, NOW())"
+                "INSERT INTO listing_images (listing_id, listing_type, url, sort_order, created_at) VALUES (?, ?, ?, ?, NOW())"
             );
-            $order = 0;
-            foreach ($results as $r) {
-                if (!empty($r['success'])) {
-                    $imgStmt->execute([$listingId, $listingType, $r['filename'], $r['thumbnail'], $order]);
-                    $order++;
-                }
+
+            for ($i = 0; $i < $imageCount; $i++) {
+                if ($_FILES['images']['error'][$i] !== UPLOAD_ERR_OK) continue;
+                $tmpName = $_FILES['images']['tmp_name'][$i];
+                $origName = basename($_FILES['images']['name'][$i]);
+                $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+                if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) continue;
+                if ($_FILES['images']['size'][$i] > 10 * 1024 * 1024) continue;
+
+                $newName = uniqid('img_', true) . '.' . $ext;
+                $target = $uploadDir . $newName;
+                if (!@move_uploaded_file($tmpName, $target)) continue;
+
+                $publicUrl = '/uploads/listings/' . $listingType . '/' . $listingId . '/' . $newName;
+                $imgStmt->execute([$listingId, $listingType, $publicUrl, $i]);
             }
         } catch (\Throwable $e) {
             // Don't fail listing creation just because image processing
@@ -278,14 +293,8 @@ try {
 
     Security::logActivity($agentId, 'listing_created', "Created $listingType listing #$listingId");
 
-    http_response_code(201);
-    echo json_encode([
-        'success' => true,
-        'id'      => $listingId,
-        'message' => 'Listing submitted for review.',
-    ]);
+    respond(201, true, 'Listing submitted for review.', ['id' => $listingId]);
 } catch (\PDOException $e) {
     error_log('Listing creation error: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['error' => 'Failed to create listing. Please try again.']);
+    respond(500, false, 'Failed to create listing. Please try again.');
 }
