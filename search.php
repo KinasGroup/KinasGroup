@@ -15,15 +15,21 @@ $db = Database::getInstance()->getConnection();
 // Get search parameters
 $query = isset($_GET['q']) ? trim($_GET['q']) : '';
 $division = isset($_GET['division']) ? $_GET['division'] : 'all';
-$sort = isset($_GET['sort']) ? $_GET['sort'] : 'relevance';
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $perPage = 12;
 $offset = ($page - 1) * $perPage;
 
-// Build search conditions
 $searchTerm = '%' . $query . '%';
 $results = [];
 $totalCount = 0;
+
+// Division folder mapping for links
+$divisionFolders = [
+    'car' => 'kinas-automobile',
+    'solar' => 'kinas-volt',
+    'property' => 'williams-connect-home',
+    'marketplace' => 'kinas-marketplace'
+];
 
 // Function to get image for a listing
 function getListingImage($db, $listingId, $divisionName) {
@@ -38,7 +44,6 @@ function getListingImage($db, $listingId, $divisionName) {
     if (empty($table)) return null;
     
     try {
-        // First try to get image from listing_images table
         $stmt = $db->prepare("
             SELECT url FROM listing_images 
             WHERE listing_id = ? AND listing_type = ? 
@@ -51,7 +56,6 @@ function getListingImage($db, $listingId, $divisionName) {
             return $image['url'];
         }
         
-        // Fallback: check if table has a thumbnail column
         $stmt2 = $db->prepare("SELECT thumbnail FROM $table WHERE id = ?");
         $stmt2->execute([$listingId]);
         $thumb = $stmt2->fetch();
@@ -72,7 +76,6 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
     $count = 0;
     
     try {
-        // Determine which fields to search based on table
         $searchFields = [];
         switch ($table) {
             case 'car_listings':
@@ -91,14 +94,12 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
                 $searchFields = ['title'];
         }
         
-        // Build WHERE clause
         $whereClauses = [];
         foreach ($searchFields as $field) {
             $whereClauses[] = "$field LIKE ?";
         }
         $whereSQL = implode(' OR ', $whereClauses);
         
-        // Prepare the search query
         $stmt = $db->prepare("
             SELECT 
                 id, 
@@ -119,7 +120,6 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
             LIMIT ? OFFSET ?
         ");
         
-        // Build parameters
         $params = [];
         foreach ($searchFields as $field) {
             $params[] = $searchTerm;
@@ -130,7 +130,6 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
         $stmt->execute($params);
         $results = $stmt->fetchAll();
         
-        // Get total count for pagination
         $countStmt = $db->prepare("
             SELECT COUNT(*) as total 
             FROM $table 
@@ -145,7 +144,6 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
         $count = $countStmt->fetch()['total'] ?? 0;
         
     } catch (Exception $e) {
-        // Table might not exist, skip it
         error_log("Search error for $table: " . $e->getMessage());
     }
     
@@ -173,26 +171,24 @@ if ($division === 'all') {
     }
 }
 
-// Execute searches
 $allResults = [];
 foreach ($divisionsToSearch as $table => $divName) {
     $result = searchTable($db, $table, $divName, $searchTerm, $offset, $perPage);
     
-    // Add images to each result
     foreach ($result['results'] as &$item) {
         $item['image'] = getListingImage($db, $item['id'], $item['division']);
+        // Add the correct folder path for the link
+        $item['folder'] = $divisionFolders[$item['division']] ?? $item['division'];
     }
     
     $allResults = array_merge($allResults, $result['results']);
     $totalCount += $result['count'];
 }
 
-// Sort results by created_at
 usort($allResults, function($a, $b) {
     return strtotime($b['created_at']) - strtotime($a['created_at']);
 });
 
-// Paginate results
 $paginatedResults = array_slice($allResults, $offset, $perPage);
 $totalPages = ceil($totalCount / $perPage);
 
@@ -376,7 +372,6 @@ include 'templates/header.php';
         Search Results
     </h1>
     
-    <!-- Search Form -->
     <form method="GET" action="search.php" style="display: flex; gap: 12px; margin-bottom: 30px; flex-wrap: wrap;">
         <input type="text" name="q" value="<?php echo htmlspecialchars($query); ?>" 
                placeholder="Search for cars, properties, solar, products..." 
@@ -404,7 +399,6 @@ include 'templates/header.php';
         <?php if (!empty($paginatedResults)): ?>
             <?php foreach ($paginatedResults as $item): ?>
                 <div class="search-result-card">
-                    <!-- Image Column -->
                     <div class="search-result-image">
                         <?php if (!empty($item['image'])): ?>
                             <img src="<?php echo htmlspecialchars($item['image']); ?>" 
@@ -417,17 +411,34 @@ include 'templates/header.php';
                         <?php endif; ?>
                     </div>
                     
-                    <!-- Content Column -->
                     <div class="search-result-content">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
                             <div>
-                                <a href="/divisions/<?php echo $item['division']; ?>/detail.php?id=<?php echo $item['id']; ?>" 
+                                <?php 
+                                // Get the correct folder name for this division
+                                $folderMap = [
+                                    'car' => 'kinas-automobile',
+                                    'solar' => 'kinas-volt',
+                                    'property' => 'williams-connect-home',
+                                    'marketplace' => 'kinas-marketplace'
+                                ];
+                                $folder = $folderMap[$item['division']] ?? $item['division'];
+                                ?>
+                                <a href="/divisions/<?php echo $folder; ?>/detail.php?id=<?php echo $item['id']; ?>" 
                                    class="search-result-title">
                                     <?php echo htmlspecialchars($item['title']); ?>
                                 </a>
                                 <div style="margin-top: 4px;">
                                     <span class="search-result-division division-<?php echo $item['division']; ?>">
-                                        <?php echo ucfirst($item['division']); ?>
+                                        <?php 
+                                        $displayNames = [
+                                            'car' => 'Automobile',
+                                            'solar' => 'Volt',
+                                            'property' => 'Homes',
+                                            'marketplace' => 'Marketplace'
+                                        ];
+                                        echo $displayNames[$item['division']] ?? ucfirst($item['division']); 
+                                        ?>
                                     </span>
                                     <span style="color: #888; font-size: 13px; margin-left: 8px;">
                                         <?php echo ucfirst($item['type']); ?>
@@ -457,9 +468,9 @@ include 'templates/header.php';
                             <div style="text-align: right;">
                                 <div class="search-result-price">₦<?php echo number_format($item['price']); ?></div>
                                 <div class="search-result-actions">
-                                    <a href="/divisions/<?php echo $item['division']; ?>/detail.php?id=<?php echo $item['id']; ?>" 
+                                    <a href="/divisions/<?php echo $folder; ?>/detail.php?id=<?php echo $item['id']; ?>" 
                                        class="btn-view">
-                                        View Details <i class="fas fa-arrow-right"></i>
+                                        <i class="fas fa-eye"></i> View Details
                                     </a>
                                 </div>
                             </div>
@@ -468,7 +479,6 @@ include 'templates/header.php';
                 </div>
             <?php endforeach; ?>
             
-            <!-- Pagination -->
             <?php if ($totalPages > 1): ?>
                 <div class="pagination">
                     <?php if ($page > 1): ?>
