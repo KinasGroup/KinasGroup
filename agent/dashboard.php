@@ -1,7 +1,8 @@
 <?php
 /**
- * Agent Dashboard - KINAS GROUP
- * Complete agent dashboard with hardware management
+ * Super Agent Dashboard - KINAS GROUP
+ * Shows all divisions: Automobile, Volt, Homes, Marketplace
+ * RESTORED from original with enhanced counting
  */
 
 require_once '../includes/session.php';
@@ -19,72 +20,39 @@ $db = Database::getInstance()->getConnection();
 $agentId = $_SESSION['user_id'];
 $userName = $_SESSION['user_name'] ?? 'Agent';
 
-// Get agent stats - FIXED: Count ALL active listings
-$stats = [
-    // Total ALL active listings (including hardware and services)
-    'total_listings' => $db->query("
-        SELECT COUNT(*) FROM solar_listings 
-        WHERE agent_id = $agentId AND status = 'active'
-    ")->fetchColumn(),
-    
-    // Total hardware listings only
-    'total_hardware' => $db->query("
-        SELECT COUNT(*) FROM solar_listings 
-        WHERE agent_id = $agentId 
-          AND service_type IN ('solar_panel', 'inverter', 'battery', 'charge_controller', 'mounting_structure')
-          AND status = 'active'
-    ")->fetchColumn(),
-    
-    // Total service listings (non-hardware)
-    'total_services' => $db->query("
-        SELECT COUNT(*) FROM solar_listings 
-        WHERE agent_id = $agentId 
-          AND service_type NOT IN ('solar_panel', 'inverter', 'battery', 'charge_controller', 'mounting_structure')
-          AND status = 'active'
-    ")->fetchColumn(),
-    
-    // Total views across all listings
-    'total_views' => $db->query("
-        SELECT COALESCE(SUM(views), 0) FROM solar_listings 
-        WHERE agent_id = $agentId
-    ")->fetchColumn(),
-    
-    // Pending verification
-    'pending_verification' => $db->query("
-        SELECT COUNT(*) FROM solar_listings 
-        WHERE agent_id = $agentId AND status = 'pending'
-    ")->fetchColumn(),
-    
-    // Inactive/deleted listings
-    'inactive_listings' => $db->query("
-        SELECT COUNT(*) FROM solar_listings 
-        WHERE agent_id = $agentId AND status IN ('inactive', 'removed')
-    ")->fetchColumn(),
-];
+// Get ALL listings across ALL divisions (not just Volt)
+$totalListings = $db->query("
+    SELECT COUNT(*) FROM (
+        SELECT id FROM solar_listings WHERE agent_id = $agentId AND status = 'active'
+        UNION ALL
+        SELECT id FROM car_listings WHERE agent_id = $agentId AND status = 'active'
+        UNION ALL
+        SELECT id FROM property_listings WHERE agent_id = $agentId AND status = 'active'
+        UNION ALL
+        SELECT id FROM marketplace_listings WHERE agent_id = $agentId AND status = 'active'
+    ) as all_listings
+")->fetchColumn();
 
-// Get all active hardware
-$hardware = $db->query("
-    SELECT id, title, service_type, brand, capacity_kw, price, warranty_years, status, views, created_at
-    FROM solar_listings 
-    WHERE agent_id = $agentId 
-      AND service_type IN ('solar_panel', 'inverter', 'battery', 'charge_controller', 'mounting_structure')
-      AND status = 'active'
-    ORDER BY created_at DESC 
-    LIMIT 10
-")->fetchAll();
+// Get counts by division
+$solarCount = $db->query("SELECT COUNT(*) FROM solar_listings WHERE agent_id = $agentId AND status = 'active'")->fetchColumn();
+$carCount = $db->query("SELECT COUNT(*) FROM car_listings WHERE agent_id = $agentId AND status = 'active'")->fetchColumn();
+$propertyCount = $db->query("SELECT COUNT(*) FROM property_listings WHERE agent_id = $agentId AND status = 'active'")->fetchColumn();
+$marketplaceCount = $db->query("SELECT COUNT(*) FROM marketplace_listings WHERE agent_id = $agentId AND status = 'active'")->fetchColumn();
 
-// Get all active service listings
-$services = $db->query("
-    SELECT id, title, service_type, price, status, views, created_at
-    FROM solar_listings 
-    WHERE agent_id = $agentId 
-      AND service_type NOT IN ('solar_panel', 'inverter', 'battery', 'charge_controller', 'mounting_structure')
-      AND status = 'active'
-    ORDER BY created_at DESC 
-    LIMIT 10
-")->fetchAll();
+// Get inactive counts
+$inactiveCount = $db->query("
+    SELECT COUNT(*) FROM (
+        SELECT id FROM solar_listings WHERE agent_id = $agentId AND status IN ('inactive', 'removed')
+        UNION ALL
+        SELECT id FROM car_listings WHERE agent_id = $agentId AND status IN ('inactive', 'removed')
+        UNION ALL
+        SELECT id FROM property_listings WHERE agent_id = $agentId AND status IN ('inactive', 'removed')
+        UNION ALL
+        SELECT id FROM marketplace_listings WHERE agent_id = $agentId AND status IN ('inactive', 'removed')
+    ) as inactive_listings
+")->fetchColumn();
 
-$pageTitle = 'Agent Dashboard - KINAS VOLT';
+$pageTitle = 'Super Agent Dashboard - KINAS GROUP';
 include '../templates/header.php';
 ?>
 
@@ -92,14 +60,12 @@ include '../templates/header.php';
     <!-- Sidebar -->
     <aside class="je-dash-sidebar">
         <div class="je-dash-sidebar-brand">
-            <i class="fas fa-solar-panel"></i> KINAS VOLT
+            <i class="fas fa-crown"></i> KINAS GROUP
         </div>
         <ul class="je-dash-nav">
             <li><a href="dashboard.php" class="is-active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="listings.php"><i class="fas fa-list-ul"></i> My Listings</a></li>
+            <li><a href="listings.php"><i class="fas fa-list-ul"></i> All Listings</a></li>
             <li><a href="add-listing.php"><i class="fas fa-plus-circle"></i> Add Listing</a></li>
-            <li><a href="hardware.php"><i class="fas fa-microchip"></i> Hardware Inventory</a></li>
-            <li><a href="add-hardware.php"><i class="fas fa-plus"></i> Add Hardware</a></li>
             <li><a href="messages.php"><i class="fas fa-envelope"></i> Messages</a></li>
             <li><a href="analytics.php"><i class="fas fa-chart-bar"></i> Analytics</a></li>
             <li><a href="profile.php"><i class="fas fa-user"></i> Profile</a></li>
@@ -113,142 +79,90 @@ include '../templates/header.php';
     <main class="je-dash-main">
         <div class="je-dash-header">
             <div>
-                <h1><i class="fas fa-tachometer-alt" style="color: #C6A43F;"></i> Dashboard</h1>
-                <p>Welcome back, <?php echo htmlspecialchars($userName); ?>!</p>
-            </div>
-            <div>
-                <a href="add-hardware.php" class="je-btn je-btn-gold" style="background: #C6A43F; color: #0A0A0A;">
-                    <i class="fas fa-plus"></i> Add Hardware
-                </a>
+                <h1><i class="fas fa-tachometer-alt" style="color: #C6A43F;"></i> Super Agent Dashboard</h1>
+                <p>Welcome back, <?php echo htmlspecialchars($userName); ?>! (Agent ID: <?php echo $agentId; ?>)</p>
             </div>
         </div>
 
-        <!-- Stats Grid -->
+        <!-- Overall Stats -->
         <div class="je-card-grid">
             <div class="je-stat-card">
                 <div class="je-stat-icon"><i class="fas fa-list-ul"></i></div>
                 <div>
                     <div class="je-stat-label">Total Active Listings</div>
-                    <div class="je-stat-value"><?php echo $stats['total_listings']; ?></div>
+                    <div class="je-stat-value"><?php echo $totalListings; ?></div>
                     <div style="font-size: 11px; color: #999; margin-top: 4px;">
-                        <?php echo $stats['total_services']; ?> services · <?php echo $stats['total_hardware']; ?> hardware
+                        Across all divisions
                     </div>
-                </div>
-            </div>
-            <div class="je-stat-card">
-                <div class="je-stat-icon"><i class="fas fa-microchip"></i></div>
-                <div>
-                    <div class="je-stat-label">Hardware Items</div>
-                    <div class="je-stat-value"><?php echo $stats['total_hardware']; ?></div>
-                    <div style="font-size: 11px; color: #999; margin-top: 4px;">Panels, inverters, batteries</div>
-                </div>
-            </div>
-            <div class="je-stat-card">
-                <div class="je-stat-icon"><i class="fas fa-eye"></i></div>
-                <div>
-                    <div class="je-stat-label">Total Views</div>
-                    <div class="je-stat-value"><?php echo number_format($stats['total_views']); ?></div>
                 </div>
             </div>
             <div class="je-stat-card">
                 <div class="je-stat-icon"><i class="fas fa-trash-alt"></i></div>
                 <div>
                     <div class="je-stat-label">Inactive/Deleted</div>
-                    <div class="je-stat-value"><?php echo $stats['inactive_listings']; ?></div>
-                    <div style="font-size: 11px; color: #999; margin-top: 4px;"><?php echo $stats['pending_verification']; ?> pending</div>
+                    <div class="je-stat-value"><?php echo $inactiveCount; ?></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Divisions Grid -->
+        <h2 style="font-family: 'Prata', serif; margin: 32px 0 20px 0; color: #0A0A0A;">
+            <i class="fas fa-cubes" style="color: #C6A43F;"></i> Your Listings by Division
+        </h2>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px;">
+            <!-- KINAS Automobile -->
+            <div style="background: #fff; border: 1px solid #E0E0E0; border-radius: 12px; padding: 24px; text-align: center;">
+                <div style="font-size: 40px; margin-bottom: 8px;">🚗</div>
+                <div style="font-size: 32px; font-weight: 700; color: #C6A43F;"><?php echo $carCount; ?></div>
+                <div style="font-size: 14px; color: #666;">KINAS Automobile</div>
+                <a href="listings.php?division=car" style="display: inline-block; margin-top: 12px; padding: 4px 16px; border: 1px solid #C6A43F; border-radius: 20px; color: #C6A43F; text-decoration: none; font-size: 12px;">View</a>
+            </div>
+
+            <!-- KINAS Volt -->
+            <div style="background: #fff; border: 1px solid #E0E0E0; border-radius: 12px; padding: 24px; text-align: center;">
+                <div style="font-size: 40px; margin-bottom: 8px;">☀️</div>
+                <div style="font-size: 32px; font-weight: 700; color: #C6A43F;"><?php echo $solarCount; ?></div>
+                <div style="font-size: 14px; color: #666;">KINAS Volt</div>
+                <a href="listings.php?division=solar" style="display: inline-block; margin-top: 12px; padding: 4px 16px; border: 1px solid #C6A43F; border-radius: 20px; color: #C6A43F; text-decoration: none; font-size: 12px;">View</a>
+            </div>
+
+            <!-- Williams Connect Home -->
+            <div style="background: #fff; border: 1px solid #E0E0E0; border-radius: 12px; padding: 24px; text-align: center;">
+                <div style="font-size: 40px; margin-bottom: 8px;">🏠</div>
+                <div style="font-size: 32px; font-weight: 700; color: #C6A43F;"><?php echo $propertyCount; ?></div>
+                <div style="font-size: 14px; color: #666;">Williams Connect Home</div>
+                <a href="listings.php?division=property" style="display: inline-block; margin-top: 12px; padding: 4px 16px; border: 1px solid #C6A43F; border-radius: 20px; color: #C6A43F; text-decoration: none; font-size: 12px;">View</a>
+            </div>
+
+            <!-- KINAS Marketplace -->
+            <div style="background: #fff; border: 1px solid #E0E0E0; border-radius: 12px; padding: 24px; text-align: center;">
+                <div style="font-size: 40px; margin-bottom: 8px;">🛍️</div>
+                <div style="font-size: 32px; font-weight: 700; color: #C6A43F;"><?php echo $marketplaceCount; ?></div>
+                <div style="font-size: 14px; color: #666;">KINAS Marketplace</div>
+                <a href="listings.php?division=marketplace" style="display: inline-block; margin-top: 12px; padding: 4px 16px; border: 1px solid #C6A43F; border-radius: 20px; color: #C6A43F; text-decoration: none; font-size: 12px;">View</a>
             </div>
         </div>
 
         <!-- Quick Actions -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;">
-            <a href="add-hardware.php" style="background: #1A3A2A; color: white; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
-                <i class="fas fa-microchip" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
-                <strong>Add Hardware</strong>
-                <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Solar panels, inverters, batteries</p>
-            </a>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
             <a href="add-listing.php" style="background: #C6A43F; color: #0A0A0A; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
                 <i class="fas fa-plus-circle" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
-                <strong>Add Service</strong>
-                <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Services, installations, projects</p>
+                <strong>Add Listing</strong>
+                <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Across any division</p>
             </a>
-            <a href="listings.php" style="background: #2C3E50; color: white; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
+            <a href="listings.php" style="background: #1A3A2A; color: white; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
                 <i class="fas fa-list-ul" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
-                <strong>My Listings</strong>
-                <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">View and manage all listings</p>
+                <strong>All Listings</strong>
+                <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">View and manage all</p>
             </a>
-        </div>
-
-        <!-- Recent Activity -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-            <!-- Recent Hardware -->
-            <div class="je-panel">
-                <div class="je-panel-header">
-                    <div class="je-panel-title">
-                        <i class="fas fa-microchip" style="color: #C6A43F;"></i> Recent Hardware
-                    </div>
-                    <a href="hardware.php" class="je-btn je-btn-sm je-btn-outline">View All</a>
-                </div>
-                <div class="je-panel-body">
-                    <?php if (empty($hardware)): ?>
-                        <div class="je-panel-empty">
-                            <i class="fas fa-microchip"></i>
-                            <p>No hardware items added yet.</p>
-                        </div>
-                    <?php else: ?>
-                        <ul style="list-style: none; padding: 0; margin: 0;">
-                            <?php foreach ($hardware as $item): ?>
-                            <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <strong><?php echo htmlspecialchars($item['title']); ?></strong>
-                                    <br>
-                                    <span style="font-size: 12px; color: #888;"><?php echo $item['brand']; ?> · <?php echo $item['capacity_kw']; ?> kW</span>
-                                </div>
-                                <div style="text-align: right;">
-                                    <span style="color: #C6A43F; font-weight: bold;">₦<?php echo number_format($item['price']); ?></span>
-                                </div>
-                            </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- Recent Services -->
-            <div class="je-panel">
-                <div class="je-panel-header">
-                    <div class="je-panel-title">
-                        <i class="fas fa-list-ul" style="color: #C6A43F;"></i> Recent Services
-                    </div>
-                    <a href="listings.php" class="je-btn je-btn-sm je-btn-outline">View All</a>
-                </div>
-                <div class="je-panel-body">
-                    <?php if (empty($services)): ?>
-                        <div class="je-panel-empty">
-                            <i class="fas fa-list-ul"></i>
-                            <p>No service listings added yet.</p>
-                        </div>
-                    <?php else: ?>
-                        <ul style="list-style: none; padding: 0; margin: 0;">
-                            <?php foreach ($services as $item): ?>
-                            <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <strong><?php echo htmlspecialchars($item['title']); ?></strong>
-                                    <br>
-                                    <span style="font-size: 12px; color: #888;"><?php echo str_replace('_', ' ', $item['service_type']); ?></span>
-                                </div>
-                                <div style="text-align: right;">
-                                    <span style="color: #C6A43F; font-weight: bold;">₦<?php echo number_format($item['price']); ?></span>
-                                </div>
-                            </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-                </div>
-            </div>
+            <a href="analytics.php" style="background: #2C3E50; color: white; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
+                <i class="fas fa-chart-bar" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
+                <strong>Analytics</strong>
+                <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Performance insights</p>
+            </a>
         </div>
     </main>
 </div>
 
 <?php include '../templates/footer.php'; ?>
-
