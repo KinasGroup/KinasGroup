@@ -37,6 +37,9 @@ $agents = $db->query("
     ORDER BY u.created_at DESC
 ")->fetchAll();
 
+// Super Agent email that should always show as verified
+$superAgentEmail = 'listing@kinas-group.com';
+
 $pageTitle = 'Agents Management - Admin';
 include '../templates/header.php';
 ?>
@@ -118,9 +121,9 @@ include '../templates/header.php';
                                 </td>
                                 <td>
                                     <?php 
-                                    // Super Admin (role = 'admin') should always show as verified
-                                    if ($agent['role'] === 'admin') {
-                                        echo '<span class="status-badge status-badge-verified">✅ Verified (Super Admin)</span>';
+                                    // Super Agent (listing@kinas-group.com) should always show as verified
+                                    if ($agent['email'] === $superAgentEmail) {
+                                        echo '<span class="status-badge status-badge-verified">✅ Verified (Super Agent)</span>';
                                     } elseif ($agent['agent_verification'] === 'verified') {
                                         echo '<span class="status-badge status-badge-verified">✅ Verified</span>';
                                     } elseif ($agent['agent_verification'] === 'pending') {
@@ -132,27 +135,27 @@ include '../templates/header.php';
                                 </td>
                                 <td><?php echo date('M j, Y', strtotime($agent['created_at'])); ?></td>
                                 <td>
-                                    <?php if ($agent['status'] === 'active'): ?>
-                                        <a href="suspend-agent.php?id=<?php echo $agent['id']; ?>" 
-                                           class="action-btn action-btn-suspend" 
-                                           onclick="return confirm('Suspend this agent? They will not be able to list or manage listings.')">
-                                            Suspend
-                                        </a>
-                                    <?php elseif ($agent['status'] === 'suspended'): ?>
-                                        <a href="activate-agent.php?id=<?php echo $agent['id']; ?>" 
-                                           class="action-btn action-btn-activate" 
-                                           onclick="return confirm('Activate this agent? They will be able to list again.')">
-                                            Activate
-                                        </a>
-                                    <?php endif; ?>
-                                    <?php if ($agent['role'] !== 'admin'): ?>
+                                    <?php if ($agent['email'] === $superAgentEmail): ?>
+                                        <span style="color: #999; font-size: 11px;">(Super Agent)</span>
+                                    <?php else: ?>
+                                        <?php if ($agent['status'] === 'active'): ?>
+                                            <a href="suspend-agent.php?id=<?php echo $agent['id']; ?>" 
+                                               class="action-btn action-btn-suspend" 
+                                               onclick="return confirm('Suspend this agent? They will not be able to list or manage listings.')">
+                                                Suspend
+                                            </a>
+                                        <?php elseif ($agent['status'] === 'suspended'): ?>
+                                            <a href="activate-agent.php?id=<?php echo $agent['id']; ?>" 
+                                               class="action-btn action-btn-activate" 
+                                               onclick="return confirm('Activate this agent? They will be able to list again.')">
+                                                Activate
+                                            </a>
+                                        <?php endif; ?>
                                         <a href="delete-agent.php?id=<?php echo $agent['id']; ?>" 
                                            class="action-btn action-btn-delete" 
                                            onclick="return confirm('Delete this agent? This will permanently remove all their listings.')">
                                             Delete
                                         </a>
-                                    <?php else: ?>
-                                        <span style="color: #999; font-size: 11px;">(Super Admin)</span>
                                     <?php endif; ?>
                                 </td>
                             </tr>

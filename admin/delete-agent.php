@@ -32,9 +32,9 @@ if (!$agent) {
     exit;
 }
 
-// Prevent deleting Super Admin
-if ($agent['role'] === 'admin') {
-    header('Location: agents.php?error=Cannot delete Super Admin');
+// Prevent deleting Super Agent
+if ($agent['email'] === 'listing@kinas-group.com') {
+    header('Location: agents.php?error=Cannot delete Super Agent');
     exit;
 }
 
