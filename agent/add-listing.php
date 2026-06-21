@@ -174,9 +174,10 @@ document.getElementById('division')?.addEventListener('change', syncListingType)
 syncListingType(); // initialise (regular-agent pre-selected option needs to set listing_type too)
 
 const imageUpload = document.getElementById('imageUpload'), previewGrid = document.getElementById('imagePreviewGrid'); let selectedFiles = [];
-imageUpload?.addEventListener('change', function(e) { selectedFiles = [...selectedFiles, ...Array.from(e.target.files)]; updatePreview(); });
+function syncInputFiles() { const dt = new DataTransfer(); selectedFiles.forEach(f => dt.items.add(f)); imageUpload.files = dt.files; }
+imageUpload?.addEventListener('change', function(e) { selectedFiles = [...selectedFiles, ...Array.from(e.target.files)]; syncInputFiles(); updatePreview(); });
 function updatePreview() { previewGrid.innerHTML = ''; selectedFiles.forEach((file, index) => { const reader = new FileReader(); reader.onload = function(e) { const div = document.createElement('div'); div.className = 'preview-item'; div.innerHTML = `<img src="${e.target.result}"><div class="preview-remove" onclick="removeImage(${index})">&times;</div>`; previewGrid.appendChild(div); }; reader.readAsDataURL(file); }); }
-function removeImage(index) { selectedFiles.splice(index, 1); updatePreview(); const dt = new DataTransfer(); selectedFiles.forEach(f => dt.items.add(f)); imageUpload.files = dt.files; }
+function removeImage(index) { selectedFiles.splice(index, 1); updatePreview(); syncInputFiles(); }
 </script>
 
 </main>
