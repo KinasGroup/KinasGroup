@@ -165,9 +165,9 @@ include __DIR__ . '/../templates/header.php';
             </div>
         </a>
 
-        <!-- KINAS Volt -->
+        <!-- KINAS Volt - NOW WITH PROPER SOLAR PANEL IMAGE -->
         <a href="/divisions/kinas-volt/" class="division-card">
-            <div class="card-bg" style="background-image: url('https://images.pexels.com/photos/3182814/pexels-photo-3182814.jpeg?w=400https://images.pexels.com/photos/3182814/pexels-photo-3182814.jpeg?w=400https://images.pexels.com/photos/258097/pexels-photo-258097.jpeg?w=400&q=80q=80q=80'); background-color: #1a1a2e;"></div>
+            <div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&q=80'); background-color: #1a2e1a;"></div>
             <div class="card-overlay"></div>
             <div class="card-content">
                 <h3>KINAS VOLT</h3>
