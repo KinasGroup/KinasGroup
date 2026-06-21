@@ -17,14 +17,27 @@ $stmt = $db->prepare("
     FROM property_listings p
     LEFT JOIN users a ON p.agent_id = a.id
     LEFT JOIN agent_profiles ap ON a.id = ap.user_id
-    WHERE p.id = ? AND p.status = 'active'
+    WHERE p.id = ?
 ");
 $stmt->execute([$id]);
 $item = $stmt->fetch();
 
-if (!$item) { http_response_code(404); include __DIR__ . '/../../pages/404.php'; exit; }
+// Non-active listings (pending review, flagged, etc) are only visible to
+// the agent who owns them or an admin previewing before approval.
+$isOwnerOrAdmin = $item && SessionManager::isLoggedIn()
+    && ((int)$item['agent_id'] === SessionManager::getUserId() || SessionManager::getUserRole() === 'admin');
 
-$db->prepare("UPDATE property_listings SET views = views + 1 WHERE id = ?")->execute([$id]);
+if (!$item || ($item['status'] !== 'active' && !$isOwnerOrAdmin)) {
+    http_response_code(404);
+    include __DIR__ . '/../../pages/404.php';
+    exit;
+}
+
+$isPreview = $item['status'] !== 'active';
+
+if (!$isPreview) {
+    $db->prepare("UPDATE property_listings SET views = views + 1 WHERE id = ?")->execute([$id]);
+}
 
 $images = $db->prepare("SELECT * FROM listing_images WHERE listing_id = ? AND listing_type = 'property' ORDER BY sort_order");
 $images->execute([$id]);
@@ -54,6 +67,12 @@ $location = implode(', ', $locParts);
 
 <div class="je-page">
 <div class="je-detail-wrap">
+
+<?php if ($isPreview): ?>
+<div style="background:#FFF8E1; border:1px solid #F0C419; color:#7A5B00; padding:14px 18px; border-radius:4px; margin-bottom:20px; font-size:14px;">
+    <i class="fas fa-eye"></i> <strong>Preview only</strong> — this listing is <?= htmlspecialchars(ucfirst($item['status'])) ?> and not visible to the public yet. Only you and admins can see this page.
+</div>
+<?php endif; ?>
 
     <div class="je-breadcrumb">
         <a href="/">Home</a>
