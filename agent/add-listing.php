@@ -21,6 +21,10 @@ try {
 $agentDivision = $_SESSION['user_division']  ?? null;
 $isSuperAgent  = !empty($_SESSION['is_super_agent']);
 
+$flashSuccess = $_SESSION['flash_success'] ?? null;
+$flashError   = $_SESSION['flash_error']   ?? null;
+unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
 // Map: DB division value → listing_type (what the API expects) → label
 $divisionMap = [
     'kinas-automobile'    => ['type' => 'car',         'label' => 'Kinas Automobile',      'opt' => 'automobile'],
@@ -92,6 +96,13 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
             <span style="color:#5D4037; font-size:13px;"> Listings from verified agents rank higher and get the verified badge. <a href="/agent/verification.php" style="color:#BF360C; font-weight:600;">Complete KYC →</a></span>
         </div>
     </div>
+    <?php endif; ?>
+
+    <?php if ($flashSuccess): ?>
+        <div style="background:#E8F5E9; border:1px solid #A5D6A7; color:#1B5E20; border-radius:8px; padding:14px 20px; margin-bottom:24px;"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($flashSuccess) ?></div>
+    <?php endif; ?>
+    <?php if ($flashError): ?>
+        <div style="background:#FFEBEE; border:1px solid #EF9A9A; color:#B71C1C; border-radius:8px; padding:14px 20px; margin-bottom:24px;"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($flashError) ?></div>
     <?php endif; ?>
 
     <form class="listing-form" method="POST" action="/api/listings/create.php" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
