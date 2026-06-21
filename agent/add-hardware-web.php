@@ -1,11 +1,12 @@
 <?php
 /**
- * Add Hardware - Web Runner
+ * Add Hardware - Web Runner (Agent Version)
  * Access via: https://kinas-group.com/agent/add-hardware-web.php
  */
 
-require_once '../includes/session.php';
-require_once '../api/config/database.php';
+// Fix paths for Railway deployment
+require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../api/config/database.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'agent') {

@@ -1,24 +1,27 @@
 <?php
 /**
- * Add Hardware - Web Runner
- * Access via: https://kinas-group.com/agent/add-hardware-web.php
+ * Add Hardware - Standalone Runner
+ * Access via: https://kinas-group.com/add-hardware.php
  */
 
-require_once '../includes/session.php';
-require_once '../api/config/database.php';
+// Fix paths for Railway deployment
+require_once __DIR__ . '/includes/session.php';
+require_once __DIR__ . '/api/config/database.php';
 
 // Check if user is logged in
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'agent') {
-    die("❌ Please login as an agent first.");
+if (!isset($_SESSION['user_id'])) {
+    echo "<p style='color: red;'>❌ Please login first. <a href='/auth/login.php'>Login here</a></p>";
+    exit;
 }
 
 $db = Database::getInstance()->getConnection();
 $agentId = $_SESSION['user_id'];
 
+echo "<h1>🔧 Add Hardware to Inventory</h1>\n";
+echo "<p>Agent ID: $agentId</p>\n";
+
 // Check if hardware already exists
 $check = $db->query("SELECT COUNT(*) FROM solar_listings WHERE service_type IN ('solar_panel', 'inverter', 'battery')")->fetchColumn();
-
-echo "<h1>🔧 Add Hardware to Inventory</h1>\n";
 
 if ($check > 0) {
     echo "<p style='color: green;'>✅ Hardware already exists in inventory. Found $check items.</p>\n";
@@ -31,7 +34,7 @@ if ($check > 0) {
         echo "<li>" . htmlspecialchars($item['title']) . " (" . $item['service_type'] . ") - ₦" . number_format($item['price']) . "</li>\n";
     }
     echo "</ul>\n";
-    echo "<p><a href='add-hardware-web.php?force=1'>Force add more</a></p>\n";
+    echo "<p><a href='add-hardware.php?force=1'>Force add more</a></p>\n";
     exit;
 }
 
@@ -141,5 +144,5 @@ foreach ($hardware as $item) {
 echo "</ul>\n";
 
 echo "<h2>✅ Successfully added $count hardware items!</h2>\n";
-echo "<p><a href='dashboard.php'>Go to Dashboard</a></p>\n";
+echo "<p><a href='agent/dashboard.php'>Go to Agent Dashboard</a></p>\n";
 ?>
