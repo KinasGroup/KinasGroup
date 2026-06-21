@@ -47,6 +47,7 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <link rel="stylesheet" href="/assets/css/style.css">
     <link rel="stylesheet" href="/assets/css/james-edition.css">
     <link rel="stylesheet" href="/assets/css/responsive.css">
+    <link rel="stylesheet" href="/assets/css/footer-social.css">
     <?php if ($userRole === 'admin'): ?>
     <link rel="stylesheet" href="/assets/css/admin.css">
     <?php endif; ?>

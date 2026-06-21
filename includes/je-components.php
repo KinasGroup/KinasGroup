@@ -12,6 +12,8 @@ if (!defined('SOCIAL_MEDIA')) {
 function je_render_footer(string $variant = 'site'): void
 {
     $year = date('Y');
+    $loggedIn = !empty($_SESSION['user_id']);
+    $role     = $_SESSION['user_role'] ?? null;
     
     // Get social media from constants
     $socials = defined('SOCIAL_MEDIA') ? SOCIAL_MEDIA : [
@@ -25,6 +27,7 @@ function je_render_footer(string $variant = 'site'): void
     <footer class="je-footer">
         <div class="je-container">
             <div class="je-footer-grid">
+                <!-- Brand & Social -->
                 <div>
                     <div class="je-footer-brand">KINAS GROUP</div>
                     <div class="je-footer-tag">The World's Luxury Marketplace — Homes, Cars, Solar &amp; Curated Goods.</div>
@@ -36,15 +39,17 @@ function je_render_footer(string $variant = 'site'): void
                         <a href="<?= htmlspecialchars($socials['youtube'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
                     </div>
                 </div>
+                <!-- Divisions -->
                 <div>
                     <h4>Divisions</h4>
                     <ul>
-                        <li><a href="/divisions/kinas-automobile/">🚗 Kinas Automobile</a></li>
-                        <li><a href="/divisions/williams-connect-home/">🏠 Williams Connect Home</a></li>
-                        <li><a href="/divisions/kinas-volt/">☀️ Kinas Volt</a></li>
-                        <li><a href="/divisions/kinas-marketplace/">🛍️ Kinas Marketplace</a></li>
+                        <li><a href="/divisions/kinas-automobile/">Kinas Automobile</a></li>
+                        <li><a href="/divisions/williams-connect-home/">Williams Connect Home</a></li>
+                        <li><a href="/divisions/kinas-volt/">Kinas Volt</a></li>
+                        <li><a href="/divisions/kinas-marketplace/">Kinas Marketplace</a></li>
                     </ul>
                 </div>
+                <!-- Explore -->
                 <div>
                     <h4>Explore</h4>
                     <ul>
@@ -54,6 +59,7 @@ function je_render_footer(string $variant = 'site'): void
                         <li><a href="/pages/about.php#careers">Careers</a></li>
                     </ul>
                 </div>
+                <!-- Resources -->
                 <div>
                     <h4>Resources</h4>
                     <ul>
@@ -62,6 +68,7 @@ function je_render_footer(string $variant = 'site'): void
                         <li><a href="/pages/privacy.php">Privacy Policy</a></li>
                     </ul>
                 </div>
+                <!-- Stay Connected / Newsletter -->
                 <div>
                     <h4>Stay Connected</h4>
                     <p style="color:rgba(255,255,255,0.5); font-size:13px; margin-bottom:12px;">
@@ -73,7 +80,7 @@ function je_render_footer(string $variant = 'site'): void
                             Subscribe
                         </button>
                     </div>
-                    <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+                    <?php if ($role === 'admin'): ?>
                         <div class="je-admin-portal-cta" style="margin-top:16px;">
                             <a href="/admin/dashboard.php" class="je-admin-portal-btn">
                                 <span class="je-admin-portal-shield"><i class="fas fa-crown"></i></span>
