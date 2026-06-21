@@ -272,7 +272,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                     <td>
                         <strong><?= htmlspecialchars($l['title']) ?></strong>
                         <?php if (!empty($detailSlug)): ?>
-                            <br><a href="/divisions/<?= htmlspecialchars($detailSlug) ?>/detail.php?id=<?= (int)$l['id'] ?>" target="_blank" style="font-size:11px; color:#999;">View live →</a>
+                            <br><a href="/divisions/<?= htmlspecialchars($detailSlug) ?>/detail.php?id=<?= (int)$l['id'] ?>" target="_blank" style="font-size:11px; color:#999;"><?= $l['status'] === 'active' ? 'View live →' : 'Preview →' ?></a>
                         <?php endif; ?>
                     </td>
                     <td><span class="division-badge <?= htmlspecialchars($l['badge']) ?>"><?= htmlspecialchars($l['label']) ?></span></td>
@@ -282,7 +282,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                     <td><?= htmlspecialchars(date('M j, Y', strtotime($l['created_at']))) ?></td>
                     <td>
                         <div class="action-buttons">
-                            <a class="action-btn view" href="/divisions/<?= htmlspecialchars($detailSlug) ?>/detail.php?id=<?= (int)$l['id'] ?>" target="_blank" title="View live"><i class="fas fa-eye"></i></a>
+                            <a class="action-btn view" href="/divisions/<?= htmlspecialchars($detailSlug) ?>/detail.php?id=<?= (int)$l['id'] ?>" target="_blank" title="<?= $l['status'] === 'active' ? 'View live' : 'Preview' ?>"><i class="fas fa-eye"></i></a>
                             <a class="action-btn edit" href="/agent/edit-listing.php?id=<?= (int)$l['id'] ?>" title="Edit"><i class="fas fa-edit"></i></a>
                             <form method="POST" action="/api/listings/delete.php" style="display:inline" onsubmit="return confirm('Delete this listing? This cannot be undone.');">
                                 <input type="hidden" name="id" value="<?= (int)$l['id'] ?>">

@@ -641,7 +641,7 @@ body {
                     </div>
                     <div class="listing-actions">
                         <a href="/agent/edit-listing.php?id=<?= $listing['id'] ?>&type=<?= $listing['type'] ?>" class="btn-edit">Edit</a>
-                        <a href="<?= $listing['url'] ?>" class="btn-view" target="_blank">View</a>
+                        <a href="<?= $listing['url'] ?>" class="btn-view" target="_blank"><?= $listing['status'] === 'active' ? 'View' : 'Preview' ?></a>
                     </div>
                 </div>
             </div>
