@@ -16,7 +16,6 @@ $successMessage = SessionManager::getFlash('success');
 $divisions = [
     'automobile'    => 'KINAS Automobile',
     'real_estate'   => 'Williams Connect Home',
-    'solar'         => 'KINAS Volt',
     'marketplace'   => 'KINAS Marketplace',
 ];
 ?>
