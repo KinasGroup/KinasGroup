@@ -192,21 +192,22 @@ require_once __DIR__ . '/../templates/header.php';
                             <div class="action-buttons">
                                 <a href="<?= $detailUrl ?>" target="_blank" class="action-btn view" title="View listing"><i class="fas fa-eye" aria-hidden="true"></i><span class="action-btn-label">View</span></a>
                                 <a href="<?= $detailUrl ?>" target="_blank" class="action-btn edit" title="Open in admin view"><i class="fas fa-external-link-alt" aria-hidden="true"></i><span class="action-btn-label">Open</span></a>
-                                <?php if ($r['status'] !== 'flagged'): ?>
+                                <?php if ($r['status'] === 'pending' || $r['status'] === 'flagged'): ?>
+                                <form method="POST" action="/api/admin/review-listing.php" style="display:inline" onsubmit="return confirm('Approve this listing and make it visible to the public?');">
+                                    <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
+                                    <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
+                                    <input type="hidden" name="listing_type" value="<?= htmlspecialchars($type) ?>">
+                                    <input type="hidden" name="action" value="approve">
+                                    <button type="submit" class="action-btn approve" title="Approve & publish"><i class="fas fa-check" aria-hidden="true"></i><span class="action-btn-label">Approve</span></button>
+                                </form>
+                                <?php endif; ?>
+                                <?php if ($r['status'] === 'active' || $r['status'] === 'pending'): ?>
                                 <form method="POST" action="/api/admin/review-listing.php" style="display:inline" onsubmit="return confirm('Flag this listing for review?');">
                                     <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                                     <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
                                     <input type="hidden" name="listing_type" value="<?= htmlspecialchars($type) ?>">
                                     <input type="hidden" name="action" value="flag">
                                     <button type="submit" class="action-btn flag" title="Flag listing"><i class="fas fa-flag" aria-hidden="true"></i><span class="action-btn-label">Flag</span></button>
-                                </form>
-                                <?php else: ?>
-                                <form method="POST" action="/api/admin/review-listing.php" style="display:inline" onsubmit="return confirm('Clear flag and set back to active?');">
-                                    <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
-                                    <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
-                                    <input type="hidden" name="listing_type" value="<?= htmlspecialchars($type) ?>">
-                                    <input type="hidden" name="action" value="approve">
-                                    <button type="submit" class="action-btn approve" title="Approve & unflag"><i class="fas fa-check" aria-hidden="true"></i><span class="action-btn-label">Approve</span></button>
                                 </form>
                                 <?php endif; ?>
                                 <?php if ($r['status'] !== 'removed'): ?>
