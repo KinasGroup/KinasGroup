@@ -60,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $city = trim($_POST['city'] ?? '');
     $state = trim($_POST['state'] ?? '');
     $brand = trim($_POST['brand'] ?? '');
+    $featured = isset($_POST['featured']) ? 1 : 0;
     
     // Division specific fields
     $extraFields = [];
@@ -75,16 +76,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $extraFields['mileage'] = intval($_POST['mileage'] ?? 0);
             $extraFields['transmission'] = trim($_POST['transmission'] ?? '');
             $extraFields['fuel_type'] = trim($_POST['fuel_type'] ?? '');
+            $extraFields['body_type'] = trim($_POST['body_type'] ?? '');
+            $extraFields['color'] = trim($_POST['color'] ?? '');
             break;
         case 'property':
             $extraFields['beds'] = intval($_POST['beds'] ?? 0);
             $extraFields['baths'] = intval($_POST['baths'] ?? 0);
             $extraFields['sqft'] = intval($_POST['sqft'] ?? 0);
             $extraFields['property_type'] = trim($_POST['property_type'] ?? '');
+            $extraFields['address'] = trim($_POST['address'] ?? '');
             break;
         case 'marketplace':
             $extraFields['category'] = trim($_POST['category'] ?? '');
             $extraFields['condition'] = trim($_POST['condition'] ?? '');
+            $extraFields['weight'] = floatval($_POST['weight'] ?? 0);
+            $extraFields['dimensions'] = trim($_POST['dimensions'] ?? '');
             break;
     }
     
@@ -99,9 +105,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'description = ?',
             'city = ?',
             'state = ?',
-            'brand = ?'
+            'brand = ?',
+            'featured = ?'
         ];
-        $params = [$title, $price, $description, $city, $state, $brand];
+        $params = [$title, $price, $description, $city, $state, $brand, $featured];
         
         foreach ($extraFields as $field => $value) {
             $updateFields[] = "$field = ?";
@@ -136,6 +143,7 @@ include '../templates/header.php';
 ?>
 
 <div class="je-dash-shell">
+    <!-- Sidebar -->
     <aside class="je-dash-sidebar">
         <div class="je-dash-sidebar-brand">
             <i class="fas fa-solar-panel"></i> KINAS VOLT
@@ -155,6 +163,7 @@ include '../templates/header.php';
         </ul>
     </aside>
 
+    <!-- Main Content -->
     <main class="je-dash-main">
         <div class="je-dash-header">
             <div>
@@ -167,7 +176,7 @@ include '../templates/header.php';
             <div class="je-banner is-<?php echo $messageType === 'success' ? 'success' : 'danger'; ?>">
                 <i class="je-banner-icon fas fa-<?php echo $messageType === 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
                 <div class="je-banner-body">
-                    <div class="je-banner-title"><?php echo htmlspecialchars($message); ?></div>
+                    <div class="je-banner-title"><?php echo htmlspecialchars($message ?? ''); ?></div>
                 </div>
             </div>
         <?php endif; ?>
@@ -179,27 +188,21 @@ include '../templates/header.php';
                 </div>
             </div>
             <div class="je-panel-body">
-                <form method="POST" action="" class="je-form">
+                <form method="POST" action="" class="je-form" enctype="multipart/form-data">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div class="je-form-group">
-                            <label for="title"><i class="fas fa-tag"></i> Title *</label>
-                            <input type="text" id="title" name="title" value="<?php echo htmlspecialchars($listing['title'] ?? ''); ?>" required>
+                        <div class="je-form-group" style="grid-column: span 2;">
+                            <label for="title"><i class="fas fa-tag"></i> Listing Title *</label>
+                            <input type="text" id="title" name="title" value="<?php echo htmlspecialchars($listing['title'] ?? ''); ?>" placeholder="e.g., 550W Solar Panel Installation" required>
                         </div>
+                        
                         <div class="je-form-group">
                             <label for="price"><i class="fas fa-money-bill-wave"></i> Price (₦) *</label>
                             <input type="number" id="price" name="price" value="<?php echo htmlspecialchars($listing['price'] ?? 0); ?>" step="0.01" min="0" required>
                         </div>
+                        
                         <div class="je-form-group">
                             <label for="brand"><i class="fas fa-building"></i> Brand</label>
-                            <input type="text" id="brand" name="brand" value="<?php echo htmlspecialchars($listing['brand'] ?? ''); ?>">
-                        </div>
-                        <div class="je-form-group">
-                            <label for="city"><i class="fas fa-city"></i> City</label>
-                            <input type="text" id="city" name="city" value="<?php echo htmlspecialchars($listing['city'] ?? ''); ?>">
-                        </div>
-                        <div class="je-form-group">
-                            <label for="state"><i class="fas fa-map-marker-alt"></i> State</label>
-                            <input type="text" id="state" name="state" value="<?php echo htmlspecialchars($listing['state'] ?? ''); ?>">
+                            <input type="text" id="brand" name="brand" value="<?php echo htmlspecialchars($listing['brand'] ?? ''); ?>" placeholder="e.g., Jinko Solar, Growatt">
                         </div>
 
                         <?php if ($division === 'solar'): ?>
@@ -215,30 +218,31 @@ include '../templates/header.php';
                             </div>
                             <div class="je-form-group">
                                 <label for="capacity_kw"><i class="fas fa-bolt"></i> Capacity (kW)</label>
-                                <input type="number" id="capacity_kw" name="capacity_kw" value="<?php echo htmlspecialchars($listing['capacity_kw'] ?? 0); ?>" step="0.1">
+                                <input type="number" id="capacity_kw" name="capacity_kw" value="<?php echo htmlspecialchars($listing['capacity_kw'] ?? 0); ?>" step="0.1" placeholder="e.g., 5.5">
                             </div>
                             <div class="je-form-group">
                                 <label for="warranty_years"><i class="fas fa-shield-alt"></i> Warranty (Years)</label>
-                                <input type="number" id="warranty_years" name="warranty_years" value="<?php echo htmlspecialchars($listing['warranty_years'] ?? 0); ?>">
+                                <input type="number" id="warranty_years" name="warranty_years" value="<?php echo htmlspecialchars($listing['warranty_years'] ?? 0); ?>" placeholder="e.g., 25">
                             </div>
                         <?php endif; ?>
 
                         <?php if ($division === 'car'): ?>
                             <div class="je-form-group">
                                 <label for="model"><i class="fas fa-car"></i> Model</label>
-                                <input type="text" id="model" name="model" value="<?php echo htmlspecialchars($listing['model'] ?? ''); ?>">
+                                <input type="text" id="model" name="model" value="<?php echo htmlspecialchars($listing['model'] ?? ''); ?>" placeholder="e.g., 911 Carrera">
                             </div>
                             <div class="je-form-group">
                                 <label for="year"><i class="fas fa-calendar"></i> Year</label>
-                                <input type="number" id="year" name="year" value="<?php echo htmlspecialchars($listing['year'] ?? 0); ?>">
+                                <input type="number" id="year" name="year" value="<?php echo htmlspecialchars($listing['year'] ?? 0); ?>" placeholder="e.g., 2023">
                             </div>
                             <div class="je-form-group">
                                 <label for="mileage"><i class="fas fa-road"></i> Mileage (km)</label>
-                                <input type="number" id="mileage" name="mileage" value="<?php echo htmlspecialchars($listing['mileage'] ?? 0); ?>">
+                                <input type="number" id="mileage" name="mileage" value="<?php echo htmlspecialchars($listing['mileage'] ?? 0); ?>" placeholder="e.g., 15000">
                             </div>
                             <div class="je-form-group">
                                 <label for="transmission"><i class="fas fa-cog"></i> Transmission</label>
                                 <select id="transmission" name="transmission">
+                                    <option value="" <?php echo empty($listing['transmission'] ?? '') ? 'selected' : ''; ?>>Select...</option>
                                     <option value="Automatic" <?php echo ($listing['transmission'] ?? '') === 'Automatic' ? 'selected' : ''; ?>>Automatic</option>
                                     <option value="Manual" <?php echo ($listing['transmission'] ?? '') === 'Manual' ? 'selected' : ''; ?>>Manual</option>
                                     <option value="Semi-Automatic" <?php echo ($listing['transmission'] ?? '') === 'Semi-Automatic' ? 'selected' : ''; ?>>Semi-Automatic</option>
@@ -247,15 +251,40 @@ include '../templates/header.php';
                             <div class="je-form-group">
                                 <label for="fuel_type"><i class="fas fa-gas-pump"></i> Fuel Type</label>
                                 <select id="fuel_type" name="fuel_type">
+                                    <option value="" <?php echo empty($listing['fuel_type'] ?? '') ? 'selected' : ''; ?>>Select...</option>
                                     <option value="Petrol" <?php echo ($listing['fuel_type'] ?? '') === 'Petrol' ? 'selected' : ''; ?>>Petrol</option>
                                     <option value="Diesel" <?php echo ($listing['fuel_type'] ?? '') === 'Diesel' ? 'selected' : ''; ?>>Diesel</option>
                                     <option value="Electric" <?php echo ($listing['fuel_type'] ?? '') === 'Electric' ? 'selected' : ''; ?>>Electric</option>
                                     <option value="Hybrid" <?php echo ($listing['fuel_type'] ?? '') === 'Hybrid' ? 'selected' : ''; ?>>Hybrid</option>
                                 </select>
                             </div>
+                            <div class="je-form-group">
+                                <label for="body_type"><i class="fas fa-car-side"></i> Body Type</label>
+                                <input type="text" id="body_type" name="body_type" value="<?php echo htmlspecialchars($listing['body_type'] ?? ''); ?>" placeholder="e.g., Coupe, Sedan, SUV">
+                            </div>
+                            <div class="je-form-group">
+                                <label for="color"><i class="fas fa-palette"></i> Color</label>
+                                <input type="text" id="color" name="color" value="<?php echo htmlspecialchars($listing['color'] ?? ''); ?>" placeholder="e.g., Red, Black, Silver">
+                            </div>
                         <?php endif; ?>
 
                         <?php if ($division === 'property'): ?>
+                            <div class="je-form-group">
+                                <label for="property_type"><i class="fas fa-home"></i> Property Type</label>
+                                <select id="property_type" name="property_type">
+                                    <option value="" <?php echo empty($listing['property_type'] ?? '') ? 'selected' : ''; ?>>Select...</option>
+                                    <option value="Apartment" <?php echo ($listing['property_type'] ?? '') === 'Apartment' ? 'selected' : ''; ?>>Apartment</option>
+                                    <option value="Duplex" <?php echo ($listing['property_type'] ?? '') === 'Duplex' ? 'selected' : ''; ?>>Duplex</option>
+                                    <option value="Bungalow" <?php echo ($listing['property_type'] ?? '') === 'Bungalow' ? 'selected' : ''; ?>>Bungalow</option>
+                                    <option value="Office" <?php echo ($listing['property_type'] ?? '') === 'Office' ? 'selected' : ''; ?>>Office</option>
+                                    <option value="Commercial" <?php echo ($listing['property_type'] ?? '') === 'Commercial' ? 'selected' : ''; ?>>Commercial</option>
+                                    <option value="Hotel" <?php echo ($listing['property_type'] ?? '') === 'Hotel' ? 'selected' : ''; ?>>Hotel</option>
+                                </select>
+                            </div>
+                            <div class="je-form-group">
+                                <label for="address"><i class="fas fa-map-pin"></i> Address</label>
+                                <input type="text" id="address" name="address" value="<?php echo htmlspecialchars($listing['address'] ?? ''); ?>" placeholder="Full property address">
+                            </div>
                             <div class="je-form-group">
                                 <label for="beds"><i class="fas fa-bed"></i> Bedrooms</label>
                                 <input type="number" id="beds" name="beds" value="<?php echo htmlspecialchars($listing['beds'] ?? 0); ?>">
@@ -268,22 +297,57 @@ include '../templates/header.php';
                                 <label for="sqft"><i class="fas fa-ruler-combined"></i> Square Feet</label>
                                 <input type="number" id="sqft" name="sqft" value="<?php echo htmlspecialchars($listing['sqft'] ?? 0); ?>">
                             </div>
+                        <?php endif; ?>
+
+                        <?php if ($division === 'marketplace'): ?>
                             <div class="je-form-group">
-                                <label for="property_type"><i class="fas fa-home"></i> Property Type</label>
-                                <select id="property_type" name="property_type">
-                                    <option value="Apartment" <?php echo ($listing['property_type'] ?? '') === 'Apartment' ? 'selected' : ''; ?>>Apartment</option>
-                                    <option value="Duplex" <?php echo ($listing['property_type'] ?? '') === 'Duplex' ? 'selected' : ''; ?>>Duplex</option>
-                                    <option value="Bungalow" <?php echo ($listing['property_type'] ?? '') === 'Bungalow' ? 'selected' : ''; ?>>Bungalow</option>
-                                    <option value="Office" <?php echo ($listing['property_type'] ?? '') === 'Office' ? 'selected' : ''; ?>>Office</option>
-                                    <option value="Commercial" <?php echo ($listing['property_type'] ?? '') === 'Commercial' ? 'selected' : ''; ?>>Commercial</option>
+                                <label for="category"><i class="fas fa-tags"></i> Category</label>
+                                <input type="text" id="category" name="category" value="<?php echo htmlspecialchars($listing['category'] ?? ''); ?>" placeholder="e.g., Electronics, Furniture">
+                            </div>
+                            <div class="je-form-group">
+                                <label for="condition"><i class="fas fa-clipboard-check"></i> Condition</label>
+                                <select id="condition" name="condition">
+                                    <option value="" <?php echo empty($listing['condition'] ?? '') ? 'selected' : ''; ?>>Select...</option>
+                                    <option value="New" <?php echo ($listing['condition'] ?? '') === 'New' ? 'selected' : ''; ?>>New</option>
+                                    <option value="Like New" <?php echo ($listing['condition'] ?? '') === 'Like New' ? 'selected' : ''; ?>>Like New</option>
+                                    <option value="Good" <?php echo ($listing['condition'] ?? '') === 'Good' ? 'selected' : ''; ?>>Good</option>
+                                    <option value="Fair" <?php echo ($listing['condition'] ?? '') === 'Fair' ? 'selected' : ''; ?>>Fair</option>
                                 </select>
+                            </div>
+                            <div class="je-form-group">
+                                <label for="weight"><i class="fas fa-weight"></i> Weight (kg)</label>
+                                <input type="number" id="weight" name="weight" value="<?php echo htmlspecialchars($listing['weight'] ?? 0); ?>" step="0.1">
+                            </div>
+                            <div class="je-form-group">
+                                <label for="dimensions"><i class="fas fa-arrows-alt"></i> Dimensions</label>
+                                <input type="text" id="dimensions" name="dimensions" value="<?php echo htmlspecialchars($listing['dimensions'] ?? ''); ?>" placeholder="e.g., 10x10x10 cm">
                             </div>
                         <?php endif; ?>
 
+                        <div class="je-form-group">
+                            <label for="city"><i class="fas fa-city"></i> City</label>
+                            <input type="text" id="city" name="city" value="<?php echo htmlspecialchars($listing['city'] ?? ''); ?>" placeholder="e.g., Lagos">
+                        </div>
+                        
+                        <div class="je-form-group">
+                            <label for="state"><i class="fas fa-map-marker-alt"></i> State</label>
+                            <input type="text" id="state" name="state" value="<?php echo htmlspecialchars($listing['state'] ?? ''); ?>" placeholder="e.g., Lagos">
+                        </div>
+
                         <div class="je-form-group" style="grid-column: span 2;">
                             <label for="description"><i class="fas fa-align-left"></i> Description</label>
-                            <textarea id="description" name="description" rows="4" placeholder="Describe your listing in detail..."><?php echo htmlspecialchars($listing['description'] ?? ''); ?></textarea>
+                            <textarea id="description" name="description" rows="5" placeholder="Describe your listing in detail..."><?php echo htmlspecialchars($listing['description'] ?? ''); ?></textarea>
                         </div>
+
+                        <?php if ($division !== 'hardware'): ?>
+                        <div class="je-form-group" style="grid-column: span 2;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" name="featured" value="1" <?php echo (!empty($listing['featured'])) ? 'checked' : ''; ?>>
+                                <span><i class="fas fa-star" style="color: #C6A43F;"></i> <strong>Feature this listing for premium visibility</strong></span>
+                            </label>
+                            <small style="color: #888;">Featured listings appear on the homepage and get more views.</small>
+                        </div>
+                        <?php endif; ?>
                     </div>
 
                     <div style="display: flex; gap: 16px; margin-top: 24px; padding-top: 24px; border-top: 1px solid #E0E0E0;">
