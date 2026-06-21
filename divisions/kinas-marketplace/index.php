@@ -391,9 +391,9 @@ include '../../templates/header.php';
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px;">
             
-            <!-- Authenticated -->
+            <!-- Authenticated - Luxury watch/authentication -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/291762/pexels-photo-291762.jpeg?w=600&q=80'); background-color: #2c1810;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?w=600&q=80'); background-color: #2c1810;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Authenticated</h3>
@@ -401,9 +401,9 @@ include '../../templates/header.php';
                 </div>
             </div>
             
-            <!-- Secure Payments -->
+            <!-- Secure Payments - Lock/security concept -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/4393984/pexels-photo-4393984.jpeg?w=600&q=80'); background-color: #0c1a2e;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/39284/lock-keyhole-security-key-39284.jpeg?w=600&q=80'); background-color: #0c1a2e;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Secure Payments</h3>
@@ -411,9 +411,9 @@ include '../../templates/header.php';
                 </div>
             </div>
             
-            <!-- White-Glove Shipping -->
+            <!-- White-Glove Shipping - Luxury packaging/delivery -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/4198005/pexels-photo-4198005.jpeg?w=600&q=80'); background-color: #1a1a2e;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/129493/pexels-photo-129493.jpeg?w=600&q=80'); background-color: #1a1a2e;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>White-Glove Shipping</h3>
@@ -421,9 +421,9 @@ include '../../templates/header.php';
                 </div>
             </div>
             
-            <!-- Seller Protection -->
+            <!-- Seller Protection - Shield/protection -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/3228753/pexels-photo-3228753.jpeg?w=600&q=80'); background-color: #1a2e1a;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/6189938/pexels-photo-6189938.jpeg?w=600&q=80'); background-color: #1a2e1a;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Seller Protection</h3>
