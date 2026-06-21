@@ -167,7 +167,7 @@ include __DIR__ . '/../templates/header.php';
 
         <!-- KINAS Volt -->
         <a href="/divisions/kinas-volt/" class="division-card">
-            <div class="card-bg" style="background-image: url('https://images.pexels.com/photos/258097/pexels-photo-258097.jpeg?w=400&q=80'); background-color: #1a1a2e;"></div>
+            <div class="card-bg" style="background-image: url('https://images.pexels.com/photos/3182814/pexels-photo-3182814.jpeg?w=400https://images.pexels.com/photos/258097/pexels-photo-258097.jpeg?w=400&q=80q=80'); background-color: #1a1a2e;"></div>
             <div class="card-overlay"></div>
             <div class="card-content">
                 <h3>KINAS VOLT</h3>
