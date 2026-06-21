@@ -2,7 +2,7 @@
 /**
  * Super Agent Dashboard - KINAS GROUP
  * Shows all divisions: Automobile, Volt, Homes, Marketplace
- * RESTORED from original with enhanced counting
+ * Excludes 'removed' listings from active counts
  */
 
 require_once '../includes/session.php';
@@ -20,7 +20,7 @@ $db = Database::getInstance()->getConnection();
 $agentId = $_SESSION['user_id'];
 $userName = $_SESSION['user_name'] ?? 'Agent';
 
-// Get ALL listings across ALL divisions (not just Volt)
+// Get ALL ACTIVE listings across ALL divisions (EXCLUDING 'removed' status)
 $totalListings = $db->query("
     SELECT COUNT(*) FROM (
         SELECT id FROM solar_listings WHERE agent_id = $agentId AND status = 'active'
@@ -33,22 +33,35 @@ $totalListings = $db->query("
     ) as all_listings
 ")->fetchColumn();
 
-// Get counts by division
+// Get counts by division (ONLY 'active' status)
 $solarCount = $db->query("SELECT COUNT(*) FROM solar_listings WHERE agent_id = $agentId AND status = 'active'")->fetchColumn();
 $carCount = $db->query("SELECT COUNT(*) FROM car_listings WHERE agent_id = $agentId AND status = 'active'")->fetchColumn();
 $propertyCount = $db->query("SELECT COUNT(*) FROM property_listings WHERE agent_id = $agentId AND status = 'active'")->fetchColumn();
 $marketplaceCount = $db->query("SELECT COUNT(*) FROM marketplace_listings WHERE agent_id = $agentId AND status = 'active'")->fetchColumn();
 
-// Get inactive counts
+// Get total deleted/removed listings
+$deletedCount = $db->query("
+    SELECT COUNT(*) FROM (
+        SELECT id FROM solar_listings WHERE agent_id = $agentId AND status = 'removed'
+        UNION ALL
+        SELECT id FROM car_listings WHERE agent_id = $agentId AND status = 'removed'
+        UNION ALL
+        SELECT id FROM property_listings WHERE agent_id = $agentId AND status = 'removed'
+        UNION ALL
+        SELECT id FROM marketplace_listings WHERE agent_id = $agentId AND status = 'removed'
+    ) as deleted_listings
+")->fetchColumn();
+
+// Get inactive listings (not active, not removed)
 $inactiveCount = $db->query("
     SELECT COUNT(*) FROM (
-        SELECT id FROM solar_listings WHERE agent_id = $agentId AND status IN ('inactive', 'removed')
+        SELECT id FROM solar_listings WHERE agent_id = $agentId AND status = 'inactive'
         UNION ALL
-        SELECT id FROM car_listings WHERE agent_id = $agentId AND status IN ('inactive', 'removed')
+        SELECT id FROM car_listings WHERE agent_id = $agentId AND status = 'inactive'
         UNION ALL
-        SELECT id FROM property_listings WHERE agent_id = $agentId AND status IN ('inactive', 'removed')
+        SELECT id FROM property_listings WHERE agent_id = $agentId AND status = 'inactive'
         UNION ALL
-        SELECT id FROM marketplace_listings WHERE agent_id = $agentId AND status IN ('inactive', 'removed')
+        SELECT id FROM marketplace_listings WHERE agent_id = $agentId AND status = 'inactive'
     ) as inactive_listings
 ")->fetchColumn();
 
@@ -99,15 +112,18 @@ include '../templates/header.php';
             <div class="je-stat-card">
                 <div class="je-stat-icon"><i class="fas fa-trash-alt"></i></div>
                 <div>
-                    <div class="je-stat-label">Inactive/Deleted</div>
-                    <div class="je-stat-value"><?php echo $inactiveCount; ?></div>
+                    <div class="je-stat-label">Deleted</div>
+                    <div class="je-stat-value"><?php echo $deletedCount; ?></div>
+                    <div style="font-size: 11px; color: #999; margin-top: 4px;">
+                        <?php echo $inactiveCount; ?> inactive
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Divisions Grid -->
         <h2 style="font-family: 'Prata', serif; margin: 32px 0 20px 0; color: #0A0A0A;">
-            <i class="fas fa-cubes" style="color: #C6A43F;"></i> Your Listings by Division
+            <i class="fas fa-cubes" style="color: #C6A43F;"></i> Your Active Listings by Division
         </h2>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px;">
