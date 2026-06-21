@@ -252,6 +252,8 @@ try {
     // proven-working upload logic in api/listings/update.php so the stored
     // `url` is a real public path (/uploads/listings/{type}/{id}/{file}),
     // matching what api/listings/delete-image.php expects.
+    $imagesAttempted = 0;
+    $imagesSaved = 0;
     if (!empty($_FILES['images']) && is_array($_FILES['images']['name'] ?? null) && !empty($_FILES['images']['name'][0])) {
         try {
             $uploadDir = __DIR__ . '/../../uploads/listings/' . $listingType . '/' . $listingId . '/';
@@ -260,6 +262,7 @@ try {
             }
 
             $imageCount = count($_FILES['images']['name']);
+            $imagesAttempted = $imageCount;
             $imgStmt = $db->prepare(
                 "INSERT INTO listing_images (listing_id, listing_type, url, sort_order, created_at) VALUES (?, ?, ?, ?, NOW())"
             );
@@ -278,6 +281,7 @@ try {
 
                 $publicUrl = '/uploads/listings/' . $listingType . '/' . $listingId . '/' . $newName;
                 $imgStmt->execute([$listingId, $listingType, $publicUrl, $i]);
+                $imagesSaved++;
             }
         } catch (\Throwable $e) {
             // Don't fail listing creation just because image processing
@@ -293,7 +297,14 @@ try {
 
     Security::logActivity($agentId, 'listing_created', "Created $listingType listing #$listingId");
 
-    respond(201, true, 'Listing submitted for review.', ['id' => $listingId]);
+    $message = 'Listing submitted for review.';
+    if ($imagesAttempted > 0 && $imagesSaved < $imagesAttempted) {
+        $message .= $imagesSaved === 0
+            ? ' Note: none of your photos could be saved — please try re-uploading them from Edit Listing.'
+            : " Note: only {$imagesSaved} of {$imagesAttempted} photos were saved — you can add the rest from Edit Listing.";
+    }
+
+    respond(201, true, $message, ['id' => $listingId]);
 } catch (\PDOException $e) {
     error_log('Listing creation error: ' . $e->getMessage());
     respond(500, false, 'Failed to create listing. Please try again.');
