@@ -105,10 +105,10 @@ foreach ($allListings as $listing) {
 
 // Division labels and colors
 $divConfig = [
-    'solar' => ['label' => '☀️ Volt', 'color' => '#FFF3E0', 'text' => '#E65100'],
-    'car' => ['label' => '🚗 Automobile', 'color' => '#E3F2FD', 'text' => '#0D47A1'],
-    'property' => ['label' => '🏠 Homes', 'color' => '#E8F5E9', 'text' => '#1B5E20'],
-    'marketplace' => ['label' => '🛍️ Marketplace', 'color' => '#F3E5F5', 'text' => '#4A148C']
+    'solar' => ['label' => '☀️ Volt', 'color' => '#FFF3E0', 'text' => '#E65100', 'folder' => 'kinas-volt'],
+    'car' => ['label' => '🚗 Automobile', 'color' => '#E3F2FD', 'text' => '#0D47A1', 'folder' => 'kinas-automobile'],
+    'property' => ['label' => '🏠 Homes', 'color' => '#E8F5E9', 'text' => '#1B5E20', 'folder' => 'williams-connect-home'],
+    'marketplace' => ['label' => '🛍️ Marketplace', 'color' => '#F3E5F5', 'text' => '#4A148C', 'folder' => 'kinas-marketplace']
 ];
 
 $pageTitle = 'Listings Management - Admin';
@@ -184,7 +184,9 @@ include '../templates/header.php';
                             </tr>
                         </thead>
                         <tbody>
-                            <?php $counter = 1; foreach ($allListings as $listing): ?>
+                            <?php $counter = 1; foreach ($allListings as $listing): 
+                                $config = $divConfig[$listing['division']] ?? ['folder' => $listing['division']];
+                            ?>
                             <tr>
                                 <td><?php echo $counter++; ?></td>
                                 <td><strong><?php echo htmlspecialchars($listing['title']); ?></strong></td>
@@ -207,11 +209,27 @@ include '../templates/header.php';
                                 <td><?php echo number_format($listing['views'] ?? 0); ?></td>
                                 <td><?php echo isset($listing['created_at']) ? date('M j, Y', strtotime($listing['created_at'])) : 'N/A'; ?></td>
                                 <td>
-                                    <a href="delete-listing.php?id=<?php echo $listing['id']; ?>&division=<?php echo $listing['division']; ?>" 
-                                       class="action-btn action-btn-delete" 
-                                       onclick="return confirm('Delete this listing?')">
-                                        Delete
-                                    </a>
+                                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                        <?php 
+                                        // Map division to folder for the detail page link
+                                        $folderMap = [
+                                            'solar' => 'kinas-volt',
+                                            'car' => 'kinas-automobile',
+                                            'property' => 'williams-connect-home',
+                                            'marketplace' => 'kinas-marketplace'
+                                        ];
+                                        $folder = $folderMap[$listing['division']] ?? $listing['division'];
+                                        ?>
+                                        <a href="/divisions/<?php echo $folder; ?>/detail.php?id=<?php echo $listing['id']; ?>" 
+                                           class="action-btn action-btn-view" target="_blank">
+                                            View
+                                        </a>
+                                        <a href="delete-listing.php?id=<?php echo $listing['id']; ?>&division=<?php echo $listing['division']; ?>" 
+                                           class="action-btn action-btn-delete" 
+                                           onclick="return confirm('Delete this listing?')">
+                                            Delete
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -232,7 +250,9 @@ include '../templates/header.php';
     font-weight: 600;
     text-decoration: none;
     margin: 2px;
+    white-space: nowrap;
 }
+.action-btn-view { background: #1565C0; color: white; }
 .action-btn-delete { background: #C62828; color: white; }
 .status-badge {
     display: inline-block;
