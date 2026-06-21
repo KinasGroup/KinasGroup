@@ -25,15 +25,17 @@ $algorithm = new FeaturedAlgorithm($db);
         .score-high { color: #2E7D32; font-weight: bold; }
         .score-medium { color: #F57C00; font-weight: bold; }
         .score-low { color: #C62828; font-weight: bold; }
-        .btn { display: inline-block; padding: 10px 20px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: 600; margin-top: 20px; margin-right: 10px; }
+        .btn { display: inline-block; padding: 10px 20px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: 600; margin: 20px 10px 0 0; }
         .btn:hover { background: #A8882E; }
+        .btn-dark { background: #0A0A0A; color: white; }
+        .btn-dark:hover { background: #333; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>🧪 Test Featured Algorithm</h1>
-        <p>Shows how listings are scored without updating the database.</p>
-        <hr>
+<div class="card">
+<h1>🧪 Test Featured Algorithm</h1>
+<p>Shows how listings are scored without updating the database.</p>
+<hr>
 <?php
 $featured = $algorithm->getFeaturedListings(20);
 echo "<h2>📊 Top 20 Listings by Score</h2>";
@@ -63,8 +65,8 @@ echo "<li><strong>Completeness (15%):</strong> Complete listing with images</li>
 echo "<li><strong>Engagement (10%):</strong> Messages and inquiries</li>";
 echo "</ul>";
 echo "<a href='update-featured.php' class='btn'>🚀 Update Featured Listings</a>";
-echo "<a href='dashboard.php' class='btn' style='background: #0A0A0A; color: white;'>← Back to Dashboard</a>";
+echo "<a href='dashboard.php' class='btn btn-dark'>← Back to Dashboard</a>";
 ?>
-    </div>
+</div>
 </body>
 </html>
