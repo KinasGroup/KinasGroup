@@ -922,4 +922,19 @@ function displayResults(data, reference, pdfUrl) {
 document.addEventListener('DOMContentLoaded', function() {
     loadPresets();
     addCustomAppliance('Refrigerator', 150);
-    addCustomAppliance
+    addCustomAppliance('LED Bulbs', 10);
+    addCustomAppliance('Ceiling Fan', 70);
+});
+
+// Input validation on blur
+document.querySelectorAll('input[required], select[required]').forEach(el => {
+    el.addEventListener('blur', function() {
+        if (this.value.trim()) {
+            this.style.borderColor = '';
+        }
+    });
+});
+</script>
+
+<?php require_once __DIR__ . '/../../templates/footer.php'; ?>
+ENDOFFILE
