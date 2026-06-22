@@ -7,9 +7,6 @@ $userRole = $_SESSION['user_role'] ?? null;
 $userName = $_SESSION['user_name'] ?? '';
 
 // Check if this is a "hero page" (for transparent header overlay effect).
-// Hero pages start with the header transparent over a full-bleed hero
-// section; on scroll the JS in /assets/js/header-scroll.js flips it to
-// 'solid' once the hero leaves the viewport.
 $isHeroPage = false;
 $scriptName = basename($_SERVER['PHP_SELF']);
 $requestUri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
@@ -52,8 +49,8 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <link rel="stylesheet" href="/assets/css/admin.css">
     <?php endif; ?>
 
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome Icons - UPDATED to version 6.5.1 or newer -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
