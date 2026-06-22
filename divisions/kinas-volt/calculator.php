@@ -1,3 +1,4 @@
+cat > divisions/kinas-volt/calculator.php << 'ENDOFFILE'
 <?php
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/security.php';
@@ -5,7 +6,6 @@ require_once __DIR__ . '/../../api/config/database.php';
 
 $page_title = 'Solar Savings Calculator - Kinas Volt';
 $headerDepth = '../../';
-$isHeroPage = false; // Calculator page doesn't need transparent header
 
 require_once __DIR__ . '/../../templates/header.php';
 ?>
@@ -14,61 +14,43 @@ require_once __DIR__ . '/../../templates/header.php';
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $page_title; ?></title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* ============================================
-           SOLAR CALCULATOR - KINAS VOLT LUXURY DESIGN
-           ============================================ */
-        
         :root {
-            --gold: #C6A43F;
-            --gold-dark: #A8882E;
-            --gold-light: #D4B96A;
-            --gold-soft: rgba(198,164,63,0.12);
-            --dark: #0A0A0A;
-            --dark-card: #111111;
+            --primary-gold: #C6A43F;
+            --primary-gold-dark: #A8882E;
+            --dark-bg: #0A0A0A;
+            --dark-card: #141414;
             --dark-surface: #1A1A1A;
-            --dark-border: #2A2A2A;
-            --white: #FFFFFF;
-            --gray: #B0B0B0;
-            --gray-dark: #666666;
-            --success: #2E7D32;
-            --success-light: #E8F5E9;
-            --error: #C62828;
-            --warning: #F57C00;
-            --info: #1565C0;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            --shadow-sm: 0 4px 12px rgba(0,0,0,0.05);
-            --shadow-md: 0 8px 24px rgba(0,0,0,0.1);
-            --shadow-lg: 0 16px 48px rgba(0,0,0,0.15);
-            --shadow-gold: 0 8px 24px rgba(198,164,63,0.2);
+            --text-light: #FFFFFF;
+            --text-muted: rgba(255,255,255,0.7);
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
+            --success: #2c7a47;
+            --error: #dc3545;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
+            background: linear-gradient(135deg, #0A0A0A 0%, #1a1a2e 100%);
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0A0A0A 0%, #0F0F1A 100%);
-            color: var(--white);
+            color: var(--text-light);
             overflow-x: hidden;
         }
 
-        /* Hero Section */
         .calculator-hero {
-            position: relative;
-            padding: 100px 0 60px;
+            background: linear-gradient(135deg, rgba(10,10,10,0.95), rgba(26,26,46,0.95));
+            padding: 100px 0 40px;
             text-align: center;
+            position: relative;
             overflow: hidden;
         }
-
         .calculator-hero::before {
             content: '';
             position: absolute;
@@ -77,90 +59,62 @@ require_once __DIR__ . '/../../templates/header.php';
             right: 0;
             bottom: 0;
             background: url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1920&q=80') center/cover;
-            opacity: 0.08;
+            opacity: 0.1;
             pointer-events: none;
         }
-
-        .calculator-hero .container {
-            position: relative;
-            z-index: 1;
-        }
-
-        .hero-badge {
-            display: inline-block;
-            background: rgba(198,164,63,0.15);
-            color: var(--gold);
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            padding: 6px 16px;
-            border-radius: 40px;
-            margin-bottom: 20px;
-        }
-
-        .hero-title {
+        .calculator-hero h1 {
             font-family: 'Prata', serif;
-            font-size: 52px;
+            font-size: 48px;
             font-weight: 400;
-            background: linear-gradient(135deg, var(--white) 0%, var(--gold) 100%);
+            background: linear-gradient(135deg, #FFFFFF 0%, var(--primary-gold) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             margin-bottom: 16px;
         }
-
-        .hero-subtitle {
+        .calculator-hero p {
+            color: var(--text-muted);
             font-size: 18px;
-            color: var(--gray);
             max-width: 600px;
             margin: 0 auto;
-            line-height: 1.6;
         }
 
-        /* Main Container */
-        .calc-container {
+        .calc-wrapper {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 0 24px 80px;
+            padding: 40px 24px 80px;
         }
 
         /* Progress Steps */
-        .progress-wrapper {
-            max-width: 700px;
-            margin: 0 auto 50px;
-        }
-
         .progress-steps {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
+            gap: 80px;
+            margin-bottom: 60px;
             position: relative;
-            margin-bottom: 30px;
         }
-
         .progress-steps::before {
             content: '';
             position: absolute;
-            top: 20px;
-            left: 10%;
-            right: 10%;
+            top: 24px;
+            left: 15%;
+            right: 15%;
             height: 2px;
-            background: var(--dark-border);
+            background: rgba(255,255,255,0.1);
             z-index: 0;
         }
-
-        .step {
+        .step-indicator {
             text-align: center;
             position: relative;
             z-index: 1;
-            flex: 1;
+            cursor: pointer;
+            transition: var(--transition);
         }
-
-        .step-circle {
-            width: 44px;
-            height: 44px;
-            background: var(--dark-surface);
-            border: 2px solid var(--dark-border);
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -170,320 +124,284 @@ require_once __DIR__ . '/../../templates/header.php';
             font-size: 18px;
             transition: var(--transition);
         }
-
-        .step.active .step-circle {
-            background: var(--gold);
-            border-color: var(--gold);
-            color: var(--dark);
-            box-shadow: var(--shadow-gold);
+        .step-indicator.active .step-number {
+            background: var(--primary-gold);
+            border-color: var(--primary-gold);
+            color: var(--dark-bg);
+            box-shadow: 0 0 20px rgba(198,164,63,0.3);
         }
-
-        .step.completed .step-circle {
+        .step-indicator.completed .step-number {
             background: var(--success);
             border-color: var(--success);
             color: white;
         }
-
-        .step.completed .step-circle::before {
+        .step-indicator.completed .step-number::after {
             content: '✓';
             font-size: 20px;
         }
-
-        .step.completed .step-circle span {
+        .step-indicator.completed .step-number span {
             display: none;
         }
-
         .step-label {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
-            color: var(--gray);
-            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+        .step-indicator.active .step-label {
+            color: var(--primary-gold);
         }
 
-        .step.active .step-label {
-            color: var(--gold);
+        .step {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        .step.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Form Cards */
         .form-card {
             background: var(--dark-card);
-            border-radius: 24px;
+            border-radius: var(--border-radius);
             padding: 40px;
-            border: 1px solid var(--dark-border);
-            transition: var(--transition);
+            border: 1px solid rgba(255,255,255,0.05);
         }
-
-        .form-card:hover {
-            border-color: var(--gold);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .card-header {
-            margin-bottom: 32px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--dark-border);
-        }
-
-        .card-header h2 {
+        .form-card h2 {
             font-family: 'Prata', serif;
             font-size: 28px;
-            font-weight: 400;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            margin-bottom: 32px;
+            color: var(--primary-gold);
+        }
+        .form-card h2 i { margin-right: 12px; }
+        .form-card h3 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: var(--text-light);
         }
 
-        .card-header h2 i {
-            color: var(--gold);
-            font-size: 28px;
-        }
-
-        .card-header p {
-            color: var(--gray);
-            margin-top: 8px;
-            font-size: 14px;
-        }
-
-        /* Form Grid */
         .form-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 24px;
+            margin-bottom: 32px;
         }
-
         .form-group {
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
-
-        .form-group.full-width {
-            grid-column: span 2;
-        }
-
         .form-group label {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
+            color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--gray);
+            letter-spacing: 0.5px;
         }
-
         .form-group label i {
-            color: var(--gold);
             margin-right: 8px;
-            width: 16px;
+            color: var(--primary-gold);
         }
-
         .form-group input,
         .form-group select {
-            padding: 14px 18px;
-            background: var(--dark-surface);
-            border: 1px solid var(--dark-border);
-            border-radius: 12px;
-            color: var(--white);
-            font-size: 15px;
-            font-family: 'Inter', sans-serif;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--text-light);
+            font-size: 16px;
             transition: var(--transition);
+            font-family: 'Inter', sans-serif;
         }
-
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
-            border-color: var(--gold);
-            box-shadow: 0 0 0 3px rgba(198,164,63,0.1);
+            border-color: var(--primary-gold);
+            background: rgba(255,255,255,0.08);
         }
-
         .form-group input::placeholder {
-            color: var(--gray-dark);
-        }
-
-        /* Appliances Section */
-        .appliances-section {
-            margin-bottom: 32px;
+            color: rgba(255,255,255,0.3);
         }
 
         .appliances-header {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 50px;
+            grid-template-columns: 2fr 1fr 1fr 60px;
             gap: 16px;
             padding: 12px 16px;
-            background: rgba(198,164,63,0.08);
-            border-radius: 12px;
+            background: rgba(198,164,63,0.1);
+            border-radius: 8px;
             margin-bottom: 12px;
-            font-size: 11px;
             font-weight: 700;
+            font-size: 13px;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--gold);
+            color: var(--primary-gold);
         }
-
         .appliance-row {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 50px;
+            grid-template-columns: 2fr 1fr 1fr 60px;
             gap: 16px;
-            padding: 14px 16px;
-            background: var(--dark-surface);
-            border: 1px solid var(--dark-border);
-            border-radius: 12px;
-            margin-bottom: 10px;
+            padding: 16px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            margin-bottom: 12px;
             transition: var(--transition);
         }
-
         .appliance-row:hover {
-            border-color: var(--gold);
+            background: rgba(255,255,255,0.06);
         }
-
         .appliance-row input,
         .appliance-row select {
-            padding: 10px 14px;
-            background: var(--dark);
-            border: 1px solid var(--dark-border);
-            border-radius: 8px;
-            color: var(--white);
-            font-size: 14px;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            color: var(--text-light);
+            font-family: 'Inter', sans-serif;
         }
-
         .remove-appliance {
-            background: rgba(198,40,40,0.15);
+            background: rgba(220,53,69,0.2);
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             color: var(--error);
             cursor: pointer;
             transition: var(--transition);
             font-size: 18px;
         }
-
         .remove-appliance:hover {
-            background: rgba(198,40,40,0.3);
-        }
-
-        .add-appliance-btn {
-            background: transparent;
-            border: 2px dashed var(--dark-border);
-            border-radius: 12px;
-            padding: 16px;
-            width: 100%;
-            color: var(--gray);
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            margin-top: 16px;
-        }
-
-        .add-appliance-btn:hover {
-            border-color: var(--gold);
-            color: var(--gold);
-        }
-
-        /* Preset Appliances */
-        .preset-appliances {
-            margin-bottom: 24px;
-        }
-
-        .preset-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--gray);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            background: rgba(220,53,69,0.4);
         }
 
         .preset-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 10px;
+            margin-bottom: 20px;
         }
-
         .preset-chip {
             background: var(--dark-surface);
-            border: 1px solid var(--dark-border);
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 40px;
             padding: 8px 16px;
             font-size: 13px;
             cursor: pointer;
             transition: var(--transition);
             text-align: center;
+            color: var(--text-muted);
         }
-
         .preset-chip:hover {
-            border-color: var(--gold);
+            border-color: var(--primary-gold);
             background: rgba(198,164,63,0.1);
-            color: var(--gold);
+            color: var(--primary-gold);
         }
-
-        /* Button Group */
-        .btn-group {
-            display: flex;
-            justify-content: space-between;
-            gap: 16px;
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid var(--dark-border);
+        .add-appliance-btn {
+            background: transparent;
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 16px;
+            width: 100%;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 16px;
+        }
+        .add-appliance-btn:hover {
+            border-color: var(--primary-gold);
+            color: var(--primary-gold);
         }
 
         .btn {
             padding: 14px 32px;
             border-radius: 40px;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 16px;
             cursor: pointer;
             transition: var(--transition);
             display: inline-flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             border: none;
             font-family: 'Inter', sans-serif;
         }
-
         .btn-primary {
-            background: var(--gold);
-            color: var(--dark);
+            background: var(--primary-gold);
+            color: var(--dark-bg);
         }
-
         .btn-primary:hover {
-            background: var(--gold-dark);
+            background: var(--primary-gold-dark);
             transform: translateY(-2px);
-            box-shadow: var(--shadow-gold);
+            box-shadow: 0 4px 15px rgba(198,164,63,0.3);
         }
-
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         .btn-secondary {
-            background: transparent;
-            border: 1px solid var(--dark-border);
-            color: var(--gray);
+            background: rgba(255,255,255,0.1);
+            color: var(--text-light);
         }
-
         .btn-secondary:hover {
-            border-color: var(--gold);
-            color: var(--gold);
+            background: rgba(255,255,255,0.15);
+        }
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 32px;
         }
 
-        /* Results Section */
-        .results-section {
-            margin-top: 40px;
+        /* Loading */
+        .loading-overlay {
             display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .loading-overlay.active {
+            display: flex;
+        }
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(198,164,63,0.2);
+            border-top-color: var(--primary-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
+        /* Results */
+        .results-section {
+            display: none;
+            margin-top: 40px;
+            animation: fadeIn 0.5s ease;
+        }
         .results-section.active {
             display: block;
-            animation: fadeInUp 0.6s ease;
         }
-
         .results-card {
-            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
-            border-radius: 32px;
-            padding: 48px;
-            color: var(--dark);
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-gold-dark) 100%);
+            border-radius: var(--border-radius);
+            padding: 40px;
+            color: var(--dark-bg);
         }
-
         .results-header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 32px;
         }
-
         .results-header .check-icon {
             width: 64px;
             height: 64px;
@@ -493,252 +411,132 @@ require_once __DIR__ . '/../../templates/header.php';
             align-items: center;
             justify-content: center;
             font-size: 32px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
-
         .results-header h2 {
             font-family: 'Prata', serif;
             font-size: 32px;
             margin-bottom: 8px;
         }
-
-        .results-header p {
-            font-size: 16px;
-            opacity: 0.8;
-        }
-
         .results-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 24px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
         }
-
         .result-item {
             background: rgba(0,0,0,0.08);
-            border-radius: 20px;
-            padding: 24px;
+            border-radius: 12px;
+            padding: 20px;
             text-align: center;
-            backdrop-filter: blur(10px);
         }
-
         .result-item i {
-            font-size: 36px;
-            margin-bottom: 12px;
+            font-size: 28px;
+            margin-bottom: 8px;
         }
-
         .result-value {
-            font-size: 32px;
+            font-size: 24px;
             font-weight: 800;
-            margin: 8px 0;
+            margin: 4px 0;
         }
-
         .result-label {
-            font-size: 13px;
+            font-size: 12px;
             opacity: 0.7;
         }
-
         .proposal-buttons {
             display: flex;
             gap: 16px;
             justify-content: center;
             flex-wrap: wrap;
         }
-
         .btn-dark {
-            background: var(--dark);
+            background: var(--dark-bg);
             color: white;
         }
-
         .btn-dark:hover {
             background: #1A1A1A;
             transform: translateY(-2px);
         }
-
         .btn-outline-dark {
             background: transparent;
-            border: 2px solid var(--dark);
-            color: var(--dark);
+            border: 2px solid var(--dark-bg);
+            color: var(--dark-bg);
         }
-
         .btn-outline-dark:hover {
-            background: var(--dark);
+            background: var(--dark-bg);
             color: white;
         }
 
-        /* Loading */
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.9);
-            backdrop-filter: blur(8px);
-            z-index: 1000;
+        .error-message {
+            background: rgba(220,53,69,0.2);
+            border: 1px solid var(--error);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--error);
+            margin-bottom: 16px;
             display: none;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 20px;
+        }
+        .error-message.show {
+            display: block;
         }
 
-        .loading-overlay.active {
-            display: flex;
-        }
-
-        .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 3px solid rgba(198,164,63,0.2);
-            border-top-color: var(--gold);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .step {
-            animation: fadeInUp 0.5s ease;
-        }
-
-        /* Responsive */
         @media (max-width: 768px) {
-            .hero-title {
-                font-size: 36px;
-            }
-            
-            .hero-subtitle {
-                font-size: 15px;
-            }
-            
-            .form-card {
-                padding: 24px;
-            }
-            
-            .form-grid {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
-            
-            .form-group.full-width {
-                grid-column: span 1;
-            }
-            
-            .appliances-header {
-                display: none;
-            }
-            
-            .appliance-row {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            
-            .btn-group {
-                flex-direction: column;
-            }
-            
-            .btn {
-                justify-content: center;
-            }
-            
-            .results-card {
-                padding: 24px;
-            }
-            
-            .results-header h2 {
-                font-size: 24px;
-            }
-            
-            .result-value {
-                font-size: 24px;
-            }
-            
-            .progress-steps {
-                margin-bottom: 20px;
-            }
-            
-            .step-circle {
-                width: 36px;
-                height: 36px;
-                font-size: 14px;
-            }
-            
-            .step-label {
-                font-size: 10px;
-            }
+            .calculator-hero h1 { font-size: 32px; }
+            .progress-steps { gap: 30px; }
+            .form-card { padding: 24px; }
+            .form-grid { grid-template-columns: 1fr; gap: 16px; }
+            .appliances-header { display: none; }
+            .appliance-row { grid-template-columns: 1fr; gap: 10px; }
+            .btn-group { flex-direction: column; }
+            .btn { justify-content: center; }
+            .results-card { padding: 24px; }
+            .results-header h2 { font-size: 24px; }
+            .result-value { font-size: 20px; }
         }
-
         @media (max-width: 480px) {
-            .calc-container {
-                padding: 0 16px 60px;
-            }
-            
-            .preset-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .results-grid {
-                grid-template-columns: 1fr;
-            }
+            .calc-wrapper { padding: 20px 16px 60px; }
+            .preset-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
 
 <div class="calculator-hero">
-    <div class="container">
-        <div class="hero-badge">
+    <div class="container" style="max-width:1400px; margin:0 auto; padding:0 24px;">
+        <div class="hero-badge" style="display:inline-block; background:rgba(198,164,63,0.15); color:#C6A43F; font-size:12px; font-weight:600; letter-spacing:2px; text-transform:uppercase; padding:6px 16px; border-radius:40px; margin-bottom:20px;">
             <i class="fas fa-solar-panel"></i> KINAS VOLT
         </div>
-        <h1 class="hero-title">Solar Savings Calculator</h1>
-        <p class="hero-subtitle">Get an instant estimate of your solar needs and potential savings</p>
+        <h1 style="font-family:'Prata',serif; font-size:52px; font-weight:400; background:linear-gradient(135deg, #FFFFFF 0%, #C6A43F 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:16px;">Solar Savings Calculator</h1>
+        <p style="font-size:18px; color:rgba(255,255,255,0.7); max-width:600px; margin:0 auto; line-height:1.6;">Get an instant estimate of your solar needs and potential savings</p>
     </div>
 </div>
 
-<div class="calc-container">
+<div class="calc-wrapper">
     <!-- Progress Steps -->
-    <div class="progress-wrapper">
-        <div class="progress-steps">
-            <div class="step active" data-step="1">
-                <div class="step-circle"><span>1</span></div>
-                <div class="step-label">Your Info</div>
-            </div>
-            <div class="step" data-step="2">
-                <div class="step-circle"><span>2</span></div>
-                <div class="step-label">Appliances</div>
-            </div>
-            <div class="step" data-step="3">
-                <div class="step-circle"><span>3</span></div>
-                <div class="step-label">Backup</div>
-            </div>
+    <div class="progress-steps">
+        <div class="step-indicator active" data-step="1">
+            <div class="step-number"><span>1</span></div>
+            <div class="step-label">Your Info</div>
+        </div>
+        <div class="step-indicator" data-step="2">
+            <div class="step-number"><span>2</span></div>
+            <div class="step-label">Appliances</div>
+        </div>
+        <div class="step-indicator" data-step="3">
+            <div class="step-number"><span>3</span></div>
+            <div class="step-label">Backup Needs</div>
         </div>
     </div>
+
+    <div id="errorMessage" class="error-message"></div>
 
     <form id="solarCalculatorForm">
         <input type="hidden" name="csrf_token" value="<?php echo Security::generateCSRFToken(); ?>">
 
-        <!-- Step 1 -->
-        <div class="step-content" id="step1">
+        <!-- Step 1: Customer Info -->
+        <div class="step active" id="step1">
             <div class="form-card">
-                <div class="card-header">
-                    <h2><i class="fas fa-user"></i> Customer Information</h2>
-                    <p>Tell us about yourself to get started</p>
-                </div>
+                <h2><i class="fas fa-user"></i> Customer Information</h2>
                 <div class="form-grid">
                     <div class="form-group">
                         <label><i class="fas fa-user"></i> Full Name *</label>
@@ -756,7 +554,7 @@ require_once __DIR__ . '/../../templates/header.php';
                         <label><i class="fas fa-map-marker-alt"></i> City & State *</label>
                         <input type="text" name="city_state" placeholder="Lagos, Nigeria" required>
                     </div>
-                    <div class="form-group full-width">
+                    <div class="form-group">
                         <label><i class="fas fa-building"></i> Property Type *</label>
                         <select name="property_type" required>
                             <option value="">Select property type</option>
@@ -779,21 +577,14 @@ require_once __DIR__ . '/../../templates/header.php';
             </div>
         </div>
 
-        <!-- Step 2 -->
-        <div class="step-content" id="step2" style="display: none;">
+        <!-- Step 2: Appliances -->
+        <div class="step" id="step2">
             <div class="form-card">
-                <div class="card-header">
-                    <h2><i class="fas fa-plug"></i> Your Appliances</h2>
-                    <p>Add the appliances you want to power with solar</p>
-                </div>
+                <h2><i class="fas fa-plug"></i> Your Appliances</h2>
+                <p style="margin-bottom: 24px; color: var(--text-muted);">Add the appliances you want to power with solar</p>
                 
-                <div class="preset-appliances">
-                    <div class="preset-title">
-                        <i class="fas fa-bolt"></i> Quick Add Common Appliances
-                    </div>
-                    <div class="preset-grid" id="presetGrid"></div>
-                </div>
-
+                <div class="preset-grid" id="presetGrid"></div>
+                
                 <div class="appliances-header">
                     <div>Appliance</div>
                     <div>Quantity</div>
@@ -817,15 +608,12 @@ require_once __DIR__ . '/../../templates/header.php';
             </div>
         </div>
 
-        <!-- Step 3 -->
-        <div class="step-content" id="step3" style="display: none;">
+        <!-- Step 3: Backup -->
+        <div class="step" id="step3">
             <div class="form-card">
-                <div class="card-header">
-                    <h2><i class="fas fa-battery-full"></i> Backup Requirements</h2>
-                    <p>How many hours of backup do you need?</p>
-                </div>
+                <h2><i class="fas fa-battery-full"></i> Backup Requirements</h2>
                 <div class="form-grid">
-                    <div class="form-group full-width">
+                    <div class="form-group">
                         <label><i class="fas fa-clock"></i> Backup Hours Needed</label>
                         <select name="backup_hours">
                             <option value="8">🕐 8 Hours (Basic - Essential appliances only)</option>
@@ -839,7 +627,7 @@ require_once __DIR__ . '/../../templates/header.php';
                     <button type="button" class="btn btn-secondary" onclick="goToStep(2)">
                         <i class="fas fa-arrow-left"></i> Back
                     </button>
-                    <button type="button" class="btn btn-primary" onclick="submitForm()">
+                    <button type="button" class="btn btn-primary" id="submitBtn">
                         <i class="fas fa-calculator"></i> Calculate & Get Proposal
                     </button>
                 </div>
@@ -847,52 +635,50 @@ require_once __DIR__ . '/../../templates/header.php';
         </div>
     </form>
 
+    <!-- Loading -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p style="color: #C6A43F; font-weight: 600;">Calculating your solar solution...</p>
+        <p style="color: rgba(255,255,255,0.5); font-size: 14px;">This may take a few moments</p>
+    </div>
+
     <!-- Results -->
     <div id="results" class="results-section"></div>
-</div>
-
-<!-- Loading Overlay -->
-<div id="loadingOverlay" class="loading-overlay">
-    <div class="loading-spinner"></div>
-    <p style="color: var(--gold); font-weight: 600;">Calculating your solar solution...</p>
 </div>
 
 <script>
 // Appliance presets
 const appliancePresets = [
-    { name: "LED Bulb (10W)", watts: 10, icon: "💡" },
-    { name: "Ceiling Fan (70W)", watts: 70, icon: "🌀" },
-    { name: "Refrigerator (150W)", watts: 150, icon: "❄️" },
-    { name: "TV (100W)", watts: 100, icon: "📺" },
-    { name: "Laptop (50W)", watts: 50, icon: "💻" },
-    { name: "Air Conditioner (1HP)", watts: 900, icon: "❄️" },
-    { name: "Air Conditioner (1.5HP)", watts: 1200, icon: "❄️" },
-    { name: "Microwave (1000W)", watts: 1000, icon: "🍿" },
-    { name: "Electric Kettle (1500W)", watts: 1500, icon: "🍵" },
-    { name: "Washing Machine (500W)", watts: 500, icon: "🧺" },
-    { name: "Water Pump (750W)", watts: 750, icon: "💧" },
-    { name: "Iron (1000W)", watts: 1000, icon: "👔" }
+    { name: "LED Bulb (10W)", watts: 10 },
+    { name: "Ceiling Fan (70W)", watts: 70 },
+    { name: "Refrigerator (150W)", watts: 150 },
+    { name: "TV (100W)", watts: 100 },
+    { name: "Laptop (50W)", watts: 50 },
+    { name: "Air Conditioner (1HP)", watts: 900 },
+    { name: "Air Conditioner (1.5HP)", watts: 1200 },
+    { name: "Microwave (1000W)", watts: 1000 },
+    { name: "Electric Kettle (1500W)", watts: 1500 },
+    { name: "Washing Machine (500W)", watts: 500 },
+    { name: "Water Pump (750W)", watts: 750 },
+    { name: "Iron (1000W)", watts: 1000 }
 ];
 
 let applianceCounter = 0;
 let currentStep = 1;
 
-// Load preset buttons
 function loadPresets() {
     const container = document.getElementById('presetGrid');
     container.innerHTML = appliancePresets.map(preset => `
         <div class="preset-chip" onclick="addPresetAppliance('${preset.name}', ${preset.watts})">
-            ${preset.icon} ${preset.name}
+            ${preset.name}
         </div>
     `).join('');
 }
 
-// Add preset appliance
 function addPresetAppliance(name, watts) {
     addCustomAppliance(name, watts);
 }
 
-// Add custom appliance
 function addCustomAppliance(name = '', watts = '') {
     applianceCounter++;
     const container = document.getElementById('appliance-list');
@@ -926,42 +712,86 @@ function escapeHtml(str) {
 }
 
 function goToStep(step) {
-    // Hide all steps
-    document.querySelectorAll('.step-content').forEach(el => {
-        el.style.display = 'none';
-    });
-    document.getElementById(`step${step}`).style.display = 'block';
-    
-    // Update progress steps
-    document.querySelectorAll('.step').forEach((el, index) => {
-        const stepNum = index + 1;
-        el.classList.remove('active', 'completed');
-        if (stepNum < step) {
-            el.classList.add('completed');
-        } else if (stepNum === step) {
-            el.classList.add('active');
+    // Validate step 1
+    if (step === 2 && currentStep === 1) {
+        const form = document.getElementById('solarCalculatorForm');
+        const inputs = form.querySelectorAll('#step1 input[required], #step1 select[required]');
+        let valid = true;
+        let errorMsg = '';
+        inputs.forEach(input => {
+            if (!input.value.trim()) {
+                valid = false;
+                errorMsg = 'Please fill in all required fields in Customer Information.';
+                input.style.borderColor = '#dc3545';
+            } else {
+                input.style.borderColor = '';
+            }
+        });
+        if (!valid) {
+            showError(errorMsg);
+            return;
         }
+        hideError();
+    }
+
+    if (step === 3 && currentStep === 2) {
+        const applianceNames = document.querySelectorAll('input[name="appliance_name[]"]');
+        const applianceWatts = document.querySelectorAll('input[name="appliance_watts[]"]');
+        let hasAppliance = false;
+        for (let i = 0; i < applianceNames.length; i++) {
+            if (applianceNames[i].value && applianceWatts[i].value) {
+                hasAppliance = true;
+                break;
+            }
+        }
+        if (!hasAppliance) {
+            showError('Please add at least one appliance.');
+            return;
+        }
+        hideError();
+    }
+
+    document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+    document.getElementById(`step${step}`).classList.add('active');
+    
+    document.querySelectorAll('.step-indicator').forEach((el, idx) => {
+        const stepNum = idx + 1;
+        el.classList.remove('active', 'completed');
+        if (stepNum < step) el.classList.add('completed');
+        else if (stepNum === step) el.classList.add('active');
     });
     
     currentStep = step;
-    
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-async function submitForm() {
+function showError(msg) {
+    const el = document.getElementById('errorMessage');
+    el.textContent = msg;
+    el.classList.add('show');
+}
+
+function hideError() {
+    document.getElementById('errorMessage').classList.remove('show');
+}
+
+document.getElementById('submitBtn').addEventListener('click', async function() {
     const form = document.getElementById('solarCalculatorForm');
-    const formData = new FormData(form);
     
-    // Validate step 1
-    const step1Inputs = document.querySelectorAll('#step1 input[required], #step1 select[required]');
+    // Validate all required fields
+    const allRequired = form.querySelectorAll('input[required], select[required]');
     let valid = true;
-    step1Inputs.forEach(input => {
-        if (!input.value.trim()) valid = false;
+    allRequired.forEach(input => {
+        if (!input.value.trim()) {
+            valid = false;
+            input.style.borderColor = '#dc3545';
+        } else {
+            input.style.borderColor = '';
+        }
     });
     
     if (!valid) {
-        alert('Please fill in all required fields in Step 1');
+        showError('Please fill in all required fields.');
         goToStep(1);
         return;
     }
@@ -983,16 +813,19 @@ async function submitForm() {
     }
     
     if (appliances.length === 0) {
-        alert('Please add at least one appliance');
+        showError('Please add at least one appliance.');
         goToStep(2);
         return;
     }
     
+    // Build form data
+    const formData = new FormData(form);
     formData.append('appliances', JSON.stringify(appliances));
     
     // Show loading
     const loading = document.getElementById('loadingOverlay');
     loading.classList.add('active');
+    this.disabled = true;
     
     try {
         const response = await fetch('/api/solar/calculate.php', {
@@ -1003,28 +836,30 @@ async function submitForm() {
         const result = await response.json();
         
         loading.classList.remove('active');
+        this.disabled = false;
         
         if (result.success) {
-            displayResults(result.data);
+            displayResults(result.data, result.reference, result.pdf_url);
         } else {
-            alert('Error: ' + (result.message || 'Something went wrong'));
+            showError(result.message || 'Something went wrong. Please try again.');
         }
     } catch (error) {
         loading.classList.remove('active');
-        alert('Error submitting form: ' + error.message);
+        this.disabled = false;
+        showError('Network error. Please check your connection and try again.');
+        console.error('Error:', error);
     }
-}
+});
 
-function displayResults(data) {
+function displayResults(data, reference, pdfUrl) {
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = `
         <div class="results-card">
             <div class="results-header">
-                <div class="check-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
+                <div class="check-icon"><i class="fas fa-check-circle"></i></div>
                 <h2>Your Solar Solution is Ready!</h2>
                 <p>Based on your inputs, here's what we recommend</p>
+                <p style="font-size: 13px; margin-top: 8px; opacity: 0.7;">Reference: ${reference}</p>
             </div>
             <div class="results-grid">
                 <div class="result-item">
@@ -1069,18 +904,17 @@ function displayResults(data) {
                 </div>
             </div>
             <div class="proposal-buttons">
-                <button class="btn btn-dark" onclick="window.print()">
-                    <i class="fas fa-print"></i> Print / Save PDF
-                </button>
+                ${pdfUrl ? `<a href="${pdfUrl}" target="_blank" class="btn btn-dark"><i class="fas fa-file-pdf"></i> View PDF Proposal</a>` : ''}
                 <button class="btn btn-outline-dark" onclick="location.reload()">
                     <i class="fas fa-redo"></i> Start Over
                 </button>
             </div>
+            <p style="text-align: center; margin-top: 20px; font-size: 13px; opacity: 0.7;">
+                <i class="fas fa-envelope"></i> A detailed proposal has been sent to your email.
+            </p>
         </div>
     `;
     resultsDiv.classList.add('active');
-    
-    // Scroll to results
     resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -1088,9 +922,4 @@ function displayResults(data) {
 document.addEventListener('DOMContentLoaded', function() {
     loadPresets();
     addCustomAppliance('Refrigerator', 150);
-    addCustomAppliance('LED Bulbs', 10);
-    addCustomAppliance('Ceiling Fan', 70);
-});
-</script>
-
-<?php require_once __DIR__ . '/../../templates/footer.php'; ?>
+    addCustomAppliance
