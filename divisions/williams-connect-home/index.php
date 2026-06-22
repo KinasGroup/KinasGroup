@@ -1,4 +1,3 @@
-cat > divisions/williams-connect-home/index.php << 'ENDOFFILE'
 <?php
 /**
  * WILLIAMS CONNECT HOME — Real Estate division landing
@@ -371,4 +370,3 @@ if (totalSlides > 1) {
 </script>
 
 <?php include '../../templates/footer.php'; ?>
-ENDOFFILE
