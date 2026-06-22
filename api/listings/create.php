@@ -16,49 +16,33 @@ require_once '../../includes/session.php';
 require_once '../../includes/security.php';
 require_once '../../includes/validation.php';
 
-// Was this submitted by a script (fetch/AJAX) expecting JSON, or by a plain
-// browser <form> post? The Add Listing form is a normal multipart form post
-// with no JS interception, so without this check the browser just navigated
-// to this endpoint and rendered the raw JSON text as a blank-looking page.
-$wantsJson = stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false
-    || stripos($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '', 'xmlhttprequest') !== false;
+// Check if this is a form submission (multipart/form-data) or JSON
+$isFormSubmit = !empty($_POST) || !empty($_FILES);
 
-if ($wantsJson) {
-    header('Content-Type: application/json');
-}
-
-/**
- * Send a response appropriate to how the request was made: JSON for
- * AJAX callers, or a flash message + redirect for plain form posts.
- */
-function respond(int $httpCode, bool $success, string $message, array $extra = []): void {
-    global $wantsJson;
-    http_response_code($httpCode);
-    if ($wantsJson) {
-        echo json_encode(array_merge(['success' => $success, $success ? 'message' : 'error' => $message], $extra));
-    } else {
-        $_SESSION[$success ? 'flash_success' : 'flash_error'] = $message;
-        header('Location: ' . ($success ? '/agent/listings.php' : '/agent/add-listing.php'));
-    }
-    exit;
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    respond(405, false, 'Method not allowed');
-}
-
-SessionManager::requireLogin();
-SessionManager::requireVerified();
-
-$raw = file_get_contents('php://input');
-$data = json_decode($raw, true);
-if (!$data) {
-    // Allow form-encoded
+// Get data from either POST (form) or JSON (API)
+if ($isFormSubmit) {
+    // Form submission - use $_POST directly
     $data = $_POST;
+} else {
+    // JSON API request
+    $raw = file_get_contents('php://input');
+    $data = json_decode($raw, true);
+    if (!$data) {
+        $data = $_POST;
+    }
 }
-if (!$data) {
-    respond(400, false, 'No data received');
+
+// If still no data, return error
+if (empty($data)) {
+    // For form submissions, redirect back with error
+    if ($isFormSubmit) {
+        $_SESSION['flash_error'] = 'No data received. Please fill in the form.';
+        header('Location: /agent/add-listing.php');
+        exit;
+    }
+    http_response_code(400);
+    echo json_encode(['error' => 'No data received']);
+    exit;
 }
 
 $listingType = (string)($data['listing_type'] ?? '');
@@ -71,7 +55,14 @@ $tables = [
 ];
 
 if (!isset($tables[$listingType])) {
-    respond(400, false, 'Invalid listing type');
+    if ($isFormSubmit) {
+        $_SESSION['flash_error'] = 'Invalid listing type.';
+        header('Location: /agent/add-listing.php');
+        exit;
+    }
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid listing type']);
+    exit;
 }
 $table = $tables[$listingType];
 
@@ -94,8 +85,16 @@ $isSuperAgent  = !empty($_SESSION['is_super_agent']);
 
 if (SessionManager::getUserRole() !== 'admin' && !$isSuperAgent) {
     if (!$agentDivision || $agentDivision !== $listingTypeToDivision[$listingType]) {
-        respond(403, false, 'You can only create listings in your assigned division (' .
-            ($agentDivision ? $agentDivision : 'none assigned') . ').');
+        $errorMsg = 'You can only create listings in your assigned division (' .
+            ($agentDivision ? $agentDivision : 'none assigned') . ').';
+        if ($isFormSubmit) {
+            $_SESSION['flash_error'] = $errorMsg;
+            header('Location: /agent/add-listing.php');
+            exit;
+        }
+        http_response_code(403);
+        echo json_encode(['error' => $errorMsg]);
+        exit;
     }
 }
 
@@ -104,13 +103,34 @@ $price = (float)($data['price'] ?? 0);
 $description = Security::sanitizeInput((string)($data['description'] ?? ''));
 
 if ($title === '' || mb_strlen($title) < 3) {
-    respond(422, false, 'Title is required (min 3 characters)');
+    if ($isFormSubmit) {
+        $_SESSION['flash_error'] = 'Title is required (min 3 characters)';
+        header('Location: /agent/add-listing.php');
+        exit;
+    }
+    http_response_code(422);
+    echo json_encode(['error' => 'Title is required (min 3 characters)']);
+    exit;
 }
 if ($price <= 0) {
-    respond(422, false, 'Price must be greater than zero');
+    if ($isFormSubmit) {
+        $_SESSION['flash_error'] = 'Price must be greater than zero';
+        header('Location: /agent/add-listing.php');
+        exit;
+    }
+    http_response_code(422);
+    echo json_encode(['error' => 'Price must be greater than zero']);
+    exit;
 }
 if ($price > 999999999999) {
-    respond(422, false, 'Price exceeds maximum allowed value');
+    if ($isFormSubmit) {
+        $_SESSION['flash_error'] = 'Price exceeds maximum allowed value';
+        header('Location: /agent/add-listing.php');
+        exit;
+    }
+    http_response_code(422);
+    echo json_encode(['error' => 'Price exceeds maximum allowed value']);
+    exit;
 }
 
 $agentId = (int)$_SESSION['user_id'];
@@ -140,8 +160,8 @@ try {
                  body_type, drivetrain, doors,
                  engine, gearbox, car_type, drive, drive_train, vin,
                  interior_color, seats, features, country,
-                 description, city, state, status, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending', NOW(), NOW())
+                 description, city, state, address, status, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending', NOW(), NOW())
         ");
         $stmt->execute([
             $agentId,
@@ -150,15 +170,14 @@ try {
             $s('model', 100) ?: 'Other',
             $int('year') ?? date('Y'),
             $price,
-            $int('mileage') ?? $s('mileage', 100), // Allow text mileage like "19592 mi (31530 km)"
+            $s('mileage', 100),
             $s('fuel_type', 50),
-            $s('transmission', 50) ?: $s('gearbox', 50), // Use gearbox as fallback for transmission
+            $s('transmission', 50) ?: $s('gearbox', 50),
             $s('color', 50),
             $s('condition_status', 50) ?: $s('condition', 50),
-            $s('body_type', 50) ?: $s('car_type', 50), // Use car_type as fallback
-            $s('drivetrain', 50) ?: $s('drive_train', 50), // Use drive_train as fallback
+            $s('body_type', 50) ?: $s('car_type', 50),
+            $s('drivetrain', 50) ?: $s('drive_train', 50),
             $int('doors'),
-            // NEW FIELDS:
             $s('engine', 100),
             $s('gearbox', 50),
             $s('car_type', 50),
@@ -167,11 +186,12 @@ try {
             $s('vin', 50),
             $s('interior_color', 50),
             $int('seats'),
-            !empty($data['features']) ? (is_array($data['features']) ? json_encode($data['features']) : $s('features', 1000)) : null,
+            !empty($data['features']) ? $s('features', 1000) : null,
             $s('country', 100) ?: 'Nigeria',
             $description,
             $s('city', 100),
             $s('state', 100),
+            $s('address', 255),
         ]);
     } elseif ($listingType === 'property') {
         $stmt = $db->prepare("
@@ -257,11 +277,6 @@ try {
     $listingId = (int)$db->lastInsertId();
 
     // ── Image uploads ───────────────────────────────────────────────────
-    // The form posts files as images[] (multipart). Previously these were
-    // silently ignored — listings published with zero photos. Mirrors the
-    // proven-working upload logic in api/listings/update.php so the stored
-    // `url` is a real public path (/uploads/listings/{type}/{id}/{file}),
-    // matching what api/listings/delete-image.php expects.
     $imagesAttempted = 0;
     $imagesSaved = 0;
     if (!empty($_FILES['images']) && is_array($_FILES['images']['name'] ?? null) && !empty($_FILES['images']['name'][0])) {
@@ -294,15 +309,12 @@ try {
                 $imagesSaved++;
             }
         } catch (\Throwable $e) {
-            // Don't fail listing creation just because image processing
-            // had a problem — the listing itself was saved successfully.
             error_log('Listing image upload error: ' . $e->getMessage());
         }
     }
 
     if (!empty($data['featured'])) {
-        $col = $tables[$listingType];
-        $db->prepare("UPDATE $col SET featured = 1 WHERE id = ?")->execute([$listingId]);
+        $db->prepare("UPDATE $table SET featured = 1 WHERE id = ?")->execute([$listingId]);
     }
 
     Security::logActivity($agentId, 'listing_created', "Created $listingType listing #$listingId");
@@ -314,8 +326,25 @@ try {
             : " Note: only {$imagesSaved} of {$imagesAttempted} photos were saved — you can add the rest from Edit Listing.";
     }
 
-    respond(201, true, $message, ['id' => $listingId]);
+    // Redirect to listings page with success message
+    $_SESSION['flash_success'] = $message;
+    header('Location: /agent/listings.php');
+    exit;
+
 } catch (\PDOException $e) {
     error_log('Listing creation error: ' . $e->getMessage());
-    respond(500, false, 'Failed to create listing. Please try again.');
+    
+    // Log the actual error for debugging
+    error_log('SQL Error: ' . $e->getMessage());
+    error_log('SQL State: ' . $e->getCode());
+    
+    if ($isFormSubmit) {
+        $_SESSION['flash_error'] = 'Failed to create listing: ' . $e->getMessage();
+        header('Location: /agent/add-listing.php');
+        exit;
+    }
+    http_response_code(500);
+    echo json_encode(['error' => 'Failed to create listing: ' . $e->getMessage()]);
+    exit;
 }
+?>
