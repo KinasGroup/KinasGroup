@@ -25,8 +25,8 @@ $depth       = $headerDepth ?? '../';
     </div>
 </header>
 
-<!-- Font Awesome Icons - CRITICAL for dashboard icons and footer social icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<!-- Font Awesome Icons - CRITICAL for ALL icons on dashboard pages -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
 <script>
 function toggleMenu(){var n=document.getElementById('mainNav'),b=document.querySelector('.mobile-menu-btn');n.classList.toggle('active');b.textContent=n.classList.contains('active')?'✕':'☰';}
