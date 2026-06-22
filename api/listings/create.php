@@ -132,14 +132,16 @@ try {
     $db = Database::getInstance()->getConnection();
 
     if ($listingType === 'car') {
+        // UPDATED: Added all new automobile fields
         $stmt = $db->prepare("
             INSERT INTO car_listings
                 (agent_id, title, brand, model, year, price, mileage,
                  fuel_type, transmission, color, condition_status,
                  body_type, drivetrain, doors,
-                 description, features, vin,
-                 city, state, country, status, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending', NOW(), NOW())
+                 engine, gearbox, car_type, drive, drive_train, vin,
+                 interior_color, seats, features, country,
+                 description, city, state, status, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending', NOW(), NOW())
         ");
         $stmt->execute([
             $agentId,
@@ -148,20 +150,28 @@ try {
             $s('model', 100) ?: 'Other',
             $int('year') ?? date('Y'),
             $price,
-            $int('mileage'),
+            $int('mileage') ?? $s('mileage', 100), // Allow text mileage like "19592 mi (31530 km)"
             $s('fuel_type', 50),
-            $s('transmission', 50),
+            $s('transmission', 50) ?: $s('gearbox', 50), // Use gearbox as fallback for transmission
             $s('color', 50),
             $s('condition_status', 50) ?: $s('condition', 50),
-            $s('body_type', 50),
-            $s('drivetrain', 50),
+            $s('body_type', 50) ?: $s('car_type', 50), // Use car_type as fallback
+            $s('drivetrain', 50) ?: $s('drive_train', 50), // Use drive_train as fallback
             $int('doors'),
-            $description,
-            !empty($data['features']) ? json_encode($data['features']) : null,
+            // NEW FIELDS:
+            $s('engine', 100),
+            $s('gearbox', 50),
+            $s('car_type', 50),
+            $s('drive', 10),
+            $s('drive_train', 50),
             $s('vin', 50),
+            $s('interior_color', 50),
+            $int('seats'),
+            !empty($data['features']) ? (is_array($data['features']) ? json_encode($data['features']) : $s('features', 1000)) : null,
+            $s('country', 100) ?: 'Nigeria',
+            $description,
             $s('city', 100),
             $s('state', 100),
-            $s('country', 100) ?: 'Nigeria',
         ]);
     } elseif ($listingType === 'property') {
         $stmt = $db->prepare("
