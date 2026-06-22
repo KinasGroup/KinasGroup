@@ -133,7 +133,7 @@ try {
     $pdfUrl = 'https://' . $_SERVER['HTTP_HOST'] . '/uploads/solar-reports/' . $reference . '.pdf';
 
     // ============================================================
-    // SEND EMAILS - USING PUBLIC sendEmail() METHOD
+    // SEND EMAILS
     // ============================================================
     $emailService = new EmailService();
 
@@ -182,8 +182,8 @@ try {
     </body>
     </html>';
 
-    // Send email to customer using the public sendEmail method
-    $customerSent = $emailService->sendEmail($email, $customerSubject, $customerBody, 'listings@kinas-group.com', 'KINAS VOLT Solar Division');
+    // Send email to customer
+    $emailService->sendEmail($email, $customerSubject, $customerBody, 'listings@kinas-group.com', 'KINAS VOLT Solar Division');
 
     // Admin email
     $adminSubject = 'New Solar Enquiry - ' . $reference . ' - ' . $fullName;
@@ -238,35 +238,29 @@ try {
     </body>
     </html>';
 
-    // Send email to admin using the public sendEmail method
-    $adminSent = $emailService->sendEmail('admin@kinas-group.com', $adminSubject, $adminBody, 'listings@kinas-group.com', 'KINAS VOLT Solar Division');
+    // Send email to admin
+    $emailService->sendEmail('admin@kinas-group.com', $adminSubject, $adminBody, 'listings@kinas-group.com', 'KINAS VOLT Solar Division');
 
-    // Save to database
+    // ============================================================
+    // SAVE TO DATABASE - Only using columns that EXIST in your table
+    // ============================================================
     $db = Database::getInstance()->getConnection();
+    
+    // Insert only the columns that exist in your table
     $stmt = $db->prepare("
         INSERT INTO solar_enquiries 
-        (full_name, email, phone, city_state, property_type, monthly_bill, system_size, 
-         annual_savings, payback_years, status, reference, appliances_json, total_load_watts, 
-         daily_kwh, backup_hours, estimated_cost, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?, ?, ?, ?, NOW())
+        (full_name, email, phone, monthly_bill, system_size, annual_savings, payback_years, status, created_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'new', NOW())
     ");
 
     $stmt->execute([
         $fullName,
         $email,
         $phone,
-        $cityState,
-        $propertyType,
         $monthlySavings,
         $systemSize,
         $monthlySavings * 12,
-        $paybackYears,
-        $reference,
-        json_encode($appliances),
-        $totalLoad,
-        $dailyKwh,
-        $backupHours,
-        $estimatedCost
+        $paybackYears
     ]);
 
     // Return success
@@ -275,10 +269,6 @@ try {
         'message' => 'Proposal generated successfully! Check your email for the PDF.',
         'reference' => $reference,
         'pdf_url' => $pdfUrl,
-        'emails_sent' => [
-            'customer' => $customerSent,
-            'admin' => $adminSent
-        ],
         'data' => [
             'system_size' => $systemSize,
             'panels' => $recommendedPanels,
@@ -293,6 +283,7 @@ try {
 
 } catch (Exception $e) {
     error_log('Solar Calculator Error: ' . $e->getMessage());
+    error_log('Stack trace: ' . $e->getTraceAsString());
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
