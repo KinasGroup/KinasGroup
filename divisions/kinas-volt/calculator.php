@@ -1,10 +1,53 @@
 <?php
+// calculator.php - Footer social icons fixed
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/security.php';
 require_once __DIR__ . '/../../api/config/database.php';
 
 $page_title = 'Solar Savings Calculator - Kinas Volt';
 $headerDepth = '../../';
+
+// Add footer social icon CSS fix
+$footerSocialCSS = '
+<style>
+/* Force social icons to display properly */
+.je-footer-social {
+    display: flex !important;
+    gap: 12px !important;
+    margin-top: 16px !important;
+    flex-wrap: wrap !important;
+}
+.je-footer-social a {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    color: #fff !important;
+    text-decoration: none !important;
+    transition: all 0.3s ease !important;
+    font-size: 18px !important;
+    background: rgba(255,255,255,0.05) !important;
+}
+.je-footer-social a:hover {
+    background: #C6A43F !important;
+    border-color: #C6A43F !important;
+    color: #0A0A0A !important;
+    transform: translateY(-3px) !important;
+}
+.je-footer-social a i {
+    font-size: 18px !important;
+    line-height: 1 !important;
+    display: inline-block !important;
+    color: inherit !important;
+}
+</style>
+';
+
+// Prepend the CSS fix to the page
+$footerSocialCSS = '';
 
 require_once __DIR__ . '/../../templates/header.php';
 ?>
@@ -267,7 +310,6 @@ require_once __DIR__ . '/../../templates/header.php';
             width: 100%;
         }
 
-        /* Fixed Delete Button */
         .remove-appliance {
             background: rgba(220,53,69,0.25);
             border: 1px solid rgba(220,53,69,0.3);
@@ -275,7 +317,7 @@ require_once __DIR__ . '/../../templates/header.php';
             color: #ff6b6b !important;
             cursor: pointer;
             transition: var(--transition);
-            font-size: 18px;
+            font-size: 14px;
             padding: 8px 12px;
             display: flex;
             align-items: center;
@@ -283,6 +325,7 @@ require_once __DIR__ . '/../../templates/header.php';
             gap: 6px;
             width: 100%;
             font-family: 'Inter', sans-serif;
+            font-weight: 600;
         }
         .remove-appliance:hover {
             background: rgba(220,53,69,0.4);
@@ -504,19 +547,25 @@ require_once __DIR__ . '/../../templates/header.php';
             display: block;
         }
 
-        /* Social Icons Fix */
+        /* Footer Social Icons Fix - Force visibility */
+        .je-footer-social {
+            display: flex !important;
+            gap: 12px !important;
+            margin-top: 16px !important;
+            flex-wrap: wrap !important;
+        }
         .je-footer-social a {
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
-            width: 38px !important;
-            height: 38px !important;
+            width: 40px !important;
+            height: 40px !important;
             border-radius: 50% !important;
             border: 1px solid rgba(255,255,255,0.2) !important;
-            color: rgba(255,255,255,0.9) !important;
+            color: #fff !important;
             text-decoration: none !important;
             transition: all 0.3s ease !important;
-            font-size: 16px !important;
+            font-size: 18px !important;
             background: rgba(255,255,255,0.05) !important;
         }
         .je-footer-social a:hover {
@@ -526,7 +575,7 @@ require_once __DIR__ . '/../../templates/header.php';
             transform: translateY(-3px) !important;
         }
         .je-footer-social a i {
-            font-size: 16px !important;
+            font-size: 18px !important;
             line-height: 1 !important;
             display: inline-block !important;
             color: inherit !important;
@@ -608,7 +657,7 @@ require_once __DIR__ . '/../../templates/header.php';
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-map-marker-alt"></i> City & State *</label>
-                        <input type="text" name="city_state" placeholder="Ikeja, Lagos" required>
+                        <input type="text" name="city_state" placeholder="Lagos, Nigeria" required>
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-building"></i> Property Type *</label>

@@ -63,7 +63,7 @@ function getSolarEmailFooter() {
     return '
     <div style="text-align:center; padding-top:16px; border-top:2px solid #E0E0E0; margin-top:24px; font-size:10px; color:#999; font-family: Arial, sans-serif;">
         KINAS VOLT • Solar Division<br>
-        volt.kinasgroup.com
+        www.kinas-group.com
     </div>';
 }
 
@@ -113,12 +113,12 @@ function generateSolarRecommendationPDF($data, $reference) {
             <div style="font-size:8px; color:#999; margin-top:2px;">Gwarimpa, Abuja • +234 913 717 5523</div>
         </div>');
 
-        // Professional Footer
+        // Professional Footer - FIXED URL
         $mpdf->SetHTMLFooter('
         <table width="100%" style="border-top:1px solid #E0E0E0; padding-top:8px; font-size:8px; color:#999;">
             <tr>
                 <td width="33%">KINAS VOLT • Solar Division</td>
-                <td width="34%" align="center">volt.kinasgroup.com</td>
+                <td width="34%" align="center">www.kinas-group.com</td>
                 <td width="33%" align="right">Page {PAGENO} of {nb}</td>
             </tr>
         </table>');
