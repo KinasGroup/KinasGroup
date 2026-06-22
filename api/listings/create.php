@@ -152,7 +152,7 @@ try {
     $db = Database::getInstance()->getConnection();
 
     if ($listingType === 'car') {
-        // UPDATED: Added all new automobile fields
+        // Removed 'address' from INSERT - it doesn't exist in the table
         $stmt = $db->prepare("
             INSERT INTO car_listings
                 (agent_id, title, brand, model, year, price, mileage,
@@ -160,8 +160,8 @@ try {
                  body_type, drivetrain, doors,
                  engine, gearbox, car_type, drive, drive_train, vin,
                  interior_color, seats, features, country,
-                 description, city, state, address, status, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending', NOW(), NOW())
+                 description, city, state, status, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending', NOW(), NOW())
         ");
         $stmt->execute([
             $agentId,
@@ -191,7 +191,6 @@ try {
             $description,
             $s('city', 100),
             $s('state', 100),
-            $s('address', 255),
         ]);
     } elseif ($listingType === 'property') {
         $stmt = $db->prepare("
