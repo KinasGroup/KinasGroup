@@ -68,6 +68,29 @@ include '../../templates/header.php';
 
 $locParts = array_filter([$item['city'] ?? null, $item['state'] ?? null, $item['country'] ?? null]);
 $location = implode(', ', $locParts);
+
+// Define all automobile fields with labels
+$autoFields = [
+    'year' => 'Year',
+    'mileage' => 'Mileage',
+    'engine' => 'Engine',
+    'gearbox' => 'Gearbox',
+    'transmission' => 'Transmission',
+    'car_type' => 'Car Type',
+    'body_type' => 'Body Type',
+    'drive' => 'Drive',
+    'drive_train' => 'Drive Train',
+    'drivetrain' => 'Drivetrain',
+    'fuel_type' => 'Fuel Type',
+    'condition_status' => 'Condition',
+    'color' => 'Exterior Color',
+    'interior_color' => 'Interior Color',
+    'doors' => 'Doors',
+    'seats' => 'Seats',
+    'vin' => 'VIN',
+    'brand' => 'Make',
+    'model' => 'Model',
+];
 ?>
 
 <div class="je-page">
@@ -129,24 +152,114 @@ $location = implode(', ', $locParts);
 
             <dl class="je-spec-key">
                 <?php
-                $keys = [
-                    'Year'           => $item['year'] ?? null,
-                    'Mileage'        => ($item['mileage'] ?? null) !== null ? number_format((int)$item['mileage']) . ' km' : null,
-                    'Transmission'   => $item['transmission'] ?? null,
-                    'Fuel Type'      => $item['fuel_type'] ?? null,
-                    'Body Type'      => $item['body_type'] ?? null,
-                    'Drivetrain'     => $item['drivetrain'] ?? null,
-                    'Exterior Color' => $item['color'] ?? null,
-                    'Condition'      => $item['condition_status'] ?? null,
-                    'Doors'          => $item['doors'] ?? null,
-                    'VIN'            => $item['vin'] ?? null,
-                    'Location'       => $location ?: null,
-                ];
-                foreach ($keys as $label => $val):
-                    if (!$val) continue;
+                // Display only fields that have values
+                $displayedKeys = [];
+                
+                // Year
+                if (!empty($item['year'])) {
+                    echo '<div><dt>Year</dt><dd>' . htmlspecialchars($item['year']) . '</dd></div>';
+                    $displayedKeys[] = 'year';
+                }
+                
+                // Mileage
+                if (!empty($item['mileage'])) {
+                    echo '<div><dt>Mileage</dt><dd>' . htmlspecialchars($item['mileage']) . '</dd></div>';
+                    $displayedKeys[] = 'mileage';
+                }
+                
+                // Engine
+                if (!empty($item['engine'])) {
+                    echo '<div><dt>Engine</dt><dd>' . htmlspecialchars($item['engine']) . '</dd></div>';
+                    $displayedKeys[] = 'engine';
+                }
+                
+                // Gearbox / Transmission - show whichever has value
+                if (!empty($item['gearbox'])) {
+                    echo '<div><dt>Gearbox</dt><dd>' . htmlspecialchars($item['gearbox']) . '</dd></div>';
+                    $displayedKeys[] = 'gearbox';
+                } elseif (!empty($item['transmission'])) {
+                    echo '<div><dt>Transmission</dt><dd>' . htmlspecialchars($item['transmission']) . '</dd></div>';
+                    $displayedKeys[] = 'transmission';
+                }
+                
+                // Car Type / Body Type - show whichever has value
+                if (!empty($item['car_type'])) {
+                    echo '<div><dt>Car Type</dt><dd>' . htmlspecialchars($item['car_type']) . '</dd></div>';
+                    $displayedKeys[] = 'car_type';
+                } elseif (!empty($item['body_type'])) {
+                    echo '<div><dt>Body Type</dt><dd>' . htmlspecialchars($item['body_type']) . '</dd></div>';
+                    $displayedKeys[] = 'body_type';
+                }
+                
+                // Drive
+                if (!empty($item['drive'])) {
+                    echo '<div><dt>Drive</dt><dd>' . htmlspecialchars($item['drive']) . '</dd></div>';
+                    $displayedKeys[] = 'drive';
+                }
+                
+                // Drive Train / Drivetrain - show whichever has value
+                if (!empty($item['drive_train'])) {
+                    echo '<div><dt>Drive Train</dt><dd>' . htmlspecialchars($item['drive_train']) . '</dd></div>';
+                    $displayedKeys[] = 'drive_train';
+                } elseif (!empty($item['drivetrain'])) {
+                    echo '<div><dt>Drivetrain</dt><dd>' . htmlspecialchars($item['drivetrain']) . '</dd></div>';
+                    $displayedKeys[] = 'drivetrain';
+                }
+                
+                // Fuel Type
+                if (!empty($item['fuel_type'])) {
+                    echo '<div><dt>Fuel Type</dt><dd>' . htmlspecialchars($item['fuel_type']) . '</dd></div>';
+                    $displayedKeys[] = 'fuel_type';
+                }
+                
+                // Condition
+                if (!empty($item['condition_status'])) {
+                    echo '<div><dt>Condition</dt><dd>' . htmlspecialchars($item['condition_status']) . '</dd></div>';
+                    $displayedKeys[] = 'condition_status';
+                }
+                
+                // Exterior Color
+                if (!empty($item['color'])) {
+                    echo '<div><dt>Exterior Color</dt><dd>' . htmlspecialchars($item['color']) . '</dd></div>';
+                    $displayedKeys[] = 'color';
+                }
+                
+                // Interior Color
+                if (!empty($item['interior_color'])) {
+                    echo '<div><dt>Interior Color</dt><dd>' . htmlspecialchars($item['interior_color']) . '</dd></div>';
+                    $displayedKeys[] = 'interior_color';
+                }
+                
+                // Doors
+                if (!empty($item['doors'])) {
+                    echo '<div><dt>Doors</dt><dd>' . htmlspecialchars($item['doors']) . '</dd></div>';
+                    $displayedKeys[] = 'doors';
+                }
+                
+                // Seats
+                if (!empty($item['seats'])) {
+                    echo '<div><dt>Seats</dt><dd>' . htmlspecialchars($item['seats']) . '</dd></div>';
+                    $displayedKeys[] = 'seats';
+                }
+                
+                // VIN
+                if (!empty($item['vin'])) {
+                    echo '<div><dt>VIN</dt><dd>' . htmlspecialchars($item['vin']) . '</dd></div>';
+                    $displayedKeys[] = 'vin';
+                }
+                
+                // Location
+                if (!empty($location)) {
+                    echo '<div><dt>Location</dt><dd>' . htmlspecialchars($location) . '</dd></div>';
+                    $displayedKeys[] = 'location';
+                }
+                
+                // Country (only if location not already shown or country differs)
+                if (!empty($item['country']) && empty($location)) {
+                    echo '<div><dt>Country</dt><dd>' . htmlspecialchars($item['country']) . '</dd></div>';
+                    $displayedKeys[] = 'country';
+                }
                 ?>
-                    <div><dt><?= htmlspecialchars($label) ?></dt><dd><?= htmlspecialchars($val) ?></dd></div>
-                <?php endforeach; ?>
             </dl>
 
             <div class="je-cta-row">
