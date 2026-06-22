@@ -300,4 +300,185 @@ include '../../templates/header.php';
                         <span>Any Service</span>
                         <span class="count"><?= $totalSystems ?></span>
                     </div>
-                    <?php
+                    <?php foreach ($services as $s): ?>
+                        <div class="custom-dropdown-item" data-value="<?= htmlspecialchars($s['service_type']) ?>" data-count="<?= (int)$s['cnt'] ?>">
+                            <span><?= htmlspecialchars(ucfirst($s['service_type'])) ?></span>
+                            <span class="count"><?= (int)$s['cnt'] ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            
+            <input type="hidden" name="service_type" id="serviceInput" value="">
+            
+            <button type="submit" class="je-btn je-btn-gold"><i class="fas fa-search"></i> Search</button>
+        </form>
+    </div>
+</section>
+
+<!-- Featured systems -->
+<section style="padding:60px 0;">
+    <div class="je-container">
+        <div class="je-flex-between" style="margin-bottom:32px;">
+            <div>
+                <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">FEATURED SYSTEMS</div>
+                <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Reliable energy solutions</h2>
+            </div>
+            <a href="search.php" class="je-btn je-btn-outline">View all <i class="fas fa-arrow-right"></i></a>
+        </div>
+
+        <?php
+        $cards = array_map(function ($s) {
+            $specParts = array_filter([$s['service_type'] ?? null, ($s['capacity_kw'] ?? null) !== null ? rtrim(rtrim(number_format((float)$s['capacity_kw'], 2), '0'), '.') . ' kW' : null, ($s['warranty_years'] ?? null) !== null ? $s['warranty_years'] . '-yr warranty' : null, $s['brand'] ?? null]);
+            $locParts = array_filter([$s['city'] ?? null, $s['state'] ?? null, $s['country'] ?? null]);
+            return [
+                'id' => $s['id'], 'title' => $s['title'] ?? '',
+                'price' => $s['price'], 'thumbnail' => $s['thumbnail'] ?: '',
+                'specs' => implode(' • ', array_map('ucfirst', $specParts)),
+                'location' => implode(', ', $locParts),
+                'detail_url' => 'detail.php?id=' . (int)$s['id'],
+                'featured' => false, 'verified' => !empty($s['agent_verified']),
+                'views' => $s['views'] ?? 0,
+            ];
+        }, array_slice($systems, 0, 9));
+        je_render_listing_grid($cards);
+        ?>
+    </div>
+</section>
+
+<!-- Why Kinas Volt -->
+<section style="padding:80px 0; background:#F8F6F1;">
+    <div class="je-container">
+        <div style="text-align:center; margin-bottom:48px;">
+            <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">WHY KINAS VOLT</div>
+            <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Powering a sustainable future</h2>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px;">
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1613665813446-82a78c468a1d?w=600&q=80');"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Premium Hardware</h3>
+                    <p>Only Tier-1 solar brands and components, engineered for maximum efficiency and longevity.</p>
+                </div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1581094794322-c7c5c9a0ee65?w=600&q=80');"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Certified Installers</h3>
+                    <p>Vetted installation professionals with proven track records and industry certifications.</p>
+                </div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1581091226033-d5d7e5f3c6b2?w=600&q=80');"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Long Warranties</h3>
+                    <p>Up to 25-year performance warranties on premium systems, giving you peace of mind.</p>
+                </div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&q=80');"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Financing Available</h3>
+                    <p>Flexible payment options for residential and commercial projects. Get started today.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section style="background:#0A0A0A; padding:80px 0; text-align:center; color:#fff;">
+    <div class="je-container">
+        <h2 style="font-family:'Prata',serif; font-size:36px; margin-bottom:14px;">Power the future with KINAS Volt</h2>
+        <p style="color:rgba(255,255,255,0.7); font-size:15px; max-width:560px; margin:0 auto 28px;">Discover our range of premium solar products and solutions.</p>
+        <a href="search.php" class="je-btn je-btn-gold je-btn-lg">Explore Our Products</a>
+    </div>
+</section>
+
+<script>
+// ============================================
+// ROTATING HERO BACKGROUND
+// ============================================
+let currentSlide = 0;
+const slides = document.querySelectorAll('.hero-slide');
+const totalSlides = slides.length;
+
+function rotateHeroBackground() {
+    if (totalSlides > 1) {
+        slides[currentSlide].classList.remove('active');
+        currentSlide = (currentSlide + 1) % totalSlides;
+        slides[currentSlide].classList.add('active');
+    }
+}
+
+if (totalSlides > 1) {
+    setInterval(rotateHeroBackground, 6000);
+}
+
+// ============================================
+// CUSTOM DROPDOWN FUNCTIONALITY
+// ============================================
+(function() {
+    const dropdown = document.getElementById('serviceDropdown');
+    if (!dropdown) return;
+    
+    const toggle = dropdown.querySelector('.custom-dropdown-toggle');
+    const items = dropdown.querySelectorAll('.custom-dropdown-item');
+    const selectedText = document.getElementById('selectedServiceText');
+    const serviceInput = document.getElementById('serviceInput');
+    
+    let isOpen = false;
+    
+    toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        isOpen = !isOpen;
+        if (isOpen) {
+            dropdown.classList.add('open');
+            document.addEventListener('click', closeDropdownOnClickOutside);
+        } else {
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeDropdownOnClickOutside);
+        }
+    });
+    
+    items.forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const value = this.getAttribute('data-value');
+            const text = this.querySelector('span:first-child').innerText;
+            
+            selectedText.innerHTML = text;
+            serviceInput.value = value;
+            
+            items.forEach(function(i) {
+                i.classList.remove('selected');
+            });
+            this.classList.add('selected');
+            
+            isOpen = false;
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeDropdownOnClickOutside);
+        });
+    });
+    
+    function closeDropdownOnClickOutside(e) {
+        if (!dropdown.contains(e.target)) {
+            isOpen = false;
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeDropdownOnClickOutside);
+        }
+    }
+    
+    const defaultItem = dropdown.querySelector('.custom-dropdown-item[data-value=""]');
+    if (defaultItem) {
+        defaultItem.classList.add('selected');
+    }
+})();
+</script>
+
+<?php include '../../templates/footer.php'; ?>
+ENDOFFILE
