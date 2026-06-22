@@ -132,7 +132,9 @@ try {
 
     $pdfUrl = 'https://' . $_SERVER['HTTP_HOST'] . '/uploads/solar-reports/' . $reference . '.pdf';
 
-    // Send emails
+    // ============================================================
+    // SEND EMAILS - USING PUBLIC sendEmail() METHOD
+    // ============================================================
     $emailService = new EmailService();
 
     // Customer email
@@ -180,8 +182,64 @@ try {
     </body>
     </html>';
 
-    // Send email to customer
-    $emailService->send($email, $customerSubject, $customerBody);
+    // Send email to customer using the public sendEmail method
+    $customerSent = $emailService->sendEmail($email, $customerSubject, $customerBody, 'listings@kinas-group.com', 'KINAS VOLT Solar Division');
+
+    // Admin email
+    $adminSubject = 'New Solar Enquiry - ' . $reference . ' - ' . $fullName;
+    $adminBody = '
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #2C2C2C; }
+            .header { background: #0A0A0A; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .header h1 { color: #C6A43F; font-family: "Prata", serif; margin: 0; font-size: 24px; }
+            .content { background: #FFFFFF; padding: 30px; border: 1px solid #E0E0E0; border-top: none; border-radius: 0 0 8px 8px; }
+            .btn { display: inline-block; padding: 12px 30px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: bold; }
+            .footer { text-align: center; padding-top: 20px; font-size: 11px; color: #999; border-top: 1px solid #E0E0E0; margin-top: 20px; }
+            .info-box { background: #F8F6F1; padding: 15px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #C6A43F; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>☀️ KINAS VOLT</h1>
+            <p>New Solar Enquiry Received</p>
+        </div>
+        <div class="content">
+            <h2>New Solar Enquiry</h2>
+            
+            <div class="info-box">
+                <strong>👤 Customer Details:</strong><br>
+                <strong>Name:</strong> ' . htmlspecialchars($fullName) . '<br>
+                <strong>Email:</strong> ' . htmlspecialchars($email) . '<br>
+                <strong>Phone:</strong> ' . htmlspecialchars($phone) . '<br>
+                <strong>Location:</strong> ' . htmlspecialchars($cityState) . '<br>
+                <strong>Property Type:</strong> ' . htmlspecialchars($propertyType) . '
+            </div>
+            
+            <div class="info-box">
+                <strong>📊 System Details:</strong><br>
+                <strong>Reference:</strong> ' . $reference . '<br>
+                <strong>System Size:</strong> ' . $systemSize . ' kWp<br>
+                <strong>Daily Consumption:</strong> ' . number_format($dailyKwh, 2) . ' kWh<br>
+                <strong>Backup Hours:</strong> ' . $backupHours . ' hours<br>
+                <strong>Estimated Cost:</strong> ₦' . number_format($estimatedCost) . '
+            </div>
+            
+            <p style="text-align: center; margin: 20px 0;">
+                <a href="' . $pdfUrl . '" class="btn">📄 View Proposal PDF</a>
+            </p>
+            
+            <div class="footer">
+                KINAS GROUP • Gwarimpa, Abuja • +234 913 717 5523
+            </div>
+        </div>
+    </body>
+    </html>';
+
+    // Send email to admin using the public sendEmail method
+    $adminSent = $emailService->sendEmail('admin@kinas-group.com', $adminSubject, $adminBody, 'listings@kinas-group.com', 'KINAS VOLT Solar Division');
 
     // Save to database
     $db = Database::getInstance()->getConnection();
@@ -217,6 +275,10 @@ try {
         'message' => 'Proposal generated successfully! Check your email for the PDF.',
         'reference' => $reference,
         'pdf_url' => $pdfUrl,
+        'emails_sent' => [
+            'customer' => $customerSent,
+            'admin' => $adminSent
+        ],
         'data' => [
             'system_size' => $systemSize,
             'panels' => $recommendedPanels,
