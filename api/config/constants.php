@@ -178,7 +178,7 @@ define('MARKETPLACE_CATEGORIES', [
 // Social Media Links
 define('SOCIAL_MEDIA', [
     'facebook' => 'https://facebook.com/kinasgroup',
-    'twitter' => 'https://twitter.com/kinasgroup',
+    'twitter' => 'https://x.com/kinasgroup',      // Updated to x.com
     'instagram' => 'https://instagram.com/kinasgroup',
     'linkedin' => 'https://linkedin.com/company/kinasgroup',
     'youtube' => 'https://youtube.com/@kinasgroup'
