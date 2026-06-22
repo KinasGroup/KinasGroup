@@ -1,21 +1,28 @@
 <?php
 // api/solar/calculate.php
-// Solar calculator API endpoint - generates PDF and sends emails
+// Solar calculator API endpoint
 
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../../includes/session.php';
-require_once __DIR__ . '/../../includes/security.php';
-require_once __DIR__ . '/../../includes/email.php';
-require_once __DIR__ . '/../../includes/solar-pdf.php';
+// Set error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
 // Set JSON response header
 header('Content-Type: application/json');
 
-// Enable error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 0);
-
 try {
+    // Include required files
+    require_once __DIR__ . '/../config/database.php';
+    require_once __DIR__ . '/../../includes/session.php';
+    require_once __DIR__ . '/../../includes/security.php';
+    require_once __DIR__ . '/../../includes/email.php';
+    require_once __DIR__ . '/../../includes/solar-pdf.php';
+    
+    // Start session if not already started
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
     // Validate CSRF token
     if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
         throw new Exception('Invalid security token. Please refresh the page and try again.');
@@ -54,12 +61,12 @@ try {
         throw new Exception('Total load calculation failed. Please check your appliance wattages.');
     }
 
-    // Calculate daily consumption (assuming 8 hours usage per day average)
+    // Calculate daily consumption
     $dailyKwh = ($totalLoad * 8) / 1000;
 
-    // Calculate system size (kW) - rough estimate
-    $sunHours = 4.5; // Average for Nigeria
-    $systemSize = ceil(($dailyKwh / $sunHours) * 1.2); // Add 20% buffer
+    // Calculate system size
+    $sunHours = 4.5;
+    $systemSize = ceil(($dailyKwh / $sunHours) * 1.2);
 
     // Calculate recommended components
     $recommendedPanels = max(8, ceil($systemSize * 1000 / 550));
@@ -68,7 +75,7 @@ try {
     $recommendedBattery = '48V ' . $batteryCapacity . 'Ah Lithium LiFePO4';
     $batteryUnits = max(2, ceil($dailyKwh * 1.5 / 10));
 
-    // Calculate costs (in Naira)
+    // Calculate costs
     $panelPrice = 450000;
     $inverterPrice = 3500000;
     $batteryPrice = 2800000;
@@ -84,8 +91,7 @@ try {
     $estimatedCost = $hardwareSubtotal + $otherCosts;
 
     // Calculate savings
-    $dailyConsumptionKwh = $dailyKwh;
-    $monthlyConsumptionKwh = $dailyConsumptionKwh * 30;
+    $monthlyConsumptionKwh = $dailyKwh * 30;
     $tariffPerKwh = 225;
     $monthlySavings = $monthlyConsumptionKwh * $tariffPerKwh;
     $paybackYears = $estimatedCost / ($monthlySavings * 12);
@@ -126,14 +132,11 @@ try {
 
     $pdfUrl = 'https://' . $_SERVER['HTTP_HOST'] . '/uploads/solar-reports/' . $reference . '.pdf';
 
-    // ============================================================
-    // SEND EMAILS
-    // ============================================================
+    // Send emails
     $emailService = new EmailService();
 
-    // Email content for customer
+    // Customer email
     $customerSubject = 'Your Solar Proposal from KINAS VOLT - ' . $reference;
-
     $customerBody = '
     <!DOCTYPE html>
     <html>
@@ -142,12 +145,10 @@ try {
             body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #2C2C2C; }
             .header { background: #0A0A0A; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
             .header h1 { color: #C6A43F; font-family: "Prata", serif; margin: 0; font-size: 24px; }
-            .header p { color: #999; margin: 5px 0 0; font-size: 12px; }
             .content { background: #FFFFFF; padding: 30px; border: 1px solid #E0E0E0; border-top: none; border-radius: 0 0 8px 8px; }
-            .btn { display: inline-block; padding: 12px 30px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0; }
+            .btn { display: inline-block; padding: 12px 30px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: bold; }
             .footer { text-align: center; padding-top: 20px; font-size: 11px; color: #999; border-top: 1px solid #E0E0E0; margin-top: 20px; }
             .info-box { background: #F8F6F1; padding: 15px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #C6A43F; }
-            .highlight { color: #C6A43F; font-weight: bold; }
         </style>
     </head>
     <body>
@@ -158,83 +159,18 @@ try {
         <div class="content">
             <h2>Your Solar Proposal is Ready!</h2>
             <p>Dear ' . htmlspecialchars($fullName) . ',</p>
-            <p>Thank you for using the KINAS VOLT Solar Calculator. Based on your inputs, we have prepared a professional solar proposal for you.</p>
+            <p>Thank you for using the KINAS VOLT Solar Calculator.</p>
             
             <div class="info-box">
                 <strong>📄 Proposal Details:</strong><br>
-                <strong>Reference Number:</strong> ' . $reference . '<br>
+                <strong>Reference:</strong> ' . $reference . '<br>
                 <strong>System Size:</strong> ' . $systemSize . ' kWp<br>
-                <strong>Estimated Investment:</strong> ₦' . number_format($estimatedCost) . '<br>
+                <strong>Investment:</strong> ₦' . number_format($estimatedCost) . '<br>
                 <strong>Monthly Savings:</strong> ₦' . number_format($monthlySavings) . '
             </div>
             
             <p style="text-align: center; margin: 30px 0;">
-                <a href="' . $pdfUrl . '" class="btn">📄 View/Download Your Proposal</a>
-            </p>
-            
-            <p><strong>What happens next?</strong></p>
-            <ol>
-                <li>Review your proposal</li>
-                <li>Our team will contact you within 24 hours</li>
-                <li>Schedule a free site assessment</li>
-                <li>Receive your final quotation</li>
-            </ol>
-            
-            <p>If you have any questions, feel free to reply to this email.</p>
-            
-            <div class="footer">
-                KINAS GROUP • Gwarimpa, Abuja • +234 913 717 5523<br>
-                🌐 <a href="https://kinas-group.com" style="color: #C6A43F;">kinas-group.com</a>
-            </div>
-        </div>
-    </body>
-    </html>';
-
-    // Admin email content
-    $adminSubject = 'New Solar Enquiry - ' . $reference . ' - ' . $fullName;
-    $adminBody = '
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #2C2C2C; }
-            .header { background: #0A0A0A; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .header h1 { color: #C6A43F; font-family: "Prata", serif; margin: 0; font-size: 24px; }
-            .content { background: #FFFFFF; padding: 30px; border: 1px solid #E0E0E0; border-top: none; border-radius: 0 0 8px 8px; }
-            .btn { display: inline-block; padding: 12px 30px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0; }
-            .footer { text-align: center; padding-top: 20px; font-size: 11px; color: #999; border-top: 1px solid #E0E0E0; margin-top: 20px; }
-            .info-box { background: #F8F6F1; padding: 15px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #C6A43F; }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>☀️ KINAS VOLT</h1>
-            <p>New Solar Enquiry Received</p>
-        </div>
-        <div class="content">
-            <h2>New Solar Enquiry</h2>
-            <p>A new solar enquiry has been submitted.</p>
-            
-            <div class="info-box">
-                <strong>👤 Customer Details:</strong><br>
-                <strong>Name:</strong> ' . htmlspecialchars($fullName) . '<br>
-                <strong>Email:</strong> ' . htmlspecialchars($email) . '<br>
-                <strong>Phone:</strong> ' . htmlspecialchars($phone) . '<br>
-                <strong>Location:</strong> ' . htmlspecialchars($cityState) . '<br>
-                <strong>Property Type:</strong> ' . htmlspecialchars($propertyType) . '
-            </div>
-            
-            <div class="info-box">
-                <strong>📊 System Details:</strong><br>
-                <strong>Reference:</strong> ' . $reference . '<br>
-                <strong>System Size:</strong> ' . $systemSize . ' kWp<br>
-                <strong>Daily Consumption:</strong> ' . number_format($dailyKwh, 2) . ' kWh<br>
-                <strong>Backup Hours:</strong> ' . $backupHours . ' hours<br>
-                <strong>Estimated Cost:</strong> ₦' . number_format($estimatedCost) . '
-            </div>
-            
-            <p style="text-align: center; margin: 20px 0;">
-                <a href="' . $pdfUrl . '" class="btn">📄 View/Download Proposal PDF</a>
+                <a href="' . $pdfUrl . '" class="btn">📄 View Your Proposal</a>
             </p>
             
             <div class="footer">
@@ -245,12 +181,9 @@ try {
     </html>';
 
     // Send email to customer
-    $customerSent = $emailService->send($email, $customerSubject, $customerBody);
+    $emailService->send($email, $customerSubject, $customerBody);
 
-    // Send email to admin
-    $adminSent = $emailService->send('admin@kinas-group.com', $adminSubject, $adminBody);
-
-    // Save enquiry to database
+    // Save to database
     $db = Database::getInstance()->getConnection();
     $stmt = $db->prepare("
         INSERT INTO solar_enquiries 
@@ -278,16 +211,12 @@ try {
         $estimatedCost
     ]);
 
-    // Return success response
+    // Return success
     echo json_encode([
         'success' => true,
         'message' => 'Proposal generated successfully! Check your email for the PDF.',
         'reference' => $reference,
         'pdf_url' => $pdfUrl,
-        'emails_sent' => [
-            'customer' => $customerSent,
-            'admin' => $adminSent
-        ],
         'data' => [
             'system_size' => $systemSize,
             'panels' => $recommendedPanels,
@@ -301,10 +230,7 @@ try {
     ]);
 
 } catch (Exception $e) {
-    // Log error
     error_log('Solar Calculator Error: ' . $e->getMessage());
-
-    // Return error response
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
