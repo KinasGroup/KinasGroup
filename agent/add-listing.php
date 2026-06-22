@@ -54,8 +54,9 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .form-group { margin-bottom: 24px; }
 .form-group label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #333; }
 .form-group label i { color: #C6A43F; margin-right: 6px; }
-.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid #E0E0E0; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 14px; transition: all 0.3s; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid #E0E0E0; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 14px; transition: all 0.3s; background: #fff; }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #C6A43F; box-shadow: 0 0 0 3px rgba(198,164,63,0.1); }
+.form-group select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 .input-prefix { position: relative; display: flex; align-items: center; }
 .prefix { position: absolute; left: 16px; color: #C6A43F; font-weight: 600; }
@@ -69,7 +70,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; margin-top: 20px; }
 .preview-item { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 1; background: #F5F5F5; }
 .preview-item img { width: 100%; height: 100%; object-fit: cover; }
-.preview-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-size: 14px; }
+.preview-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-size: 14px; border: none; }
 .checkbox-group { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .checkbox-label input { width: auto; accent-color: #C6A43F; }
@@ -77,7 +78,10 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .btn-cancel { padding: 12px 28px; background: #F5F5F5; border: none; border-radius: 40px; color: #666; cursor: pointer; font-weight: 600; }
 .btn-submit { padding: 12px 32px; background: #C6A43F; border: none; border-radius: 40px; font-weight: 600; color: #0A0A0A; cursor: pointer; transition: all 0.3s; }
 .btn-submit:hover { background: #A8882E; transform: translateY(-2px); }
-@media (max-width: 968px) { .form-grid { grid-template-columns: 1fr; } .form-section:first-child { border-right: none; border-bottom: 1px solid #E0E0E0; } .form-row { grid-template-columns: 1fr; gap: 0; } }
+.automobile-fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.automobile-fields-grid .form-group { margin-bottom: 0; }
+.full-width { grid-column: 1 / -1; }
+@media (max-width: 968px) { .form-grid { grid-template-columns: 1fr; } .form-section:first-child { border-right: none; border-bottom: 1px solid #E0E0E0; } .form-row { grid-template-columns: 1fr; gap: 0; } .automobile-fields-grid { grid-template-columns: 1fr; } }
 @media (max-width: 768px) { .agent-container { padding: 20px; } .form-section { padding: 24px; } }
 </style>
 
@@ -141,16 +145,76 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 <div class="form-group"><label><i class="fas fa-align-left"></i> Description *</label><textarea name="description" rows="6" placeholder="Provide a detailed description of your listing..." required></textarea></div>
                 <div class="form-row"><div class="form-group"><label><i class="fas fa-tag"></i> Price *</label><div class="input-prefix"><span class="prefix">₦</span><input type="number" name="price" placeholder="0" step="0.01" required></div></div><div class="form-group"><label>Price Type</label><select name="price_type"><option value="fixed">Fixed Price</option><option value="negotiable">Negotiable</option><option value="contact">Contact for Price</option></select></div></div>
                 <h3>Location</h3>
-                <div class="form-row"><div class="form-group"><label>City</label><input type="text" name="city" placeholder="e.g., Lagos"></div><div class="form-group"><label>State/Province</label><input type="text" name="state" placeholder="e.g., Lagos State"></div></div>
-                <div class="form-group"><label>Address</label><input type="text" name="address" placeholder="Full address"></div>
+                <div class="form-row"><div class="form-group"><label><i class="fas fa-map-marker-alt"></i> City</label><input type="text" name="city" placeholder="e.g., Bellevue"></div><div class="form-group"><label>State/Province</label><input type="text" name="state" placeholder="e.g., WA"></div></div>
+                <div class="form-group"><label><i class="fas fa-location-dot"></i> Address</label><input type="text" name="address" placeholder="Full address, e.g., 1880 136th Place NE"></div>
+                <div class="form-group"><label><i class="fas fa-globe"></i> Country</label><input type="text" name="country" placeholder="e.g., United States" value="Nigeria"></div>
             </div>
             <div class="form-section"><h3>Images</h3>
                 <div class="image-upload-area"><input type="file" name="images[]" id="imageUpload" multiple accept="image/*" style="display: none;"><div class="upload-placeholder" onclick="document.getElementById('imageUpload').click()"><i class="fas fa-cloud-upload-alt"></i><p>Click or drag images here</p><span>Upload up to 10 images (Max 5MB each)</span></div><div class="image-preview-grid" id="imagePreviewGrid"></div></div>
-                <h3 style="margin-top: 24px;">Additional Details</h3>
-                <div class="form-group" id="automobileFields" style="display:none;"><label>Vehicle Details</label><div class="form-row"><select name="make" placeholder="Make"><option value="">Select Make</option><option>Mercedes-Benz</option><option>BMW</option><option>Audi</option></select><input type="text" name="model" placeholder="Model"></div><div class="form-row"><input type="number" name="year" placeholder="Year"><input type="text" name="mileage" placeholder="Mileage (km)"></div><select name="condition"><option value="">Condition</option><option>Brand New</option><option>Like New</option><option>Excellent</option></select></div>
-                <div class="form-group" id="realestateFields" style="display:none;"><label>Property Details</label><div class="form-row"><input type="number" name="bedrooms" placeholder="Bedrooms"><input type="number" name="bathrooms" placeholder="Bathrooms"></div><div class="form-row"><input type="text" name="area" placeholder="Area (sq ft)"><select name="property_type"><option value="">Property Type</option><option>Villa</option><option>Apartment</option><option>Land</option></select></div></div>
-                <div class="form-group" id="solarFields" style="display:none;"><label>Solar Details</label><div class="form-row"><input type="text" name="capacity" placeholder="Capacity (kW)"><select name="solar_type"><option value="">System Type</option><option>Residential</option><option>Commercial</option><option>Industrial</option></select></div></div>
-                <div class="checkbox-group"><label class="checkbox-label"><input type="checkbox" name="featured" value="1"><span>Feature this listing for premium visibility</span></label></div>
+
+                <!-- AUTOMOBILE DETAILS SECTION -->
+                <div id="automobileFields" style="display:none; margin-top:24px;">
+                    <h3 style="margin-bottom:16px;"><i class="fas fa-car"></i> Automobile Details</h3>
+                    <div class="automobile-fields-grid">
+                        <div class="form-group"><label><i class="fas fa-calendar"></i> Year *</label><input type="number" name="year" placeholder="e.g., 2018" min="1900" max="2099"></div>
+                        <div class="form-group"><label><i class="fas fa-tachometer-alt"></i> Mileage *</label><input type="text" name="mileage" placeholder="e.g., 19592 mi (31530 km)"></div>
+                        <div class="form-group"><label><i class="fas fa-cog"></i> Engine</label><input type="text" name="engine" placeholder="e.g., 6 Cylinder"></div>
+                        <div class="form-group"><label><i class="fas fa-cogs"></i> Gearbox / Transmission</label>
+                            <select name="gearbox"><option value="">Select Gearbox</option><option value="Automatic">Automatic</option><option value="Manual">Manual</option><option value="Semi-Automatic">Semi-Automatic</option><option value="CVT">CVT</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-car-side"></i> Car Type</label>
+                            <select name="car_type"><option value="">Select Car Type</option><option value="Coupe">Coupe</option><option value="Sedan">Sedan</option><option value="SUV">SUV</option><option value="Convertible">Convertible</option><option value="Hatchback">Hatchback</option><option value="Wagon">Wagon</option><option value="Truck">Truck</option><option value="Van">Van</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-steering-wheel"></i> Drive</label>
+                            <select name="drive"><option value="">Select Drive</option><option value="LHD">LHD (Left-Hand Drive)</option><option value="RHD">RHD (Right-Hand Drive)</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-road"></i> Drive Train</label>
+                            <select name="drive_train"><option value="">Select Drive Train</option><option value="AWD">AWD (All-Wheel Drive)</option><option value="FWD">FWD (Front-Wheel Drive)</option><option value="RWD">RWD (Rear-Wheel Drive)</option><option value="4WD">4WD (Four-Wheel Drive)</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-gas-pump"></i> Fuel Type</label>
+                            <select name="fuel_type"><option value="">Select Fuel Type</option><option value="Petrol">Petrol</option><option value="Diesel">Diesel</option><option value="Electric">Electric</option><option value="Hybrid">Hybrid</option><option value="Plugin-Hybrid">Plugin Hybrid</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-clipboard-check"></i> Condition</label>
+                            <select name="condition"><option value="">Select Condition</option><option value="Brand New">Brand New</option><option value="Like New">Like New</option><option value="Excellent">Excellent</option><option value="Very Good">Very Good</option><option value="Good">Good</option><option value="Fair">Fair</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-barcode"></i> VIN</label><input type="text" name="vin" placeholder="e.g., 19UNC1B01JY000027"></div>
+                        <div class="form-group"><label><i class="fas fa-palette"></i> Color</label><input type="text" name="color" placeholder="e.g., Silver"></div>
+                        <div class="form-group"><label><i class="fas fa-palette"></i> Interior Color</label><input type="text" name="interior_color" placeholder="e.g., Grey"></div>
+                        <div class="form-group"><label><i class="fas fa-door-open"></i> Doors</label>
+                            <select name="doors"><option value="">Select Doors</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-users"></i> Seats</label>
+                            <select name="seats"><option value="">Select Seats</option><option value="2">2</option><option value="4">4</option><option value="5">5</option><option value="7">7</option><option value="8">8</option></select>
+                        </div>
+                        <div class="form-group full-width"><label><i class="fas fa-check-circle"></i> Features (comma separated)</label><input type="text" name="features" placeholder="e.g., Leather seats, Sunroof, Navigation, Backup camera"></div>
+                    </div>
+                </div>
+
+                <!-- PROPERTY DETAILS SECTION -->
+                <div id="realestateFields" style="display:none; margin-top:24px;">
+                    <h3 style="margin-bottom:16px;"><i class="fas fa-home"></i> Property Details</h3>
+                    <div class="automobile-fields-grid">
+                        <div class="form-group"><label>Bedrooms</label><input type="number" name="bedrooms" placeholder="e.g., 3"></div>
+                        <div class="form-group"><label>Bathrooms</label><input type="number" name="bathrooms" placeholder="e.g., 2"></div>
+                        <div class="form-group"><label>Area (sq ft)</label><input type="text" name="area" placeholder="e.g., 2500"></div>
+                        <div class="form-group"><label>Property Type</label>
+                            <select name="property_type"><option value="">Select Type</option><option value="Villa">Villa</option><option value="Apartment">Apartment</option><option value="Land">Land</option><option value="House">House</option><option value="Condo">Condo</option><option value="Townhouse">Townhouse</option></select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SOLAR DETAILS SECTION -->
+                <div id="solarFields" style="display:none; margin-top:24px;">
+                    <h3 style="margin-bottom:16px;"><i class="fas fa-sun"></i> Solar Details</h3>
+                    <div class="automobile-fields-grid">
+                        <div class="form-group"><label>Capacity (kW)</label><input type="text" name="capacity" placeholder="e.g., 10"></div>
+                        <div class="form-group"><label>System Type</label>
+                            <select name="solar_type"><option value="">Select Type</option><option value="Residential">Residential</option><option value="Commercial">Commercial</option><option value="Industrial">Industrial</option></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checkbox-group" style="margin-top:24px;"><label class="checkbox-label"><input type="checkbox" name="featured" value="1"><span>Feature this listing for premium visibility</span></label></div>
                 <div class="form-actions"><button type="button" class="btn-cancel" onclick="window.location.href='/agent/listings.php'">Cancel</button><button type="submit" class="btn-submit">Publish Listing</button></div>
             </div>
         </div>
@@ -158,9 +222,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 </div>
 
 <script>
-// Map frontend <select name="division"> values (automobile / realestate /
-// solar / marketplace) to the listing_type the API expects
-// (car / property / solar / marketplace) and keep them in sync.
+// Map frontend <select name="division"> values to listing_type
 const divisionToType = { automobile: 'car', realestate: 'property', solar: 'solar', marketplace: 'marketplace' };
 
 function syncListingType() {
@@ -171,12 +233,12 @@ function syncListingType() {
     document.getElementById('solarFields').style.display       = d === 'solar'      ? 'block' : 'none';
 }
 document.getElementById('division')?.addEventListener('change', syncListingType);
-syncListingType(); // initialise (regular-agent pre-selected option needs to set listing_type too)
+syncListingType();
 
 const imageUpload = document.getElementById('imageUpload'), previewGrid = document.getElementById('imagePreviewGrid'); let selectedFiles = [];
 function syncInputFiles() { const dt = new DataTransfer(); selectedFiles.forEach(f => dt.items.add(f)); imageUpload.files = dt.files; }
 imageUpload?.addEventListener('change', function(e) { selectedFiles = [...selectedFiles, ...Array.from(e.target.files)]; syncInputFiles(); updatePreview(); });
-function updatePreview() { previewGrid.innerHTML = ''; selectedFiles.forEach((file, index) => { const reader = new FileReader(); reader.onload = function(e) { const div = document.createElement('div'); div.className = 'preview-item'; div.innerHTML = `<img src="${e.target.result}"><div class="preview-remove" onclick="removeImage(${index})">&times;</div>`; previewGrid.appendChild(div); }; reader.readAsDataURL(file); }); }
+function updatePreview() { previewGrid.innerHTML = ''; selectedFiles.forEach((file, index) => { const reader = new FileReader(); reader.onload = function(e) { const div = document.createElement('div'); div.className = 'preview-item'; div.innerHTML = `<img src="${e.target.result}"><button class="preview-remove" onclick="removeImage(${index})">&times;</button>`; previewGrid.appendChild(div); }; reader.readAsDataURL(file); }); }
 function removeImage(index) { selectedFiles.splice(index, 1); updatePreview(); syncInputFiles(); }
 </script>
 
