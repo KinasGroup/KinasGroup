@@ -40,8 +40,8 @@ RUN mkdir -p /var/www/html/uploads/solar-reports \
     && chown -R www-data:www-data /var/www/html/uploads \
     && chmod -R 775 /var/www/html/uploads
 
-# Copy nginx config (if exists)
-COPY nginx.conf /etc/nginx/http.d/default.conf 2>/dev/null || true
+# Copy nginx config - FIXED: removed shell operators
+COPY nginx.conf /etc/nginx/http.d/default.conf
 
 # Expose port 8080
 EXPOSE 8080
