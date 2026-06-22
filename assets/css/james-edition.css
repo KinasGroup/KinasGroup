@@ -787,6 +787,7 @@
 }
 .je-panel-empty i { font-size: 40px; color: var(--je-gold); margin-bottom: 12px; display: block; }
 
+.table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .je-table { width: 100%; border-collapse: collapse; }
 .je-table th, .je-table td {
     text-align: left; padding: 12px 24px; border-bottom: 1px solid var(--je-line-3);
