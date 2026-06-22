@@ -91,6 +91,7 @@ include '../templates/header.php';
                         </div>
                     </div>
                     <div class="je-panel-body">
+                        <div class="table-responsive">
                         <table class="je-table">
                             <thead>
                                 <tr>
@@ -115,6 +116,7 @@ include '../templates/header.php';
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             <?php endif; ?>
