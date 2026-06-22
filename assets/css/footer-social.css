@@ -34,3 +34,13 @@
     display: inline-block !important;
     color: inherit !important;
 }
+
+/* X (Twitter) icon fix - ensures it displays properly */
+.je-footer-social a .fa-x-twitter {
+    font-size: 16px !important;
+}
+
+/* Fallback for older Font Awesome versions */
+.je-footer-social a .fa-x-twitter:before {
+    content: "\e9ca" !important; /* Font Awesome 6 X icon unicode */
+}
