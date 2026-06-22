@@ -1,4 +1,3 @@
-cat > divisions/kinas-volt/index.php << 'ENDOFFILE'
 <?php
 /**
  * KINAS VOLT — Solar & Energy division landing
@@ -481,4 +480,3 @@ if (totalSlides > 1) {
 </script>
 
 <?php include '../../templates/footer.php'; ?>
-ENDOFFILE
