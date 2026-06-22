@@ -73,18 +73,7 @@ function je_render_footer(string $variant = 'site'): void
                             Subscribe
                         </button>
                     </div>
-                    <?php if ($role === 'admin'): ?>
-                        <div class="je-admin-portal-cta" style="margin-top:16px;">
-                            <a href="/admin/dashboard.php" class="je-admin-portal-btn">
-                                <span class="je-admin-portal-shield"><i class="fas fa-crown"></i></span>
-                                <span class="je-admin-portal-text">
-                                    <span class="je-admin-portal-eyebrow">KINAS GROUP</span>
-                                    <span class="je-admin-portal-label">Admin Portal</span>
-                                </span>
-                                <span class="je-admin-portal-arrow"><i class="fas fa-chevron-right"></i></span>
-                            </a>
-                        </div>
-                    <?php endif; ?>
+                    <!-- ADMIN PORTAL BUTTON REMOVED -->
                 </div>
             </div>
             <div class="je-footer-bottom">
