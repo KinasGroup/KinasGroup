@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_socials'])) {
             // Update social media settings
             $socials = [
                 'facebook' => trim($_POST['facebook'] ?? ''),
-                'twitter' => trim($_POST['twitter'] ?? ''),
+                'youtube' => trim($_POST['youtube'] ?? ''),
                 'x' => trim($_POST['x'] ?? ''),
                 'instagram' => trim($_POST['instagram'] ?? ''),
                 'linkedin' => trim($_POST['linkedin'] ?? '')
@@ -67,14 +67,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_socials'])) {
 // Fetch current social media settings
 $socials = [
     'facebook' => '',
-    'twitter' => '',
+    'youtube' => '',
     'x' => '',
     'instagram' => '',
     'linkedin' => ''
 ];
 
 try {
-    $stmt = $db->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('facebook', 'twitter', 'x', 'instagram', 'linkedin')");
+    $stmt = $db->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('facebook', 'youtube', 'x', 'instagram', 'linkedin')");
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $socials[$row['setting_key']] = $row['setting_value'];
     }
@@ -216,8 +216,8 @@ require_once __DIR__ . '/../templates/header.php';
                         <input type="url" name="facebook" value="<?= htmlspecialchars($socials['facebook']) ?>" placeholder="https://facebook.com/yourpage">
                     </div>
                     <div class="form-group">
-                        <label><i class="fab fa-twitter"></i> Twitter</label>
-                        <input type="url" name="twitter" value="<?= htmlspecialchars($socials['twitter']) ?>" placeholder="https://twitter.com/yourhandle">
+                        <label><i class="fab fa-youtube"></i> Youtube</label>
+                        <input type="url" name="youtube" value="<?= htmlspecialchars($socials['youtube']) ?>" placeholder="https://youtube.com/yourhandle">
                     </div>
                 </div>
                 <div class="form-row">
@@ -247,7 +247,7 @@ require_once __DIR__ . '/../templates/header.php';
                         <?php 
                         $socialIcons = [
                             'facebook' => 'fab fa-facebook',
-                            'twitter' => 'fab fa-twitter', 
+                            'youtube' => 'fab fa-youtube', 
                             'x' => 'fab fa-x-twitter',
                             'instagram' => 'fab fa-instagram',
                             'linkedin' => 'fab fa-linkedin'
