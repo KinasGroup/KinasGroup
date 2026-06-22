@@ -51,7 +51,6 @@ $pageDescription = 'Premium solar panels, inverters, batteries, and energy servi
 include '../../templates/header.php';
 ?>
 
-<!-- Hero Carousel Styles -->
 <style>
 #heroSection {
     position: relative;
@@ -79,7 +78,6 @@ include '../../templates/header.php';
 }
 .je-container { position: relative; z-index: 2; }
 
-/* Solar Calculator Button Style */
 .solar-calculator-green-btn {
     background: #2c7a47;
     border: none;
@@ -105,7 +103,107 @@ include '../../templates/header.php';
     color: #fff;
 }
 
-/* Feature Cards with Photo-Realistic Images */
+/* Custom Dropdown Styles */
+.custom-dropdown {
+    position: relative;
+    display: inline-block;
+    min-width: 180px;
+    font-family: 'Inter', sans-serif;
+}
+.custom-dropdown-toggle {
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.custom-dropdown-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+.custom-dropdown-toggle .arrow {
+    font-size: 12px;
+    transition: transform 0.2s ease;
+}
+.custom-dropdown.open .custom-dropdown-toggle .arrow {
+    transform: rotate(180deg);
+}
+.custom-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    margin-top: 4px;
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+.custom-dropdown.open .custom-dropdown-menu {
+    display: block;
+}
+.custom-dropdown-item {
+    padding: 12px 18px;
+    color: #e0e0e0;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.custom-dropdown-item:hover {
+    background: rgba(198, 164, 63, 0.15);
+    color: #C6A43F;
+}
+.custom-dropdown-item.selected {
+    background: rgba(198, 164, 63, 0.25);
+    color: #C6A43F;
+    font-weight: 500;
+}
+.custom-dropdown-item .count {
+    font-size: 11px;
+    color: #888;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+.custom-dropdown-item:hover .count {
+    background: rgba(198, 164, 63, 0.2);
+    color: #C6A43F;
+}
+.custom-dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-dropdown-menu::-webkit-scrollbar-track {
+    background: #2a2a2a;
+    border-radius: 3px;
+}
+.custom-dropdown-menu::-webkit-scrollbar-thumb {
+    background: #C6A43F;
+    border-radius: 3px;
+}
+@media (max-width: 768px) {
+    .custom-dropdown {
+        width: 100%;
+    }
+    .custom-dropdown-menu {
+        max-height: 240px;
+    }
+}
+
 .feature-card {
     position: relative;
     border-radius: 16px;
@@ -184,19 +282,40 @@ include '../../templates/header.php';
     </div>
 </section>
 
+<!-- Search strip with custom dropdown -->
 <section style="background:#0A0A0A; padding:24px 0;">
     <div class="je-container">
         <form method="GET" action="search.php" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <input type="text" name="q" placeholder="Brand, system type, keyword…" style="flex:1; min-width:240px; padding:14px 18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:3px; color:#fff; font-family:Inter,sans-serif; font-size:14px;">
-            <select name="service_type" style="padding:14px 18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:3px; color:#fff; font-family:Inter,sans-serif; font-size:14px; min-width:160px;">
-                <option value="">Any Service</option>
-                <?php foreach ($services as $s): ?><option value="<?= htmlspecialchars($s['service_type']) ?>"><?= htmlspecialchars(ucfirst($s['service_type'])) ?> (<?= (int)$s['cnt'] ?>)</option><?php endforeach; ?>
-            </select>
+            
+            <!-- Custom Dropdown for Service Types -->
+            <div class="custom-dropdown" id="serviceDropdown">
+                <div class="custom-dropdown-toggle">
+                    <span id="selectedServiceText">Any Service</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="custom-dropdown-menu">
+                    <div class="custom-dropdown-item" data-value="" data-count="<?= $totalSystems ?>">
+                        <span>Any Service</span>
+                        <span class="count"><?= $totalSystems ?></span>
+                    </div>
+                    <?php foreach ($services as $s): ?>
+                        <div class="custom-dropdown-item" data-value="<?= htmlspecialchars($s['service_type']) ?>" data-count="<?= (int)$s['cnt'] ?>">
+                            <span><?= htmlspecialchars(ucfirst($s['service_type'])) ?></span>
+                            <span class="count"><?= (int)$s['cnt'] ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            
+            <input type="hidden" name="service_type" id="serviceInput" value="">
+            
             <button type="submit" class="je-btn je-btn-gold"><i class="fas fa-search"></i> Search</button>
         </form>
     </div>
 </section>
 
+<!-- Featured systems -->
 <section style="padding:60px 0;">
     <div class="je-container">
         <div class="je-flex-between" style="margin-bottom:32px;">
@@ -226,7 +345,7 @@ include '../../templates/header.php';
     </div>
 </section>
 
-<!-- Why Kinas Volt - Photo-Realistic Feature Cards -->
+<!-- Why Kinas Volt -->
 <section style="padding:80px 0; background:#F8F6F1;">
     <div class="je-container">
         <div style="text-align:center; margin-bottom:48px;">
@@ -234,8 +353,6 @@ include '../../templates/header.php';
             <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Powering a sustainable future</h2>
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px;">
-            
-            <!-- Premium Hardware -->
             <div class="feature-card">
                 <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1613665813446-82a78c468a1d?w=600&q=80');"></div>
                 <div class="feature-overlay"></div>
@@ -244,8 +361,6 @@ include '../../templates/header.php';
                     <p>Only Tier-1 solar brands and components, engineered for maximum efficiency and longevity.</p>
                 </div>
             </div>
-            
-            <!-- Certified Installers -->
             <div class="feature-card">
                 <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1581094794322-c7c5c9a0ee65?w=600&q=80');"></div>
                 <div class="feature-overlay"></div>
@@ -254,8 +369,6 @@ include '../../templates/header.php';
                     <p>Vetted installation professionals with proven track records and industry certifications.</p>
                 </div>
             </div>
-            
-            <!-- Long Warranties -->
             <div class="feature-card">
                 <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1581091226033-d5d7e5f3c6b2?w=600&q=80');"></div>
                 <div class="feature-overlay"></div>
@@ -264,8 +377,6 @@ include '../../templates/header.php';
                     <p>Up to 25-year performance warranties on premium systems, giving you peace of mind.</p>
                 </div>
             </div>
-            
-            <!-- Financing Available -->
             <div class="feature-card">
                 <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&q=80');"></div>
                 <div class="feature-overlay"></div>
@@ -274,7 +385,6 @@ include '../../templates/header.php';
                     <p>Flexible payment options for residential and commercial projects. Get started today.</p>
                 </div>
             </div>
-            
         </div>
     </div>
 </section>
@@ -289,24 +399,82 @@ include '../../templates/header.php';
 </section>
 
 <script>
+// ============================================
+// ROTATING HERO BACKGROUND
+// ============================================
+let currentSlide = 0;
+const slides = document.querySelectorAll('.hero-slide');
+const totalSlides = slides.length;
+
+function rotateHeroBackground() {
+    if (totalSlides > 1) {
+        slides[currentSlide].classList.remove('active');
+        currentSlide = (currentSlide + 1) % totalSlides;
+        slides[currentSlide].classList.add('active');
+    }
+}
+
+if (totalSlides > 1) {
+    setInterval(rotateHeroBackground, 6000);
+}
+
+// ============================================
+// CUSTOM DROPDOWN FUNCTIONALITY
+// ============================================
 (function() {
-    // ============================================
-    // ROTATING HERO BACKGROUND
-    // ============================================
-    let currentSlide = 0;
-    const slides = document.querySelectorAll('.hero-slide');
-    const totalSlides = slides.length;
+    const dropdown = document.getElementById('serviceDropdown');
+    if (!dropdown) return;
     
-    function rotateHeroBackground() {
-        if (totalSlides > 1) {
-            slides[currentSlide].classList.remove('active');
-            currentSlide = (currentSlide + 1) % totalSlides;
-            slides[currentSlide].classList.add('active');
+    const toggle = dropdown.querySelector('.custom-dropdown-toggle');
+    const items = dropdown.querySelectorAll('.custom-dropdown-item');
+    const selectedText = document.getElementById('selectedServiceText');
+    const serviceInput = document.getElementById('serviceInput');
+    
+    let isOpen = false;
+    
+    toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        isOpen = !isOpen;
+        if (isOpen) {
+            dropdown.classList.add('open');
+            document.addEventListener('click', closeDropdownOnClickOutside);
+        } else {
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeDropdownOnClickOutside);
+        }
+    });
+    
+    items.forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const value = this.getAttribute('data-value');
+            const text = this.querySelector('span:first-child').innerText;
+            
+            selectedText.innerHTML = text;
+            serviceInput.value = value;
+            
+            items.forEach(function(i) {
+                i.classList.remove('selected');
+            });
+            this.classList.add('selected');
+            
+            isOpen = false;
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeDropdownOnClickOutside);
+        });
+    });
+    
+    function closeDropdownOnClickOutside(e) {
+        if (!dropdown.contains(e.target)) {
+            isOpen = false;
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeDropdownOnClickOutside);
         }
     }
     
-    if (totalSlides > 1) {
-        setInterval(rotateHeroBackground, 6000);
+    const defaultItem = dropdown.querySelector('.custom-dropdown-item[data-value=""]');
+    if (defaultItem) {
+        defaultItem.classList.add('selected');
     }
 })();
 </script>

@@ -35,7 +35,6 @@ $pageDescription = 'Discover luxury homes, villas, penthouses, and estates from 
 include '../../templates/header.php';
 ?>
 
-<!-- Hero Carousel Styles -->
 <style>
 #heroSection {
     position: relative;
@@ -62,6 +61,107 @@ include '../../templates/header.php';
     z-index: 1;
 }
 .je-container { position: relative; z-index: 2; }
+
+/* Custom Dropdown Styles */
+.custom-dropdown {
+    position: relative;
+    display: inline-block;
+    min-width: 180px;
+    font-family: 'Inter', sans-serif;
+}
+.custom-dropdown-toggle {
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.custom-dropdown-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+.custom-dropdown-toggle .arrow {
+    font-size: 12px;
+    transition: transform 0.2s ease;
+}
+.custom-dropdown.open .custom-dropdown-toggle .arrow {
+    transform: rotate(180deg);
+}
+.custom-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    margin-top: 4px;
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+.custom-dropdown.open .custom-dropdown-menu {
+    display: block;
+}
+.custom-dropdown-item {
+    padding: 12px 18px;
+    color: #e0e0e0;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.custom-dropdown-item:hover {
+    background: rgba(198, 164, 63, 0.15);
+    color: #C6A43F;
+}
+.custom-dropdown-item.selected {
+    background: rgba(198, 164, 63, 0.25);
+    color: #C6A43F;
+    font-weight: 500;
+}
+.custom-dropdown-item .count {
+    font-size: 11px;
+    color: #888;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+.custom-dropdown-item:hover .count {
+    background: rgba(198, 164, 63, 0.2);
+    color: #C6A43F;
+}
+.custom-dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-dropdown-menu::-webkit-scrollbar-track {
+    background: #2a2a2a;
+    border-radius: 3px;
+}
+.custom-dropdown-menu::-webkit-scrollbar-thumb {
+    background: #C6A43F;
+    border-radius: 3px;
+}
+@media (max-width: 768px) {
+    .custom-dropdown {
+        width: 100%;
+    }
+    .custom-dropdown-menu {
+        max-height: 240px;
+    }
+}
 </style>
 
 <!-- Hero with Rotating Backgrounds -->
@@ -74,7 +174,6 @@ include '../../templates/header.php';
     </div>
     <div class="hero-overlay"></div>
     
-    <!-- ORIGINAL CONTENT - EXACTLY AS WAS -->
     <div class="je-container" style="color:#fff; position:relative; z-index:1;">
         <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">WILLIAMS CONNECT HOME</div>
         <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Where Luxury Meets Address</h1>
@@ -86,19 +185,40 @@ include '../../templates/header.php';
     </div>
 </section>
 
+<!-- Search strip with custom dropdown -->
 <section style="background:#0A0A0A; padding:24px 0;">
     <div class="je-container">
         <form method="GET" action="search.php" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <input type="text" name="q" placeholder="City, neighborhood, or keyword…" style="flex:1; min-width:240px; padding:14px 18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:3px; color:#fff; font-family:Inter,sans-serif; font-size:14px;">
-            <select name="property_type" style="padding:14px 18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:3px; color:#fff; font-family:Inter,sans-serif; font-size:14px; min-width:160px;">
-                <option value="">Any Type</option>
-                <?php foreach ($propTypes as $pt): ?><option value="<?= htmlspecialchars($pt['property_type']) ?>"><?= htmlspecialchars($pt['property_type']) ?> (<?= (int)$pt['cnt'] ?>)</option><?php endforeach; ?>
-            </select>
+            
+            <!-- Custom Dropdown for Property Types -->
+            <div class="custom-dropdown" id="propertyDropdown">
+                <div class="custom-dropdown-toggle">
+                    <span id="selectedPropertyText">Any Type</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="custom-dropdown-menu">
+                    <div class="custom-dropdown-item" data-value="" data-count="<?= $totalProps ?>">
+                        <span>Any Type</span>
+                        <span class="count"><?= $totalProps ?></span>
+                    </div>
+                    <?php foreach ($propTypes as $pt): ?>
+                        <div class="custom-dropdown-item" data-value="<?= htmlspecialchars($pt['property_type']) ?>" data-count="<?= (int)$pt['cnt'] ?>">
+                            <span><?= htmlspecialchars($pt['property_type']) ?></span>
+                            <span class="count"><?= (int)$pt['cnt'] ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            
+            <input type="hidden" name="property_type" id="propertyInput" value="">
+            
             <button type="submit" class="je-btn je-btn-gold"><i class="fas fa-search"></i> Search</button>
         </form>
     </div>
 </section>
 
+<!-- Featured listings -->
 <section style="padding:60px 0;">
     <div class="je-container">
         <div class="je-flex-between" style="margin-bottom:32px;">
@@ -129,6 +249,7 @@ include '../../templates/header.php';
     </div>
 </section>
 
+<!-- Explore by type -->
 <section style="padding:60px 0; background:#F8F6F1;">
     <div class="je-container">
         <div style="text-align:center; margin-bottom:40px;">
@@ -146,6 +267,7 @@ include '../../templates/header.php';
     </div>
 </section>
 
+<!-- Why Choose Us -->
 <section style="padding:80px 0;">
     <div class="je-container">
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:40px; text-align:center;">
@@ -157,6 +279,7 @@ include '../../templates/header.php';
     </div>
 </section>
 
+<!-- CTA Section -->
 <section style="background:#0A0A0A; padding:80px 0; text-align:center; color:#fff;">
     <div class="je-container">
         <h2 style="font-family:'Prata',serif; font-size:36px; margin-bottom:14px;">List your property with KINAS</h2>
@@ -184,6 +307,66 @@ function rotateHeroBackground() {
 if (totalSlides > 1) {
     setInterval(rotateHeroBackground, 6000);
 }
+
+// ============================================
+// CUSTOM DROPDOWN FUNCTIONALITY
+// ============================================
+(function() {
+    const dropdown = document.getElementById('propertyDropdown');
+    if (!dropdown) return;
+    
+    const toggle = dropdown.querySelector('.custom-dropdown-toggle');
+    const items = dropdown.querySelectorAll('.custom-dropdown-item');
+    const selectedText = document.getElementById('selectedPropertyText');
+    const propertyInput = document.getElementById('propertyInput');
+    
+    let isOpen = false;
+    
+    toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        isOpen = !isOpen;
+        if (isOpen) {
+            dropdown.classList.add('open');
+            document.addEventListener('click', closeDropdownOnClickOutside);
+        } else {
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeDropdownOnClickOutside);
+        }
+    });
+    
+    items.forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const value = this.getAttribute('data-value');
+            const text = this.querySelector('span:first-child').innerText;
+            
+            selectedText.innerHTML = text;
+            propertyInput.value = value;
+            
+            items.forEach(function(i) {
+                i.classList.remove('selected');
+            });
+            this.classList.add('selected');
+            
+            isOpen = false;
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeDropdownOnClickOutside);
+        });
+    });
+    
+    function closeDropdownOnClickOutside(e) {
+        if (!dropdown.contains(e.target)) {
+            isOpen = false;
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeDropdownOnClickOutside);
+        }
+    }
+    
+    const defaultItem = dropdown.querySelector('.custom-dropdown-item[data-value=""]');
+    if (defaultItem) {
+        defaultItem.classList.add('selected');
+    }
+})();
 </script>
 
 <?php include '../../templates/footer.php'; ?>
