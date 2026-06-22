@@ -25,7 +25,7 @@ $depth       = $headerDepth ?? '../';
     </div>
 </header>
 
-<!-- Font Awesome Icons - MUST be loaded for dashboard icons -->
+<!-- Font Awesome Icons - CRITICAL for dashboard icons and footer social icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
 <script>
