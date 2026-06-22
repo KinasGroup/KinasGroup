@@ -1,4 +1,3 @@
-cat > divisions/kinas-automobile/index.php << 'ENDOFFILE'
 <?php
 /**
  * KINAS AUTOMOBILE — Division landing
@@ -448,4 +447,3 @@ if (totalSlides > 1) {
 </script>
 
 <?php include '../../templates/footer.php'; ?>
-ENDOFFILE
