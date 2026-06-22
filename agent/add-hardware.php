@@ -180,6 +180,7 @@ include '../templates/header.php';
                 </div>
             </div>
             <div class="je-panel-body">
+                <div class="table-responsive">
                 <table class="je-table">
                     <thead>
                         <tr>
@@ -222,6 +223,7 @@ include '../templates/header.php';
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     </main>

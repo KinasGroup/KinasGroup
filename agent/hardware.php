@@ -82,6 +82,7 @@ include '../templates/header.php';
         <?php else: ?>
             <div class="je-panel">
                 <div class="je-panel-body">
+                    <div class="table-responsive">
                     <table class="je-table">
                         <thead>
                             <tr>
@@ -119,6 +120,7 @@ include '../templates/header.php';
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         <?php endif; ?>
