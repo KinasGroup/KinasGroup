@@ -266,18 +266,36 @@ require_once __DIR__ . '/../../templates/header.php';
             font-family: 'Inter', sans-serif;
             width: 100%;
         }
+
+        /* Fixed Delete Button */
         .remove-appliance {
-            background: rgba(220,53,69,0.2);
-            border: none;
+            background: rgba(220,53,69,0.25);
+            border: 1px solid rgba(220,53,69,0.3);
             border-radius: 6px;
-            color: var(--error);
+            color: #ff6b6b !important;
             cursor: pointer;
             transition: var(--transition);
             font-size: 18px;
-            padding: 8px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
         }
         .remove-appliance:hover {
             background: rgba(220,53,69,0.4);
+            border-color: #dc3545;
+            color: #ff4757 !important;
+            transform: scale(1.05);
+        }
+        .remove-appliance i {
+            font-size: 14px;
+            color: #ff6b6b !important;
+        }
+        .remove-appliance:hover i {
+            color: #ff4757 !important;
         }
 
         .preset-grid {
@@ -728,7 +746,7 @@ function addCustomAppliance(name = '', watts = '') {
         <input type="number" name="appliance_qty[]" placeholder="Qty" value="1" min="1">
         <input type="number" name="appliance_watts[]" placeholder="Watts" value="${watts}" min="1">
         <button type="button" class="remove-appliance" onclick="removeAppliance('appliance-${applianceCounter}')">
-            <i class="fas fa-trash"></i>
+            <i class="fas fa-trash"></i> Delete
         </button>
     `;
     container.appendChild(row);
