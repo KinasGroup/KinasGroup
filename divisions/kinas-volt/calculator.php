@@ -1,4 +1,3 @@
-cat > divisions/kinas-volt/calculator.php << 'ENDOFFILE'
 <?php
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/security.php';
@@ -937,4 +936,3 @@ document.querySelectorAll('input[required], select[required]').forEach(el => {
 </script>
 
 <?php require_once __DIR__ . '/../../templates/footer.php'; ?>
-ENDOFFILE
