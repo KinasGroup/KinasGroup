@@ -175,7 +175,7 @@ define('MARKETPLACE_CATEGORIES', [
     'other' => 'Other'
 ]);
 
-// Social Media Links
+// Social Media Links - REPLACE twitter with x
 define('SOCIAL_MEDIA', [
     'facebook' => 'https://facebook.com/kinasgroup',
     'x' => 'https://x.com/kinasgroup',                    // X (formerly Twitter)
