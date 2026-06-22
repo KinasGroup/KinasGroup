@@ -1,22 +1,25 @@
 FROM php:8.2-fpm-alpine
 
-RUN apk add --no-cache nginx curl
+RUN apk add --no-cache nginx curl git unzip libpng-dev libjpeg-turbo-dev freetype-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) gd pdo_mysql mysqli
 
+# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Copy application files
 COPY . /var/www/html/
 WORKDIR /var/www/html
 
-# The uploads/ folder isn't in the repo — it's created at runtime when an
-# agent uploads listing images. Without this, it gets created (if at all)
-# owned by root, and the php-fpm worker (www-data) can't write into it —
-# uploads fail silently because the error is only logged, never shown.
+# RUN COMPOSER INSTALL - THIS WAS MISSING!
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+# Create uploads directory with correct permissions
 RUN mkdir -p /var/www/html/uploads && \
     chown -R www-data:www-data /var/www/html/uploads && \
     chmod -R 775 /var/www/html/uploads
 
-RUN docker-php-ext-install pdo_mysql mysqli
-
+# Copy nginx config
 COPY nginx.conf /etc/nginx/http.d/default.conf
 
 EXPOSE 8080
