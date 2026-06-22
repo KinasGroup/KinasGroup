@@ -16,7 +16,7 @@ function je_render_footer(string $variant = 'site'): void
     
     $socials = defined('SOCIAL_MEDIA') ? SOCIAL_MEDIA : [
         'facebook' => '#',
-        'twitter' => '#',
+        'x' => '#',
         'instagram' => '#',
         'linkedin' => '#',
         'youtube' => '#'
@@ -30,7 +30,7 @@ function je_render_footer(string $variant = 'site'): void
                     <div class="je-footer-tag">The World's Luxury Marketplace — Homes, Cars, Solar &amp; Curated Goods.</div>
                     <div class="je-footer-social" aria-label="Social media">
                         <a href="<?= htmlspecialchars($socials['facebook'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                        <a href="<?= htmlspecialchars($socials['twitter'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="Twitter / X"><i class="fab fa-x-twitter"></i></a>
+                        <a href="<?= htmlspecialchars($socials['x'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="X (formerly Twitter)"><i class="fab fa-x-twitter"></i></a>
                         <a href="<?= htmlspecialchars($socials['instagram'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                         <a href="<?= htmlspecialchars($socials['linkedin'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
                         <a href="<?= htmlspecialchars($socials['youtube'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
