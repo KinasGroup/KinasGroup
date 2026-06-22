@@ -96,12 +96,25 @@ include '../templates/header.php';
             <li><a href="users.php"><i class="fas fa-users"></i> Users</a></li>
             <li><a href="agents.php"><i class="fas fa-user-tie"></i> Agents</a></li>
             <li><a href="listings.php"><i class="fas fa-list-ul"></i> Listings</a></li>
-            <li><a href="settings.php"><i class="fas fa-cog"></i> Settings</a></li>
             
-            <!-- Featured Management Section -->
+            <!-- Moderation & Oversight -->
+            <li class="je-dash-nav-heading">MODERATION</li>
+            <li><a href="flagged-listings.php"><i class="fas fa-flag"></i> Flagged Listings</a></li>
+            <li><a href="agent-approvals.php"><i class="fas fa-user-check"></i> Agent Approvals</a></li>
+            
+            <!-- Analytics -->
+            <li class="je-dash-nav-heading">ANALYTICS</li>
+            <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="activity-logs.php"><i class="fas fa-history"></i> Activity Logs</a></li>
+            
+            <!-- Featured Management -->
             <li class="je-dash-nav-heading">FEATURED MANAGEMENT</li>
             <li><a href="test-featured.php"><i class="fas fa-chart-line"></i> Test Algorithm</a></li>
             <li><a href="update-featured.php"><i class="fas fa-sync-alt"></i> Update Featured</a></li>
+            
+            <!-- Settings -->
+            <li class="je-dash-nav-heading">SYSTEM</li>
+            <li><a href="settings.php"><i class="fas fa-cog"></i> Settings</a></li>
             
             <!-- Footer Links -->
             <li class="je-dash-nav-divider"></li>
@@ -170,11 +183,41 @@ include '../templates/header.php';
                 <strong>Update Featured</strong>
                 <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Run algorithm & update</p>
             </a>
-            <a href="listings.php" style="background: #2C3E50; color: white; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
-                <i class="fas fa-list-ul" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
-                <strong>All Listings</strong>
-                <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Manage all listings</p>
+            <a href="flagged-listings.php" style="background: #DC2626; color: white; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
+                <i class="fas fa-flag" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
+                <strong>Flagged Listings</strong>
+                <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Review reported content</p>
             </a>
+            <a href="agent-approvals.php" style="background: #2E7D32; color: white; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
+                <i class="fas fa-user-check" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
+                <strong>Agent Approvals</strong>
+                <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Review KYC submissions</p>
+            </a>
+        </div>
+
+        <!-- Recent Activity Section -->
+        <div style="margin-top: 40px; background: white; border-radius: 16px; padding: 24px; border: 1px solid #E0E0E0;">
+            <h3 style="font-family: 'Prata', serif; margin-bottom: 16px; color: #0A0A0A;">
+                <i class="fas fa-clock" style="color: #C6A43F; margin-right: 8px;"></i> Quick Links
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+                <a href="reports.php" style="padding: 12px; background: #F5F7FA; border-radius: 8px; text-decoration: none; color: #333; text-align: center; transition: all 0.3s; border: 1px solid #E0E0E0;">
+                    <i class="fas fa-chart-bar" style="color: #C6A43F; font-size: 20px; display: block; margin-bottom: 4px;"></i>
+                    <span style="font-size: 13px;">View Reports</span>
+                </a>
+                <a href="activity-logs.php" style="padding: 12px; background: #F5F7FA; border-radius: 8px; text-decoration: none; color: #333; text-align: center; transition: all 0.3s; border: 1px solid #E0E0E0;">
+                    <i class="fas fa-history" style="color: #C6A43F; font-size: 20px; display: block; margin-bottom: 4px;"></i>
+                    <span style="font-size: 13px;">Activity Logs</span>
+                </a>
+                <a href="users.php" style="padding: 12px; background: #F5F7FA; border-radius: 8px; text-decoration: none; color: #333; text-align: center; transition: all 0.3s; border: 1px solid #E0E0E0;">
+                    <i class="fas fa-users" style="color: #C6A43F; font-size: 20px; display: block; margin-bottom: 4px;"></i>
+                    <span style="font-size: 13px;">Manage Users</span>
+                </a>
+                <a href="listings.php" style="padding: 12px; background: #F5F7FA; border-radius: 8px; text-decoration: none; color: #333; text-align: center; transition: all 0.3s; border: 1px solid #E0E0E0;">
+                    <i class="fas fa-list-ul" style="color: #C6A43F; font-size: 20px; display: block; margin-bottom: 4px;"></i>
+                    <span style="font-size: 13px;">All Listings</span>
+                </a>
+            </div>
         </div>
     </main>
 </div>
