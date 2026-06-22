@@ -1,6 +1,6 @@
 <?php
 // includes/solar-pdf.php
-// Production PDF generator
+// Production PDF generator with robust vendor loading
 
 // Try multiple possible vendor paths
 $vendorPaths = [
@@ -28,15 +28,64 @@ if (!$vendorLoaded) {
     exit;
 }
 
+// Ensure mPDF temp directory exists and is writable
+$tmpDir = __DIR__ . '/../vendor/mpdf/mpdf/tmp';
+if (!is_dir($tmpDir)) {
+    mkdir($tmpDir, 0777, true);
+}
+if (!is_writable($tmpDir)) {
+    chmod($tmpDir, 0777);
+}
+
+// Ensure uploads directory exists
+$uploadDir = __DIR__ . '/../uploads/solar-reports/';
+if (!is_dir($uploadDir)) {
+    mkdir($uploadDir, 0777, true);
+}
+
+/**
+ * Get the professional email header HTML (same as PDF header)
+ */
+function getSolarEmailHeader() {
+    return '
+    <div style="text-align:center; padding-bottom:16px; border-bottom:3px solid #C6A43F; margin-bottom:24px;">
+        <img src="https://kinas-group.com/assets/images/logos/kinas-volt-logo.jpg" 
+             style="max-height:60px; width:auto;" alt="KINAS VOLT">
+        <div style="font-size:11px; color:#666; letter-spacing:2px; margin-top:6px; font-family: Arial, sans-serif;">POWERING A SUSTAINABLE FUTURE</div>
+        <div style="font-size:9px; color:#999; margin-top:2px; font-family: Arial, sans-serif;">Gwarimpa, Abuja • +234 913 717 5523</div>
+    </div>';
+}
+
+/**
+ * Get the professional email footer HTML (same as PDF footer)
+ */
+function getSolarEmailFooter() {
+    return '
+    <div style="text-align:center; padding-top:16px; border-top:2px solid #E0E0E0; margin-top:24px; font-size:10px; color:#999; font-family: Arial, sans-serif;">
+        KINAS VOLT • Solar Division<br>
+        volt.kinasgroup.com
+    </div>';
+}
+
 function generateSolarRecommendationPDF($data, $reference) {
     try {
+        // Ensure temp directory exists
+        $tmpDir = __DIR__ . '/../vendor/mpdf/mpdf/tmp';
+        if (!is_dir($tmpDir)) {
+            mkdir($tmpDir, 0777, true);
+        }
+        if (!is_writable($tmpDir)) {
+            chmod($tmpDir, 0777);
+        }
+        
         $mpdf = new \Mpdf\Mpdf([
             'margin_top'    => 45,
             'margin_bottom' => 35,
             'margin_left'   => 20,
             'margin_right'  => 20,
             'format'        => 'A4',
-            'default_font'  => 'dejavusans'
+            'default_font'  => 'dejavusans',
+            'tempDir'       => $tmpDir
         ]);
 
         $generationTime = date('F j, Y - h:i:s A');
@@ -55,7 +104,7 @@ function generateSolarRecommendationPDF($data, $reference) {
             $totalWattage += ($appliance['quantity'] ?? 1) * ($appliance['watts'] ?? 0);
         }
 
-        // Header with logo
+        // Professional Header with LOGO
         $mpdf->SetHTMLHeader('
         <div style="text-align:center; padding-bottom:12px; border-bottom:2px solid #C6A43F;">
             <img src="' . __DIR__ . '/../assets/images/logos/kinas-volt-logo.jpg" 
@@ -64,7 +113,7 @@ function generateSolarRecommendationPDF($data, $reference) {
             <div style="font-size:8px; color:#999; margin-top:2px;">Gwarimpa, Abuja • +234 913 717 5523</div>
         </div>');
 
-        // Footer
+        // Professional Footer
         $mpdf->SetHTMLFooter('
         <table width="100%" style="border-top:1px solid #E0E0E0; padding-top:8px; font-size:8px; color:#999;">
             <tr>
@@ -205,6 +254,7 @@ function generateSolarRecommendationPDF($data, $reference) {
         $estimatedCost = $data['estimated_cost'] ?? $grandTotal;
         $monthlySavings = $data['monthly_savings'] ?? (($data['daily_kwh'] ?? 0) * 30 * 225);
         $paybackYears = $data['payback_years'] ?? ($estimatedCost / ($monthlySavings * 12));
+        $roi = $data['roi'] ?? (($monthlySavings * 12 * 20) / $estimatedCost * 100);
         
         $html .= '
         <div class="section-title">INVESTMENT SUMMARY</div>
@@ -215,6 +265,8 @@ function generateSolarRecommendationPDF($data, $reference) {
         <table class="info-table">
             <tr><td>Monthly Savings</td><td><strong>₦' . number_format($monthlySavings) . '</strong></td></tr>
             <tr><td>Payback Period</td><td><strong>' . number_format($paybackYears, 1) . ' years</strong></td></tr>
+            <tr><td>20-Year ROI</td><td><strong>' . number_format($roi, 1) . '%</strong></td></tr>
+            <tr><td>CO₂ Offset</td><td><strong>' . number_format(($data['co2_saved'] ?? 0), 2) . ' tons/year</strong></td></tr>
         </table>';
 
         // Thank You
@@ -231,7 +283,7 @@ function generateSolarRecommendationPDF($data, $reference) {
         // Save PDF
         $uploadDir = __DIR__ . '/../uploads/solar-reports/';
         if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+            mkdir($uploadDir, 0777, true);
         }
 
         $filepath = $uploadDir . $reference . '.pdf';

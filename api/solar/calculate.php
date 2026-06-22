@@ -133,9 +133,13 @@ try {
     $pdfUrl = 'https://' . $_SERVER['HTTP_HOST'] . '/uploads/solar-reports/' . $reference . '.pdf';
 
     // ============================================================
-    // SEND EMAILS
+    // SEND EMAILS WITH PROFESSIONAL HEADER
     // ============================================================
     $emailService = new EmailService();
+
+    // Get the professional header and footer
+    $emailHeader = getSolarEmailHeader();
+    $emailFooter = getSolarEmailFooter();
 
     // Customer email
     $customerSubject = 'Your Solar Proposal from KINAS VOLT - ' . $reference;
@@ -145,45 +149,44 @@ try {
     <head>
         <style>
             body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #2C2C2C; }
-            .header { background: #0A0A0A; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .header h1 { color: #C6A43F; font-family: "Prata", serif; margin: 0; font-size: 24px; }
-            .content { background: #FFFFFF; padding: 30px; border: 1px solid #E0E0E0; border-top: none; border-radius: 0 0 8px 8px; }
-            .btn { display: inline-block; padding: 12px 30px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: bold; }
-            .footer { text-align: center; padding-top: 20px; font-size: 11px; color: #999; border-top: 1px solid #E0E0E0; margin-top: 20px; }
+            .content { background: #FFFFFF; padding: 30px; }
+            .btn { display: inline-block; padding: 12px 30px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0; }
             .info-box { background: #F8F6F1; padding: 15px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #C6A43F; }
+            .highlight { color: #C6A43F; font-weight: bold; }
         </style>
     </head>
     <body>
-        <div class="header">
-            <h1>☀️ KINAS VOLT</h1>
-            <p>Premium Solar Energy Solutions</p>
-        </div>
+        ' . $emailHeader . '
         <div class="content">
-            <h2>Your Solar Proposal is Ready!</h2>
+            <h2 style="color: #0A0A0A; font-family: Prata, serif;">Your Solar Proposal is Ready!</h2>
             <p>Dear ' . htmlspecialchars($fullName) . ',</p>
-            <p>Thank you for using the KINAS VOLT Solar Calculator.</p>
+            <p>Thank you for using the KINAS VOLT Solar Calculator. Based on your inputs, we have prepared a professional solar proposal for you.</p>
             
             <div class="info-box">
                 <strong>📄 Proposal Details:</strong><br>
-                <strong>Reference:</strong> ' . $reference . '<br>
+                <strong>Reference Number:</strong> ' . $reference . '<br>
                 <strong>System Size:</strong> ' . $systemSize . ' kWp<br>
-                <strong>Investment:</strong> ₦' . number_format($estimatedCost) . '<br>
+                <strong>Estimated Investment:</strong> ₦' . number_format($estimatedCost) . '<br>
                 <strong>Monthly Savings:</strong> ₦' . number_format($monthlySavings) . '
             </div>
             
             <p style="text-align: center; margin: 30px 0;">
-                <a href="' . $pdfUrl . '" class="btn">📄 View Your Proposal</a>
+                <a href="' . $pdfUrl . '" class="btn">📄 View/Download Your Proposal</a>
             </p>
             
-            <div class="footer">
-                KINAS GROUP • Gwarimpa, Abuja • +234 913 717 5523
-            </div>
+            <p><strong>What happens next?</strong></p>
+            <ol>
+                <li>Review your proposal</li>
+                <li>Our team will contact you within 24 hours</li>
+                <li>Schedule a free site assessment</li>
+                <li>Receive your final quotation</li>
+            </ol>
+            
+            <p>If you have any questions, feel free to reply to this email.</p>
         </div>
+        ' . $emailFooter . '
     </body>
     </html>';
-
-    // Send email to customer
-    $emailService->sendEmail($email, $customerSubject, $customerBody, 'listings@kinas-group.com', 'KINAS VOLT Solar Division');
 
     // Admin email
     $adminSubject = 'New Solar Enquiry - ' . $reference . ' - ' . $fullName;
@@ -193,21 +196,16 @@ try {
     <head>
         <style>
             body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #2C2C2C; }
-            .header { background: #0A0A0A; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .header h1 { color: #C6A43F; font-family: "Prata", serif; margin: 0; font-size: 24px; }
-            .content { background: #FFFFFF; padding: 30px; border: 1px solid #E0E0E0; border-top: none; border-radius: 0 0 8px 8px; }
-            .btn { display: inline-block; padding: 12px 30px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: bold; }
-            .footer { text-align: center; padding-top: 20px; font-size: 11px; color: #999; border-top: 1px solid #E0E0E0; margin-top: 20px; }
+            .content { background: #FFFFFF; padding: 30px; }
+            .btn { display: inline-block; padding: 12px 30px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0; }
             .info-box { background: #F8F6F1; padding: 15px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #C6A43F; }
         </style>
     </head>
     <body>
-        <div class="header">
-            <h1>☀️ KINAS VOLT</h1>
-            <p>New Solar Enquiry Received</p>
-        </div>
+        ' . $emailHeader . '
         <div class="content">
-            <h2>New Solar Enquiry</h2>
+            <h2 style="color: #0A0A0A; font-family: Prata, serif;">New Solar Enquiry Received</h2>
+            <p>A new solar enquiry has been submitted.</p>
             
             <div class="info-box">
                 <strong>👤 Customer Details:</strong><br>
@@ -230,23 +228,22 @@ try {
             <p style="text-align: center; margin: 20px 0;">
                 <a href="' . $pdfUrl . '" class="btn">📄 View Proposal PDF</a>
             </p>
-            
-            <div class="footer">
-                KINAS GROUP • Gwarimpa, Abuja • +234 913 717 5523
-            </div>
         </div>
+        ' . $emailFooter . '
     </body>
     </html>';
+
+    // Send email to customer
+    $emailService->sendEmail($email, $customerSubject, $customerBody, 'listings@kinas-group.com', 'KINAS VOLT Solar Division');
 
     // Send email to admin
     $emailService->sendEmail('admin@kinas-group.com', $adminSubject, $adminBody, 'listings@kinas-group.com', 'KINAS VOLT Solar Division');
 
     // ============================================================
-    // SAVE TO DATABASE - Only using columns that EXIST in your table
+    // SAVE TO DATABASE
     // ============================================================
     $db = Database::getInstance()->getConnection();
     
-    // Insert only the columns that exist in your table
     $stmt = $db->prepare("
         INSERT INTO solar_enquiries 
         (full_name, email, phone, monthly_bill, system_size, annual_savings, payback_years, status, created_at) 
@@ -263,7 +260,7 @@ try {
         $paybackYears
     ]);
 
-    // Return success
+    // Return success with 3 decimal places for CO₂, Payback, and ROI
     echo json_encode([
         'success' => true,
         'message' => 'Proposal generated successfully! Check your email for the PDF.',
@@ -275,9 +272,9 @@ try {
             'battery_capacity' => $batteryCapacity,
             'estimated_cost' => $estimatedCost,
             'monthly_savings' => $monthlySavings,
-            'payback_years' => $paybackYears,
-            'roi' => (($monthlySavings * 12 * 20) / $estimatedCost) * 100,
-            'co2_saved' => $co2Saved
+            'payback_years' => number_format($paybackYears, 3),
+            'roi' => number_format((($monthlySavings * 12 * 20) / $estimatedCost) * 100, 3),
+            'co2_saved' => number_format($co2Saved, 3)
         ]
     ]);
 

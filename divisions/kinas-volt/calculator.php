@@ -212,6 +212,9 @@ require_once __DIR__ . '/../../templates/header.php';
             font-size: 16px;
             transition: var(--transition);
             font-family: 'Inter', sans-serif;
+            width: 100%;
+            appearance: auto;
+            -webkit-appearance: auto;
         }
         .form-group input:focus,
         .form-group select:focus {
@@ -221,6 +224,10 @@ require_once __DIR__ . '/../../templates/header.php';
         }
         .form-group input::placeholder {
             color: rgba(255,255,255,0.3);
+        }
+        .form-group select option {
+            background: #1a1a1a;
+            color: #fff;
         }
 
         .appliances-header {
@@ -257,6 +264,7 @@ require_once __DIR__ . '/../../templates/header.php';
             border-radius: 6px;
             color: var(--text-light);
             font-family: 'Inter', sans-serif;
+            width: 100%;
         }
         .remove-appliance {
             background: rgba(220,53,69,0.2);
@@ -266,6 +274,7 @@ require_once __DIR__ . '/../../templates/header.php';
             cursor: pointer;
             transition: var(--transition);
             font-size: 18px;
+            padding: 8px;
         }
         .remove-appliance:hover {
             background: rgba(220,53,69,0.4);
@@ -351,7 +360,6 @@ require_once __DIR__ . '/../../templates/header.php';
             margin-top: 32px;
         }
 
-        /* Loading */
         .loading-overlay {
             display: none;
             position: fixed;
@@ -382,7 +390,6 @@ require_once __DIR__ . '/../../templates/header.php';
             to { transform: rotate(360deg); }
         }
 
-        /* Results */
         .results-section {
             display: none;
             margin-top: 40px;
@@ -479,6 +486,34 @@ require_once __DIR__ . '/../../templates/header.php';
             display: block;
         }
 
+        /* Social Icons Fix */
+        .je-footer-social a {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 38px !important;
+            height: 38px !important;
+            border-radius: 50% !important;
+            border: 1px solid rgba(255,255,255,0.2) !important;
+            color: rgba(255,255,255,0.9) !important;
+            text-decoration: none !important;
+            transition: all 0.3s ease !important;
+            font-size: 16px !important;
+            background: rgba(255,255,255,0.05) !important;
+        }
+        .je-footer-social a:hover {
+            background: #C6A43F !important;
+            border-color: #C6A43F !important;
+            color: #0A0A0A !important;
+            transform: translateY(-3px) !important;
+        }
+        .je-footer-social a i {
+            font-size: 16px !important;
+            line-height: 1 !important;
+            display: inline-block !important;
+            color: inherit !important;
+        }
+
         @media (max-width: 768px) {
             .calculator-hero h1 { font-size: 32px; }
             .progress-steps { gap: 30px; }
@@ -530,7 +565,11 @@ require_once __DIR__ . '/../../templates/header.php';
     <div id="errorMessage" class="error-message"></div>
 
     <form id="solarCalculatorForm">
-        <input type="hidden" name="csrf_token" value="<?php echo Security::generateCSRFToken(); ?>">
+        <?php
+        // Generate a fresh CSRF token
+        $csrfToken = Security::generateCSRFToken();
+        ?>
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
 
         <!-- Step 1: Customer Info -->
         <div class="step active" id="step1">
@@ -888,8 +927,8 @@ function displayResults(data, reference, pdfUrl) {
                 </div>
                 <div class="result-item">
                     <i class="fas fa-leaf"></i>
-                    <div class="result-value">${data.co2_saved || '--'} tons/year</div>
-                    <div class="result-label">CO₂ Saved Annually</div>
+                    <div class="result-value">${data.co2_saved || '--'}</div>
+                    <div class="result-label">CO₂ Saved (tons/year)</div>
                 </div>
                 <div class="result-item">
                     <i class="fas fa-calendar-alt"></i>
