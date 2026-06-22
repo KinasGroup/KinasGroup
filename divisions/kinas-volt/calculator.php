@@ -608,7 +608,7 @@ require_once __DIR__ . '/../../templates/header.php';
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-map-marker-alt"></i> City & State *</label>
-                        <input type="text" name="city_state" placeholder="Lagos, Nigeria" required>
+                        <input type="text" name="city_state" placeholder="Ikeja, Lagos" required>
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-building"></i> Property Type *</label>
