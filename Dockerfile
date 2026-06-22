@@ -32,15 +32,18 @@ WORKDIR /var/www/html
 # Copy application files
 COPY . .
 
-# Install PHP dependencies (this will run on Railway)
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Create uploads directory with correct permissions
+# Create all necessary directories with correct permissions
 RUN mkdir -p /var/www/html/uploads/solar-reports \
+    && mkdir -p /var/www/html/vendor/mpdf/mpdf/tmp \
     && chown -R www-data:www-data /var/www/html/uploads \
-    && chmod -R 775 /var/www/html/uploads
+    && chown -R www-data:www-data /var/www/html/vendor/mpdf/mpdf/tmp \
+    && chmod -R 775 /var/www/html/uploads \
+    && chmod -R 775 /var/www/html/vendor/mpdf/mpdf/tmp
 
-# Copy nginx config - FIXED: removed shell operators
+# Copy nginx config
 COPY nginx.conf /etc/nginx/http.d/default.conf
 
 # Expose port 8080
