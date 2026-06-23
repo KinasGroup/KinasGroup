@@ -113,7 +113,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
         <div style="background:#FFEBEE; border:1px solid #EF9A9A; color:#B71C1C; border-radius:8px; padding:14px 20px; margin-bottom:24px;"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($flashError) ?></div>
     <?php endif; ?>
 
-    <form class="listing-form" method="POST" action="/api/listings/create.php" enctype="multipart/form-data" onsubmit="console.log('Form submitting...'); return true;">
+    <form class="listing-form" method="POST" action="/api/listings/create.php" enctype="multipart/form-data" id="listingForm">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
         <div class="form-grid">
             <div class="form-section"><h3>Basic Information</h3>
@@ -293,19 +293,70 @@ function syncListingType() {
     document.getElementById('automobileFields').style.display = d === 'automobile'  ? 'block' : 'none';
     document.getElementById('realestateFields').style.display = d === 'realestate' ? 'block' : 'none';
     document.getElementById('solarFields').style.display       = d === 'solar'      ? 'block' : 'none';
-    
-    // Debug: log the selected division and listing_type
-    console.log('Division selected:', d);
-    console.log('Listing type set to:', document.getElementById('listing_type').value);
 }
 document.getElementById('division')?.addEventListener('change', syncListingType);
 syncListingType();
 
-// Debug form submission
-document.querySelector('.listing-form')?.addEventListener('submit', function(e) {
-    console.log('Form is about to submit');
-    console.log('Listing type:', document.getElementById('listing_type').value);
-    // Allow the form to submit normally
+// ============================================
+// FIX: DIRECT FORM SUBMISSION HANDLER
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('listingForm');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (form && submitBtn) {
+        // Remove any existing click handlers and add our own
+        submitBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Submit button clicked');
+            
+            // Validate required fields
+            const division = document.getElementById('division').value;
+            const title = form.querySelector('input[name="title"]').value.trim();
+            const price = form.querySelector('input[name="price"]').value.trim();
+            const description = form.querySelector('textarea[name="description"]').value.trim();
+            
+            if (!division) {
+                alert('Please select a division.');
+                return;
+            }
+            if (!title) {
+                alert('Please enter a listing title.');
+                return;
+            }
+            if (!price || parseFloat(price) <= 0) {
+                alert('Please enter a valid price greater than zero.');
+                return;
+            }
+            if (!description) {
+                alert('Please enter a description.');
+                return;
+            }
+            
+            // Make sure listing_type is set
+            syncListingType();
+            const listingType = document.getElementById('listing_type').value;
+            console.log('Listing type:', listingType);
+            
+            if (!listingType) {
+                alert('Please select a valid division.');
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
+            
+            // Submit the form
+            form.submit();
+        });
+        
+        // Also handle form submit event as backup
+        form.addEventListener('submit', function(e) {
+            console.log('Form submit event triggered');
+            // Let the form submit naturally
+        });
+    }
 });
 
 const imageUpload = document.getElementById('imageUpload'), previewGrid = document.getElementById('imagePreviewGrid'); let selectedFiles = [];
