@@ -8,7 +8,14 @@ require_once __DIR__ . '/../includes/security.php';
 // Redirect already-logged-in users away from auth pages
 if (SessionManager::isLoggedIn()) {
     $role = SessionManager::getUserRole();
-    header('Location: ' . ($role === 'admin' ? '../admin/dashboard.php' : ($role === 'agent' ? '../agent/dashboard.php' : '../user/dashboard.php')));
+    // FIXED: Use correct paths for all roles
+    if ($role === 'admin') {
+        header('Location: /admin/dashboard.php');
+    } elseif ($role === 'agent') {
+        header('Location: /agent/dashboard.php');
+    } else {
+        header('Location: /user/dashboard.php');
+    }
     exit;
 }
 
@@ -161,8 +168,14 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         const data = await res.json();
         if (data.success) {
             localStorage.setItem('kinas_token', data.token);
-            window.location.href = data.user.role === 'admin' ? '../admin/dashboard.php' :
-                                   (data.user.role === 'agent' ? '../agent/dashboard.php' : '../user/dashboard.php');
+            // FIXED: Use absolute paths for redirects
+            if (data.user.role === 'admin') {
+                window.location.href = '/admin/dashboard.php';
+            } else if (data.user.role === 'agent') {
+                window.location.href = '/agent/dashboard.php';
+            } else {
+                window.location.href = '/user/dashboard.php';
+            }
         } else {
             // Special case: the account exists but the email hasn't been
             // verified. Show a clear message and offer a "resend the
