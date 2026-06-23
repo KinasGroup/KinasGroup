@@ -74,7 +74,19 @@ try {
     $updates = [];
     $params = [];
 
-    $textFields = ['title', 'description', 'city', 'state', 'country', 'address', 'color', 'body_type', 'drivetrain', 'fuel_type', 'transmission', 'condition_status', 'vin', 'make', 'model', 'mileage', 'brand', 'capacity', 'system_type', 'service_type', 'category_id', 'company_name', 'agency', 'license', 'experience', 'website', 'linkedin', 'twitter', 'instagram', 'bio', 'first_name', 'last_name', 'specialties', 'property_type', 'listing_type', 'view_type', 'address'];
+    // UPDATED: Added all new automobile fields to the textFields array
+    $textFields = [
+        'title', 'description', 'city', 'state', 'country', 'address', 
+        'color', 'body_type', 'drivetrain', 'fuel_type', 'transmission', 
+        'condition_status', 'vin', 'make', 'model', 'mileage', 'brand', 
+        'capacity', 'system_type', 'service_type', 'category_id', 
+        'company_name', 'agency', 'license', 'experience', 'website', 
+        'linkedin', 'twitter', 'instagram', 'bio', 'first_name', 'last_name', 
+        'specialties', 'property_type', 'listing_type', 'view_type',
+        // NEW AUTOMOBILE FIELDS:
+        'engine', 'gearbox', 'car_type', 'drive', 'drive_train', 
+        'interior_color', 'seats', 'features'
+    ];
     foreach ($textFields as $f) {
         if (array_key_exists($f, $data)) {
             $val = is_string($data[$f]) ? trim($data[$f]) : $data[$f];
