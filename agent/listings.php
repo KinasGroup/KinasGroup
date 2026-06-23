@@ -340,7 +340,7 @@ include '../templates/header.php';
                                            class="action-btn action-btn-edit">
                                             <i class="fas fa-edit"></i> Edit
                                         </a>
-                                        <a href="/api/listings/delete.php?id=<?php echo $item['id']; ?>&type=<?php echo $item['division']; ?>"  
+                                        <a href="delete-permanent.php?id=<?php echo $item['id']; ?>&division=<?php echo $item['division']; ?>" 
                                            class="action-btn action-btn-delete" 
                                            onclick="return confirm('Are you sure you want to delete this listing?');">
                                             <i class="fas fa-trash"></i> Delete
