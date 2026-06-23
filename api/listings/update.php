@@ -93,7 +93,7 @@ try {
         'specialties', 'property_type', 'view_type',
         // NEW AUTOMOBILE FIELDS (only update if column exists):
         'engine', 'gearbox', 'car_type', 'drive', 'drive_train', 
-        'interior_color', 'features'
+        'interior_color'
     ];
 
     // Only include text fields that exist in the table
@@ -103,6 +103,40 @@ try {
             $updates[] = "`$f` = ?";
             $params[] = $val;
         }
+    }
+
+    // ── Features field (JSON) ──────────────────────────────────────────
+    if (array_key_exists('features', $data) && in_array('features', $existingColumns)) {
+        $featuresVal = $data['features'];
+        // If it's a string, trim it
+        if (is_string($featuresVal)) {
+            $featuresVal = trim($featuresVal);
+        }
+        // If empty, set to null (MySQL JSON column accepts null)
+        if (empty($featuresVal)) {
+            $featuresVal = null;
+        } else {
+            // If it's a comma-separated string, convert to JSON array
+            if (is_string($featuresVal) && !str_starts_with($featuresVal, '[')) {
+                // Split by comma and trim each item
+                $items = array_map('trim', explode(',', $featuresVal));
+                $items = array_filter($items); // Remove empty items
+                if (empty($items)) {
+                    $featuresVal = null;
+                } else {
+                    $featuresVal = json_encode($items);
+                }
+            } else {
+                // If it's already JSON, validate it
+                $decoded = json_decode($featuresVal, true);
+                if ($decoded === null && $featuresVal !== null) {
+                    // Invalid JSON, treat as null
+                    $featuresVal = null;
+                }
+            }
+        }
+        $updates[] = "features = ?";
+        $params[] = $featuresVal;
     }
 
     // ── Integer fields (handle empty values as NULL) ──────────────
