@@ -82,6 +82,7 @@ try {
     $params = [];
 
     // Define all possible fields (will be filtered by existing columns)
+    // EXCLUDING 'listing_type' which is used for sale/rent and shouldn't be updated
     $allTextFields = [
         'title', 'description', 'city', 'state', 'country', 'address', 
         'color', 'body_type', 'drivetrain', 'fuel_type', 'transmission', 
@@ -89,7 +90,7 @@ try {
         'capacity', 'system_type', 'service_type', 'category_id', 
         'company_name', 'agency', 'license', 'experience', 'website', 
         'linkedin', 'twitter', 'instagram', 'bio', 'first_name', 'last_name', 
-        'specialties', 'property_type', 'listing_type', 'view_type',
+        'specialties', 'property_type', 'view_type',
         // NEW AUTOMOBILE FIELDS (only update if column exists):
         'engine', 'gearbox', 'car_type', 'drive', 'drive_train', 
         'interior_color', 'seats', 'features'
