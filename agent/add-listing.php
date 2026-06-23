@@ -3,7 +3,6 @@ require_once __DIR__ . '/../api/config/database.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
 
-
 // Auth: handled by SessionManager::requireAgent()
 
 // KYC soft-guard: unverified agents are warned but can still view the page
@@ -33,7 +32,12 @@ $divisionMap = [
     'kinas-marketplace'   => ['type' => 'marketplace', 'label' => 'Kinas Marketplace',     'opt' => 'marketplace'],
 ];
 
+// Generate CSRF token BEFORE including header
 $csrf_token = Security::generateCSRFToken();
+
+// Set page title before including header
+$pageTitle = 'Add Listing - Agent Dashboard';
+
 require_once __DIR__ . '/../templates/header.php';
 ?>
 
@@ -54,9 +58,8 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .form-group { margin-bottom: 24px; }
 .form-group label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #333; }
 .form-group label i { color: #C6A43F; margin-right: 6px; }
-.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid #E0E0E0; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 14px; transition: all 0.3s; background: #fff; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid #E0E0E0; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 14px; transition: all 0.3s; }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #C6A43F; box-shadow: 0 0 0 3px rgba(198,164,63,0.1); }
-.form-group select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 .input-prefix { position: relative; display: flex; align-items: center; }
 .prefix { position: absolute; left: 16px; color: #C6A43F; font-weight: 600; }
@@ -70,7 +73,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; margin-top: 20px; }
 .preview-item { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 1; background: #F5F5F5; }
 .preview-item img { width: 100%; height: 100%; object-fit: cover; }
-.preview-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-size: 14px; border: none; }
+.preview-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-size: 14px; }
 .checkbox-group { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .checkbox-label input { width: auto; accent-color: #C6A43F; }
