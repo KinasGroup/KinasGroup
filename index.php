@@ -525,6 +525,7 @@ html, body {
     display: block;
 }
 
+/* IMAGE FIX - Ensures image fills the entire card horizontally */
 .listing-img {
     position: relative;
     width: 100%;
@@ -534,12 +535,9 @@ html, body {
 }
 
 .listing-img img {
-    width: 100% !important;
-    height: 100% !important;
-    min-width: 100%;
-    min-height: 100%;
-    object-fit: cover !important;
-    transition: transform 0.5s;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     display: block;
 }
 
