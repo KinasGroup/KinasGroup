@@ -70,12 +70,19 @@ try {
         exit;
     }
 
+    // Get existing columns in the table
+    $colStmt = $db->query("SHOW COLUMNS FROM $table");
+    $existingColumns = [];
+    while ($col = $colStmt->fetch(PDO::FETCH_ASSOC)) {
+        $existingColumns[] = $col['Field'];
+    }
+
     // Build dynamic UPDATE based on type
     $updates = [];
     $params = [];
 
-    // UPDATED: Added all new automobile fields to the textFields array
-    $textFields = [
+    // Define all possible fields (will be filtered by existing columns)
+    $allTextFields = [
         'title', 'description', 'city', 'state', 'country', 'address', 
         'color', 'body_type', 'drivetrain', 'fuel_type', 'transmission', 
         'condition_status', 'vin', 'make', 'model', 'mileage', 'brand', 
@@ -83,52 +90,51 @@ try {
         'company_name', 'agency', 'license', 'experience', 'website', 
         'linkedin', 'twitter', 'instagram', 'bio', 'first_name', 'last_name', 
         'specialties', 'property_type', 'listing_type', 'view_type',
-        // NEW AUTOMOBILE FIELDS:
+        // NEW AUTOMOBILE FIELDS (only update if column exists):
         'engine', 'gearbox', 'car_type', 'drive', 'drive_train', 
         'interior_color', 'seats', 'features'
     ];
-    foreach ($textFields as $f) {
-        if (array_key_exists($f, $data)) {
+
+    // Only include fields that exist in the table
+    foreach ($allTextFields as $f) {
+        if (array_key_exists($f, $data) && in_array($f, $existingColumns)) {
             $val = is_string($data[$f]) ? trim($data[$f]) : $data[$f];
             $updates[] = "`$f` = ?";
             $params[] = $val;
         }
     }
 
-    if (array_key_exists('price', $data) && $data['price'] !== '') {
+    if (array_key_exists('price', $data) && $data['price'] !== '' && in_array('price', $existingColumns)) {
         $updates[] = "price = ?";
         $params[] = (float)$data['price'];
     }
-    if (array_key_exists('year', $data) && $data['year'] !== '') {
+    if (array_key_exists('year', $data) && $data['year'] !== '' && in_array('year', $existingColumns)) {
         $updates[] = "year = ?";
         $params[] = (int)$data['year'];
     }
-    if (array_key_exists('doors', $data) && $data['doors'] !== '') {
+    if (array_key_exists('doors', $data) && $data['doors'] !== '' && in_array('doors', $existingColumns)) {
         $updates[] = "doors = ?";
         $params[] = (int)$data['doors'];
     }
-    if (array_key_exists('beds', $data) && $data['beds'] !== '') {
+    if (array_key_exists('beds', $data) && $data['beds'] !== '' && in_array('beds', $existingColumns)) {
         $updates[] = "beds = ?";
         $params[] = (int)$data['beds'];
     }
-    if (array_key_exists('baths', $data) && $data['baths'] !== '') {
+    if (array_key_exists('baths', $data) && $data['baths'] !== '' && in_array('baths', $existingColumns)) {
         $updates[] = "baths = ?";
         $params[] = (int)$data['baths'];
     }
-    if (array_key_exists('sqft', $data) && $data['sqft'] !== '') {
+    if (array_key_exists('sqft', $data) && $data['sqft'] !== '' && in_array('sqft', $existingColumns)) {
         $updates[] = "sqft = ?";
         $params[] = (int)$data['sqft'];
     }
-    if (array_key_exists('capacity_kw', $data) && $data['capacity_kw'] !== '') {
+    if (array_key_exists('capacity_kw', $data) && $data['capacity_kw'] !== '' && in_array('capacity_kw', $existingColumns)) {
         $updates[] = "capacity_kw = ?";
         $params[] = (float)$data['capacity_kw'];
     }
     
     // ── Status handling ─────────────────────────────────────────────────
-    // Only allow status changes if the agent is verified (approved)
-    // Verified agents can set status to 'active' or 'inactive'
-    // Unverified agents cannot change status
-    if (array_key_exists('status', $data) && $data['status'] !== '') {
+    if (array_key_exists('status', $data) && $data['status'] !== '' && in_array('status', $existingColumns)) {
         // Check if agent is verified
         $agentVerified = false;
         try {
@@ -140,14 +146,13 @@ try {
             $agentVerified = false;
         }
         
-        // Only allow status changes if verified
         if ($agentVerified) {
             $updates[] = "status = ?";
             $params[] = $data['status'];
         }
     }
     
-    if (array_key_exists('featured', $data)) {
+    if (array_key_exists('featured', $data) && in_array('featured', $existingColumns)) {
         $updates[] = "featured = ?";
         $params[] = !empty($data['featured']) ? 1 : 0;
     }
@@ -195,7 +200,6 @@ try {
             }
         } catch (Exception $e) {
             error_log('listing image upload error: ' . $e->getMessage());
-            // Non-fatal — proceed
         }
     }
 
@@ -216,9 +220,9 @@ try {
     if ($isJson) {
         header('Content-Type: application/json');
         http_response_code(500);
-        echo json_encode(['error' => 'Failed to update listing']);
+        echo json_encode(['error' => 'Failed to update listing: ' . $e->getMessage()]);
     } else {
-        $_SESSION['flash_error'] = 'Failed to update listing. Please try again.';
+        $_SESSION['flash_error'] = 'Failed to update listing: ' . $e->getMessage();
         header('Location: ' . $redirectAfter);
         exit;
     }
