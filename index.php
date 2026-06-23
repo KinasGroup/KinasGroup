@@ -886,7 +886,7 @@ html, body {
             <?php foreach ($featuredListings as $listing): ?>
                 <?php
                 $url = '#';
-                $image = '/assets/images/placeholder/car-placeholder.jpg';
+                $image = '';
                 $divisionName = 'KINAS GROUP';
                 $specs = '';
                 $price = '₦0';
@@ -894,10 +894,9 @@ html, body {
                 switch ($listing['listing_type']) {
                     case 'car':
                         $url = '/divisions/kinas-automobile/detail.php?id=' . $listing['id'];
+                        // Check if thumbnail exists and is not empty
                         if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
                             $image = $listing['thumbnail'];
-                        } else {
-                            $image = '/assets/images/placeholder/car-placeholder.jpg';
                         }
                         $divisionName = 'KINAS Automobile';
                         $specs = number_format($listing['mileage'] ?? 0) . ' km · ' . ucfirst($listing['transmission'] ?? 'Auto') . ' · ' . ucfirst($listing['fuel_type'] ?? 'Petrol');
@@ -907,8 +906,6 @@ html, body {
                         $url = '/divisions/williams-connect-home/detail.php?id=' . $listing['id'];
                         if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
                             $image = $listing['thumbnail'];
-                        } else {
-                            $image = '/assets/images/placeholder/property-placeholder.jpg';
                         }
                         $divisionName = 'Williams Connect Home';
                         $specs = ($listing['beds'] ?? 0) . ' Beds · ' . ($listing['baths'] ?? 0) . ' Baths · ' . number_format($listing['sqft'] ?? 0) . ' sqft';
@@ -918,8 +915,6 @@ html, body {
                         $url = '/divisions/kinas-marketplace/detail.php?id=' . $listing['id'];
                         if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
                             $image = $listing['thumbnail'];
-                        } else {
-                            $image = '/assets/images/placeholder/product-placeholder.jpg';
                         }
                         $divisionName = 'KINAS Marketplace';
                         $price = '₦' . number_format($listing['price'] ?? 0);
@@ -929,7 +924,7 @@ html, body {
                 <div class="listing-card">
                     <a href="<?php echo $url; ?>">
                         <div class="listing-img">
-                            <?php if ($image && $image !== '' && !str_contains($image, 'placeholder')): ?>
+                            <?php if (!empty($image)): ?>
                                 <img src="<?php echo $image; ?>" alt="<?php echo htmlspecialchars($listing['title'] ?? 'Listing'); ?>" loading="lazy">
                             <?php else: ?>
                                 <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#f0f0f0; color:#ccc; font-size:48px;">
