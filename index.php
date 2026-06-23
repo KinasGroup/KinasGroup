@@ -1020,4 +1020,82 @@ html, body {
         <p>Join thousands of verified agents on KINAS GROUP</p>
         <div class="cta-buttons">
             <a href="/auth/register.php" class="je2-button" style="background:white; color:#151515; font-weight:600; padding:14px 32px;">Become an Agent</a>
-            <a href="/auth
+            <a href="/auth/login.php" class="je2-button" style="background:#0A0A0A; color:#ffffff; border:2px solid #0A0A0A; font-weight:600; padding:14px 32px;">Sign In</a>
+        </div>
+    </div>
+</section>
+
+<script>
+// ============================================
+// ROTATING HERO BACKGROUND (4 images)
+// ============================================
+let currentSlide = 0;
+const slides = document.querySelectorAll('.hero-slide');
+const totalSlides = slides.length;
+
+function rotateHeroBackground() {
+    if (totalSlides > 1) {
+        slides[currentSlide].classList.remove('active');
+        currentSlide = (currentSlide + 1) % totalSlides;
+        slides[currentSlide].classList.add('active');
+    }
+}
+
+if (totalSlides > 1) {
+    setInterval(rotateHeroBackground, 6000);
+}
+
+// ============================================
+// SEARCH TAB SWITCHER
+// ============================================
+function switchSearchTab(btn, tab) {
+    document.querySelectorAll('.hs-tab').forEach(function(t) {
+        t.classList.remove('active');
+    });
+    btn.classList.add('active');
+
+    // Map tab name to division query value
+    var divisionMap = {
+        'cars':        'automobile',
+        'homes':       'real_estate',
+        'marketplace': 'marketplace',
+        'solar':       'solar'
+    };
+    var hiddenInput = document.getElementById('searchDivision');
+    if (hiddenInput) hiddenInput.value = divisionMap[tab] || '';
+
+    // Update placeholder to match context
+    var placeholderMap = {
+        'cars':        'Search luxury cars, SUVs, exotic vehicles…',
+        'homes':       'Search properties, apartments, luxury homes…',
+        'marketplace': 'Search products, collectibles, luxury goods…',
+        'solar':       'Search solar panels, installations, energy solutions…'
+    };
+    var input = document.querySelector('.hs-input');
+    if (input) input.placeholder = placeholderMap[tab] || 'Search…';
+}
+
+// ============================================
+// TRANSPARENT HEADER SCROLL EFFECT
+// ============================================
+// Moved to /assets/js/header-scroll.js (loaded by templates/footer.php
+// on every page). It no-ops automatically on pages that don't have a
+// hero section.
+
+// Mobile menu handled by /assets/js/mobile-menu.js (loaded in footer)
+
+// ============================================
+// FAVORITE TOGGLE
+// ============================================
+function toggleFavorite(btn) {
+    if (btn.textContent === '♡') {
+        btn.textContent = '♥';
+        btn.style.color = '#e74c3c';
+    } else {
+        btn.textContent = '♡';
+        btn.style.color = '';
+    }
+}
+</script>
+
+<?php include 'templates/footer.php'; ?>
