@@ -24,6 +24,8 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
         ['key' => 'dashboard',    'icon' => 'tachometer-alt',  'label' => 'Dashboard',     'href' => 'dashboard.php'],
         ['key' => 'listings',     'icon' => 'list-alt',         'label' => 'My Listings',   'href' => 'listings.php'],
         ['key' => 'add',          'icon' => 'plus-circle',      'label' => 'Add Listing',   'href' => 'add-listing.php'],
+        ['key' => 'hardware',     'icon' => 'microchip',        'label' => 'Hardware',      'href' => 'hardware.php'],
+        ['key' => 'addhardware',  'icon' => 'plus',             'label' => 'Add Hardware',  'href' => 'add-hardware.php'],
         ['key' => 'verification', 'icon' => 'shield-alt',       'label' => 'Verification',  'href' => 'verification.php'],
         ['key' => 'messages',     'icon' => 'comments',         'label' => 'Messages',      'href' => 'messages.php'],
         ['key' => 'analytics',    'icon' => 'chart-line',       'label' => 'Analytics',     'href' => 'analytics.php'],
