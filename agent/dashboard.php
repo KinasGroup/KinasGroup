@@ -177,8 +177,4 @@ include '../templates/header.php';
                 <strong>Analytics</strong>
                 <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Performance insights</p>
             </a>
-        </div>
-    </main>
-</div>
-
-<?php include '../templates/footer.php'; ?>
+       
