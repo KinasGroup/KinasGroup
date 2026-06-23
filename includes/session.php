@@ -33,12 +33,23 @@ class SessionManager {
                 );
                 $stmt->execute([(int)$user['id']]);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                $_SESSION['user_division']  = $row['division']       ?? null;
-                $_SESSION['is_super_agent'] = !empty($row['is_super_agent']);
+                
+                // FIX: Ensure is_super_agent is properly set
+                $_SESSION['user_division']  = $row['division'] ?? null;
+                $_SESSION['is_super_agent'] = !empty($row['is_super_agent']) ? true : false;
+                
+                // DEBUG: Log the value for debugging (remove after testing)
+                error_log("Super Agent status for user {$user['id']}: " . ($_SESSION['is_super_agent'] ? 'YES' : 'NO'));
+                
             } catch (\Throwable $e) {
                 $_SESSION['user_division']  = null;
                 $_SESSION['is_super_agent'] = false;
+                error_log("SessionManager::setUser error: " . $e->getMessage());
             }
+        } else {
+            // Non-agents should not have these set
+            $_SESSION['user_division'] = null;
+            $_SESSION['is_super_agent'] = false;
         }
     }
 
@@ -141,10 +152,6 @@ class SessionManager {
 
     public static function regenerateSession(): void {
         if (session_status() === PHP_SESSION_ACTIVE) {
-            // Use false to keep old session data accessible during the redirect window.
-            // Using true (delete old session) causes a race condition: the browser may
-            // present the old session cookie on the next request before the new Set-Cookie
-            // is applied, resulting in "Login Failed" even though credentials were correct.
             session_regenerate_id(false);
         }
     }
