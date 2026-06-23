@@ -493,7 +493,7 @@ html, body {
     padding-top: 4px;
 }
 
-/* Listings Grid */
+/* ─── FIXED LISTINGS GRID & IMAGE DISPLAY ─── */
 .listings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -527,21 +527,35 @@ html, body {
 
 .listing-img {
     position: relative;
+    width: 100%;
     height: 240px;
     overflow: hidden;
     background: #f0f0f0;
 }
 
 .listing-img img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100%;
+    min-height: 100%;
+    object-fit: cover !important;
     transition: transform 0.5s;
     display: block;
 }
 
 .listing-card:hover .listing-img img {
     transform: scale(1.05);
+}
+
+.listing-img .no-image {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f0f0;
+    color: #ccc;
+    font-size: 48px;
 }
 
 .listing-badge {
@@ -894,7 +908,6 @@ html, body {
                 switch ($listing['listing_type']) {
                     case 'car':
                         $url = '/divisions/kinas-automobile/detail.php?id=' . $listing['id'];
-                        // Check if thumbnail exists and is not empty
                         if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
                             $image = $listing['thumbnail'];
                         }
@@ -927,7 +940,7 @@ html, body {
                             <?php if (!empty($image)): ?>
                                 <img src="<?php echo $image; ?>" alt="<?php echo htmlspecialchars($listing['title'] ?? 'Listing'); ?>" loading="lazy">
                             <?php else: ?>
-                                <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#f0f0f0; color:#ccc; font-size:48px;">
+                                <div class="no-image">
                                     <i class="fas fa-image"></i>
                                 </div>
                             <?php endif; ?>
