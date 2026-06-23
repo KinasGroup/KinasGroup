@@ -134,7 +134,6 @@ html, body {
     transition: opacity 1.5s ease-in-out;
 }
 
-/* Mobile-specific background positioning */
 @media (max-width: 768px) {
     .hero-slide {
         background-position: 65% center;
@@ -173,7 +172,6 @@ html, body {
     padding: 0 20px;
 }
 
-/* Mobile text alignment */
 @media (max-width: 768px) {
     .hero-text {
         left: 5%;
@@ -222,7 +220,6 @@ html, body {
 }
 
 /* Search Bar - Centered below hero */
-/* ── Search Widget — single authoritative definition ── */
 .hs-wrap {
     display: flex;
     justify-content: center;
@@ -369,7 +366,7 @@ html, body {
     margin: 0 auto;
     padding: 0 40px;
 }
-/* Header must always span full width regardless of .container constraints */
+
 .container.header-inner {
     max-width: 100% !important;
 }
@@ -525,12 +522,14 @@ html, body {
 .listing-card a {
     text-decoration: none;
     color: inherit;
+    display: block;
 }
 
 .listing-img {
     position: relative;
     height: 240px;
     overflow: hidden;
+    background: #f0f0f0;
 }
 
 .listing-img img {
@@ -538,26 +537,11 @@ html, body {
     height: 100%;
     object-fit: cover;
     transition: transform 0.5s;
+    display: block;
 }
 
 .listing-card:hover .listing-img img {
     transform: scale(1.05);
-}
-
-/* Fix for broken image icons */
-.listing-img img[src=""] {
-    display: none;
-}
-
-.listing-img .no-image {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    background: #f0f0f0;
-    color: #999;
-    font-size: 48px;
 }
 
 .listing-badge {
@@ -745,7 +729,7 @@ html, body {
     transition: all 0.3s;
 }
 
-/* Mobile Nav Drawer — index.php specific full-screen slide-in */
+/* Mobile Nav Drawer */
 .mobile-nav-drawer {
     position: fixed;
     top: 0;
@@ -910,7 +894,6 @@ html, body {
                 switch ($listing['listing_type']) {
                     case 'car':
                         $url = '/divisions/kinas-automobile/detail.php?id=' . $listing['id'];
-                        // Check if thumbnail exists and is not empty
                         if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
                             $image = $listing['thumbnail'];
                         } else {
@@ -949,7 +932,7 @@ html, body {
                             <?php if ($image && $image !== '' && !str_contains($image, 'placeholder')): ?>
                                 <img src="<?php echo $image; ?>" alt="<?php echo htmlspecialchars($listing['title'] ?? 'Listing'); ?>" loading="lazy">
                             <?php else: ?>
-                                <div class="no-image">
+                                <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#f0f0f0; color:#ccc; font-size:48px;">
                                     <i class="fas fa-image"></i>
                                 </div>
                             <?php endif; ?>
@@ -974,12 +957,7 @@ html, body {
             <?php endforeach; ?>
 
             <?php if (empty($featuredListings)): ?>
-                <!--
-                    No hardcoded fallback listings.
-                    When the database has no featured/active listings, the grid
-                    stays empty until listings arrive from the Agent / Super Agent
-                    dashboards.
-                -->
+                <!-- No hardcoded fallback listings -->
             <?php endif; ?>
         </div>
     </div>
@@ -1054,48 +1032,6 @@ function switchSearchTab(btn, tab) {
     });
     btn.classList.add('active');
 
-    // Map tab name to division query value
     var divisionMap = {
         'cars':        'automobile',
-        'homes':       'real_estate',
-        'marketplace': 'marketplace',
-        'solar':       'solar'
-    };
-    var hiddenInput = document.getElementById('searchDivision');
-    if (hiddenInput) hiddenInput.value = divisionMap[tab] || '';
-
-    // Update placeholder to match context
-    var placeholderMap = {
-        'cars':        'Search luxury cars, SUVs, exotic vehicles…',
-        'homes':       'Search properties, apartments, luxury homes…',
-        'marketplace': 'Search products, collectibles, luxury goods…',
-        'solar':       'Search solar panels, installations, energy solutions…'
-    };
-    var input = document.querySelector('.hs-input');
-    if (input) input.placeholder = placeholderMap[tab] || 'Search…';
-}
-
-// ============================================
-// TRANSPARENT HEADER SCROLL EFFECT
-// ============================================
-// Moved to /assets/js/header-scroll.js (loaded by templates/footer.php
-// on every page). It no-ops automatically on pages that don't have a
-// hero section.
-
-// Mobile menu handled by /assets/js/mobile-menu.js (loaded in footer)
-
-// ============================================
-// FAVORITE TOGGLE
-// ============================================
-function toggleFavorite(btn) {
-    if (btn.textContent === '♡') {
-        btn.textContent = '♥';
-        btn.style.color = '#e74c3c';
-    } else {
-        btn.textContent = '♡';
-        btn.style.color = '';
-    }
-}
-</script>
-
-<?php include 'templates/footer.php'; ?>
+        'homes':       'real_est
