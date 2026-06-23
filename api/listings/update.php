@@ -111,13 +111,30 @@ try {
         $updates[] = "capacity_kw = ?";
         $params[] = (float)$data['capacity_kw'];
     }
+    
+    // ── Status handling ─────────────────────────────────────────────────
+    // Only allow status changes if the agent is verified (approved)
+    // Verified agents can set status to 'active' or 'inactive'
+    // Unverified agents cannot change status
     if (array_key_exists('status', $data) && $data['status'] !== '') {
-        $updates[] = "status = ?";
-        $params[] = $data['status'];
-    } elseif (array_key_exists('status', $data) && $data['status'] === 'inactive') {
-        $updates[] = "status = ?";
-        $params[] = 'inactive';
+        // Check if agent is verified
+        $agentVerified = false;
+        try {
+            $checkStmt = $db->prepare("SELECT verification_status FROM agent_profiles WHERE user_id = ?");
+            $checkStmt->execute([$_SESSION['user_id']]);
+            $verificationStatus = $checkStmt->fetchColumn();
+            $agentVerified = ($verificationStatus === 'approved');
+        } catch (Exception $e) {
+            $agentVerified = false;
+        }
+        
+        // Only allow status changes if verified
+        if ($agentVerified) {
+            $updates[] = "status = ?";
+            $params[] = $data['status'];
+        }
     }
+    
     if (array_key_exists('featured', $data)) {
         $updates[] = "featured = ?";
         $params[] = !empty($data['featured']) ? 1 : 0;
@@ -194,3 +211,4 @@ try {
         exit;
     }
 }
+?>
