@@ -1,4 +1,8 @@
 <!-- Contact Agent Modal -->
+<?php
+// Ensure Security class is loaded
+require_once __DIR__ . '/../../includes/security.php';
+?>
 <div id="contact-agent-modal" class="admin-modal" style="display: none;">
     <div class="admin-modal-content" style="max-width: 520px;">
         <div class="admin-modal-header">
