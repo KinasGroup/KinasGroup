@@ -170,7 +170,6 @@ include '../templates/header.php';
                         <p>No listings found in this division.</p>
                     </div>
                 <?php else: ?>
-                    <div class="table-responsive">
                     <table class="je-table">
                         <thead>
                             <tr>
@@ -225,18 +224,22 @@ include '../templates/header.php';
                                            class="action-btn action-btn-view" target="_blank">
                                             View
                                         </a>
-                                        <a href="/api/admin/remove-listing.php?listing_id=<?php echo $listing['id']; ?>&listing_type=<?php echo $listing['division']; ?>"  
-                                           class="action-btn action-btn-delete" 
-                                           onclick="return confirm('Delete this listing?')">
-                                            Delete
-                                        </a>
+                                        <!-- FIXED: Changed to POST form for delete -->
+                                        <form method="POST" action="/api/admin/remove-listing.php" style="display:inline;" 
+                                              onsubmit="return confirm('Delete this listing?')">
+                                            <input type="hidden" name="csrf_token" value="<?php echo Security::generateCSRFToken(); ?>">
+                                            <input type="hidden" name="listing_id" value="<?php echo $listing['id']; ?>">
+                                            <input type="hidden" name="listing_type" value="<?php echo $listing['division']; ?>">
+                                            <button type="submit" class="action-btn action-btn-delete" style="border:none;cursor:pointer;">
+                                                Delete
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                    </div>
                 <?php endif; ?>
             </div>
         </div>
