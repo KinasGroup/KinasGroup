@@ -81,7 +81,7 @@ try {
     $updates = [];
     $params = [];
 
-    // Define all possible fields (will be filtered by existing columns)
+    // Define all possible text fields (will be filtered by existing columns)
     // EXCLUDING 'listing_type' which is used for sale/rent and shouldn't be updated
     $allTextFields = [
         'title', 'description', 'city', 'state', 'country', 'address', 
@@ -93,10 +93,10 @@ try {
         'specialties', 'property_type', 'view_type',
         // NEW AUTOMOBILE FIELDS (only update if column exists):
         'engine', 'gearbox', 'car_type', 'drive', 'drive_train', 
-        'interior_color', 'seats', 'features'
+        'interior_color', 'features'
     ];
 
-    // Only include fields that exist in the table
+    // Only include text fields that exist in the table
     foreach ($allTextFields as $f) {
         if (array_key_exists($f, $data) && in_array($f, $existingColumns)) {
             $val = is_string($data[$f]) ? trim($data[$f]) : $data[$f];
@@ -105,33 +105,46 @@ try {
         }
     }
 
-    if (array_key_exists('price', $data) && $data['price'] !== '' && in_array('price', $existingColumns)) {
+    // ── Integer fields (handle empty values as NULL) ──────────────
+    if (array_key_exists('price', $data) && in_array('price', $existingColumns)) {
+        $val = ($data['price'] !== '' && $data['price'] !== null) ? (float)$data['price'] : null;
         $updates[] = "price = ?";
-        $params[] = (float)$data['price'];
+        $params[] = $val;
     }
-    if (array_key_exists('year', $data) && $data['year'] !== '' && in_array('year', $existingColumns)) {
+    if (array_key_exists('year', $data) && in_array('year', $existingColumns)) {
+        $val = ($data['year'] !== '' && $data['year'] !== null) ? (int)$data['year'] : null;
         $updates[] = "year = ?";
-        $params[] = (int)$data['year'];
+        $params[] = $val;
     }
-    if (array_key_exists('doors', $data) && $data['doors'] !== '' && in_array('doors', $existingColumns)) {
+    if (array_key_exists('doors', $data) && in_array('doors', $existingColumns)) {
+        $val = ($data['doors'] !== '' && $data['doors'] !== null) ? (int)$data['doors'] : null;
         $updates[] = "doors = ?";
-        $params[] = (int)$data['doors'];
+        $params[] = $val;
     }
-    if (array_key_exists('beds', $data) && $data['beds'] !== '' && in_array('beds', $existingColumns)) {
+    if (array_key_exists('seats', $data) && in_array('seats', $existingColumns)) {
+        $val = ($data['seats'] !== '' && $data['seats'] !== null) ? (int)$data['seats'] : null;
+        $updates[] = "seats = ?";
+        $params[] = $val;
+    }
+    if (array_key_exists('beds', $data) && in_array('beds', $existingColumns)) {
+        $val = ($data['beds'] !== '' && $data['beds'] !== null) ? (int)$data['beds'] : null;
         $updates[] = "beds = ?";
-        $params[] = (int)$data['beds'];
+        $params[] = $val;
     }
-    if (array_key_exists('baths', $data) && $data['baths'] !== '' && in_array('baths', $existingColumns)) {
+    if (array_key_exists('baths', $data) && in_array('baths', $existingColumns)) {
+        $val = ($data['baths'] !== '' && $data['baths'] !== null) ? (int)$data['baths'] : null;
         $updates[] = "baths = ?";
-        $params[] = (int)$data['baths'];
+        $params[] = $val;
     }
-    if (array_key_exists('sqft', $data) && $data['sqft'] !== '' && in_array('sqft', $existingColumns)) {
+    if (array_key_exists('sqft', $data) && in_array('sqft', $existingColumns)) {
+        $val = ($data['sqft'] !== '' && $data['sqft'] !== null) ? (int)$data['sqft'] : null;
         $updates[] = "sqft = ?";
-        $params[] = (int)$data['sqft'];
+        $params[] = $val;
     }
-    if (array_key_exists('capacity_kw', $data) && $data['capacity_kw'] !== '' && in_array('capacity_kw', $existingColumns)) {
+    if (array_key_exists('capacity_kw', $data) && in_array('capacity_kw', $existingColumns)) {
+        $val = ($data['capacity_kw'] !== '' && $data['capacity_kw'] !== null) ? (float)$data['capacity_kw'] : null;
         $updates[] = "capacity_kw = ?";
-        $params[] = (float)$data['capacity_kw'];
+        $params[] = $val;
     }
     
     // ── Status handling ─────────────────────────────────────────────────
