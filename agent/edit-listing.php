@@ -56,6 +56,11 @@ if (!$listing) {
     exit;
 }
 
+// Get existing images for this listing
+$imageStmt = $db->prepare("SELECT id, url FROM listing_images WHERE listing_id = ? AND listing_type = ? ORDER BY sort_order");
+$imageStmt->execute([$listingId, $divisionParam]);
+$existingImages = $imageStmt->fetchAll();
+
 // KYC soft-guard
 $kycStatus = 'pending';
 try {
@@ -78,10 +83,7 @@ $divisionMap = [
     'kinas-marketplace'   => ['type' => 'marketplace', 'label' => 'Kinas Marketplace',     'opt' => 'marketplace'],
 ];
 
-// ============================================================
-// CRITICAL: Generate CSRF token BEFORE including header
-// This prevents "headers already sent" errors
-// ============================================================
+// Generate CSRF token BEFORE including header
 $csrf_token = Security::generateCSRFToken();
 
 // Set page title before including header
@@ -120,10 +122,14 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .upload-placeholder i { font-size: 48px; color: #C6A43F; margin-bottom: 12px; }
 .upload-placeholder p { margin-bottom: 8px; color: #666; }
 .upload-placeholder span { font-size: 12px; color: #999; }
-.image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; margin-top: 20px; }
-.preview-item { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 1; background: #F5F5F5; }
+.image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 20px; }
+.preview-item { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 1; background: #F5F5F5; border: 2px solid #E0E0E0; }
 .preview-item img { width: 100%; height: 100%; object-fit: cover; }
-.preview-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-size: 14px; border: none; }
+.preview-item.existing { border-color: #2E7D32; }
+.preview-item.existing .preview-badge { position: absolute; top: 4px; left: 4px; background: #2E7D32; color: white; font-size: 9px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.preview-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-size: 14px; border: none; transition: all 0.3s; }
+.preview-remove:hover { background: #C62828; }
+.preview-remove.loading { opacity: 0.5; pointer-events: none; }
 .checkbox-group { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .checkbox-label input { width: auto; accent-color: #C6A43F; }
@@ -214,7 +220,17 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 </div>
             </div>
             <div class="form-section"><h3>Images</h3>
-                <div class="image-upload-area"><input type="file" name="images[]" id="imageUpload" multiple accept="image/*" style="display: none;"><div class="upload-placeholder" onclick="document.getElementById('imageUpload').click()"><i class="fas fa-cloud-upload-alt"></i><p>Click or drag images here</p><span>Upload up to 10 images (Max 5MB each)</span></div><div class="image-preview-grid" id="imagePreviewGrid"></div></div>
+                <div class="image-upload-area">
+                    <input type="file" name="images[]" id="imageUpload" multiple accept="image/*" style="display: none;">
+                    <div class="upload-placeholder" onclick="document.getElementById('imageUpload').click()">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Click or drag images here</p>
+                        <span>Upload up to 10 images (Max 5MB each)</span>
+                    </div>
+                    <div class="image-preview-grid" id="imagePreviewGrid">
+                        <!-- Existing images will be loaded here via JavaScript -->
+                    </div>
+                </div>
 
                 <!-- AUTOMOBILE DETAILS SECTION -->
                 <div id="automobileFields" style="display:<?php echo $divisionParam === 'car' ? 'block' : 'none'; ?>; margin-top:24px;">
@@ -355,87 +371,4 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                                 <option value="">Select Doors</option>
                                 <option value="2" <?php echo ($listing['doors'] ?? '') == 2 ? 'selected' : ''; ?>>2</option>
                                 <option value="3" <?php echo ($listing['doors'] ?? '') == 3 ? 'selected' : ''; ?>>3</option>
-                                <option value="4" <?php echo ($listing['doors'] ?? '') == 4 ? 'selected' : ''; ?>>4</option>
-                                <option value="5" <?php echo ($listing['doors'] ?? '') == 5 ? 'selected' : ''; ?>>5</option>
-                            </select>
-                        </div>
-                        <div class="form-group"><label><i class="fas fa-users"></i> Seats</label>
-                            <select name="seats">
-                                <option value="">Select Seats</option>
-                                <option value="2" <?php echo ($listing['seats'] ?? '') == 2 ? 'selected' : ''; ?>>2</option>
-                                <option value="4" <?php echo ($listing['seats'] ?? '') == 4 ? 'selected' : ''; ?>>4</option>
-                                <option value="5" <?php echo ($listing['seats'] ?? '') == 5 ? 'selected' : ''; ?>>5</option>
-                                <option value="7" <?php echo ($listing['seats'] ?? '') == 7 ? 'selected' : ''; ?>>7</option>
-                                <option value="8" <?php echo ($listing['seats'] ?? '') == 8 ? 'selected' : ''; ?>>8</option>
-                            </select>
-                        </div>
-                        <div class="form-group full-width"><label><i class="fas fa-check-circle"></i> Features (comma separated)</label>
-                            <input type="text" name="features" value="<?php echo htmlspecialchars($listing['features'] ?? ''); ?>" placeholder="e.g., Leather seats, Sunroof, Navigation, Backup camera">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- PROPERTY DETAILS SECTION -->
-                <div id="realestateFields" style="display:<?php echo $divisionParam === 'property' ? 'block' : 'none'; ?>; margin-top:24px;">
-                    <h3 style="margin-bottom:16px;"><i class="fas fa-home"></i> Property Details</h3>
-                    <div class="automobile-fields-grid">
-                        <div class="form-group"><label>Bedrooms</label>
-                            <input type="number" name="bedrooms" value="<?php echo htmlspecialchars($listing['beds'] ?? ''); ?>" placeholder="e.g., 3">
-                        </div>
-                        <div class="form-group"><label>Bathrooms</label>
-                            <input type="number" name="bathrooms" value="<?php echo htmlspecialchars($listing['baths'] ?? ''); ?>" placeholder="e.g., 2">
-                        </div>
-                        <div class="form-group"><label>Area (sq ft)</label>
-                            <input type="text" name="area" value="<?php echo htmlspecialchars($listing['sqft'] ?? ''); ?>" placeholder="e.g., 2500">
-                        </div>
-                        <div class="form-group"><label>Property Type</label>
-                            <select name="property_type">
-                                <option value="">Select Type</option>
-                                <option value="Villa" <?php echo ($listing['property_type'] ?? '') === 'Villa' ? 'selected' : ''; ?>>Villa</option>
-                                <option value="Apartment" <?php echo ($listing['property_type'] ?? '') === 'Apartment' ? 'selected' : ''; ?>>Apartment</option>
-                                <option value="Land" <?php echo ($listing['property_type'] ?? '') === 'Land' ? 'selected' : ''; ?>>Land</option>
-                                <option value="House" <?php echo ($listing['property_type'] ?? '') === 'House' ? 'selected' : ''; ?>>House</option>
-                                <option value="Condo" <?php echo ($listing['property_type'] ?? '') === 'Condo' ? 'selected' : ''; ?>>Condo</option>
-                                <option value="Townhouse" <?php echo ($listing['property_type'] ?? '') === 'Townhouse' ? 'selected' : ''; ?>>Townhouse</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SOLAR DETAILS SECTION -->
-                <div id="solarFields" style="display:<?php echo $divisionParam === 'solar' ? 'block' : 'none'; ?>; margin-top:24px;">
-                    <h3 style="margin-bottom:16px;"><i class="fas fa-sun"></i> Solar Details</h3>
-                    <div class="automobile-fields-grid">
-                        <div class="form-group"><label>Capacity (kW)</label>
-                            <input type="text" name="capacity" value="<?php echo htmlspecialchars($listing['capacity_kw'] ?? ''); ?>" placeholder="e.g., 10">
-                        </div>
-                        <div class="form-group"><label>System Type</label>
-                            <select name="solar_type">
-                                <option value="">Select Type</option>
-                                <option value="Residential" <?php echo ($listing['service_type'] ?? '') === 'Residential' ? 'selected' : ''; ?>>Residential</option>
-                                <option value="Commercial" <?php echo ($listing['service_type'] ?? '') === 'Commercial' ? 'selected' : ''; ?>>Commercial</option>
-                                <option value="Industrial" <?php echo ($listing['service_type'] ?? '') === 'Industrial' ? 'selected' : ''; ?>>Industrial</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="checkbox-group"><label class="checkbox-label"><input type="checkbox" name="featured" value="1" <?php echo (!empty($listing['featured'])) ? 'checked' : ''; ?>><span>Feature this listing for premium visibility</span></label></div>
-                <div class="form-actions"><button type="button" class="btn-cancel" onclick="window.location.href='/agent/listings.php'">Cancel</button><button type="submit" class="btn-submit">Update Listing</button></div>
-            </div>
-        </div>
-    </form>
-</div>
-
-<script>
-const imageUpload = document.getElementById('imageUpload'), previewGrid = document.getElementById('imagePreviewGrid'); let selectedFiles = [];
-function syncInputFiles() { const dt = new DataTransfer(); selectedFiles.forEach(f => dt.items.add(f)); imageUpload.files = dt.files; }
-imageUpload?.addEventListener('change', function(e) { selectedFiles = [...selectedFiles, ...Array.from(e.target.files)]; syncInputFiles(); updatePreview(); });
-function updatePreview() { previewGrid.innerHTML = ''; selectedFiles.forEach((file, index) => { const reader = new FileReader(); reader.onload = function(e) { const div = document.createElement('div'); div.className = 'preview-item'; div.innerHTML = `<img src="${e.target.result}"><button class="preview-remove" onclick="removeImage(${index})">&times;</button>`; previewGrid.appendChild(div); }; reader.readAsDataURL(file); }); }
-function removeImage(index) { selectedFiles.splice(index, 1); updatePreview(); syncInputFiles(); }
-</script>
-
-</main>
-</div>
-
-<?php require_once __DIR__ . '/../templates/footer.php'; ?>
+                                <option value="4" <?php echo ($listing['doors'] ?? '') ==
