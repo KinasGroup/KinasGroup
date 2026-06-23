@@ -136,7 +136,17 @@ $fullAddress = implode(', ', $addressParts);
                 <h3 style="font-size:14px; font-weight:600; color:#C6A43F; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">Car Details</h3>
                 <dl class="je-spec-key">
                     <?php
-                    // Display all automobile fields - organized like JamesEdition
+                    // Display only fields that have values
+                    
+                    // Brand (Make)
+                    if (!empty($item['brand'])) {
+                        echo '<div><dt>Make</dt><dd>' . htmlspecialchars($item['brand']) . '</dd></div>';
+                    }
+                    
+                    // Model
+                    if (!empty($item['model'])) {
+                        echo '<div><dt>Model</dt><dd>' . htmlspecialchars($item['model']) . '</dd></div>';
+                    }
                     
                     // Year
                     if (!empty($item['year'])) {
