@@ -222,16 +222,12 @@ include '../templates/header.php';
                                            class="action-btn action-btn-view" target="_blank">
                                             View
                                         </a>
-                                        <!-- FIXED: Delete button uses POST form to API -->
-                                        <form method="POST" action="/api/admin/remove-listing.php" style="display:inline;" 
-                                              onsubmit="return confirm('Delete this listing?')">
-                                            <input type="hidden" name="csrf_token" value="<?php echo Security::generateCSRFToken(); ?>">
-                                            <input type="hidden" name="listing_id" value="<?php echo $listing['id']; ?>">
-                                            <input type="hidden" name="listing_type" value="<?php echo $listing['division']; ?>">
-                                            <button type="submit" class="action-btn action-btn-delete" style="border:none;cursor:pointer;">
-                                                Delete
-                                            </button>
-                                        </form>
+                                        <!-- FIXED: Delete button uses GET to /admin/delete-listing.php with CSRF -->
+                                        <a href="delete-listing.php?id=<?php echo $listing['id']; ?>&division=<?php echo $listing['division']; ?>&csrf_token=<?php echo Security::generateCSRFToken(); ?>" 
+                                           class="action-btn action-btn-delete" 
+                                           onclick="return confirm('Delete this listing?')">
+                                            Delete
+                                        </a>
                                     </div>
                                 </td>
                             </tr>
