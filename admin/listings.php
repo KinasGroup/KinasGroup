@@ -141,6 +141,25 @@ include '../templates/header.php';
             </div>
         </div>
 
+        <!-- Flash Messages -->
+        <?php if (isset($_SESSION['flash_success'])): ?>
+            <div class="je-banner is-success">
+                <i class="je-banner-icon fas fa-check-circle"></i>
+                <div class="je-banner-body">
+                    <div class="je-banner-text"><?php echo htmlspecialchars($_SESSION['flash_success']); unset($_SESSION['flash_success']); ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['flash_error'])): ?>
+            <div class="je-banner is-danger">
+                <i class="je-banner-icon fas fa-exclamation-circle"></i>
+                <div class="je-banner-body">
+                    <div class="je-banner-text"><?php echo htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- Division Stats & Filter -->
         <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; align-items: center;">
             <a href="?division=all" style="padding: 8px 16px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 13px; 
@@ -222,7 +241,7 @@ include '../templates/header.php';
                                            class="action-btn action-btn-view" target="_blank">
                                             View
                                         </a>
-                                        <!-- FIXED: Delete button uses GET to /admin/delete-listing.php with CSRF -->
+                                        <!-- Delete button with CSRF token -->
                                         <a href="delete-listing.php?id=<?php echo $listing['id']; ?>&division=<?php echo $listing['division']; ?>&csrf_token=<?php echo Security::generateCSRFToken(); ?>" 
                                            class="action-btn action-btn-delete" 
                                            onclick="return confirm('Delete this listing?')">
