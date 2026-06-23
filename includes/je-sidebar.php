@@ -20,18 +20,38 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
         ['key' => 'profile',      'icon' => 'user-circle',      'label' => 'Profile',        'href' => 'profile.php'],
         ['key' => 'settings',     'icon' => 'cog',              'label' => 'Settings',       'href' => 'settings.php'],
     ];
-    $agentNav = [
+    
+    // ─── AGENT NAVIGATION ────────────────────────────────────────────────
+    // Regular agents see: Dashboard, My Listings, Add Listing, Verification,
+    // Messages, Analytics, Earnings, Profile
+    // Super agents ALSO see: Hardware, Add Hardware (Kinas Volt only)
+    // ─────────────────────────────────────────────────────────────────────
+    $agentNavBase = [
         ['key' => 'dashboard',    'icon' => 'tachometer-alt',  'label' => 'Dashboard',     'href' => 'dashboard.php'],
         ['key' => 'listings',     'icon' => 'list-alt',         'label' => 'My Listings',   'href' => 'listings.php'],
         ['key' => 'add',          'icon' => 'plus-circle',      'label' => 'Add Listing',   'href' => 'add-listing.php'],
-        ['key' => 'hardware',     'icon' => 'microchip',        'label' => 'Hardware',      'href' => 'hardware.php'],
-        ['key' => 'addhardware',  'icon' => 'plus',             'label' => 'Add Hardware',  'href' => 'add-hardware.php'],
+        // Hardware links will be conditionally added here
         ['key' => 'verification', 'icon' => 'shield-alt',       'label' => 'Verification',  'href' => 'verification.php'],
         ['key' => 'messages',     'icon' => 'comments',         'label' => 'Messages',      'href' => 'messages.php'],
         ['key' => 'analytics',    'icon' => 'chart-line',       'label' => 'Analytics',     'href' => 'analytics.php'],
         ['key' => 'earnings',     'icon' => 'wallet',           'label' => 'Earnings',      'href' => 'earnings.php'],
         ['key' => 'profile',      'icon' => 'user-circle',      'label' => 'Profile',       'href' => 'profile.php'],
     ];
+    
+    // Check if user is a Super Agent
+    $isSuperAgent = !empty($_SESSION['is_super_agent']);
+    
+    // Build agent navigation with conditional hardware links
+    $agentNav = [];
+    foreach ($agentNavBase as $item) {
+        $agentNav[] = $item;
+        // Insert hardware links right after 'Add Listing' if user is a Super Agent
+        if ($item['key'] === 'add' && $isSuperAgent) {
+            $agentNav[] = ['key' => 'hardware',    'icon' => 'microchip', 'label' => 'Hardware',     'href' => 'hardware.php'];
+            $agentNav[] = ['key' => 'addhardware', 'icon' => 'plus',       'label' => 'Add Hardware', 'href' => 'add-hardware.php'];
+        }
+    }
+    
     $adminNav = [
         ['key' => 'dashboard',    'icon' => 'tachometer-alt',  'label' => 'Overview',       'href' => 'dashboard.php'],
         ['key' => 'agents',       'icon' => 'user-tie',         'label' => 'Agent Approvals', 'href' => 'agent-approvals.php'],
@@ -44,8 +64,18 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
         ['key' => 'settings',     'icon' => 'cog',              'label' => 'Settings',       'href' => 'settings.php'],
     ];
 
-    $nav = $role === 'admin' ? $adminNav : ($role === 'agent' ? $agentNav : $userNav);
-    $brandLabel = $role === 'admin' ? 'ADMIN PANEL' : ($role === 'agent' ? 'AGENT PANEL' : 'MY ACCOUNT');
+    // Select the correct navigation based on role
+    if ($role === 'admin') {
+        $nav = $adminNav;
+        $brandLabel = 'ADMIN PANEL';
+    } elseif ($role === 'agent') {
+        $nav = $agentNav;
+        $brandLabel = 'AGENT PANEL';
+    } else {
+        $nav = $userNav;
+        $brandLabel = 'MY ACCOUNT';
+    }
+    
     $homeHref = $base . 'index.php';
     $logoutHref = $base . 'auth/logout.php';
 
