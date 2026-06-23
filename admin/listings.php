@@ -20,7 +20,6 @@ $db = Database::getInstance()->getConnection();
 // Get filter from URL
 $filterDivision = isset($_GET['division']) ? $_GET['division'] : 'all';
 
-// --- IMPORT DATA FETCHING LOGIC FROM OLD FILE ---
 // Get all listings from ALL divisions
 $allListings = [];
 
@@ -109,8 +108,6 @@ $divConfig = [
     'property' => ['label' => '🏠 Homes', 'color' => '#E8F5E9', 'text' => '#1B5E20', 'folder' => 'williams-connect-home'],
     'marketplace' => ['label' => '🛍️ Marketplace', 'color' => '#F3E5F5', 'text' => '#4A148C', 'folder' => 'kinas-marketplace']
 ];
-
-// --- END DATA FETCHING ---
 
 $pageTitle = 'Listings Management - Admin';
 include '../templates/header.php';
@@ -225,6 +222,7 @@ include '../templates/header.php';
                                            class="action-btn action-btn-view" target="_blank">
                                             View
                                         </a>
+                                        <!-- FIXED: Delete button uses POST form to API -->
                                         <form method="POST" action="/api/admin/remove-listing.php" style="display:inline;" 
                                               onsubmit="return confirm('Delete this listing?')">
                                             <input type="hidden" name="csrf_token" value="<?php echo Security::generateCSRFToken(); ?>">
