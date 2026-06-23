@@ -81,8 +81,9 @@ include '../templates/header.php';
             <li><a href="add-listing.php"><i class="fas fa-plus-circle"></i> Add Listing</a></li>
             <li><a href="messages.php"><i class="fas fa-envelope"></i> Messages</a></li>
             <li><a href="analytics.php"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+            <li><a href="earnings.php"><i class="fas fa-money-bill-wave"></i> Earnings</a></li>
             <li><a href="profile.php"><i class="fas fa-user"></i> Profile</a></li>
-            <hr class="sidebar-divider">
+            <li class="je-dash-nav-divider"></li>
             <li><a href="/"><i class="fas fa-home"></i> Back to Site</a></li>
             <li class="je-dash-signout"><a href="/auth/logout.php"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
         </ul>
@@ -92,10 +93,29 @@ include '../templates/header.php';
     <main class="je-dash-main">
         <div class="je-dash-header">
             <div>
-                <h1><i class="fas fa-tachometer-alt" style="color: #C6A43F;"></i> Super Agent Dashboard</h1>
+                <h1><i class="fas fa-tachometer-alt" style="color: #C6A43F;"></i> Agent Dashboard</h1>
                 <p>Welcome back, <?php echo htmlspecialchars($userName); ?>! (Agent ID: <?php echo $agentId; ?>)</p>
             </div>
         </div>
+
+        <!-- Flash Messages -->
+        <?php if (isset($_SESSION['flash_success'])): ?>
+            <div class="je-banner is-success">
+                <i class="je-banner-icon fas fa-check-circle"></i>
+                <div class="je-banner-body">
+                    <div class="je-banner-text"><?php echo htmlspecialchars($_SESSION['flash_success']); unset($_SESSION['flash_success']); ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['flash_error'])): ?>
+            <div class="je-banner is-danger">
+                <i class="je-banner-icon fas fa-exclamation-circle"></i>
+                <div class="je-banner-body">
+                    <div class="je-banner-text"><?php echo htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- Overall Stats -->
         <div class="je-card-grid">
@@ -176,6 +196,11 @@ include '../templates/header.php';
                 <i class="fas fa-chart-bar" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
                 <strong>Analytics</strong>
                 <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Performance insights</p>
+            </a>
+            <a href="earnings.php" style="background: #2E7D32; color: white; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
+                <i class="fas fa-money-bill-wave" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
+                <strong>Earnings</strong>
+                <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Track your commissions</p>
             </a>
         </div>
     </main>
