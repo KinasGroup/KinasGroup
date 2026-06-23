@@ -294,7 +294,6 @@ include '../templates/header.php';
                         <p><a href="add-listing.php">Add your first listing →</a></p>
                     </div>
                 <?php else: ?>
-                    <div class="table-responsive">
                     <table class="je-table">
                         <thead>
                             <tr>
@@ -340,18 +339,23 @@ include '../templates/header.php';
                                            class="action-btn action-btn-edit">
                                             <i class="fas fa-edit"></i> Edit
                                         </a>
-                                        <a href="delete-permanent.php?id=<?php echo $item['id']; ?>&division=<?php echo $item['division']; ?>" 
-                                           class="action-btn action-btn-delete" 
-                                           onclick="return confirm('Are you sure you want to delete this listing?');">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </a>
+                                        <!-- FIXED: Changed to POST form for delete -->
+                                        <form method="POST" action="/api/listings/delete.php" style="display:inline;" 
+                                              onsubmit="return confirm('Are you sure you want to delete this listing?');">
+                                            <input type="hidden" name="csrf_token" value="<?php echo Security::generateCSRFToken(); ?>">
+                                            <input type="hidden" name="id" value="<?php echo $item['id']; ?>">
+                                            <input type="hidden" name="type" value="<?php echo $item['division']; ?>">
+                                            <input type="hidden" name="redirect" value="/agent/listings.php">
+                                            <button type="submit" class="action-btn action-btn-delete" style="border:none;cursor:pointer;">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                    </div>
                 <?php endif; ?>
             </div>
         </div>
