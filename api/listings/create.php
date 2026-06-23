@@ -135,22 +135,6 @@ if ($price > 999999999999) {
 
 $agentId = (int)$_SESSION['user_id'];
 
-// ── Check if agent is verified ───────────────────────────────────────────────
-// Verified agents = verification_status = 'approved' in agent_profiles
-$agentVerified = false;
-try {
-    $checkStmt = $db->prepare("SELECT verification_status FROM agent_profiles WHERE user_id = ?");
-    $checkStmt->execute([$agentId]);
-    $verificationStatus = $checkStmt->fetchColumn();
-    $agentVerified = ($verificationStatus === 'approved');
-} catch (Exception $e) {
-    // If table doesn't exist, default to pending
-    $agentVerified = false;
-}
-
-// Set listing status: 'active' for verified agents, 'pending' for unverified
-$listingStatus = $agentVerified ? 'active' : 'pending';
-
 $s = function (string $k, int $max = 255) use ($data) {
     return Security::sanitizeInput(mb_substr((string)($data[$k] ?? ''), 0, $max));
 };
@@ -182,6 +166,22 @@ function extractMileage($value) {
 
 try {
     $db = Database::getInstance()->getConnection();
+
+    // ── Check if agent is verified ───────────────────────────────────────────────
+    // Verified agents = verification_status = 'approved' in agent_profiles
+    $agentVerified = false;
+    try {
+        $checkStmt = $db->prepare("SELECT verification_status FROM agent_profiles WHERE user_id = ?");
+        $checkStmt->execute([$agentId]);
+        $verificationStatus = $checkStmt->fetchColumn();
+        $agentVerified = ($verificationStatus === 'approved');
+    } catch (Exception $e) {
+        // If table doesn't exist, default to pending
+        $agentVerified = false;
+    }
+
+    // Set listing status: 'active' for verified agents, 'pending' for unverified
+    $listingStatus = $agentVerified ? 'active' : 'pending';
 
     if ($listingType === 'car') {
         // Extract mileage as integer if possible
