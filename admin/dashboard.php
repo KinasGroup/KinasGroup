@@ -195,7 +195,7 @@ include '../templates/header.php';
             </a>
         </div>
 
-        <!-- Recent Activity Section -->
+        <!-- Quick Links Section -->
         <div style="margin-top: 40px; background: white; border-radius: 16px; padding: 24px; border: 1px solid #E0E0E0;">
             <h3 style="font-family: 'Prata', serif; margin-bottom: 16px; color: #0A0A0A;">
                 <i class="fas fa-clock" style="color: #C6A43F; margin-right: 8px;"></i> Quick Links
