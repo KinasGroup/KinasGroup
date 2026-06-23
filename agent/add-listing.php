@@ -58,8 +58,9 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .form-group { margin-bottom: 24px; }
 .form-group label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #333; }
 .form-group label i { color: #C6A43F; margin-right: 6px; }
-.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid #E0E0E0; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 14px; transition: all 0.3s; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid #E0E0E0; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 14px; transition: all 0.3s; background: #fff; }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #C6A43F; box-shadow: 0 0 0 3px rgba(198,164,63,0.1); }
+.form-group select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 .input-prefix { position: relative; display: flex; align-items: center; }
 .prefix { position: absolute; left: 16px; color: #C6A43F; font-weight: 600; }
@@ -73,7 +74,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; margin-top: 20px; }
 .preview-item { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 1; background: #F5F5F5; }
 .preview-item img { width: 100%; height: 100%; object-fit: cover; }
-.preview-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-size: 14px; }
+.preview-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-size: 14px; border: none; }
 .checkbox-group { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .checkbox-label input { width: auto; accent-color: #C6A43F; }
@@ -112,7 +113,8 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
         <div style="background:#FFEBEE; border:1px solid #EF9A9A; color:#B71C1C; border-radius:8px; padding:14px 20px; margin-bottom:24px;"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($flashError) ?></div>
     <?php endif; ?>
 
-    <form class="listing-form" method="POST" action="/api/listings/create.php" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+    <form class="listing-form" method="POST" action="/api/listings/create.php" enctype="multipart/form-data" onsubmit="console.log('Form submitting...'); return true;">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
         <div class="form-grid">
             <div class="form-section"><h3>Basic Information</h3>
                 <div class="form-group"><label><i class="fas fa-layer-group"></i> Division *</label>
@@ -248,6 +250,12 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 <div id="realestateFields" style="display:none; margin-top:24px;">
                     <h3 style="margin-bottom:16px;"><i class="fas fa-home"></i> Property Details</h3>
                     <div class="automobile-fields-grid">
+                        <div class="form-group"><label>Listing Type</label>
+                            <select name="listing_type_purpose" id="listing_type_purpose">
+                                <option value="sale">For Sale</option>
+                                <option value="rent">For Rent</option>
+                            </select>
+                        </div>
                         <div class="form-group"><label>Bedrooms</label><input type="number" name="bedrooms" placeholder="e.g., 3"></div>
                         <div class="form-group"><label>Bathrooms</label><input type="number" name="bathrooms" placeholder="e.g., 2"></div>
                         <div class="form-group"><label>Area (sq ft)</label><input type="text" name="area" placeholder="e.g., 2500"></div>
@@ -269,7 +277,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 </div>
 
                 <div class="checkbox-group" style="margin-top:24px;"><label class="checkbox-label"><input type="checkbox" name="featured" value="1"><span>Feature this listing for premium visibility</span></label></div>
-                <div class="form-actions"><button type="button" class="btn-cancel" onclick="window.location.href='/agent/listings.php'">Cancel</button><button type="submit" class="btn-submit">Publish Listing</button></div>
+                <div class="form-actions"><button type="button" class="btn-cancel" onclick="window.location.href='/agent/listings.php'">Cancel</button><button type="submit" class="btn-submit" id="submitBtn">Publish Listing</button></div>
             </div>
         </div>
     </form>
@@ -285,15 +293,47 @@ function syncListingType() {
     document.getElementById('automobileFields').style.display = d === 'automobile'  ? 'block' : 'none';
     document.getElementById('realestateFields').style.display = d === 'realestate' ? 'block' : 'none';
     document.getElementById('solarFields').style.display       = d === 'solar'      ? 'block' : 'none';
+    
+    // Debug: log the selected division and listing_type
+    console.log('Division selected:', d);
+    console.log('Listing type set to:', document.getElementById('listing_type').value);
 }
 document.getElementById('division')?.addEventListener('change', syncListingType);
 syncListingType();
 
+// Debug form submission
+document.querySelector('.listing-form')?.addEventListener('submit', function(e) {
+    console.log('Form is about to submit');
+    console.log('Listing type:', document.getElementById('listing_type').value);
+    // Allow the form to submit normally
+});
+
 const imageUpload = document.getElementById('imageUpload'), previewGrid = document.getElementById('imagePreviewGrid'); let selectedFiles = [];
 function syncInputFiles() { const dt = new DataTransfer(); selectedFiles.forEach(f => dt.items.add(f)); imageUpload.files = dt.files; }
-imageUpload?.addEventListener('change', function(e) { selectedFiles = [...selectedFiles, ...Array.from(e.target.files)]; syncInputFiles(); updatePreview(); });
-function updatePreview() { previewGrid.innerHTML = ''; selectedFiles.forEach((file, index) => { const reader = new FileReader(); reader.onload = function(e) { const div = document.createElement('div'); div.className = 'preview-item'; div.innerHTML = `<img src="${e.target.result}"><button class="preview-remove" onclick="removeImage(${index})">&times;</button>`; previewGrid.appendChild(div); }; reader.readAsDataURL(file); }); }
-function removeImage(index) { selectedFiles.splice(index, 1); updatePreview(); syncInputFiles(); }
+imageUpload?.addEventListener('change', function(e) { 
+    const newFiles = Array.from(e.target.files);
+    selectedFiles = [...selectedFiles, ...newFiles]; 
+    syncInputFiles(); 
+    updatePreview(); 
+});
+function updatePreview() { 
+    previewGrid.innerHTML = ''; 
+    selectedFiles.forEach((file, index) => { 
+        const reader = new FileReader(); 
+        reader.onload = function(e) { 
+            const div = document.createElement('div'); 
+            div.className = 'preview-item'; 
+            div.innerHTML = `<img src="${e.target.result}"><button class="preview-remove" onclick="removeImage(${index})">&times;</button>`; 
+            previewGrid.appendChild(div); 
+        }; 
+        reader.readAsDataURL(file); 
+    }); 
+}
+function removeImage(index) { 
+    selectedFiles.splice(index, 1); 
+    updatePreview(); 
+    syncInputFiles(); 
+}
 </script>
 
 </main>
