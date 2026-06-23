@@ -544,6 +544,22 @@ html, body {
     transform: scale(1.05);
 }
 
+/* Fix for broken image icons */
+.listing-img img[src=""] {
+    display: none;
+}
+
+.listing-img .no-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: #f0f0f0;
+    color: #999;
+    font-size: 48px;
+}
+
 .listing-badge {
     position: absolute;
     top: 15px;
@@ -894,21 +910,34 @@ html, body {
                 switch ($listing['listing_type']) {
                     case 'car':
                         $url = '/divisions/kinas-automobile/detail.php?id=' . $listing['id'];
-                        $image = $listing['thumbnail'] ?? '/assets/images/placeholder/car-placeholder.jpg';
+                        // Check if thumbnail exists and is not empty
+                        if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
+                            $image = $listing['thumbnail'];
+                        } else {
+                            $image = '/assets/images/placeholder/car-placeholder.jpg';
+                        }
                         $divisionName = 'KINAS Automobile';
                         $specs = number_format($listing['mileage'] ?? 0) . ' km · ' . ucfirst($listing['transmission'] ?? 'Auto') . ' · ' . ucfirst($listing['fuel_type'] ?? 'Petrol');
                         $price = '₦' . number_format($listing['price'] ?? 0);
                         break;
                     case 'property':
                         $url = '/divisions/williams-connect-home/detail.php?id=' . $listing['id'];
-                        $image = $listing['thumbnail'] ?? '/assets/images/placeholder/property-placeholder.jpg';
+                        if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
+                            $image = $listing['thumbnail'];
+                        } else {
+                            $image = '/assets/images/placeholder/property-placeholder.jpg';
+                        }
                         $divisionName = 'Williams Connect Home';
                         $specs = ($listing['beds'] ?? 0) . ' Beds · ' . ($listing['baths'] ?? 0) . ' Baths · ' . number_format($listing['sqft'] ?? 0) . ' sqft';
                         $price = '₦' . number_format($listing['price'] ?? 0);
                         break;
                     case 'marketplace':
                         $url = '/divisions/kinas-marketplace/detail.php?id=' . $listing['id'];
-                        $image = $listing['thumbnail'] ?? '/assets/images/placeholder/product-placeholder.jpg';
+                        if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
+                            $image = $listing['thumbnail'];
+                        } else {
+                            $image = '/assets/images/placeholder/product-placeholder.jpg';
+                        }
                         $divisionName = 'KINAS Marketplace';
                         $price = '₦' . number_format($listing['price'] ?? 0);
                         break;
@@ -917,7 +946,13 @@ html, body {
                 <div class="listing-card">
                     <a href="<?php echo $url; ?>">
                         <div class="listing-img">
-                            <img src="<?php echo $image; ?>" alt="<?php echo htmlspecialchars($listing['title'] ?? 'Listing'); ?>" loading="lazy">
+                            <?php if ($image && $image !== '' && !str_contains($image, 'placeholder')): ?>
+                                <img src="<?php echo $image; ?>" alt="<?php echo htmlspecialchars($listing['title'] ?? 'Listing'); ?>" loading="lazy">
+                            <?php else: ?>
+                                <div class="no-image">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                            <?php endif; ?>
                             <?php if (!empty($listing['featured'])): ?>
                                 <span class="listing-badge">Featured</span>
                             <?php endif; ?>
@@ -976,7 +1011,7 @@ html, body {
             </div>
         </div>
     </div>
-</section>>
+</section>
 
 <!-- CTA BANNER -->
 <section class="cta-banner">
@@ -985,82 +1020,4 @@ html, body {
         <p>Join thousands of verified agents on KINAS GROUP</p>
         <div class="cta-buttons">
             <a href="/auth/register.php" class="je2-button" style="background:white; color:#151515; font-weight:600; padding:14px 32px;">Become an Agent</a>
-            <a href="/auth/login.php" class="je2-button" style="background:#0A0A0A; color:#ffffff; border:2px solid #0A0A0A; font-weight:600; padding:14px 32px;">Sign In</a>
-        </div>
-    </div>
-</section>
-
-<script>
-// ============================================
-// ROTATING HERO BACKGROUND (4 images)
-// ============================================
-let currentSlide = 0;
-const slides = document.querySelectorAll('.hero-slide');
-const totalSlides = slides.length;
-
-function rotateHeroBackground() {
-    if (totalSlides > 1) {
-        slides[currentSlide].classList.remove('active');
-        currentSlide = (currentSlide + 1) % totalSlides;
-        slides[currentSlide].classList.add('active');
-    }
-}
-
-if (totalSlides > 1) {
-    setInterval(rotateHeroBackground, 6000);
-}
-
-// ============================================
-// SEARCH TAB SWITCHER
-// ============================================
-function switchSearchTab(btn, tab) {
-    document.querySelectorAll('.hs-tab').forEach(function(t) {
-        t.classList.remove('active');
-    });
-    btn.classList.add('active');
-
-    // Map tab name to division query value
-    var divisionMap = {
-        'cars':        'automobile',
-        'homes':       'real_estate',
-        'marketplace': 'marketplace',
-        'solar':       'solar'
-    };
-    var hiddenInput = document.getElementById('searchDivision');
-    if (hiddenInput) hiddenInput.value = divisionMap[tab] || '';
-
-    // Update placeholder to match context
-    var placeholderMap = {
-        'cars':        'Search luxury cars, SUVs, exotic vehicles…',
-        'homes':       'Search properties, apartments, luxury homes…',
-        'marketplace': 'Search products, collectibles, luxury goods…',
-        'solar':       'Search solar panels, installations, energy solutions…'
-    };
-    var input = document.querySelector('.hs-input');
-    if (input) input.placeholder = placeholderMap[tab] || 'Search…';
-}
-
-// ============================================
-// TRANSPARENT HEADER SCROLL EFFECT
-// ============================================
-// Moved to /assets/js/header-scroll.js (loaded by templates/footer.php
-// on every page). It no-ops automatically on pages that don't have a
-// hero section.
-
-// Mobile menu handled by /assets/js/mobile-menu.js (loaded in footer)
-
-// ============================================
-// FAVORITE TOGGLE
-// ============================================
-function toggleFavorite(btn) {
-    if (btn.textContent === '♡') {
-        btn.textContent = '♥';
-        btn.style.color = '#e74c3c';
-    } else {
-        btn.textContent = '♡';
-        btn.style.color = '';
-    }
-}
-</script>
-
-<?php include 'templates/footer.php'; ?>
+            <a href="/auth
