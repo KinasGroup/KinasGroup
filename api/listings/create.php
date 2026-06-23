@@ -134,6 +134,23 @@ if ($price > 999999999999) {
 }
 
 $agentId = (int)$_SESSION['user_id'];
+
+// ── Check if agent is verified ───────────────────────────────────────────────
+// Verified agents = verification_status = 'approved' in agent_profiles
+$agentVerified = false;
+try {
+    $checkStmt = $db->prepare("SELECT verification_status FROM agent_profiles WHERE user_id = ?");
+    $checkStmt->execute([$agentId]);
+    $verificationStatus = $checkStmt->fetchColumn();
+    $agentVerified = ($verificationStatus === 'approved');
+} catch (Exception $e) {
+    // If table doesn't exist, default to pending
+    $agentVerified = false;
+}
+
+// Set listing status: 'active' for verified agents, 'pending' for unverified
+$listingStatus = $agentVerified ? 'active' : 'pending';
+
 $s = function (string $k, int $max = 255) use ($data) {
     return Security::sanitizeInput(mb_substr((string)($data[$k] ?? ''), 0, $max));
 };
@@ -148,11 +165,29 @@ $num = function (string $k) use ($data): ?float {
     return (float)$v;
 };
 
+// Function to extract numeric mileage from string like "19592 mi (31530 km)"
+function extractMileage($value) {
+    if ($value === null || $value === '') {
+        return null;
+    }
+    if (is_numeric($value)) {
+        return (int)$value;
+    }
+    preg_match('/^(\d+)/', $value, $matches);
+    if (!empty($matches[1])) {
+        return (int)$matches[1];
+    }
+    return null;
+}
+
 try {
     $db = Database::getInstance()->getConnection();
 
     if ($listingType === 'car') {
-        // Removed 'address' from INSERT - it doesn't exist in the table
+        // Extract mileage as integer if possible
+        $mileageRaw = $s('mileage', 100);
+        $mileageValue = extractMileage($mileageRaw);
+        
         $stmt = $db->prepare("
             INSERT INTO car_listings
                 (agent_id, title, brand, model, year, price, mileage,
@@ -161,7 +196,7 @@ try {
                  engine, gearbox, car_type, drive, drive_train, vin,
                  interior_color, seats, features, country,
                  description, city, state, status, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending', NOW(), NOW())
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?, NOW(), NOW())
         ");
         $stmt->execute([
             $agentId,
@@ -170,7 +205,7 @@ try {
             $s('model', 100) ?: 'Other',
             $int('year') ?? date('Y'),
             $price,
-            $s('mileage', 100),
+            $mileageValue,
             $s('fuel_type', 50),
             $s('transmission', 50) ?: $s('gearbox', 50),
             $s('color', 50),
@@ -191,6 +226,7 @@ try {
             $description,
             $s('city', 100),
             $s('state', 100),
+            $listingStatus, // 'active' for verified, 'pending' for unverified
         ]);
     } elseif ($listingType === 'property') {
         $stmt = $db->prepare("
@@ -200,7 +236,7 @@ try {
                  address, city, state, zip_code, country,
                  latitude, longitude, description, features, amenities, view_type, hoa_fees,
                  status, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending', NOW(), NOW())
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?, NOW(), NOW())
         ");
         $stmt->execute([
             $agentId,
@@ -225,6 +261,7 @@ try {
             !empty($data['amenities']) ? json_encode($data['amenities']) : null,
             $s('view_type', 100),
             $num('hoa_fees'),
+            $listingStatus, // 'active' for verified, 'pending' for unverified
         ]);
     } elseif ($listingType === 'solar') {
         $stmt = $db->prepare("
@@ -232,7 +269,7 @@ try {
                 (agent_id, title, service_type, price, brand, capacity_kw,
                  warranty_years, description, features,
                  city, state, country, status, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'pending', NOW())
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?, ?, NOW())
         ");
         $stmt->execute([
             $agentId,
@@ -249,6 +286,7 @@ try {
             $s('city', 100),
             $s('state', 100),
             $s('country', 100) ?: 'Nigeria',
+            $listingStatus, // 'active' for verified, 'pending' for unverified
         ]);
     } else { // marketplace
         $categoryId = $int('category_id') ?? $int('category');
@@ -257,7 +295,7 @@ try {
                 (agent_id, title, category_id, price, description,
                  condition_status, brand,
                  city, state, country, status, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?, 'pending', NOW(), NOW())
+            VALUES (?,?,?,?,?,?,?,?,?,?, ?, NOW(), NOW())
         ");
         $stmt->execute([
             $agentId,
@@ -270,6 +308,7 @@ try {
             $s('city', 100),
             $s('state', 100),
             $s('country', 100) ?: 'Nigeria',
+            $listingStatus, // 'active' for verified, 'pending' for unverified
         ]);
     }
 
@@ -318,7 +357,7 @@ try {
 
     Security::logActivity($agentId, 'listing_created', "Created $listingType listing #$listingId");
 
-    $message = 'Listing submitted for review.';
+    $message = $agentVerified ? 'Listing published successfully!' : 'Listing submitted for review.';
     if ($imagesAttempted > 0 && $imagesSaved < $imagesAttempted) {
         $message .= $imagesSaved === 0
             ? ' Note: none of your photos could be saved — please try re-uploading them from Edit Listing.'
