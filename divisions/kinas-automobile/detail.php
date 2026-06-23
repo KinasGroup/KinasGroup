@@ -7,6 +7,8 @@ require_once '../../includes/functions.php';
 require_once '../../includes/helpers.php';
 require_once '../../api/config/database.php';
 require_once '../../includes/je-components.php';
+// CRITICAL: Include security BEFORE any HTML output
+require_once '../../includes/security.php';
 
 $id = (int)($_GET['id'] ?? 0);
 $db = Database::getInstance()->getConnection();
