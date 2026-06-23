@@ -85,7 +85,6 @@ include '../templates/header.php';
                         <p>No users found.</p>
                     </div>
                 <?php else: ?>
-                    <div class="table-responsive">
                     <table class="je-table">
                         <thead>
                             <tr>
@@ -135,7 +134,6 @@ include '../templates/header.php';
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                    </div>
                 <?php endif; ?>
             </div>
         </div>
