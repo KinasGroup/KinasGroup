@@ -225,7 +225,7 @@ include '../templates/header.php';
                                            class="action-btn action-btn-view" target="_blank">
                                             View
                                         </a>
-                                        <a href="delete-listing.php?id=<?php echo $listing['id']; ?>&division=<?php echo $listing['division']; ?>" 
+                                        <a href="/api/admin/remove-listing.php?listing_id=<?php echo $listing['id']; ?>&listing_type=<?php echo $listing['division']; ?>"  
                                            class="action-btn action-btn-delete" 
                                            onclick="return confirm('Delete this listing?')">
                                             Delete
