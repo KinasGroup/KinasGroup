@@ -273,6 +273,25 @@ include '../templates/header.php';
             </div>
         </div>
 
+        <!-- Flash Messages -->
+        <?php if (isset($_SESSION['flash_success'])): ?>
+            <div class="je-banner is-success">
+                <i class="je-banner-icon fas fa-check-circle"></i>
+                <div class="je-banner-body">
+                    <div class="je-banner-text"><?php echo htmlspecialchars($_SESSION['flash_success']); unset($_SESSION['flash_success']); ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['flash_error'])): ?>
+            <div class="je-banner is-danger">
+                <i class="je-banner-icon fas fa-exclamation-circle"></i>
+                <div class="je-banner-body">
+                    <div class="je-banner-text"><?php echo htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- Filter Bar -->
         <div class="filter-bar">
             <span class="filter-label">Filter:</span>
@@ -339,17 +358,12 @@ include '../templates/header.php';
                                            class="action-btn action-btn-edit">
                                             <i class="fas fa-edit"></i> Edit
                                         </a>
-                                        <!-- FIXED: Delete button uses POST form to API -->
-                                        <form method="POST" action="/api/listings/delete.php" style="display:inline;" 
-                                              onsubmit="return confirm('Are you sure you want to delete this listing?');">
-                                            <input type="hidden" name="csrf_token" value="<?php echo Security::generateCSRFToken(); ?>">
-                                            <input type="hidden" name="id" value="<?php echo $item['id']; ?>">
-                                            <input type="hidden" name="type" value="<?php echo $item['division']; ?>">
-                                            <input type="hidden" name="redirect" value="/agent/listings.php">
-                                            <button type="submit" class="action-btn action-btn-delete" style="border:none;cursor:pointer;">
-                                                <i class="fas fa-trash"></i> Delete
-                                            </button>
-                                        </form>
+                                        <!-- Delete button with CSRF token -->
+                                        <a href="delete-listing.php?id=<?php echo $item['id']; ?>&division=<?php echo $item['division']; ?>&csrf_token=<?php echo Security::generateCSRFToken(); ?>" 
+                                           class="action-btn action-btn-delete" 
+                                           onclick="return confirm('Are you sure you want to delete this listing?');">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </a>
                                     </div>
                                 </td>
                             </tr>
