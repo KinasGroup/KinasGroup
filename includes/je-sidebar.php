@@ -33,9 +33,9 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
     $adminNav = [
         ['key' => 'dashboard',    'icon' => 'tachometer-alt',  'label' => 'Overview',       'href' => 'dashboard.php'],
         ['key' => 'agents',       'icon' => 'user-tie',         'label' => 'Agent Approvals', 'href' => 'agent-approvals.php'],
-        ['key' => 'agents_all',   'icon' => 'users',            'label' => 'All Agents',     'href' => 'agent-management.php'],
-        ['key' => 'users',        'icon' => 'user',             'label' => 'Users',          'href' => 'user-management.php'],
-        ['key' => 'listings',     'icon' => 'list-alt',         'label' => 'Listings',       'href' => 'listing-management.php'],
+        ['key' => 'agents_all',   'icon' => 'users',            'label' => 'All Agents',     'href' => 'agents.php'],
+        ['key' => 'users',        'icon' => 'user',             'label' => 'Users',          'href' => 'users.php'],
+        ['key' => 'listings',     'icon' => 'list-alt',         'label' => 'Listings',       'href' => 'listings.php'],
         ['key' => 'flagged',      'icon' => 'flag',             'label' => 'Flagged',        'href' => 'flagged-listings.php'],
         ['key' => 'reports',      'icon' => 'chart-bar',        'label' => 'Reports',        'href' => 'reports.php'],
         ['key' => 'activity',     'icon' => 'history',          'label' => 'Activity Log',   'href' => 'activity-logs.php'],
