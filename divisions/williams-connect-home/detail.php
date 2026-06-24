@@ -1,8 +1,4 @@
 <?php
-// FORCE DEBUG - Add this at the very top
-error_log("=== DETAIL.PHP IS BEING LOADED ===");
-error_log("Listing ID: " . ($_GET['id'] ?? 'none'));
-?>
 /**
  * WILLIAMS CONNECT HOME — Property detail
  */
@@ -74,6 +70,33 @@ $listingId = (int)$item['id'];
 $agentId = (int)$item['agent_id'];
 $agentName = htmlspecialchars($item['agent_name'] ?? 'Agent', ENT_QUOTES, 'UTF-8');
 ?>
+
+<!-- ============================================================ -->
+<!-- JAVASCRIPT - DEFINED RIGHT HERE AT THE TOP -->
+<!-- ============================================================ -->
+<script>
+// These functions are defined BEFORE the buttons are rendered
+function openScheduleViewing(listingId, listingType, agentId) {
+    console.log('openScheduleViewing called!', listingId, listingType, agentId);
+    alert('Schedule Viewing clicked!\n\nListing ID: ' + listingId + '\nType: ' + listingType + '\nAgent ID: ' + agentId);
+}
+
+function openContactAgent(agentId, agentName, division) {
+    console.log('openContactAgent called!', agentId, agentName, division);
+    alert('Contact Agent clicked!\n\nAgent: ' + agentName + '\nDivision: ' + division + '\nAgent ID: ' + agentId);
+}
+
+function jeSaveListing(type, id) {
+    console.log('jeSaveListing called!', type, id);
+    alert('Save Listing clicked!\n\nType: ' + type + '\nID: ' + id);
+}
+
+// Check if functions are defined
+console.log('=== Functions defined successfully ===');
+console.log('openScheduleViewing:', typeof openScheduleViewing);
+console.log('openContactAgent:', typeof openContactAgent);
+console.log('jeSaveListing:', typeof jeSaveListing);
+</script>
 
 <div class="je-page">
 <div class="je-detail-wrap">
@@ -147,7 +170,7 @@ $agentName = htmlspecialchars($item['agent_name'] ?? 'Agent', ENT_QUOTES, 'UTF-8
             </dl>
 
             <!-- ============================================================ -->
-            <!-- BUTTONS - Using direct onclick with inline JavaScript -->
+            <!-- BUTTONS - NOW THE FUNCTIONS EXIST BEFORE THEY'RE CALLED -->
             <!-- ============================================================ -->
             <div class="je-cta-row">
                 <!-- Schedule Viewing -->
@@ -241,99 +264,14 @@ $agentName = htmlspecialchars($item['agent_name'] ?? 'Agent', ENT_QUOTES, 'UTF-8
 <?php include __DIR__ . '/../../templates/modal/contact-agent-modal.php'; ?>
 
 <!-- ============================================================ -->
-<!-- JAVASCRIPT - IMMEDIATELY AFTER THE CONTENT -->
+<!-- EXTRA SAFETY: Functions defined again at the bottom -->
 <!-- ============================================================ -->
 <script>
-// ============================================================
-// SIMPLE TEST - Verify JavaScript is working
-// ============================================================
-console.log('=== JavaScript loaded successfully ===');
-
-// ============================================================
-// HELPER FUNCTIONS
-// ============================================================
-
-function isUserLoggedIn() {
-    const meta = document.querySelector('meta[name="user-data"]');
-    if (meta) {
-        try {
-            const data = JSON.parse(meta.content);
-            return data.loggedIn === true;
-        } catch (e) {
-            return false;
-        }
-    }
-    return document.querySelector('meta[name="user-id"]')?.content ? true : false;
-}
-
-function showLoginRequired() {
-    alert('Please login to continue');
-    setTimeout(function() {
-        window.location.href = '/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
-    }, 1500);
-}
-
-// ============================================================
-// SCHEDULE VIEWING
-// ============================================================
-
-function openScheduleViewing(listingId, listingType, agentId) {
-    console.log('openScheduleViewing called!', listingId, listingType, agentId);
-    
-    if (!isUserLoggedIn()) {
-        showLoginRequired();
-        return;
-    }
-    
-    // Simple alert for testing
-    alert('Schedule Viewing clicked!\n\nListing ID: ' + listingId + '\nType: ' + listingType + '\nAgent ID: ' + agentId);
-    
-    // Open the schedule modal (will add this next)
-    // For now, just show the alert
-}
-
-// ============================================================
-// CONTACT AGENT
-// ============================================================
-
-function openContactAgent(agentId, agentName, division) {
-    console.log('openContactAgent called!', agentId, agentName, division);
-    
-    if (!isUserLoggedIn()) {
-        showLoginRequired();
-        return;
-    }
-    
-    // Simple alert for testing
-    alert('Contact Agent clicked!\n\nAgent: ' + agentName + '\nDivision: ' + division + '\nAgent ID: ' + agentId);
-}
-
-// ============================================================
-// SAVE LISTING
-// ============================================================
-
-function jeSaveListing(type, id) {
-    console.log('jeSaveListing called!', type, id);
-    
-    if (!isUserLoggedIn()) {
-        showLoginRequired();
-        return;
-    }
-    
-    // Simple alert for testing
-    alert('Save Listing clicked!\n\nType: ' + type + '\nID: ' + id);
-}
-
-// ============================================================
-// PAGE INITIALIZATION
-// ============================================================
-
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('=== Page fully loaded ===');
-    console.log('Listing ID: <?= $listingId ?>');
-    console.log('Agent ID: <?= $agentId ?>');
-    console.log('Agent Name: <?= $agentName ?>');
-});
+// Just in case, define them again here
+console.log('=== Double-check: Functions at bottom ===');
+console.log('openScheduleViewing exists:', typeof openScheduleViewing === 'function');
+console.log('openContactAgent exists:', typeof openContactAgent === 'function');
+console.log('jeSaveListing exists:', typeof jeSaveListing === 'function');
 </script>
 
 <?php include '../../templates/footer.php'; ?>
