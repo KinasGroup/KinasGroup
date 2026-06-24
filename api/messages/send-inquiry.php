@@ -34,7 +34,7 @@ $name        = Security::sanitizeInput($data['name'] ?? '');
 $email       = trim($data['email'] ?? '');
 $phone       = Security::sanitizeInput($data['phone'] ?? '');
 $message     = Security::sanitizeInput($data['message'] ?? '');
-$inquiryType = $data['inquiry_type'] ?? 'general'; // 'general', 'viewing'
+$inquiryType = $data['inquiry_type'] ?? 'general';
 $preferredDate = $data['preferred_date'] ?? '';
 $preferredTime = $data['preferred_time'] ?? '';
 
@@ -208,13 +208,13 @@ try {
             listing_id, 
             listing_type, 
             subject, 
-            message, 
+            body, 
             is_viewing_request,
             preferred_date,
             preferred_time,
-            status,
+            is_read,
             created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'unread', NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())
     ");
     
     // Try to get sender user ID (if logged in)
@@ -241,13 +241,13 @@ try {
                 listing_id, 
                 listing_type, 
                 subject, 
-                message, 
+                body, 
                 is_viewing_request,
                 preferred_date,
                 preferred_time,
-                status,
+                is_read,
                 created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'unread', NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())
         ");
         $stmt->execute([
             $senderId,
