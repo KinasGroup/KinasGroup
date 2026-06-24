@@ -202,4 +202,225 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                                 <option value="Porsche">Porsche</option>
                                 <option value="Ram">Ram</option>
                                 <option value="Rolls-Royce">Rolls-Royce</option>
-                                <option value="Subaru">Subaru</
+                                <option value="Subaru">Subaru</option>
+                                <option value="Tesla">Tesla</option>
+                                <option value="Toyota">Toyota</option>
+                                <option value="Volkswagen">Volkswagen</option>
+                                <option value="Volvo">Volvo</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <!-- Model -->
+                        <div class="form-group"><label><i class="fas fa-car"></i> Model *</label><input type="text" name="model" placeholder="e.g., S-Class" required></div>
+                        <div class="form-group"><label><i class="fas fa-calendar"></i> Year *</label><input type="number" name="year" placeholder="e.g., 2018" min="1900" max="2099" required></div>
+                        <div class="form-group"><label><i class="fas fa-tachometer-alt"></i> Mileage *</label><input type="text" name="mileage" placeholder="e.g., 19592 mi (31530 km)" required></div>
+                        <div class="form-group"><label><i class="fas fa-cog"></i> Engine</label><input type="text" name="engine" placeholder="e.g., 6 Cylinder"></div>
+                        <div class="form-group"><label><i class="fas fa-cogs"></i> Gearbox / Transmission</label>
+                            <select name="gearbox"><option value="">Select Gearbox</option><option value="Automatic">Automatic</option><option value="Manual">Manual</option><option value="Semi-Automatic">Semi-Automatic</option><option value="CVT">CVT</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-car-side"></i> Car Type</label>
+                            <select name="car_type"><option value="">Select Car Type</option><option value="Coupe">Coupe</option><option value="Sedan">Sedan</option><option value="SUV">SUV</option><option value="Convertible">Convertible</option><option value="Hatchback">Hatchback</option><option value="Wagon">Wagon</option><option value="Truck">Truck</option><option value="Van">Van</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-steering-wheel"></i> Drive</label>
+                            <select name="drive"><option value="">Select Drive</option><option value="LHD">LHD (Left-Hand Drive)</option><option value="RHD">RHD (Right-Hand Drive)</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-road"></i> Drive Train</label>
+                            <select name="drive_train"><option value="">Select Drive Train</option><option value="AWD">AWD (All-Wheel Drive)</option><option value="FWD">FWD (Front-Wheel Drive)</option><option value="RWD">RWD (Rear-Wheel Drive)</option><option value="4WD">4WD (Four-Wheel Drive)</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-gas-pump"></i> Fuel Type</label>
+                            <select name="fuel_type"><option value="">Select Fuel Type</option><option value="Petrol">Petrol</option><option value="Diesel">Diesel</option><option value="Electric">Electric</option><option value="Hybrid">Hybrid</option><option value="Plugin-Hybrid">Plugin Hybrid</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-clipboard-check"></i> Condition</label>
+                            <select name="condition"><option value="">Select Condition</option><option value="Brand New">Brand New</option><option value="Like New">Like New</option><option value="Excellent">Excellent</option><option value="Very Good">Very Good</option><option value="Good">Good</option><option value="Fair">Fair</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-barcode"></i> VIN</label><input type="text" name="vin" placeholder="e.g., 19UNC1B01JY000027"></div>
+                        <div class="form-group"><label><i class="fas fa-palette"></i> Color</label><input type="text" name="color" placeholder="e.g., Silver"></div>
+                        <div class="form-group"><label><i class="fas fa-palette"></i> Interior Color</label><input type="text" name="interior_color" placeholder="e.g., Grey"></div>
+                        <div class="form-group"><label><i class="fas fa-door-open"></i> Doors</label>
+                            <select name="doors"><option value="">Select Doors</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-users"></i> Seats</label>
+                            <select name="seats"><option value="">Select Seats</option><option value="2">2</option><option value="4">4</option><option value="5">5</option><option value="7">7</option><option value="8">8</option></select>
+                        </div>
+                        <div class="form-group full-width"><label><i class="fas fa-check-circle"></i> Features (comma separated)</label><input type="text" name="features" placeholder="e.g., Leather seats, Sunroof, Navigation, Backup camera"></div>
+                    </div>
+                </div>
+
+                <!-- PROPERTY DETAILS SECTION -->
+                <div id="realestateFields" style="display:none; margin-top:24px;">
+                    <h3 style="margin-bottom:16px;"><i class="fas fa-home"></i> Property Details</h3>
+                    <div class="automobile-fields-grid">
+                        <div class="form-group"><label>Listing Type</label>
+                            <select name="listing_type_purpose" id="listing_type_purpose">
+                                <option value="sale">For Sale</option>
+                                <option value="rent">For Rent</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Bedrooms</label><input type="number" name="bedrooms" placeholder="e.g., 3"></div>
+                        <div class="form-group"><label>Bathrooms</label><input type="number" name="bathrooms" placeholder="e.g., 2"></div>
+                        <div class="form-group"><label>Area (sq ft)</label><input type="text" name="area" placeholder="e.g., 2500"></div>
+                        <div class="form-group"><label>Property Type</label>
+                            <select name="property_type"><option value="">Select Type</option><option value="Villa">Villa</option><option value="Apartment">Apartment</option><option value="Land">Land</option><option value="House">House</option><option value="Condo">Condo</option><option value="Townhouse">Townhouse</option></select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SOLAR DETAILS SECTION -->
+                <div id="solarFields" style="display:none; margin-top:24px;">
+                    <h3 style="margin-bottom:16px;"><i class="fas fa-sun"></i> Solar Details</h3>
+                    <div class="automobile-fields-grid">
+                        <div class="form-group"><label>Capacity (kW)</label><input type="text" name="capacity" placeholder="e.g., 10"></div>
+                        <div class="form-group"><label>System Type</label>
+                            <select name="solar_type"><option value="">Select Type</option><option value="Residential">Residential</option><option value="Commercial">Commercial</option><option value="Industrial">Industrial</option></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checkbox-group" style="margin-top:24px;"><label class="checkbox-label"><input type="checkbox" name="featured" value="1"><span>Feature this listing for premium visibility</span></label></div>
+                <div class="form-actions"><button type="button" class="btn-cancel" onclick="window.location.href='/agent/listings.php'">Cancel</button><button type="submit" class="btn-submit" id="submitBtn">Publish Listing</button></div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// ============================================
+// FIX: SYNC LISTING TYPE ON PAGE LOAD AND CHANGE
+// ============================================
+const divisionToType = { 
+    automobile: 'car', 
+    realestate: 'property', 
+    solar: 'solar', 
+    marketplace: 'marketplace' 
+};
+
+function syncListingType() {
+    const d = document.getElementById('division')?.value || '';
+    const listingType = divisionToType[d] || '';
+    document.getElementById('listing_type').value = listingType;
+    
+    // Show/hide division-specific fields
+    const automobileDiv = document.getElementById('automobileFields');
+    const realestateDiv = document.getElementById('realestateFields');
+    const solarDiv = document.getElementById('solarFields');
+    
+    if (automobileDiv) automobileDiv.style.display = d === 'automobile' ? 'block' : 'none';
+    if (realestateDiv) realestateDiv.style.display = d === 'realestate' ? 'block' : 'none';
+    if (solarDiv) solarDiv.style.display = d === 'solar' ? 'block' : 'none';
+    
+    console.log('Division selected:', d, 'Listing type set to:', listingType);
+}
+
+// Run on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set initial state
+    syncListingType();
+    
+    // Attach event listener
+    const divisionSelect = document.getElementById('division');
+    if (divisionSelect) {
+        divisionSelect.addEventListener('change', syncListingType);
+    }
+});
+
+// ============================================
+// FORM SUBMISSION HANDLER
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('listingForm');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (form && submitBtn) {
+        submitBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Validate required fields
+            const division = document.getElementById('division').value;
+            const title = form.querySelector('input[name="title"]')?.value?.trim() || '';
+            const price = form.querySelector('input[name="price"]')?.value?.trim() || '';
+            const description = form.querySelector('textarea[name="description"]')?.value?.trim() || '';
+            
+            if (!division) {
+                alert('Please select a division.');
+                return;
+            }
+            if (!title) {
+                alert('Please enter a listing title.');
+                return;
+            }
+            if (!price || parseFloat(price) <= 0) {
+                alert('Please enter a valid price greater than zero.');
+                return;
+            }
+            if (!description) {
+                alert('Please enter a description.');
+                return;
+            }
+            
+            // Make sure listing_type is set
+            syncListingType();
+            const listingType = document.getElementById('listing_type')?.value || '';
+            
+            if (!listingType) {
+                alert('Please select a valid division.');
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
+            
+            // Submit the form
+            form.submit();
+        });
+    }
+});
+
+// ============================================
+// IMAGE PREVIEW
+// ============================================
+const imageUpload = document.getElementById('imageUpload');
+const previewGrid = document.getElementById('imagePreviewGrid');
+let selectedFiles = [];
+
+function syncInputFiles() { 
+    const dt = new DataTransfer(); 
+    selectedFiles.forEach(f => dt.items.add(f)); 
+    if (imageUpload) imageUpload.files = dt.files; 
+}
+
+function updatePreview() { 
+    if (!previewGrid) return;
+    previewGrid.innerHTML = ''; 
+    selectedFiles.forEach((file, index) => { 
+        const reader = new FileReader(); 
+        reader.onload = function(e) { 
+            const div = document.createElement('div'); 
+            div.className = 'preview-item'; 
+            div.innerHTML = `<img src="${e.target.result}"><button class="preview-remove" onclick="removeImage(${index})">&times;</button>`; 
+            previewGrid.appendChild(div); 
+        }; 
+        reader.readAsDataURL(file); 
+    }); 
+}
+
+function removeImage(index) { 
+    selectedFiles.splice(index, 1); 
+    updatePreview(); 
+    syncInputFiles(); 
+}
+
+if (imageUpload) {
+    imageUpload.addEventListener('change', function(e) { 
+        const newFiles = Array.from(e.target.files);
+        selectedFiles = [...selectedFiles, ...newFiles]; 
+        syncInputFiles(); 
+        updatePreview(); 
+    });
+}
+</script>
+
+</main>
+</div>
+
+<?php require_once __DIR__ . '/../templates/footer.php'; ?>
