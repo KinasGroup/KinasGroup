@@ -148,8 +148,7 @@ $location = implode(', ', $locParts);
                 
                 <!-- Contact Agent - opens contact form (not phone) -->
                 <button class="je-cta-secondary" onclick="openContactAgent(<?= (int)$item['agent_id'] ?>, '<?= htmlspecialchars($item['agent_name'] ?? 'Agent') ?>', 'property')">
-                    <i class="far fa-envelope"></i> Contact Agent
-                </button>
+                    <i class="far fa-envelope"></i> Contact Agent    </button>
                 
                 <!-- Save Listing -->
                 <button class="je-cta-secondary" onclick="jeSaveListing('property', <?= (int)$item['id'] ?>)">
