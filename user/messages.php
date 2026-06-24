@@ -1,7 +1,7 @@
 <?php
 /**
  * KINAS GROUP - User Messages
- * Professional messaging interface for regular users (buyers)
+ * Premium messaging interface inspired by Gmail/Yahoo
  */
 require_once '../includes/session.php';
 require_once '../includes/functions.php';
@@ -68,7 +68,7 @@ $conversationsStmt = $db->prepare("
 $conversationsStmt->execute([$userId, $userId]);
 $allMessages = $conversationsStmt->fetchAll();
 
-// Group messages by conversation (using other_user_id)
+// Group messages by conversation
 $conversations = [];
 foreach ($allMessages as $msg) {
     $otherId = ($msg['sender_id'] == $userId) ? $msg['receiver_id'] : $msg['sender_id'];
@@ -88,7 +88,8 @@ foreach ($allMessages as $msg) {
             'listing_type' => $msg['listing_type'],
             'last_message' => $msg['body'],
             'last_message_time' => $msg['created_at'],
-            'unread_count' => 0
+            'unread_count' => 0,
+            'subject' => $msg['subject']
         ];
     }
     
@@ -101,6 +102,7 @@ foreach ($allMessages as $msg) {
         $conversations[$key]['last_message_time'] = $msg['created_at'];
         $conversations[$key]['listing_id'] = $msg['listing_id'];
         $conversations[$key]['listing_type'] = $msg['listing_type'];
+        $conversations[$key]['subject'] = $msg['subject'];
     }
 }
 
@@ -179,549 +181,596 @@ include '../templates/header.php';
 ?>
 
 <!-- ============================================================ -->
-<!-- PROFESSIONAL MESSAGING STYLES -->
+<!-- PREMIUM GMAIL/YAHOO STYLE MESSAGING -->
 <!-- ============================================================ -->
 <style>
-/* ----- Container ----- */
-.messages-wrapper {
+/* ----- RESET & BASE ----- */
+* {
+    box-sizing: border-box;
+}
+
+.messages-app {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 24px 40px;
+    padding: 20px 30px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.messages-header {
+/* ----- HEADER ----- */
+.messages-app-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e8eaed;
+    margin-bottom: 20px;
 }
 
-.messages-header h1 {
-    font-family: 'Prata', serif;
-    font-size: 28px;
-    color: #0A0A0A;
+.messages-app-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1a1a2e;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.messages-header h1 i {
+.messages-app-header h1 i {
     color: #C6A43F;
-    margin-right: 12px;
 }
 
-.messages-header .subtitle {
-    color: #888;
-    margin: 4px 0 0 0;
-    font-size: 14px;
-}
-
-/* ----- Main Container ----- */
-.messages-container {
-    display: grid;
-    grid-template-columns: 380px 1fr;
-    gap: 0;
-    background: #ffffff;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.06);
-    border: 1px solid #f0ede8;
-    min-height: 600px;
-    max-height: 780px;
-}
-
-/* ----- Sidebar ----- */
-.messages-sidebar {
-    background: #faf8f6;
-    border-right: 1px solid #f0ede8;
-    overflow-y: auto;
-    max-height: 780px;
-}
-
-.messages-sidebar::-webkit-scrollbar {
-    width: 4px;
-}
-.messages-sidebar::-webkit-scrollbar-track {
-    background: transparent;
-}
-.messages-sidebar::-webkit-scrollbar-thumb {
-    background: #d0ccc5;
-    border-radius: 4px;
-}
-.messages-sidebar::-webkit-scrollbar-thumb:hover {
-    background: #b8b2a8;
-}
-
-.sidebar-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid #f0ede8;
-    background: #ffffff;
+.messages-app-header .header-actions {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 5;
+    gap: 12px;
 }
 
-.sidebar-header h2 {
-    font-family: 'Prata', serif;
-    font-size: 18px;
-    color: #0A0A0A;
-    margin: 0;
-}
-
-.sidebar-header .badge {
+.messages-app-header .header-actions .compose-btn {
+    padding: 8px 20px;
     background: #C6A43F;
     color: #fff;
-    font-size: 11px;
-    padding: 3px 12px;
+    border: none;
     border-radius: 20px;
-    font-weight: 600;
-}
-
-/* ----- Conversation Item ----- */
-.conversation-item {
-    display: flex;
-    align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid #f5f3f0;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    color: inherit;
-    position: relative;
-}
-
-.conversation-item:hover {
-    background: #f5f0e8;
-}
-
-.conversation-item.active {
-    background: #f0e8dc;
-    border-left: 4px solid #C6A43F;
-}
-
-.conversation-item .avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #e8e5e0, #d5d0c8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 18px;
-    color: #0A0A0A;
-    flex-shrink: 0;
-    margin-right: 14px;
-    position: relative;
-}
-
-.conversation-item .avatar .online-dot {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 12px;
-    height: 12px;
-    background: #28a745;
-    border-radius: 50%;
-    border: 2px solid #fff;
-}
-
-.conversation-item .info {
-    flex: 1;
-    min-width: 0;
-}
-
-.conversation-item .info .name {
-    font-weight: 600;
+    font-weight: 500;
     font-size: 14px;
-    color: #0A0A0A;
+    cursor: pointer;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.conversation-item .info .name .role-badge {
-    font-size: 10px;
-    font-weight: 500;
-    padding: 1px 8px;
-    border-radius: 12px;
-    background: #e8e5e0;
-    color: #666;
-    text-transform: uppercase;
+.messages-app-header .header-actions .compose-btn:hover {
+    background: #b8942f;
+    transform: scale(1.02);
 }
 
-.conversation-item .info .name .role-badge.admin {
+/* ----- MAIN LAYOUT (Gmail-style) ----- */
+.messages-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 0;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e8eaed;
+    overflow: hidden;
+    min-height: 600px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* ----- SIDEBAR (Conversation List) ----- */
+.sidebar {
+    background: #f8f9fa;
+    border-right: 1px solid #e8eaed;
+    display: flex;
+    flex-direction: column;
+    max-height: 680px;
+}
+
+.sidebar-tabs {
+    display: flex;
+    padding: 8px 12px;
+    gap: 4px;
+    border-bottom: 1px solid #e8eaed;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.sidebar-tabs button {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: #5f6368;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sidebar-tabs button.active {
+    background: #e8f0fe;
+    color: #1a73e8;
+}
+
+.sidebar-tabs button:hover {
+    background: #f1f3f4;
+}
+
+.sidebar-search {
+    padding: 8px 12px;
+    flex-shrink: 0;
+}
+
+.sidebar-search input {
+    width: 100%;
+    padding: 8px 14px;
+    border: 1px solid #e8eaed;
+    border-radius: 20px;
+    font-size: 13px;
+    background: #fff;
+    transition: all 0.2s;
+}
+
+.sidebar-search input:focus {
+    outline: none;
+    border-color: #C6A43F;
+    box-shadow: 0 0 0 2px rgba(198, 164, 63, 0.15);
+}
+
+.sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+.sidebar-list::-webkit-scrollbar {
+    width: 4px;
+}
+.sidebar-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sidebar-list::-webkit-scrollbar-thumb {
+    background: #dadce0;
+    border-radius: 4px;
+}
+
+/* ----- Conversation Item (Gmail-style) ----- */
+.conversation-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid #f1f3f4;
+    position: relative;
+}
+
+.conversation-item:hover {
+    background: #f1f3f4;
+}
+
+.conversation-item.active {
+    background: #e8f0fe;
+    border-left: 3px solid #C6A43F;
+}
+
+.conversation-item .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #dadce0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 16px;
+    color: #3c4043;
+    flex-shrink: 0;
+    margin-right: 12px;
+}
+
+.conversation-item .avatar.unread {
     background: #C6A43F;
     color: #fff;
 }
 
-.conversation-item .info .name .role-badge.agent {
+.conversation-item .content {
+    flex: 1;
+    min-width: 0;
+}
+
+.conversation-item .content .sender {
+    font-weight: 500;
+    font-size: 14px;
+    color: #1a1a2e;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.conversation-item .content .sender .role-tag {
+    font-size: 10px;
+    font-weight: 400;
+    color: #5f6368;
+    background: #f1f3f4;
+    padding: 0 8px;
+    border-radius: 10px;
+}
+
+.conversation-item .content .sender .role-tag.admin {
+    background: #C6A43F;
+    color: #fff;
+}
+
+.conversation-item .content .sender .role-tag.agent {
     background: #1B5E20;
     color: #fff;
 }
 
-.conversation-item .info .last-message {
+.conversation-item .content .subject {
     font-size: 13px;
-    color: #888;
+    color: #3c4043;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
-.conversation-item .info .listing-ref {
-    font-size: 11px;
-    color: #C6A43F;
-    margin-top: 2px;
+.conversation-item .content .preview {
+    font-size: 12px;
+    color: #5f6368;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
 }
 
-.conversation-item .time {
-    font-size: 11px;
-    color: #aaa;
-    flex-shrink: 0;
-    margin-left: 10px;
+.conversation-item .meta {
     text-align: right;
-}
-
-.conversation-item .unread-badge {
-    background: #C6A43F;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 12px;
-    margin-left: 8px;
     flex-shrink: 0;
+    margin-left: 8px;
 }
 
-.conversation-item .unread-badge.zero {
-    background: transparent;
-    color: transparent;
+.conversation-item .meta .time {
+    font-size: 11px;
+    color: #5f6368;
+    white-space: nowrap;
 }
 
-/* ----- Message Area ----- */
-.messages-area {
+.conversation-item .meta .unread-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #C6A43F;
+    border-radius: 50%;
+    margin-top: 4px;
+}
+
+/* ----- Empty State ----- */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 30px;
+    color: #5f6368;
+    text-align: center;
+    height: 100%;
+}
+
+.empty-state .icon {
+    font-size: 48px;
+    color: #dadce0;
+    margin-bottom: 16px;
+}
+
+.empty-state h3 {
+    font-size: 18px;
+    font-weight: 500;
+    color: #1a1a2e;
+    margin: 0 0 6px 0;
+}
+
+.empty-state p {
+    font-size: 14px;
+    color: #5f6368;
+    max-width: 300px;
+    margin: 0;
+}
+
+/* ----- MESSAGE AREA (Gmail-style) ----- */
+.message-area {
     display: flex;
     flex-direction: column;
     background: #ffffff;
     min-height: 500px;
 }
 
-/* Message Header */
-.messages-area-header {
+/* --- Message Header --- */
+.message-header {
     padding: 16px 24px;
-    border-bottom: 1px solid #f0ede8;
+    border-bottom: 1px solid #e8eaed;
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    background: #faf8f6;
+    align-items: center;
+    background: #fafbfc;
     flex-shrink: 0;
 }
 
-.messages-area-header .user-info {
+.message-header .sender-info {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
 }
 
-.messages-area-header .user-info .avatar {
-    width: 40px;
-    height: 40px;
+.message-header .sender-info .avatar-sm {
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #C6A43F, #d4af37);
+    background: #C6A43F;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 15px;
     color: #fff;
 }
 
-.messages-area-header .user-info .name {
+.message-header .sender-info .details .name {
     font-weight: 600;
     font-size: 15px;
-    color: #0A0A0A;
+    color: #1a1a2e;
 }
 
-.messages-area-header .user-info .role {
+.message-header .sender-info .details .email {
     font-size: 12px;
-    color: #888;
+    color: #5f6368;
 }
 
-.messages-area-header .listing-ref {
+.message-header .listing-ref {
     font-size: 12px;
     color: #C6A43F;
-    background: #f5f0e8;
-    padding: 4px 14px;
-    border-radius: 20px;
-    display: inline-block;
+    background: #f1f3f4;
+    padding: 4px 12px;
+    border-radius: 16px;
 }
 
-/* Messages Body */
-.messages-body {
+/* --- Message Body --- */
+.message-body {
     flex: 1;
-    padding: 24px;
+    padding: 20px 24px;
     overflow-y: auto;
-    background: #fcfbf9;
-    max-height: 550px;
+    background: #ffffff;
+    max-height: 500px;
 }
 
-.messages-body::-webkit-scrollbar {
-    width: 4px;
+.message-body::-webkit-scrollbar {
+    width: 6px;
 }
-.messages-body::-webkit-scrollbar-track {
+.message-body::-webkit-scrollbar-track {
     background: transparent;
 }
-.messages-body::-webkit-scrollbar-thumb {
-    background: #d0ccc5;
+.message-body::-webkit-scrollbar-thumb {
+    background: #dadce0;
     border-radius: 4px;
 }
-.messages-body::-webkit-scrollbar-thumb:hover {
-    background: #b8b2a8;
-}
 
-/* Individual Message */
-.message-item {
+/* Individual Message - Clean Gmail Style */
+.message-row {
     display: flex;
     margin-bottom: 16px;
-    animation: fadeInUp 0.3s ease;
+    padding: 0 4px;
 }
 
-.message-item.sent {
+.message-row.sent {
     justify-content: flex-end;
 }
 
-.message-item.received {
+.message-row.received {
     justify-content: flex-start;
 }
 
-.message-item .bubble {
+.message-row .bubble {
     max-width: 75%;
-    padding: 14px 20px;
-    border-radius: 16px;
+    padding: 10px 16px;
+    border-radius: 18px;
     position: relative;
     word-wrap: break-word;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    line-height: 1.6;
+    font-size: 14px;
 }
 
-.message-item.sent .bubble {
-    background: #C6A43F;
-    color: #fff;
+.message-row.sent .bubble {
+    background: #e8f0fe;
+    color: #1a1a2e;
     border-bottom-right-radius: 4px;
 }
 
-.message-item.received .bubble {
-    background: #f0ede8;
-    color: #0A0A0A;
+.message-row.received .bubble {
+    background: #f1f3f4;
+    color: #1a1a2e;
     border-bottom-left-radius: 4px;
 }
 
-.message-item .bubble .message-text {
-    font-size: 14px;
-    line-height: 1.7;
+.message-row .bubble .msg-text {
     margin: 0;
     white-space: pre-wrap;
 }
 
-.message-item .bubble .message-meta {
+.message-row .bubble .msg-meta {
     font-size: 11px;
-    opacity: 0.7;
-    margin-top: 8px;
+    color: #5f6368;
+    margin-top: 6px;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.message-item.sent .bubble .message-meta {
-    color: rgba(255,255,255,0.8);
+.message-row.sent .bubble .msg-meta {
     justify-content: flex-end;
 }
 
-.message-item.received .bubble .message-meta {
-    color: #888;
+.message-row .bubble .msg-meta .sender-name {
+    font-weight: 500;
 }
 
-.message-item .bubble .message-meta .sender-name {
-    font-weight: 500;
+.message-row .bubble .msg-meta .read-status {
+    color: #1a73e8;
 }
 
 /* Viewing Request Badge */
-.message-item .bubble .viewing-badge {
+.message-row .bubble .viewing-badge {
     display: inline-block;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
     padding: 2px 12px;
     border-radius: 12px;
-    margin-bottom: 8px;
-    background: rgba(255,255,255,0.2);
+    margin-bottom: 6px;
+    background: #C6A43F;
     color: #fff;
 }
 
-.message-item.received .bubble .viewing-badge {
-    background: rgba(198, 164, 63, 0.15);
+.message-row.received .bubble .viewing-badge {
+    background: #f1f3f4;
     color: #C6A43F;
 }
 
-.message-item .bubble .viewing-details {
+.message-row .bubble .viewing-details {
     font-size: 12px;
-    margin-bottom: 6px;
-    opacity: 0.8;
+    color: #5f6368;
+    margin-bottom: 4px;
 }
 
 /* Date Separator */
-.message-date-separator {
+.date-separator {
     text-align: center;
-    margin: 24px 0;
+    margin: 20px 0 16px 0;
     position: relative;
 }
 
-.message-date-separator span {
-    background: #fcfbf9;
-    padding: 0 20px;
+.date-separator span {
+    background: #ffffff;
+    padding: 0 16px;
     font-size: 12px;
-    color: #aaa;
+    color: #5f6368;
     font-weight: 500;
     position: relative;
     z-index: 1;
-    letter-spacing: 0.5px;
 }
 
-.message-date-separator::after {
+.date-separator::after {
     content: '';
     position: absolute;
     top: 50%;
     left: 0;
     right: 0;
     height: 1px;
-    background: #e8e5e0;
+    background: #e8eaed;
     z-index: 0;
 }
 
-/* Reply Area */
-.messages-reply {
-    padding: 16px 24px;
-    border-top: 1px solid #f0ede8;
-    background: #faf8f6;
+/* --- Reply Area (Gmail-style) --- */
+.reply-area {
+    padding: 12px 20px;
+    border-top: 1px solid #e8eaed;
+    background: #fafbfc;
     flex-shrink: 0;
 }
 
-.messages-reply form {
+.reply-area form {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: flex-end;
 }
 
-.messages-reply .input-wrapper {
+.reply-area .reply-input-wrapper {
     flex: 1;
     position: relative;
 }
 
-.messages-reply textarea {
+.reply-area .reply-input-wrapper textarea {
     width: 100%;
-    padding: 12px 16px;
-    border: 1px solid #e0dcd5;
-    border-radius: 12px;
+    padding: 10px 16px;
+    border: 1px solid #dadce0;
+    border-radius: 24px;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     resize: none;
-    height: 48px;
-    transition: all 0.3s ease;
+    height: 44px;
+    transition: all 0.2s;
     background: #fff;
     line-height: 1.5;
 }
 
-.messages-reply textarea:focus {
+.reply-area .reply-input-wrapper textarea:focus {
     outline: none;
     border-color: #C6A43F;
-    box-shadow: 0 0 0 3px rgba(198, 164, 63, 0.1);
+    box-shadow: 0 0 0 2px rgba(198, 164, 63, 0.1);
 }
 
-.messages-reply .send-btn {
-    padding: 12px 28px;
-    background: #0A0A0A;
+.reply-area .reply-input-wrapper textarea::placeholder {
+    color: #9aa0a6;
+}
+
+.reply-area .send-btn {
+    padding: 10px 24px;
+    background: #C6A43F;
     color: #fff;
     border: none;
-    border-radius: 12px;
-    font-weight: 600;
+    border-radius: 24px;
+    font-weight: 500;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-    height: 48px;
+    transition: all 0.2s;
+    height: 44px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    white-space: nowrap;
 }
 
-.messages-reply .send-btn:hover {
-    background: #C6A43F;
+.reply-area .send-btn:hover {
+    background: #b8942f;
     transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(198, 164, 63, 0.3);
+    box-shadow: 0 2px 8px rgba(198, 164, 63, 0.3);
 }
 
-.messages-reply .send-btn:disabled {
+.reply-area .send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
 }
 
-/* Empty State */
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: #999;
-    padding: 40px;
-    text-align: center;
-}
-
-.empty-state .icon {
-    font-size: 56px;
-    color: #e0dcd5;
-    margin-bottom: 16px;
-}
-
-.empty-state h3 {
-    font-family: 'Prata', serif;
-    font-size: 20px;
-    color: #0A0A0A;
-    margin-bottom: 8px;
-}
-
-.empty-state p {
-    font-size: 14px;
-    color: #888;
-    max-width: 320px;
-}
-
-/* Success Banner */
-.success-banner {
+/* ----- Success Toast ----- */
+.success-toast {
     margin-top: 16px;
-    padding: 14px 20px;
-    background: #d4edda;
-    color: #155724;
-    border-radius: 12px;
-    border-left: 4px solid #28a745;
+    padding: 12px 20px;
+    background: #e6f4ea;
+    color: #1e7e34;
+    border-radius: 8px;
+    border: 1px solid #ceead6;
     display: flex;
     align-items: center;
-    gap: 12px;
-    animation: slideInRight 0.3s ease;
+    gap: 10px;
+    font-size: 14px;
+    animation: slideDown 0.3s ease;
 }
 
-.success-banner i {
-    color: #28a745;
+.success-toast i {
+    color: #1e7e34;
     font-size: 18px;
 }
 
-/* Animations */
-@keyframes fadeInUp {
+/* ----- Animations ----- */
+@keyframes slideDown {
     from {
         opacity: 0;
-        transform: translateY(12px);
+        transform: translateY(-10px);
     }
     to {
         opacity: 1;
@@ -729,204 +778,213 @@ include '../templates/header.php';
     }
 }
 
-@keyframes slideInRight {
+@keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateX(30px);
+        transform: translateY(8px);
     }
     to {
         opacity: 1;
-        transform: translateX(0);
+        transform: translateY(0);
     }
 }
 
-/* Typing indicator (optional) */
-.typing-indicator {
-    display: none;
-    padding: 10px 20px;
-    color: #888;
-    font-size: 13px;
-    font-style: italic;
+.message-row {
+    animation: fadeIn 0.25s ease;
 }
 
-/* Responsive */
+/* ----- Responsive ----- */
 @media (max-width: 992px) {
-    .messages-wrapper {
-        padding: 16px;
+    .messages-app {
+        padding: 12px 16px;
     }
     
-    .messages-container {
+    .messages-layout {
         grid-template-columns: 1fr;
-        max-height: none;
-        border-radius: 16px;
+        border-radius: 8px;
     }
     
-    .messages-sidebar {
+    .sidebar {
         max-height: 350px;
         border-right: none;
-        border-bottom: 1px solid #f0ede8;
+        border-bottom: 1px solid #e8eaed;
     }
     
-    .messages-area {
-        min-height: 400px;
+    .sidebar-list {
+        max-height: 280px;
     }
     
-    .messages-body {
-        max-height: 400px;
+    .message-body {
+        max-height: 350px;
+    }
+    
+    .messages-app-header {
+        flex-wrap: wrap;
+        gap: 10px;
     }
 }
 
 @media (max-width: 576px) {
-    .messages-wrapper {
-        padding: 12px;
+    .messages-app {
+        padding: 8px 10px;
     }
     
-    .messages-header h1 {
-        font-size: 22px;
+    .messages-app-header h1 {
+        font-size: 18px;
     }
     
-    .messages-area-header {
+    .message-header {
         flex-wrap: wrap;
         gap: 8px;
+        padding: 12px 16px;
     }
     
-    .messages-reply form {
+    .message-body {
+        padding: 12px 16px;
+    }
+    
+    .reply-area {
+        padding: 10px 16px;
+    }
+    
+    .reply-area form {
         flex-direction: column;
         align-items: stretch;
     }
     
-    .messages-reply .send-btn {
+    .reply-area .send-btn {
         width: 100%;
         justify-content: center;
     }
     
-    .message-item .bubble {
-        max-width: 90%;
+    .message-row .bubble {
+        max-width: 92%;
+    }
+    
+    .conversation-item {
+        padding: 8px 12px;
     }
 }
 </style>
 
-<div class="messages-wrapper">
+<!-- ============================================================ -->
+<!-- MESSAGES APP -->
+<!-- ============================================================ -->
+<div class="messages-app">
 
-    <!-- Header -->
-    <div class="messages-header">
-        <div>
-            <h1><i class="fas fa-envelope"></i> Messages</h1>
-            <p class="subtitle">
+    <!-- App Header -->
+    <div class="messages-app-header">
+        <h1>
+            <i class="fas fa-envelope"></i> Messages
+            <span style="font-size: 14px; font-weight: 400; color: #5f6368; margin-left: 8px;">
                 <?php if ($viewingConversation && $conversationInfo): ?>
-                    Conversation with <strong><?= htmlspecialchars($otherUser['name'] ?? 'User') ?></strong>
-                    <?php if ($listingInfo): ?>
-                        · <span style="color: #C6A43F;"><?= htmlspecialchars($listingInfo['title']) ?></span>
-                    <?php endif; ?>
+                    · <?= htmlspecialchars($otherUser['name'] ?? 'User') ?>
                 <?php else: ?>
-                    <?= count($conversations) ?> conversation(s)
+                    · <?= count($conversations) ?> conversations
                 <?php endif; ?>
-            </p>
+            </span>
+        </h1>
+        <div class="header-actions">
+            <?php if ($viewingConversation): ?>
+                <a href="/user/messages.php" style="color: #5f6368; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+            <?php endif; ?>
         </div>
-        <?php if ($viewingConversation): ?>
-            <a href="/user/messages.php" style="color: #C6A43F; text-decoration: none; font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-arrow-left"></i> Back to Inbox
-            </a>
-        <?php endif; ?>
     </div>
 
-    <!-- Messages Container -->
-    <div class="messages-container">
+    <!-- Main Layout -->
+    <div class="messages-layout">
 
         <!-- Sidebar -->
-        <div class="messages-sidebar">
-            <div class="sidebar-header">
-                <h2>Inbox</h2>
-                <span class="badge">
-                    <?php 
-                    $unreadTotal = 0;
-                    foreach ($conversations as $conv) {
-                        $unreadTotal += $conv['unread_count'] ?? 0;
-                    }
-                    echo $unreadTotal;
-                    ?>
-                </span>
+        <div class="sidebar">
+            <!-- Tabs -->
+            <div class="sidebar-tabs">
+                <button class="active"><i class="fas fa-inbox"></i> Inbox</button>
+                <button><i class="fas fa-clock"></i> Snoozed</button>
+                <button><i class="fas fa-check-circle"></i> Done</button>
             </div>
 
-            <?php if (empty($conversations)): ?>
-                <div class="empty-state" style="padding: 40px 20px; min-height: 300px;">
-                    <div class="icon"><i class="fas fa-inbox"></i></div>
-                    <h3>No messages yet</h3>
-                    <p>When agents respond to your inquiries, their messages will appear here.</p>
-                </div>
-            <?php else: ?>
-                <?php foreach ($conversations as $conv): ?>
-                    <?php 
-                    $otherName = $conv['other_name'] ?? 'Unknown';
-                    $otherRole = $conv['other_role'] ?? 'user';
-                    $isActive = $viewingConversation && $conv['other_user_id'] == $otherUserId;
-                    $unread = ($conv['unread_count'] ?? 0) > 0;
-                    $avatarLetter = strtoupper(substr($otherName, 0, 1));
-                    $lastMessage = $conv['last_message'] ?? '';
-                    ?>
-                    <a href="/user/messages.php?user=<?= $conv['other_user_id'] ?>&listing=<?= $conv['listing_id'] ?? 0 ?>" 
-                       class="conversation-item <?= $isActive ? 'active' : '' ?>">
-                        <div class="avatar">
-                            <?= $avatarLetter ?>
-                            <?php if ($unread): ?>
-                                <span class="online-dot"></span>
-                            <?php endif; ?>
-                        </div>
-                        <div class="info">
-                            <div class="name">
-                                <?= htmlspecialchars($otherName) ?>
-                                <span class="role-badge <?= $otherRole ?>"><?= ucfirst($otherRole) ?></span>
+            <!-- Search -->
+            <div class="sidebar-search">
+                <input type="text" placeholder="Search messages..." id="messageSearch">
+            </div>
+
+            <!-- Conversation List -->
+            <div class="sidebar-list" id="conversationList">
+                <?php if (empty($conversations)): ?>
+                    <div class="empty-state" style="padding: 40px 20px;">
+                        <div class="icon"><i class="fas fa-inbox"></i></div>
+                        <h3>No messages</h3>
+                        <p>When you receive messages, they'll appear here.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($conversations as $conv): ?>
+                        <?php 
+                        $otherName = $conv['other_name'] ?? 'Unknown';
+                        $otherRole = $conv['other_role'] ?? 'user';
+                        $isActive = $viewingConversation && $conv['other_user_id'] == $otherUserId;
+                        $unread = ($conv['unread_count'] ?? 0) > 0;
+                        $avatarLetter = strtoupper(substr($otherName, 0, 1));
+                        $lastMessage = $conv['last_message'] ?? '';
+                        $subject = $conv['subject'] ?? 'Message';
+                        ?>
+                        <a href="/user/messages.php?user=<?= $conv['other_user_id'] ?>&listing=<?= $conv['listing_id'] ?? 0 ?>" 
+                           class="conversation-item <?= $isActive ? 'active' : '' ?>">
+                            <div class="avatar <?= $unread ? 'unread' : '' ?>">
+                                <?= $avatarLetter ?>
+                            </div>
+                            <div class="content">
+                                <div class="sender">
+                                    <?= htmlspecialchars($otherName) ?>
+                                    <span class="role-tag <?= $otherRole ?>"><?= ucfirst($otherRole) ?></span>
+                                </div>
+                                <div class="subject">
+                                    <?php if (!empty($conv['listing_id'])): ?>
+                                        <span style="color: #C6A43F;">[Listing #<?= $conv['listing_id'] ?>]</span>
+                                    <?php endif; ?>
+                                    <?= htmlspecialchars($subject) ?>
+                                </div>
+                                <div class="preview">
+                                    <?php 
+                                    if (!empty($lastMessage)) {
+                                        echo htmlspecialchars(substr($lastMessage, 0, 50));
+                                        if (strlen($lastMessage) > 50) echo '...';
+                                    } else {
+                                        echo 'No messages yet';
+                                    }
+                                    ?>
+                                </div>
+                            </div>
+                            <div class="meta">
+                                <div class="time">
+                                    <?php if ($conv['last_message_time']): ?>
+                                        <?= date('M d', strtotime($conv['last_message_time'])) ?>
+                                    <?php endif; ?>
+                                </div>
                                 <?php if ($unread): ?>
-                                    <span class="unread-badge"><?= $conv['unread_count'] ?></span>
+                                    <div class="unread-dot"></div>
                                 <?php endif; ?>
                             </div>
-                            <div class="last-message">
-                                <?php 
-                                if (!empty($lastMessage)) {
-                                    echo htmlspecialchars(substr($lastMessage, 0, 60));
-                                    if (strlen($lastMessage) > 60) echo '...';
-                                } else {
-                                    echo 'No messages yet';
-                                }
-                                ?>
-                            </div>
-                            <?php if (!empty($conv['listing_id'])): ?>
-                                <div class="listing-ref">
-                                    <i class="fas fa-tag" style="font-size: 9px;"></i> 
-                                    Listing #<?= $conv['listing_id'] ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="time">
-                            <?php if ($conv['last_message_time']): ?>
-                                <?= date('M j', strtotime($conv['last_message_time'])) ?>
-                                <br>
-                                <?= date('g:i A', strtotime($conv['last_message_time'])) ?>
-                            <?php endif; ?>
-                        </div>
-                    </a>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                        </a>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
         </div>
 
         <!-- Message Area -->
-        <div class="messages-area">
+        <div class="message-area">
 
             <?php if ($viewingConversation && $conversationInfo && !empty($messages)): ?>
                 <!-- Header -->
-                <div class="messages-area-header">
-                    <div class="user-info">
-                        <div class="avatar">
+                <div class="message-header">
+                    <div class="sender-info">
+                        <div class="avatar-sm">
                             <?= strtoupper(substr($otherUser['name'] ?? 'U', 0, 1)) ?>
                         </div>
-                        <div>
+                        <div class="details">
                             <div class="name"><?= htmlspecialchars($otherUser['name'] ?? 'Unknown') ?></div>
-                            <div class="role">
-                                <?= ucfirst($otherUser['role'] ?? 'user') ?>
-                                <?php if (!empty($otherUser['email'])): ?>
-                                    · <?= htmlspecialchars($otherUser['email']) ?>
-                                <?php endif; ?>
-                            </div>
+                            <div class="email"><?= htmlspecialchars($otherUser['email'] ?? '') ?> · <?= ucfirst($otherUser['role'] ?? 'user') ?></div>
                         </div>
                     </div>
                     <?php if ($listingInfo): ?>
@@ -940,7 +998,7 @@ include '../templates/header.php';
                 </div>
 
                 <!-- Messages -->
-                <div class="messages-body" id="messagesBody">
+                <div class="message-body" id="messageBody">
                     <?php 
                     $lastDate = '';
                     foreach ($messages as $msg): 
@@ -953,12 +1011,12 @@ include '../templates/header.php';
                             $lastDate = $msgDate;
                             $displayDate = date('l, F j, Y', strtotime($msg['created_at']));
                     ?>
-                        <div class="message-date-separator">
+                        <div class="date-separator">
                             <span><?= $displayDate ?></span>
                         </div>
                     <?php endif; ?>
                         
-                        <div class="message-item <?= $isSent ? 'sent' : 'received' ?>">
+                        <div class="message-row <?= $isSent ? 'sent' : 'received' ?>">
                             <div class="bubble">
                                 <?php if ($isViewing): ?>
                                     <div class="viewing-badge">
@@ -966,22 +1024,22 @@ include '../templates/header.php';
                                     </div>
                                     <?php if (!empty($msg['preferred_date'])): ?>
                                         <div class="viewing-details">
-                                            📅 <?= date('l, F j, Y', strtotime($msg['preferred_date'])) ?>
+                                            📅 <?= date('M j, Y', strtotime($msg['preferred_date'])) ?>
                                             <?php if (!empty($msg['preferred_time'])): ?>
                                                 at <?= htmlspecialchars($msg['preferred_time']) ?>
                                             <?php endif; ?>
                                         </div>
                                     <?php endif; ?>
                                 <?php endif; ?>
-                                <p class="message-text"><?= nl2br(htmlspecialchars($msg['body'])) ?></p>
-                                <div class="message-meta">
+                                <p class="msg-text"><?= nl2br(htmlspecialchars($msg['body'])) ?></p>
+                                <div class="msg-meta">
                                     <span class="sender-name"><?= htmlspecialchars($senderName) ?></span>
                                     <span>·</span>
                                     <span><?= date('g:i A', strtotime($msg['created_at'])) ?></span>
                                     <?php if ($isSent && $msg['is_read']): ?>
-                                        <span><i class="fas fa-check-circle" style="color: #28a745;"></i> Read</span>
+                                        <span><i class="fas fa-check-circle" style="color: #1a73e8;"></i> Read</span>
                                     <?php elseif ($isSent): ?>
-                                        <span><i class="fas fa-check" style="color: #888;"></i> Sent</span>
+                                        <span><i class="fas fa-check" style="color: #5f6368;"></i> Sent</span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -990,13 +1048,13 @@ include '../templates/header.php';
                 </div>
 
                 <!-- Reply -->
-                <div class="messages-reply">
+                <div class="reply-area">
                     <form method="POST">
                         <input type="hidden" name="receiver_id" value="<?= $otherUser['id'] ?? 0 ?>">
                         <input type="hidden" name="listing_id" value="<?= $conversationInfo['listing_id'] ?? 0 ?>">
                         <input type="hidden" name="listing_type" value="<?= $conversationInfo['listing_type'] ?? 'property' ?>">
                         
-                        <div class="input-wrapper">
+                        <div class="reply-input-wrapper">
                             <textarea name="reply_message" placeholder="Type your reply..." required></textarea>
                         </div>
                         <button type="submit" class="send-btn">
@@ -1013,13 +1071,13 @@ include '../templates/header.php';
                     <p>Start the conversation by sending a message.</p>
                 </div>
                 
-                <div class="messages-reply">
+                <div class="reply-area">
                     <form method="POST">
                         <input type="hidden" name="receiver_id" value="<?= $otherUser['id'] ?? 0 ?>">
                         <input type="hidden" name="listing_id" value="<?= $conversationInfo['listing_id'] ?? 0 ?>">
                         <input type="hidden" name="listing_type" value="<?= $conversationInfo['listing_type'] ?? 'property' ?>">
                         
-                        <div class="input-wrapper">
+                        <div class="reply-input-wrapper">
                             <textarea name="reply_message" placeholder="Type your message..." required></textarea>
                         </div>
                         <button type="submit" class="send-btn">
@@ -1041,7 +1099,7 @@ include '../templates/header.php';
     </div>
 
     <?php if (isset($_GET['sent']) && $_GET['sent'] == 1): ?>
-        <div class="success-banner">
+        <div class="success-toast">
             <i class="fas fa-check-circle"></i>
             <span>Reply sent successfully!</span>
         </div>
@@ -1051,22 +1109,22 @@ include '../templates/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-scroll to bottom
-    const messagesBody = document.getElementById('messagesBody');
-    if (messagesBody) {
-        messagesBody.scrollTop = messagesBody.scrollHeight;
+    // Auto-scroll to bottom of messages
+    const messageBody = document.getElementById('messageBody');
+    if (messageBody) {
+        messageBody.scrollTop = messageBody.scrollHeight;
     }
     
-    // Auto-resize textarea
-    document.querySelectorAll('.messages-reply textarea').forEach(function(textarea) {
+    // Auto-resize textarea (Gmail style)
+    document.querySelectorAll('.reply-input-wrapper textarea').forEach(function(textarea) {
         textarea.addEventListener('input', function() {
-            this.style.height = '48px';
+            this.style.height = '44px';
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         });
     });
     
     // Enter key to send (Shift+Enter for new line)
-    document.querySelectorAll('.messages-reply textarea').forEach(function(textarea) {
+    document.querySelectorAll('.reply-input-wrapper textarea').forEach(function(textarea) {
         textarea.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -1074,6 +1132,24 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // Search functionality
+    const searchInput = document.getElementById('messageSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            const items = document.querySelectorAll('.conversation-item');
+            
+            items.forEach(function(item) {
+                const text = item.textContent.toLowerCase();
+                if (query === '' || text.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
 });
 </script>
 
