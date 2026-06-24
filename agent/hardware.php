@@ -31,26 +31,15 @@ $pageTitle = 'Hardware Inventory - Agent Dashboard';
 include '../templates/header.php';
 ?>
 
+<style>
+/* Table responsive fix */
+.table-responsive {
+    overflow-x: auto;
+}
+</style>
+
 <div class="je-dash-shell">
-    <!-- Sidebar -->
-    <aside class="je-dash-sidebar">
-        <div class="je-dash-sidebar-brand">
-            <i class="fas fa-solar-panel"></i> KINAS VOLT
-        </div>
-        <ul class="je-dash-nav">
-            <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="listings.php"><i class="fas fa-list-ul"></i> My Listings</a></li>
-            <li><a href="add-listing.php"><i class="fas fa-plus-circle"></i> Add Listing</a></li>
-            <li><a href="hardware.php" class="is-active"><i class="fas fa-microchip"></i> Hardware Inventory</a></li>
-            <li><a href="add-hardware.php"><i class="fas fa-plus"></i> Add Hardware</a></li>
-            <li><a href="messages.php"><i class="fas fa-envelope"></i> Messages</a></li>
-            <li><a href="analytics.php"><i class="fas fa-chart-bar"></i> Analytics</a></li>
-            <li><a href="profile.php"><i class="fas fa-user"></i> Profile</a></li>
-            <hr class="sidebar-divider">
-            <li><a href="/"><i class="fas fa-home"></i> Back to Site</a></li>
-            <li class="je-dash-signout"><a href="/auth/logout.php"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
-        </ul>
-    </aside>
+    <?php include __DIR__ . '/../includes/partials/agent-sidebar.php'; ?>
 
     <!-- Main Content -->
     <main class="je-dash-main">
@@ -65,6 +54,25 @@ include '../templates/header.php';
                 </a>
             </div>
         </div>
+
+        <!-- Flash Messages -->
+        <?php if (isset($_SESSION['flash_success'])): ?>
+            <div class="je-banner is-success">
+                <i class="je-banner-icon fas fa-check-circle"></i>
+                <div class="je-banner-body">
+                    <div class="je-banner-text"><?php echo htmlspecialchars($_SESSION['flash_success']); unset($_SESSION['flash_success']); ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['flash_error'])): ?>
+            <div class="je-banner is-danger">
+                <i class="je-banner-icon fas fa-exclamation-circle"></i>
+                <div class="je-banner-body">
+                    <div class="je-banner-text"><?php echo htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <?php if (empty($hardware)): ?>
             <div class="je-panel">
