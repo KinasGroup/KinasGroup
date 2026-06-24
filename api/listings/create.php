@@ -319,76 +319,62 @@ try {
     $imagesSaved = 0;
     $imageErrors = [];
     
-    // Create the upload directory
-    $uploadDir = __DIR__ . '/../../uploads/listings/' . $listingType . '/' . $listingId . '/';
-    
-    // Check if images were uploaded
-    if (!empty($_FILES['images']) && is_array($_FILES['images']['name'] ?? null)) {
-        // Filter out empty file entries
-        $fileNames = array_filter($_FILES['images']['name'], function($name) {
-            return !empty($name);
-        });
+    // Check if any images were uploaded
+    if (!empty($_FILES['images']['name'][0]) && $_FILES['images']['name'][0] !== '') {
+        // Create the upload directory
+        $uploadDir = __DIR__ . '/../../uploads/listings/' . $listingType . '/' . $listingId . '/';
         
-        if (!empty($fileNames)) {
-            // Create directory
-            if (!is_dir($uploadDir)) {
-                if (!@mkdir($uploadDir, 0755, true)) {
-                    $imageErrors[] = 'Failed to create upload directory.';
-                }
+        if (!is_dir($uploadDir)) {
+            if (!@mkdir($uploadDir, 0755, true)) {
+                $imageErrors[] = 'Failed to create upload directory.';
             }
+        }
+        
+        if (empty($imageErrors)) {
+            $imageCount = count($_FILES['images']['name']);
+            $imagesAttempted = $imageCount;
             
-            if (empty($imageErrors)) {
-                $imageCount = count($fileNames);
-                $imagesAttempted = $imageCount;
+            // Prepare the insert statement
+            $imgStmt = $db->prepare(
+                "INSERT INTO listing_images (listing_id, listing_type, url, sort_order, created_at) VALUES (?, ?, ?, ?, NOW())"
+            );
+            
+            // Process each image
+            $sortOrder = 0;
+            for ($i = 0; $i < $imageCount; $i++) {
+                if ($_FILES['images']['error'][$i] !== UPLOAD_ERR_OK) {
+                    continue;
+                }
                 
-                // Prepare the insert statement
-                $imgStmt = $db->prepare(
-                    "INSERT INTO listing_images (listing_id, listing_type, url, sort_order, created_at) VALUES (?, ?, ?, ?, NOW())"
-                );
+                $tmpName = $_FILES['images']['tmp_name'][$i];
+                $origName = basename($_FILES['images']['name'][$i]);
+                $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
                 
-                // Process each image
-                $sortOrder = 0;
-                for ($i = 0; $i < count($_FILES['images']['name']); $i++) {
-                    if ($_FILES['images']['error'][$i] !== UPLOAD_ERR_OK) {
-                        $imageErrors[] = 'Error uploading file: ' . $_FILES['images']['name'][$i];
-                        continue;
-                    }
-                    
-                    $tmpName = $_FILES['images']['tmp_name'][$i];
-                    $origName = basename($_FILES['images']['name'][$i]);
-                    $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-                    
-                    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) {
-                        $imageErrors[] = 'Invalid file type: ' . $origName;
-                        continue;
-                    }
-                    
-                    if ($_FILES['images']['size'][$i] > 10 * 1024 * 1024) {
-                        $imageErrors[] = 'File too large: ' . $origName;
-                        continue;
-                    }
-                    
-                    $newName = uniqid('img_', true) . '.' . $ext;
-                    $target = $uploadDir . $newName;
-                    
-                    if (!@move_uploaded_file($tmpName, $target)) {
-                        $imageErrors[] = 'Failed to move uploaded file: ' . $origName;
-                        continue;
-                    }
-                    
-                    $publicUrl = '/uploads/listings/' . $listingType . '/' . $listingId . '/' . $newName;
-                    if ($imgStmt->execute([$listingId, $listingType, $publicUrl, $sortOrder])) {
-                        $imagesSaved++;
-                        $sortOrder++;
-                    } else {
-                        $imageErrors[] = 'Failed to save image to database: ' . $origName;
-                    }
+                if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) {
+                    continue;
+                }
+                
+                if ($_FILES['images']['size'][$i] > 10 * 1024 * 1024) {
+                    continue;
+                }
+                
+                $newName = uniqid('img_', true) . '.' . $ext;
+                $target = $uploadDir . $newName;
+                
+                if (!@move_uploaded_file($tmpName, $target)) {
+                    continue;
+                }
+                
+                $publicUrl = '/uploads/listings/' . $listingType . '/' . $listingId . '/' . $newName;
+                if ($imgStmt->execute([$listingId, $listingType, $publicUrl, $sortOrder])) {
+                    $imagesSaved++;
+                    $sortOrder++;
                 }
             }
         }
     }
 
-    // Log any image errors
+    // Log any image issues
     if (!empty($imageErrors)) {
         error_log('Image upload errors for listing ' . $listingId . ': ' . implode(', ', $imageErrors));
     }
@@ -405,9 +391,6 @@ try {
             ? ' Note: none of your photos could be saved — please try re-uploading them from Edit Listing.'
             : " Note: only {$imagesSaved} of {$imagesAttempted} photos were saved — you can add the rest from Edit Listing.";
     }
-    if (!empty($imageErrors)) {
-        $message .= ' Errors: ' . implode(' ', array_slice($imageErrors, 0, 3));
-    }
 
     // Redirect to listings page with success message
     $_SESSION['flash_success'] = $message;
@@ -416,10 +399,6 @@ try {
 
 } catch (\PDOException $e) {
     error_log('Listing creation error: ' . $e->getMessage());
-    
-    // Log the actual error for debugging
-    error_log('SQL Error: ' . $e->getMessage());
-    error_log('SQL State: ' . $e->getCode());
     
     if ($isFormSubmit) {
         $_SESSION['flash_error'] = 'Failed to create listing: ' . $e->getMessage();
