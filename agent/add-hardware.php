@@ -164,4 +164,88 @@ include '../templates/header.php';
                             <input type="number" id="warranty_years" name="warranty_years" placeholder="e.g., 25" value="5">
                         </div>
                         <div class="je-form-group">
-                            <label for="price"><i
+                            <label for="price"><i class="fas fa-money-bill-wave"></i> Price (₦) *</label>
+                            <input type="number" id="price" name="price" placeholder="e.g., 450000" step="0.01" min="0" required>
+                        </div>
+                        <div class="je-form-group">
+                            <label for="city"><i class="fas fa-city"></i> City</label>
+                            <input type="text" id="city" name="city" placeholder="e.g., Lagos">
+                        </div>
+                        <div class="je-form-group">
+                            <label for="state"><i class="fas fa-map-marker-alt"></i> State</label>
+                            <input type="text" id="state" name="state" placeholder="e.g., Lagos">
+                        </div>
+                        <div class="je-form-group" style="grid-column: span 2;">
+                            <label for="description"><i class="fas fa-align-left"></i> Description</label>
+                            <textarea id="description" name="description" rows="4" placeholder="Describe the hardware specifications and features..."></textarea>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 16px; margin-top: 24px; padding-top: 24px; border-top: 1px solid #E0E0E0;">
+                        <button type="submit" class="je-btn je-btn-gold" style="background: #C6A43F; color: #0A0A0A;">
+                            <i class="fas fa-save"></i> Add Hardware
+                        </button>
+                        <a href="dashboard.php" class="je-btn je-btn-outline">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Reference Guide -->
+        <div class="je-panel" style="margin-top: 24px;">
+            <div class="je-panel-header">
+                <div class="je-panel-title">
+                    <i class="fas fa-info-circle" style="color: #C6A43F;"></i> Hardware Reference Guide
+                </div>
+            </div>
+            <div class="je-panel-body">
+                <div class="table-responsive">
+                <table class="je-table">
+                    <thead>
+                        <tr>
+                            <th>Hardware Type</th>
+                            <th>Typical Capacity</th>
+                            <th>Typical Price Range (₦)</th>
+                            <th>Warranty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>🌞 Solar Panel</strong></td>
+                            <td>0.4 - 0.6 kW (400W - 600W)</td>
+                            <td>300,000 - 600,000</td>
+                            <td>25 years</td>
+                        </tr>
+                        <tr>
+                            <td><strong>⚡ Inverter</strong></td>
+                            <td>5 - 20 kVA</td>
+                            <td>1,500,000 - 6,000,000</td>
+                            <td>5 years</td>
+                        </tr>
+                        <tr>
+                            <td><strong>🔋 Battery</strong></td>
+                            <td>5 - 20 kWh</td>
+                            <td>2,000,000 - 8,000,000</td>
+                            <td>10 years</td>
+                        </tr>
+                        <tr>
+                            <td><strong>🔌 Charge Controller</strong></td>
+                            <td>50 - 200A</td>
+                            <td>200,000 - 800,000</td>
+                            <td>3 years</td>
+                        </tr>
+                        <tr>
+                            <td><strong>🏗️ Mounting Structure</strong></td>
+                            <td>Per panel</td>
+                            <td>50,000 - 150,000</td>
+                            <td>5 years</td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<?php include '../templates/footer.php'; ?>
