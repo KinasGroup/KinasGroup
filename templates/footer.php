@@ -10,6 +10,11 @@ je_render_footer('site');
 <!-- Shared transparent-header scroll effect (hero pages only) -->
 <script src="/assets/js/header-scroll.js"></script>
 
+<!-- ============================================================ -->
+<!-- DETAIL PAGE FUNCTIONS - ADDED FOR BUTTON FUNCTIONALITY -->
+<!-- ============================================================ -->
+<script src="/assets/js/detail-functions.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // Mobile menu
