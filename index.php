@@ -525,7 +525,7 @@ html, body {
     display: block;
 }
 
-/* IMAGE FIX - Ensures image fills the entire card horizontally */
+/* ─── FORCE IMAGE TO FULLY COVER THE CARD ─── */
 .listing-img {
     position: relative;
     width: 100%;
@@ -535,10 +535,15 @@ html, body {
 }
 
 .listing-img img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
 }
 
 .listing-card:hover .listing-img img {
@@ -546,6 +551,9 @@ html, body {
 }
 
 .listing-img .no-image {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     display: flex;
