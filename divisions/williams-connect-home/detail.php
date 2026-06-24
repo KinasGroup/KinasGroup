@@ -59,6 +59,7 @@ if (!empty($item['features']))     $features = array_merge($features, is_array($
 if (!empty($item['amenities']))    $features = array_merge($features, is_array($item['amenities'])    ? $item['amenities']    : (json_decode($item['amenities'], true) ?: []));
 
 $pageTitle = ($item['title'] ?? 'Property') . ' - Williams Connect Home';
+$division = 'property';
 include '../../templates/header.php';
 
 $locParts = array_filter([$item['city'] ?? null, $item['state'] ?? null, $item['country'] ?? null]);
@@ -136,13 +137,21 @@ $location = implode(', ', $locParts);
                 <?php endforeach; ?>
             </dl>
 
+            <!-- ============================================================ -->
+            <!-- BUTTONS - UPDATED with working onclick handlers -->
+            <!-- ============================================================ -->
             <div class="je-cta-row">
-                <button class="je-cta-primary" onclick="document.getElementById('contact-agent-modal').style.display='flex'">
-                    <i class="far fa-envelope"></i> Schedule Viewing
+                <!-- Schedule Viewing - opens calendar -->
+                <button class="je-cta-primary" onclick="openScheduleViewing(<?= (int)$item['id'] ?>, 'property', <?= (int)$item['agent_id'] ?>)">
+                    <i class="far fa-calendar-alt"></i> Schedule Viewing
                 </button>
-                <a href="tel:<?= htmlspecialchars($item['agent_phone'] ?? '') ?>" class="je-cta-secondary">
-                    <i class="fas fa-phone"></i> Call Agent
-                </a>
+                
+                <!-- Contact Agent - opens contact form (not phone) -->
+                <button class="je-cta-secondary" onclick="openContactAgent(<?= (int)$item['agent_id'] ?>, '<?= htmlspecialchars($item['agent_name'] ?? 'Agent') ?>', 'property')">
+                    <i class="far fa-envelope"></i> Contact Agent
+                </button>
+                
+                <!-- Save Listing -->
                 <button class="je-cta-secondary" onclick="jeSaveListing('property', <?= (int)$item['id'] ?>)">
                     <i class="far fa-heart"></i> Save
                 </button>
@@ -221,19 +230,5 @@ $location = implode(', ', $locParts);
 </div>
 
 <?php include __DIR__ . '/../../templates/modal/contact-agent-modal.php'; ?>
-
-<script>
-function jeSaveListing(type, id) {
-    var fd = new FormData();
-    fd.append('listing_type', type);
-    fd.append('listing_id', id);
-    fetch('/api/listings/favorite.php', { method: 'POST', body: fd, credentials: 'same-origin' })
-        .then(r => r.json()).then(d => {
-            if (d.success) alert('Saved to your favorites');
-            else if (d.error && d.error.toLowerCase().includes('login')) window.location.href = '/auth/login.php';
-            else alert(d.error || 'Could not save.');
-        }).catch(() => alert('Network error.'));
-}
-</script>
 
 <?php include '../../templates/footer.php'; ?>
