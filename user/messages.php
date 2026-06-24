@@ -17,20 +17,14 @@ if (!SessionManager::isLoggedIn()) {
 $userId = SessionManager::getUserId();
 $db = Database::getInstance()->getConnection();
 
-// Get conversation ID if viewing a specific conversation
-$conversationId = isset($_GET['conversation']) ? (int)$_GET['conversation'] : 0;
-$viewingConversation = $conversationId > 0;
-
-// Handle mark as read
-if ($viewingConversation && isset($_GET['mark_read'])) {
-    $stmt = $db->prepare("UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND receiver_id = ?");
-    $stmt->execute([$conversationId, $userId]);
-}
+// Get the other user ID if viewing a conversation
+$otherUserId = isset($_GET['user']) ? (int)$_GET['user'] : 0;
+$listingId = isset($_GET['listing']) ? (int)$_GET['listing'] : 0;
+$viewingConversation = $otherUserId > 0;
 
 // Handle new message reply
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reply_message'])) {
     $replyMessage = trim($_POST['reply_message']);
-    $conversationId = (int)$_POST['conversation_id'];
     $receiverId = (int)$_POST['receiver_id'];
     $listingId = (int)$_POST['listing_id'];
     $listingType = $_POST['listing_type'] ?? 'property';
@@ -43,18 +37,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reply_message'])) {
         $stmt->execute([$userId, $receiverId, $listingId, $listingType, $replyMessage]);
         
         // Redirect to refresh
-        header('Location: /user/messages.php?conversation=' . $conversationId . '&sent=1');
+        header('Location: /user/messages.php?user=' . $receiverId . '&listing=' . $listingId . '&sent=1');
         exit;
     }
 }
 
-// Get all conversations for the user
+// Get all conversations for the user - Group by sender/receiver pairs
 $conversationsStmt = $db->prepare("
     SELECT 
-        m.conversation_id,
+        m.id,
         m.listing_id,
         m.listing_type,
         m.subject,
+        m.body,
         m.created_at,
         m.is_read,
         m.sender_id,
@@ -64,21 +59,60 @@ $conversationsStmt = $db->prepare("
         u.role AS sender_role,
         u2.name AS receiver_name,
         u2.email AS receiver_email,
-        u2.role AS receiver_role,
-        COUNT(DISTINCT m2.id) AS total_messages,
-        SUM(CASE WHEN m2.is_read = 0 AND m2.receiver_id = ? THEN 1 ELSE 0 END) AS unread_count,
-        (SELECT body FROM messages WHERE conversation_id = m.conversation_id ORDER BY created_at DESC LIMIT 1) AS last_message,
-        (SELECT created_at FROM messages WHERE conversation_id = m.conversation_id ORDER BY created_at DESC LIMIT 1) AS last_message_time
+        u2.role AS receiver_role
     FROM messages m
     LEFT JOIN users u ON m.sender_id = u.id
     LEFT JOIN users u2 ON m.receiver_id = u2.id
-    LEFT JOIN messages m2 ON m.conversation_id = m2.conversation_id
     WHERE m.receiver_id = ? OR m.sender_id = ?
-    GROUP BY m.conversation_id
-    ORDER BY last_message_time DESC
+    ORDER BY m.created_at DESC
 ");
-$conversationsStmt->execute([$userId, $userId, $userId]);
-$conversations = $conversationsStmt->fetchAll();
+$conversationsStmt->execute([$userId, $userId]);
+$allMessages = $conversationsStmt->fetchAll();
+
+// Group messages by conversation (using other_user_id as conversation key)
+$conversations = [];
+foreach ($allMessages as $msg) {
+    // Determine the other party
+    $otherId = ($msg['sender_id'] == $userId) ? $msg['receiver_id'] : $msg['sender_id'];
+    $otherName = ($msg['sender_id'] == $userId) ? $msg['receiver_name'] : $msg['sender_name'];
+    $otherRole = ($msg['sender_id'] == $userId) ? $msg['receiver_role'] : $msg['sender_role'];
+    $otherEmail = ($msg['sender_id'] == $userId) ? $msg['receiver_email'] : $msg['sender_email'];
+    
+    // Use other_user_id as the conversation key
+    $key = $otherId;
+    
+    if (!isset($conversations[$key])) {
+        $conversations[$key] = [
+            'other_user_id' => $otherId,
+            'other_name' => $otherName,
+            'other_email' => $otherEmail,
+            'other_role' => $otherRole,
+            'listing_id' => $msg['listing_id'],
+            'listing_type' => $msg['listing_type'],
+            'last_message' => $msg['body'],
+            'last_message_time' => $msg['created_at'],
+            'unread_count' => 0
+        ];
+    }
+    
+    // Update unread count
+    if ($msg['is_read'] == 0 && $msg['receiver_id'] == $userId) {
+        $conversations[$key]['unread_count']++;
+    }
+    
+    // Update last message if this is newer
+    if (strtotime($msg['created_at']) > strtotime($conversations[$key]['last_message_time'])) {
+        $conversations[$key]['last_message'] = $msg['body'];
+        $conversations[$key]['last_message_time'] = $msg['created_at'];
+        $conversations[$key]['listing_id'] = $msg['listing_id'];
+        $conversations[$key]['listing_type'] = $msg['listing_type'];
+    }
+}
+
+// Sort conversations by last message time (newest first)
+usort($conversations, function($a, $b) {
+    return strtotime($b['last_message_time']) - strtotime($a['last_message_time']);
+});
 
 // Get messages for a specific conversation
 $messages = [];
@@ -87,85 +121,69 @@ $otherUser = null;
 $listingInfo = null;
 
 if ($viewingConversation) {
-    // Get conversation info
-    $stmt = $db->prepare("
-        SELECT 
-            m.conversation_id,
-            m.listing_id,
-            m.listing_type,
-            m.subject,
-            m.sender_id,
-            m.receiver_id,
-            u.name AS sender_name,
-            u.email AS sender_email,
-            u.role AS sender_role,
-            u2.name AS receiver_name,
-            u2.email AS receiver_email,
-            u2.role AS receiver_role
-        FROM messages m
-        LEFT JOIN users u ON m.sender_id = u.id
-        LEFT JOIN users u2 ON m.receiver_id = u2.id
-        WHERE m.conversation_id = ?
-        LIMIT 1
-    ");
-    $stmt->execute([$conversationId]);
-    $conversationInfo = $stmt->fetch();
+    // Find the conversation in our grouped array
+    foreach ($conversations as $conv) {
+        if ($conv['other_user_id'] == $otherUserId) {
+            $conversationInfo = $conv;
+            break;
+        }
+    }
     
     if ($conversationInfo) {
-        // Get all messages
+        $otherUser = [
+            'id' => $conversationInfo['other_user_id'],
+            'name' => $conversationInfo['other_name'],
+            'email' => $conversationInfo['other_email'],
+            'role' => $conversationInfo['other_role']
+        ];
+        
+        // Get all messages between these two users
         $stmt = $db->prepare("
             SELECT 
                 m.*,
                 u.name AS sender_name,
                 u.email AS sender_email,
-                u.role AS sender_role,
-                u2.name AS receiver_name,
-                u2.email AS receiver_email,
-                u2.role AS receiver_role
+                u.role AS sender_role
             FROM messages m
             LEFT JOIN users u ON m.sender_id = u.id
-            LEFT JOIN users u2 ON m.receiver_id = u2.id
-            WHERE m.conversation_id = ?
+            WHERE (m.sender_id = ? AND m.receiver_id = ?) 
+               OR (m.sender_id = ? AND m.receiver_id = ?)
             ORDER BY m.created_at ASC
         ");
-        $stmt->execute([$conversationId]);
+        $stmt->execute([
+            $userId, $otherUserId, 
+            $otherUserId, $userId
+        ]);
         $messages = $stmt->fetchAll();
         
-        // Determine other user
-        if ($conversationInfo['sender_id'] == $userId) {
-            $otherUser = [
-                'id' => $conversationInfo['receiver_id'],
-                'name' => $conversationInfo['receiver_name'],
-                'email' => $conversationInfo['receiver_email'],
-                'role' => $conversationInfo['receiver_role']
-            ];
-        } else {
-            $otherUser = [
-                'id' => $conversationInfo['sender_id'],
-                'name' => $conversationInfo['sender_name'],
-                'email' => $conversationInfo['sender_email'],
-                'role' => $conversationInfo['sender_role']
-            ];
+        // Mark all messages as read
+        $stmt = $db->prepare("UPDATE messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0");
+        $stmt->execute([$otherUserId, $userId]);
+        
+        // Get listing info for the first message with a listing
+        $listingId = null;
+        $listingType = null;
+        foreach ($messages as $msg) {
+            if (!empty($msg['listing_id'])) {
+                $listingId = $msg['listing_id'];
+                $listingType = $msg['listing_type'];
+                break;
+            }
         }
         
-        // Get listing info
-        if ($conversationInfo['listing_id']) {
+        if ($listingId) {
             $tableMap = [
                 'car' => 'car_listings',
                 'property' => 'property_listings',
                 'solar' => 'solar_listings',
                 'marketplace' => 'marketplace_listings'
             ];
-            $table = $tableMap[$conversationInfo['listing_type']] ?? 'property_listings';
+            $table = $tableMap[$listingType] ?? 'property_listings';
             
             $stmt = $db->prepare("SELECT id, title, price FROM $table WHERE id = ?");
-            $stmt->execute([$conversationInfo['listing_id']]);
+            $stmt->execute([$listingId]);
             $listingInfo = $stmt->fetch();
         }
-        
-        // Mark all as read
-        $stmt = $db->prepare("UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND receiver_id = ?");
-        $stmt->execute([$conversationId, $userId]);
     }
 }
 
@@ -720,22 +738,14 @@ include '../templates/header.php';
             <?php else: ?>
                 <?php foreach ($conversations as $conv): ?>
                     <?php 
-                    // Determine the other party's name
-                    $otherName = '';
-                    if ($conv['sender_id'] == $userId) {
-                        $otherName = $conv['receiver_name'] ?? 'Unknown';
-                        $otherRole = $conv['receiver_role'] ?? 'user';
-                    } else {
-                        $otherName = $conv['sender_name'] ?? 'Unknown';
-                        $otherRole = $conv['sender_role'] ?? 'user';
-                    }
-                    $isActive = $viewingConversation && $conv['conversation_id'] == $conversationId;
+                    $otherName = $conv['other_name'] ?? 'Unknown';
+                    $otherRole = $conv['other_role'] ?? 'user';
+                    $isActive = $viewingConversation && $conv['other_user_id'] == $otherUserId;
                     $unread = ($conv['unread_count'] ?? 0) > 0;
                     $avatarLetter = strtoupper(substr($otherName, 0, 1));
-                    
                     $lastMessage = $conv['last_message'] ?? '';
                     ?>
-                    <a href="/user/messages.php?conversation=<?= $conv['conversation_id'] ?>" 
+                    <a href="/user/messages.php?user=<?= $conv['other_user_id'] ?>&listing=<?= $conv['listing_id'] ?? 0 ?>" 
                        class="conversation-item <?= $isActive ? 'active' : '' ?>">
                         <div class="avatar">
                             <?= $avatarLetter ?>
@@ -862,7 +872,6 @@ include '../templates/header.php';
                 <!-- Reply Area -->
                 <div class="messages-reply">
                     <form method="POST">
-                        <input type="hidden" name="conversation_id" value="<?= $conversationId ?>">
                         <input type="hidden" name="receiver_id" value="<?= $otherUser['id'] ?? 0 ?>">
                         <input type="hidden" name="listing_id" value="<?= $conversationInfo['listing_id'] ?? 0 ?>">
                         <input type="hidden" name="listing_type" value="<?= $conversationInfo['listing_type'] ?? 'property' ?>">
@@ -885,7 +894,6 @@ include '../templates/header.php';
                 <!-- Reply Area (empty conversation) -->
                 <div class="messages-reply">
                     <form method="POST">
-                        <input type="hidden" name="conversation_id" value="<?= $conversationId ?>">
                         <input type="hidden" name="receiver_id" value="<?= $otherUser['id'] ?? 0 ?>">
                         <input type="hidden" name="listing_id" value="<?= $conversationInfo['listing_id'] ?? 0 ?>">
                         <input type="hidden" name="listing_type" value="<?= $conversationInfo['listing_type'] ?? 'property' ?>">
