@@ -168,7 +168,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
         <div style="background:#FFEBEE; border:1px solid #EF9A9A; color:#B71C1C; border-radius:8px; padding:14px 20px; margin-bottom:24px;"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($flashError) ?></div>
     <?php endif; ?>
 
-    <form class="listing-form" method="POST" action="/api/listings/update.php" enctype="multipart/form-data">
+    <form class="listing-form" method="POST" action="/api/listings/update.php" enctype="multipart/form-data" id="editForm">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
         <input type="hidden" name="listing_id" value="<?php echo $listingId; ?>">
         <input type="hidden" name="division" value="<?php echo $divisionParam; ?>">
@@ -472,6 +472,7 @@ let selectedFiles = [];
 
 // Function to render all images (existing + new)
 function renderImages() {
+    if (!imagePreviewGrid) return;
     imagePreviewGrid.innerHTML = '';
     
     // Add existing images first
@@ -547,20 +548,25 @@ function removeNewImage(index) {
 
 // Handle file upload
 function syncInputFiles() {
+    if (!imageUpload) return;
     const dt = new DataTransfer();
     selectedFiles.forEach(f => dt.items.add(f));
     imageUpload.files = dt.files;
 }
 
-imageUpload?.addEventListener('change', function(e) {
-    const newFiles = Array.from(e.target.files);
-    selectedFiles = [...selectedFiles, ...newFiles];
-    syncInputFiles();
-    renderImages();
-});
+if (imageUpload) {
+    imageUpload.addEventListener('change', function(e) {
+        const newFiles = Array.from(e.target.files);
+        selectedFiles = [...selectedFiles, ...newFiles];
+        syncInputFiles();
+        renderImages();
+    });
+}
 
 // Initial render
-renderImages();
+document.addEventListener('DOMContentLoaded', function() {
+    renderImages();
+});
 </script>
 
 </main>
