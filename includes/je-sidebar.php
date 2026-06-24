@@ -38,6 +38,9 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
     }
     // ────────────────────────────────────────────────────────────────────
 
+    // Check if user is a Super Agent
+    $isSuperAgent = !empty($_SESSION['is_super_agent']);
+
     $userNav = [
         ['key' => 'dashboard',    'icon' => 'tachometer-alt',  'label' => 'Dashboard',     'href' => 'dashboard.php'],
         ['key' => 'saved',        'icon' => 'heart',            'label' => 'Saved Listings', 'href' => 'saved-listings.php'],
@@ -52,11 +55,12 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
     // Messages, Analytics, Earnings, Profile
     // Super agents ALSO see: Hardware, Add Hardware (Kinas Volt only)
     // ─────────────────────────────────────────────────────────────────────
-    $agentNavBase = [
+    
+    // Define the base agent navigation (common to all agents)
+    $agentNav = [
         ['key' => 'dashboard',    'icon' => 'tachometer-alt',  'label' => 'Dashboard',     'href' => 'dashboard.php'],
         ['key' => 'listings',     'icon' => 'list-alt',         'label' => 'My Listings',   'href' => 'listings.php'],
         ['key' => 'add',          'icon' => 'plus-circle',      'label' => 'Add Listing',   'href' => 'add-listing.php'],
-        // Hardware links will be conditionally added here
         ['key' => 'verification', 'icon' => 'shield-alt',       'label' => 'Verification',  'href' => 'verification.php'],
         ['key' => 'messages',     'icon' => 'comments',         'label' => 'Messages',      'href' => 'messages.php'],
         ['key' => 'analytics',    'icon' => 'chart-line',       'label' => 'Analytics',     'href' => 'analytics.php'],
@@ -64,18 +68,16 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
         ['key' => 'profile',      'icon' => 'user-circle',      'label' => 'Profile',       'href' => 'profile.php'],
     ];
     
-    // Check if user is a Super Agent
-    $isSuperAgent = !empty($_SESSION['is_super_agent']);
-    
-    // Build agent navigation with conditional hardware links
-    $agentNav = [];
-    foreach ($agentNavBase as $item) {
-        $agentNav[] = $item;
-        // Insert hardware links right after 'Add Listing' if user is a Super Agent
-        if ($item['key'] === 'add' && $isSuperAgent) {
-            $agentNav[] = ['key' => 'hardware',    'icon' => 'microchip', 'label' => 'Hardware',     'href' => 'hardware.php'];
-            $agentNav[] = ['key' => 'addhardware', 'icon' => 'plus',       'label' => 'Add Hardware', 'href' => 'add-hardware.php'];
-        }
+    // Insert hardware links right after 'Add Listing' if user is a Super Agent
+    if ($isSuperAgent) {
+        $agentNav = array_merge(
+            array_slice($agentNav, 0, 3), // Dashboard, My Listings, Add Listing
+            [
+                ['key' => 'hardware',    'icon' => 'microchip', 'label' => 'Hardware',     'href' => 'hardware.php'],
+                ['key' => 'addhardware', 'icon' => 'plus',       'label' => 'Add Hardware', 'href' => 'add-hardware.php'],
+            ],
+            array_slice($agentNav, 3) // Verification, Messages, Analytics, Earnings, Profile
+        );
     }
     
     $adminNav = [
@@ -96,7 +98,8 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
         $brandLabel = 'ADMIN PANEL';
     } elseif ($role === 'agent') {
         $nav = $agentNav;
-        $brandLabel = 'AGENT PANEL';
+        // Show "SUPER AGENT" for super agents, "AGENT PANEL" for regular agents
+        $brandLabel = $isSuperAgent ? 'SUPER AGENT' : 'AGENT PANEL';
     } else {
         $nav = $userNav;
         $brandLabel = 'MY ACCOUNT';
