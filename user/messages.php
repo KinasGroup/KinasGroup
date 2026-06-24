@@ -36,13 +36,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reply_message'])) {
         ");
         $stmt->execute([$userId, $receiverId, $listingId, $listingType, $replyMessage]);
         
-        // Redirect to refresh
         header('Location: /user/messages.php?user=' . $receiverId . '&listing=' . $listingId . '&sent=1');
         exit;
     }
 }
 
-// Get all conversations for the user - Group by sender/receiver pairs
+// Get all conversations for the user
 $conversationsStmt = $db->prepare("
     SELECT 
         m.id,
@@ -69,16 +68,14 @@ $conversationsStmt = $db->prepare("
 $conversationsStmt->execute([$userId, $userId]);
 $allMessages = $conversationsStmt->fetchAll();
 
-// Group messages by conversation (using other_user_id as conversation key)
+// Group messages by conversation (using other_user_id)
 $conversations = [];
 foreach ($allMessages as $msg) {
-    // Determine the other party
     $otherId = ($msg['sender_id'] == $userId) ? $msg['receiver_id'] : $msg['sender_id'];
     $otherName = ($msg['sender_id'] == $userId) ? $msg['receiver_name'] : $msg['sender_name'];
     $otherRole = ($msg['sender_id'] == $userId) ? $msg['receiver_role'] : $msg['sender_role'];
     $otherEmail = ($msg['sender_id'] == $userId) ? $msg['receiver_email'] : $msg['sender_email'];
     
-    // Use other_user_id as the conversation key
     $key = $otherId;
     
     if (!isset($conversations[$key])) {
@@ -95,12 +92,10 @@ foreach ($allMessages as $msg) {
         ];
     }
     
-    // Update unread count
     if ($msg['is_read'] == 0 && $msg['receiver_id'] == $userId) {
         $conversations[$key]['unread_count']++;
     }
     
-    // Update last message if this is newer
     if (strtotime($msg['created_at']) > strtotime($conversations[$key]['last_message_time'])) {
         $conversations[$key]['last_message'] = $msg['body'];
         $conversations[$key]['last_message_time'] = $msg['created_at'];
@@ -109,7 +104,6 @@ foreach ($allMessages as $msg) {
     }
 }
 
-// Sort conversations by last message time (newest first)
 usort($conversations, function($a, $b) {
     return strtotime($b['last_message_time']) - strtotime($a['last_message_time']);
 });
@@ -121,7 +115,6 @@ $otherUser = null;
 $listingInfo = null;
 
 if ($viewingConversation) {
-    // Find the conversation in our grouped array
     foreach ($conversations as $conv) {
         if ($conv['other_user_id'] == $otherUserId) {
             $conversationInfo = $conv;
@@ -137,7 +130,6 @@ if ($viewingConversation) {
             'role' => $conversationInfo['other_role']
         ];
         
-        // Get all messages between these two users
         $stmt = $db->prepare("
             SELECT 
                 m.*,
@@ -150,17 +142,12 @@ if ($viewingConversation) {
                OR (m.sender_id = ? AND m.receiver_id = ?)
             ORDER BY m.created_at ASC
         ");
-        $stmt->execute([
-            $userId, $otherUserId, 
-            $otherUserId, $userId
-        ]);
+        $stmt->execute([$userId, $otherUserId, $otherUserId, $userId]);
         $messages = $stmt->fetchAll();
         
-        // Mark all messages as read
         $stmt = $db->prepare("UPDATE messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0");
         $stmt->execute([$otherUserId, $userId]);
         
-        // Get listing info for the first message with a listing
         $listingId = null;
         $listingType = null;
         foreach ($messages as $msg) {
@@ -187,65 +174,116 @@ if ($viewingConversation) {
     }
 }
 
-// Page title
 $pageTitle = 'Messages - My Dashboard';
 include '../templates/header.php';
 ?>
 
+<!-- ============================================================ -->
+<!-- PROFESSIONAL MESSAGING STYLES -->
+<!-- ============================================================ -->
 <style>
-/* ============================================================
-   PROFESSIONAL MESSAGING STYLES
-   ============================================================ */
+/* ----- Container ----- */
+.messages-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 40px;
+}
 
+.messages-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.messages-header h1 {
+    font-family: 'Prata', serif;
+    font-size: 28px;
+    color: #0A0A0A;
+    margin: 0;
+}
+
+.messages-header h1 i {
+    color: #C6A43F;
+    margin-right: 12px;
+}
+
+.messages-header .subtitle {
+    color: #888;
+    margin: 4px 0 0 0;
+    font-size: 14px;
+}
+
+/* ----- Main Container ----- */
 .messages-container {
     display: grid;
     grid-template-columns: 380px 1fr;
     gap: 0;
-    background: #f8f6f3;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-    min-height: 600px;
-    max-height: 800px;
-}
-
-.messages-sidebar {
     background: #ffffff;
-    border-right: 1px solid #e8e5e0;
-    overflow-y: auto;
-    max-height: 800px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f0ede8;
+    min-height: 600px;
+    max-height: 780px;
 }
 
-.messages-sidebar-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid #e8e5e0;
+/* ----- Sidebar ----- */
+.messages-sidebar {
     background: #faf8f6;
+    border-right: 1px solid #f0ede8;
+    overflow-y: auto;
+    max-height: 780px;
+}
+
+.messages-sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+.messages-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.messages-sidebar::-webkit-scrollbar-thumb {
+    background: #d0ccc5;
+    border-radius: 4px;
+}
+.messages-sidebar::-webkit-scrollbar-thumb:hover {
+    background: #b8b2a8;
+}
+
+.sidebar-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #f0ede8;
+    background: #ffffff;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 5;
 }
 
-.messages-sidebar-header h2 {
+.sidebar-header h2 {
     font-family: 'Prata', serif;
     font-size: 18px;
     color: #0A0A0A;
     margin: 0;
 }
 
-.messages-sidebar-header .badge {
+.sidebar-header .badge {
     background: #C6A43F;
     color: #fff;
     font-size: 11px;
-    padding: 2px 10px;
+    padding: 3px 12px;
     border-radius: 20px;
     font-weight: 600;
 }
 
+/* ----- Conversation Item ----- */
 .conversation-item {
     display: flex;
     align-items: center;
     padding: 16px 20px;
-    border-bottom: 1px solid #f0ede8;
+    border-bottom: 1px solid #f5f3f0;
     cursor: pointer;
     transition: all 0.2s ease;
     text-decoration: none;
@@ -254,19 +292,19 @@ include '../templates/header.php';
 }
 
 .conversation-item:hover {
-    background: #faf8f6;
+    background: #f5f0e8;
 }
 
 .conversation-item.active {
-    background: #f5f0e8;
-    border-left: 3px solid #C6A43F;
+    background: #f0e8dc;
+    border-left: 4px solid #C6A43F;
 }
 
 .conversation-item .avatar {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: #e8e5e0;
+    background: linear-gradient(135deg, #e8e5e0, #d5d0c8);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -276,6 +314,17 @@ include '../templates/header.php';
     flex-shrink: 0;
     margin-right: 14px;
     position: relative;
+}
+
+.conversation-item .avatar .online-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    background: #28a745;
+    border-radius: 50%;
+    border: 2px solid #fff;
 }
 
 .conversation-item .info {
@@ -351,6 +400,7 @@ include '../templates/header.php';
     color: transparent;
 }
 
+/* ----- Message Area ----- */
 .messages-area {
     display: flex;
     flex-direction: column;
@@ -358,9 +408,10 @@ include '../templates/header.php';
     min-height: 500px;
 }
 
+/* Message Header */
 .messages-area-header {
     padding: 16px 24px;
-    border-bottom: 1px solid #e8e5e0;
+    border-bottom: 1px solid #f0ede8;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -378,13 +429,13 @@ include '../templates/header.php';
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: #e8e5e0;
+    background: linear-gradient(135deg, #C6A43F, #d4af37);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
     font-size: 16px;
-    color: #0A0A0A;
+    color: #fff;
 }
 
 .messages-area-header .user-info .name {
@@ -407,6 +458,7 @@ include '../templates/header.php';
     display: inline-block;
 }
 
+/* Messages Body */
 .messages-body {
     flex: 1;
     padding: 24px;
@@ -415,9 +467,24 @@ include '../templates/header.php';
     max-height: 550px;
 }
 
+.messages-body::-webkit-scrollbar {
+    width: 4px;
+}
+.messages-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.messages-body::-webkit-scrollbar-thumb {
+    background: #d0ccc5;
+    border-radius: 4px;
+}
+.messages-body::-webkit-scrollbar-thumb:hover {
+    background: #b8b2a8;
+}
+
+/* Individual Message */
 .message-item {
     display: flex;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     animation: fadeInUp 0.3s ease;
 }
 
@@ -431,10 +498,11 @@ include '../templates/header.php';
 
 .message-item .bubble {
     max-width: 75%;
-    padding: 14px 18px;
+    padding: 14px 20px;
     border-radius: 16px;
     position: relative;
     word-wrap: break-word;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .message-item.sent .bubble {
@@ -451,14 +519,15 @@ include '../templates/header.php';
 
 .message-item .bubble .message-text {
     font-size: 14px;
-    line-height: 1.6;
+    line-height: 1.7;
     margin: 0;
+    white-space: pre-wrap;
 }
 
 .message-item .bubble .message-meta {
     font-size: 11px;
     opacity: 0.7;
-    margin-top: 6px;
+    margin-top: 8px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -477,6 +546,7 @@ include '../templates/header.php';
     font-weight: 500;
 }
 
+/* Viewing Request Badge */
 .message-item .bubble .viewing-badge {
     display: inline-block;
     font-size: 11px;
@@ -493,20 +563,28 @@ include '../templates/header.php';
     color: #C6A43F;
 }
 
+.message-item .bubble .viewing-details {
+    font-size: 12px;
+    margin-bottom: 6px;
+    opacity: 0.8;
+}
+
+/* Date Separator */
 .message-date-separator {
     text-align: center;
-    margin: 20px 0;
+    margin: 24px 0;
     position: relative;
 }
 
 .message-date-separator span {
     background: #fcfbf9;
-    padding: 0 16px;
+    padding: 0 20px;
     font-size: 12px;
     color: #aaa;
     font-weight: 500;
     position: relative;
     z-index: 1;
+    letter-spacing: 0.5px;
 }
 
 .message-date-separator::after {
@@ -520,9 +598,10 @@ include '../templates/header.php';
     z-index: 0;
 }
 
+/* Reply Area */
 .messages-reply {
     padding: 16px 24px;
-    border-top: 1px solid #e8e5e0;
+    border-top: 1px solid #f0ede8;
     background: #faf8f6;
     flex-shrink: 0;
 }
@@ -533,8 +612,13 @@ include '../templates/header.php';
     align-items: flex-end;
 }
 
-.messages-reply textarea {
+.messages-reply .input-wrapper {
     flex: 1;
+    position: relative;
+}
+
+.messages-reply textarea {
+    width: 100%;
     padding: 12px 16px;
     border: 1px solid #e0dcd5;
     border-radius: 12px;
@@ -542,7 +626,7 @@ include '../templates/header.php';
     font-size: 14px;
     resize: none;
     height: 48px;
-    transition: border-color 0.3s ease;
+    transition: all 0.3s ease;
     background: #fff;
     line-height: 1.5;
 }
@@ -554,7 +638,7 @@ include '../templates/header.php';
 }
 
 .messages-reply .send-btn {
-    padding: 12px 24px;
+    padding: 12px 28px;
     background: #0A0A0A;
     color: #fff;
     border: none;
@@ -562,23 +646,28 @@ include '../templates/header.php';
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: background 0.3s ease;
+    transition: all 0.3s ease;
     white-space: nowrap;
     height: 48px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .messages-reply .send-btn:hover {
     background: #C6A43F;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(198, 164, 63, 0.3);
 }
 
 .messages-reply .send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
+/* Empty State */
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -591,7 +680,7 @@ include '../templates/header.php';
 }
 
 .empty-state .icon {
-    font-size: 48px;
+    font-size: 56px;
     color: #e0dcd5;
     margin-bottom: 16px;
 }
@@ -609,10 +698,30 @@ include '../templates/header.php';
     max-width: 320px;
 }
 
+/* Success Banner */
+.success-banner {
+    margin-top: 16px;
+    padding: 14px 20px;
+    background: #d4edda;
+    color: #155724;
+    border-radius: 12px;
+    border-left: 4px solid #28a745;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideInRight 0.3s ease;
+}
+
+.success-banner i {
+    color: #28a745;
+    font-size: 18px;
+}
+
+/* Animations */
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(12px);
     }
     to {
         opacity: 1;
@@ -620,38 +729,42 @@ include '../templates/header.php';
     }
 }
 
-.messages-sidebar::-webkit-scrollbar,
-.messages-body::-webkit-scrollbar {
-    width: 4px;
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
-.messages-sidebar::-webkit-scrollbar-track,
-.messages-body::-webkit-scrollbar-track {
-    background: transparent;
+/* Typing indicator (optional) */
+.typing-indicator {
+    display: none;
+    padding: 10px 20px;
+    color: #888;
+    font-size: 13px;
+    font-style: italic;
 }
 
-.messages-sidebar::-webkit-scrollbar-thumb,
-.messages-body::-webkit-scrollbar-thumb {
-    background: #d0ccc5;
-    border-radius: 4px;
-}
-
-.messages-sidebar::-webkit-scrollbar-thumb:hover,
-.messages-body::-webkit-scrollbar-thumb:hover {
-    background: #b8b2a8;
-}
-
+/* Responsive */
 @media (max-width: 992px) {
+    .messages-wrapper {
+        padding: 16px;
+    }
+    
     .messages-container {
         grid-template-columns: 1fr;
         max-height: none;
-        border-radius: 12px;
+        border-radius: 16px;
     }
     
     .messages-sidebar {
-        max-height: 400px;
+        max-height: 350px;
         border-right: none;
-        border-bottom: 1px solid #e8e5e0;
+        border-bottom: 1px solid #f0ede8;
     }
     
     .messages-area {
@@ -664,6 +777,14 @@ include '../templates/header.php';
 }
 
 @media (max-width: 576px) {
+    .messages-wrapper {
+        padding: 12px;
+    }
+    
+    .messages-header h1 {
+        font-size: 22px;
+    }
+    
     .messages-area-header {
         flex-wrap: wrap;
         gap: 8px;
@@ -685,15 +806,13 @@ include '../templates/header.php';
 }
 </style>
 
-<div class="admin-container" style="padding: 24px 40px; max-width: 1400px; margin: 0 auto;">
+<div class="messages-wrapper">
 
-    <!-- Page Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <!-- Header -->
+    <div class="messages-header">
         <div>
-            <h1 style="font-family: 'Prata', serif; font-size: 28px; color: #0A0A0A; margin: 0;">
-                <i class="fas fa-envelope" style="color: #C6A43F; margin-right: 12px;"></i> Messages
-            </h1>
-            <p style="color: #888; margin: 4px 0 0 0; font-size: 14px;">
+            <h1><i class="fas fa-envelope"></i> Messages</h1>
+            <p class="subtitle">
                 <?php if ($viewingConversation && $conversationInfo): ?>
                     Conversation with <strong><?= htmlspecialchars($otherUser['name'] ?? 'User') ?></strong>
                     <?php if ($listingInfo): ?>
@@ -705,7 +824,7 @@ include '../templates/header.php';
             </p>
         </div>
         <?php if ($viewingConversation): ?>
-            <a href="/user/messages.php" style="color: #C6A43F; text-decoration: none; font-weight: 500; font-size: 14px;">
+            <a href="/user/messages.php" style="color: #C6A43F; text-decoration: none; font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 8px;">
                 <i class="fas fa-arrow-left"></i> Back to Inbox
             </a>
         <?php endif; ?>
@@ -714,9 +833,9 @@ include '../templates/header.php';
     <!-- Messages Container -->
     <div class="messages-container">
 
-        <!-- Sidebar - Conversation List -->
+        <!-- Sidebar -->
         <div class="messages-sidebar">
-            <div class="messages-sidebar-header">
+            <div class="sidebar-header">
                 <h2>Inbox</h2>
                 <span class="badge">
                     <?php 
@@ -730,7 +849,7 @@ include '../templates/header.php';
             </div>
 
             <?php if (empty($conversations)): ?>
-                <div class="empty-state" style="padding: 40px 20px;">
+                <div class="empty-state" style="padding: 40px 20px; min-height: 300px;">
                     <div class="icon"><i class="fas fa-inbox"></i></div>
                     <h3>No messages yet</h3>
                     <p>When agents respond to your inquiries, their messages will appear here.</p>
@@ -749,11 +868,17 @@ include '../templates/header.php';
                        class="conversation-item <?= $isActive ? 'active' : '' ?>">
                         <div class="avatar">
                             <?= $avatarLetter ?>
+                            <?php if ($unread): ?>
+                                <span class="online-dot"></span>
+                            <?php endif; ?>
                         </div>
                         <div class="info">
                             <div class="name">
                                 <?= htmlspecialchars($otherName) ?>
                                 <span class="role-badge <?= $otherRole ?>"><?= ucfirst($otherRole) ?></span>
+                                <?php if ($unread): ?>
+                                    <span class="unread-badge"><?= $conv['unread_count'] ?></span>
+                                <?php endif; ?>
                             </div>
                             <div class="last-message">
                                 <?php 
@@ -778,11 +903,6 @@ include '../templates/header.php';
                                 <br>
                                 <?= date('g:i A', strtotime($conv['last_message_time'])) ?>
                             <?php endif; ?>
-                            <?php if ($unread): ?>
-                                <span class="unread-badge"><?= $conv['unread_count'] ?></span>
-                            <?php else: ?>
-                                <span class="unread-badge zero">0</span>
-                            <?php endif; ?>
                         </div>
                     </a>
                 <?php endforeach; ?>
@@ -793,7 +913,7 @@ include '../templates/header.php';
         <div class="messages-area">
 
             <?php if ($viewingConversation && $conversationInfo && !empty($messages)): ?>
-                <!-- Message Header -->
+                <!-- Header -->
                 <div class="messages-area-header">
                     <div class="user-info">
                         <div class="avatar">
@@ -819,7 +939,7 @@ include '../templates/header.php';
                     <?php endif; ?>
                 </div>
 
-                <!-- Messages Body -->
+                <!-- Messages -->
                 <div class="messages-body" id="messagesBody">
                     <?php 
                     $lastDate = '';
@@ -845,7 +965,7 @@ include '../templates/header.php';
                                         <i class="fas fa-calendar-check"></i> Viewing Request
                                     </div>
                                     <?php if (!empty($msg['preferred_date'])): ?>
-                                        <div style="font-size: 12px; margin-bottom: 6px; opacity: 0.8;">
+                                        <div class="viewing-details">
                                             📅 <?= date('l, F j, Y', strtotime($msg['preferred_date'])) ?>
                                             <?php if (!empty($msg['preferred_time'])): ?>
                                                 at <?= htmlspecialchars($msg['preferred_time']) ?>
@@ -861,7 +981,7 @@ include '../templates/header.php';
                                     <?php if ($isSent && $msg['is_read']): ?>
                                         <span><i class="fas fa-check-circle" style="color: #28a745;"></i> Read</span>
                                     <?php elseif ($isSent): ?>
-                                        <span><i class="fas fa-clock" style="color: #888;"></i> Sent</span>
+                                        <span><i class="fas fa-check" style="color: #888;"></i> Sent</span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -869,14 +989,16 @@ include '../templates/header.php';
                     <?php endforeach; ?>
                 </div>
 
-                <!-- Reply Area -->
+                <!-- Reply -->
                 <div class="messages-reply">
                     <form method="POST">
                         <input type="hidden" name="receiver_id" value="<?= $otherUser['id'] ?? 0 ?>">
                         <input type="hidden" name="listing_id" value="<?= $conversationInfo['listing_id'] ?? 0 ?>">
                         <input type="hidden" name="listing_type" value="<?= $conversationInfo['listing_type'] ?? 'property' ?>">
                         
-                        <textarea name="reply_message" placeholder="Type your reply..." required></textarea>
+                        <div class="input-wrapper">
+                            <textarea name="reply_message" placeholder="Type your reply..." required></textarea>
+                        </div>
                         <button type="submit" class="send-btn">
                             <i class="fas fa-paper-plane"></i> Send
                         </button>
@@ -884,21 +1006,22 @@ include '../templates/header.php';
                 </div>
 
             <?php elseif ($viewingConversation && $conversationInfo): ?>
-                <!-- No messages in this conversation -->
+                <!-- Empty conversation -->
                 <div class="empty-state" style="height: 100%;">
                     <div class="icon"><i class="fas fa-comment-dots"></i></div>
                     <h3>No messages yet</h3>
                     <p>Start the conversation by sending a message.</p>
                 </div>
                 
-                <!-- Reply Area (empty conversation) -->
                 <div class="messages-reply">
                     <form method="POST">
                         <input type="hidden" name="receiver_id" value="<?= $otherUser['id'] ?? 0 ?>">
                         <input type="hidden" name="listing_id" value="<?= $conversationInfo['listing_id'] ?? 0 ?>">
                         <input type="hidden" name="listing_type" value="<?= $conversationInfo['listing_type'] ?? 'property' ?>">
                         
-                        <textarea name="reply_message" placeholder="Type your message..." required></textarea>
+                        <div class="input-wrapper">
+                            <textarea name="reply_message" placeholder="Type your message..." required></textarea>
+                        </div>
                         <button type="submit" class="send-btn">
                             <i class="fas fa-paper-plane"></i> Send
                         </button>
@@ -918,8 +1041,8 @@ include '../templates/header.php';
     </div>
 
     <?php if (isset($_GET['sent']) && $_GET['sent'] == 1): ?>
-        <div style="margin-top: 16px; padding: 12px 20px; background: #d4edda; color: #155724; border-radius: 8px; border-left: 4px solid #28a745; display: flex; align-items: center; gap: 10px;">
-            <i class="fas fa-check-circle" style="color: #28a745;"></i>
+        <div class="success-banner">
+            <i class="fas fa-check-circle"></i>
             <span>Reply sent successfully!</span>
         </div>
     <?php endif; ?>
@@ -928,16 +1051,28 @@ include '../templates/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Auto-scroll to bottom
     const messagesBody = document.getElementById('messagesBody');
     if (messagesBody) {
         messagesBody.scrollTop = messagesBody.scrollHeight;
     }
-});
-
-document.querySelectorAll('.messages-reply textarea').forEach(function(textarea) {
-    textarea.addEventListener('input', function() {
-        this.style.height = '48px';
-        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    
+    // Auto-resize textarea
+    document.querySelectorAll('.messages-reply textarea').forEach(function(textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = '48px';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+    });
+    
+    // Enter key to send (Shift+Enter for new line)
+    document.querySelectorAll('.messages-reply textarea').forEach(function(textarea) {
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.closest('form').submit();
+            }
+        });
     });
 });
 </script>
