@@ -1,7 +1,6 @@
 <?php
 // Load environment variables from .env file
 require_once 'includes/dotenv.php';
-
 require_once 'includes/session.php';
 require_once 'includes/functions.php';
 require_once 'includes/helpers.php';
@@ -14,8 +13,26 @@ $pageDescription = 'KINAS GROUP - The World\'s Luxury Marketplace: Homes, Cars, 
 
 $db = Database::getInstance()->getConnection();
 
+/**
+ * Normalize an image path/URL so it always resolves correctly regardless
+ * of how it was stored (full URL, root-relative path, or bare relative path).
+ */
+function kinas_image_url($path) {
+    if (empty($path)) return '';
+    $path = trim($path);
+    // Already a full URL — leave as-is
+    if (preg_match('#^https?://#i', $path)) {
+        return $path;
+    }
+    // Already root-relative — leave as-is
+    if (strpos($path, '/') === 0) {
+        return $path;
+    }
+    // Otherwise force it to be root-relative
+    return '/' . ltrim($path, '/');
+}
+
 // Get featured listings across all divisions
-$featuredListings = [];
 
 // Featured Cars
 $stmt = $db->query("
@@ -74,10 +91,8 @@ $allFeatured = array_merge($cars, $properties, $marketplaceItems);
 $featuredListings = array_slice($allFeatured, 0, 8);
 
 $extraScripts = ['/assets/js/main.js'];
-
 include 'templates/header.php';
 ?>
-
 <style>
 /* ── Viewport width fix ── */
 html, body {
@@ -87,7 +102,6 @@ html, body {
     margin: 0;
     padding: 0;
 }
-
 /* ── Container: full-bleed on mobile ── */
 @media (max-width: 768px) {
     .container {
@@ -98,14 +112,12 @@ html, body {
         box-sizing: border-box !important;
     }
 }
-
 @media (max-width: 480px) {
     .container {
         padding-left: 12px !important;
         padding-right: 12px !important;
     }
 }
-
 /* Hero Section with Rotating Backgrounds */
 .hero-section {
     position: relative;
@@ -113,7 +125,6 @@ html, body {
     min-height: 650px;
     overflow: hidden;
 }
-
 .hero-slides {
     position: absolute;
     top: 0;
@@ -121,7 +132,6 @@ html, body {
     width: 100%;
     height: 100%;
 }
-
 .hero-slide {
     position: absolute;
     top: 0;
@@ -133,23 +143,19 @@ html, body {
     opacity: 0;
     transition: opacity 1.5s ease-in-out;
 }
-
 @media (max-width: 768px) {
     .hero-slide {
         background-position: 65% center;
     }
 }
-
 @media (max-width: 480px) {
     .hero-slide {
         background-position: 70% center;
     }
 }
-
 .hero-slide.active {
     opacity: 1;
 }
-
 .hero-overlay {
     position: absolute;
     top: 0;
@@ -159,7 +165,6 @@ html, body {
     background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6));
     z-index: 1;
 }
-
 .hero-text {
     position: absolute;
     top: 50%;
@@ -171,7 +176,6 @@ html, body {
     max-width: 600px;
     padding: 0 20px;
 }
-
 @media (max-width: 768px) {
     .hero-text {
         left: 5%;
@@ -182,7 +186,6 @@ html, body {
         max-width: 90%;
     }
 }
-
 .hero-text h1 {
     font-family: 'Prata', serif;
     font-size: 64px;
@@ -192,33 +195,28 @@ html, body {
     letter-spacing: 2px;
     line-height: 1.2;
 }
-
 @media (max-width: 768px) {
     .hero-text h1 {
         font-size: 36px;
         letter-spacing: 1px;
     }
 }
-
 @media (max-width: 480px) {
     .hero-text h1 {
         font-size: 28px;
     }
 }
-
 .hero-text p {
     font-family: 'Inter', sans-serif;
     font-size: 20px;
     color: rgba(255,255,255,0.9);
     font-weight: 300;
 }
-
 @media (max-width: 768px) {
     .hero-text p {
         font-size: 16px;
     }
 }
-
 /* Search Bar - Centered below hero */
 .hs-wrap {
     display: flex;
@@ -231,7 +229,6 @@ html, body {
     z-index: 10;
     box-sizing: border-box;
 }
-
 .hs-card {
     width: 100%;
     max-width: 760px;
@@ -242,7 +239,6 @@ html, body {
     box-shadow: 0 12px 40px rgba(0,0,0,0.18);
     box-sizing: border-box;
 }
-
 .hs-tabs {
     display: flex;
     gap: 6px;
@@ -250,7 +246,6 @@ html, body {
     flex-wrap: wrap;
     justify-content: center;
 }
-
 .hs-tab {
     padding: 8px 18px;
     background: #F5F5F5;
@@ -263,18 +258,15 @@ html, body {
     font-size: 14px;
     color: #666;
 }
-
 .hs-tab.active {
     background: #C6A43F;
     color: #0A0A0A;
 }
-
 .hs-bar {
     display: flex;
     align-items: center;
     gap: 10px;
 }
-
 .hs-input {
     flex: 1;
     padding: 13px 18px;
@@ -286,11 +278,9 @@ html, body {
     min-width: 0;
     box-sizing: border-box;
 }
-
 .hs-input:focus {
     border-color: #C6A43F;
 }
-
 .hs-btn {
     background: #C6A43F;
     color: #0A0A0A;
@@ -306,11 +296,9 @@ html, body {
     flex-shrink: 0;
     box-sizing: border-box;
 }
-
 .hs-btn:hover {
     background: #A8882E;
 }
-
 @media (max-width: 600px) {
     .hs-wrap {
         padding: 0 20px;
@@ -351,26 +339,21 @@ html, body {
         text-align: center;
     }
 }
-
 /* Section Styles */
 .section {
     padding: 80px 0;
 }
-
 .section.bg-light {
     background: #F5F5F5;
 }
-
 .container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 40px;
 }
-
 .container.header-inner {
     max-width: 100% !important;
 }
-
 @media (max-width: 768px) {
     .container {
         padding: 0 15px;
@@ -390,7 +373,6 @@ html, body {
         max-width: calc(100% - 30px);
     }
 }
-
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -398,7 +380,6 @@ html, body {
     margin-bottom: 40px;
     flex-wrap: wrap;
 }
-
 .section-heading {
     font-family: 'Prata', serif;
     font-size: 36px;
@@ -406,13 +387,11 @@ html, body {
     color: #0A0A0A;
     letter-spacing: -0.5px;
 }
-
 @media (max-width: 768px) {
     .section-heading {
         font-size: 28px;
     }
 }
-
 .view-all {
     font-family: 'Inter', sans-serif;
     color: #C6A43F;
@@ -420,49 +399,41 @@ html, body {
     font-weight: 500;
     transition: color 0.3s;
 }
-
 .view-all:hover {
     color: #A8882E;
 }
-
 /* Categories Grid - 6 columns for popular categories */
 .categories-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 20px;
 }
-
 @media (max-width: 1200px) {
     .categories-grid {
         grid-template-columns: repeat(4, 1fr);
     }
 }
-
 @media (max-width: 768px) {
     .categories-grid {
         grid-template-columns: repeat(3, 1fr);
         gap: 15px;
     }
 }
-
 @media (max-width: 480px) {
     .categories-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
     }
 }
-
 .category-card {
     text-decoration: none;
     transition: transform 0.3s;
     display: flex;
     flex-direction: column;
 }
-
 .category-card:hover {
     transform: translateY(-5px);
 }
-
 .category-img {
     width: 100%;
     aspect-ratio: 1;
@@ -470,18 +441,15 @@ html, body {
     border-radius: 12px;
     margin-bottom: 8px;
 }
-
 .category-img img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     transition: transform 0.5s;
 }
-
 .category-card:hover .category-img img {
     transform: scale(1.05);
 }
-
 .category-label {
     font-family: 'Inter', sans-serif;
     font-weight: 600;
@@ -492,20 +460,17 @@ html, body {
     text-transform: uppercase;
     padding-top: 4px;
 }
-
 /* ─── LISTINGS GRID ─── */
 .listings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 30px;
 }
-
 @media (max-width: 768px) {
     .listings-grid {
         grid-template-columns: 1fr;
     }
 }
-
 .listing-card {
     background: white;
     border-radius: 12px;
@@ -513,18 +478,15 @@ html, body {
     transition: transform 0.3s, box-shadow 0.3s;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
-
 .listing-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 20px 40px rgba(0,0,0,0.1);
 }
-
 .listing-card a {
     text-decoration: none;
     color: inherit;
     display: block;
 }
-
 .listing-img {
     position: relative;
     width: 100%;
@@ -532,18 +494,15 @@ html, body {
     overflow: hidden;
     background: #f0f0f0;
 }
-
 .listing-img img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
-
 .listing-card:hover .listing-img img {
     transform: scale(1.05);
 }
-
 .listing-img .no-image {
     width: 100%;
     height: 100%;
@@ -554,7 +513,6 @@ html, body {
     color: #ccc;
     font-size: 48px;
 }
-
 .listing-badge {
     position: absolute;
     top: 15px;
@@ -568,7 +526,6 @@ html, body {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-
 .favorite-btn {
     position: absolute;
     top: 15px;
@@ -586,16 +543,13 @@ html, body {
     transition: all 0.3s;
     color: #999;
 }
-
 .favorite-btn:hover {
     background: #C6A43F;
     color: white;
 }
-
 .listing-info {
     padding: 20px;
 }
-
 .listing-dealer {
     font-family: 'Inter', sans-serif;
     font-size: 12px;
@@ -604,7 +558,6 @@ html, body {
     letter-spacing: 1px;
     font-weight: 600;
 }
-
 .listing-title {
     font-family: 'Prata', serif;
     font-size: 20px;
@@ -613,14 +566,12 @@ html, body {
     color: #0A0A0A;
     line-height: 1.3;
 }
-
 .listing-specs {
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     color: #666666;
     margin-bottom: 10px;
 }
-
 .listing-price {
     font-family: 'Inter', sans-serif;
     font-size: 24px;
@@ -628,7 +579,6 @@ html, body {
     color: #0A0A0A;
     margin: 10px 0;
 }
-
 .verified-tag {
     display: inline-block;
     background: #E8F5E9;
@@ -639,7 +589,6 @@ html, body {
     font-weight: 600;
     font-family: 'Inter', sans-serif;
 }
-
 /* Trust Row */
 .trust-row {
     display: grid;
@@ -647,90 +596,76 @@ html, body {
     gap: 40px;
     text-align: center;
 }
-
 @media (max-width: 768px) {
     .trust-row {
         grid-template-columns: repeat(2, 1fr);
         gap: 20px;
     }
 }
-
 @media (max-width: 480px) {
     .trust-row {
         grid-template-columns: 1fr;
     }
 }
-
 .trust-item {
     padding: 20px;
 }
-
 .trust-icon {
     font-size: 36px;
     display: block;
     margin-bottom: 15px;
 }
-
 .trust-item h4 {
     font-family: 'Prata', serif;
     font-size: 18px;
     margin-bottom: 10px;
     color: #0A0A0A;
 }
-
 .trust-item p {
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     color: #666666;
 }
-
 /* CTA Banner */
 .cta-banner {
     background: linear-gradient(135deg, #0A0A0A 0%, #1a1a1a 100%);
     padding: 80px 0;
     text-align: center;
 }
-
 @media (max-width: 768px) {
     .cta-banner {
         padding: 50px 0;
     }
 }
-
 .cta-banner h2 {
     font-family: 'Prata', serif;
     font-size: 42px;
     color: white;
     margin-bottom: 15px;
 }
-
 @media (max-width: 768px) {
     .cta-banner h2 {
         font-size: 28px;
     }
 }
-
 .cta-banner p {
     font-family: 'Inter', sans-serif;
     font-size: 18px;
     color: rgba(255,255,255,0.7);
     margin-bottom: 30px;
 }
-
 .cta-buttons {
     display: flex;
     gap: 20px;
     justify-content: center;
     flex-wrap: wrap;
 }
-
 @media (max-width: 480px) {
     .cta-buttons {
         flex-direction: column;
         align-items: center;
     }
 }
-
 .cta-buttons a {
     display: inline-block;
     padding: 14px 32px;
@@ -739,7 +674,6 @@ html, body {
     font-weight: 600;
     transition: all 0.3s;
 }
-
 /* Mobile Nav Drawer */
 .mobile-nav-drawer {
     position: fixed;
@@ -757,11 +691,9 @@ html, body {
     gap: 20px;
     overflow-y: auto;
 }
-
 .mobile-nav-drawer.open {
     right: 0;
 }
-
 .mobile-nav-drawer a {
     color: #e0e0e0;
     text-decoration: none;
@@ -771,7 +703,6 @@ html, body {
     font-size: 15px;
     letter-spacing: 0.5px;
 }
-
 .mobile-nav-drawer .close-menu {
     background: none;
     border: none;
@@ -783,7 +714,6 @@ html, body {
     padding: 5px;
     line-height: 1;
 }
-
 .menu-overlay {
     display: none;
     position: fixed;
@@ -794,12 +724,10 @@ html, body {
     background: rgba(0,0,0,0.7);
     z-index: 1001;
 }
-
 .menu-overlay.active {
     display: block;
 }
 </style>
-
 <!-- HERO SECTION WITH 4 ROTATING BACKGROUNDS -->
 <section class="hero-section" id="heroSection">
     <div class="hero-slides">
@@ -814,7 +742,6 @@ html, body {
         <p>Discover the world's finest cars, homes, and luxury goods</p>
     </div>
 </section>
-
 <!-- SEARCH BAR - Centered below hero -->
 <div class="hs-wrap">
     <div class="hs-card">
@@ -833,7 +760,6 @@ html, body {
         </form>
     </div>
 </div>
-
 <!-- MOBILE MENU DRAWER -->
 <div id="mobileNavDrawer" class="mobile-nav-drawer">
     <button class="close-menu" id="closeMobileMenu">✕</button>
@@ -852,7 +778,6 @@ html, body {
     <?php endif; ?>
 </div>
 <div id="menuOverlay" class="menu-overlay"></div>
-
 <!-- POPULAR CATEGORIES -->
 <section class="section">
     <div class="container">
@@ -885,7 +810,6 @@ html, body {
         </div>
     </div>
 </section>
-
 <!-- FEATURED LISTINGS -->
 <section class="section bg-light">
     <div class="container">
@@ -901,12 +825,11 @@ html, body {
                 $divisionName = 'KINAS GROUP';
                 $specs = '';
                 $price = '₦0';
-
                 switch ($listing['listing_type']) {
                     case 'car':
                         $url = '/divisions/kinas-automobile/detail.php?id=' . $listing['id'];
-                        if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
-                            $image = $listing['thumbnail'];
+                        if (!empty($listing['thumbnail'])) {
+                            $image = kinas_image_url($listing['thumbnail']);
                         }
                         $divisionName = 'KINAS Automobile';
                         $specs = number_format($listing['mileage'] ?? 0) . ' km · ' . ucfirst($listing['transmission'] ?? 'Auto') . ' · ' . ucfirst($listing['fuel_type'] ?? 'Petrol');
@@ -914,8 +837,8 @@ html, body {
                         break;
                     case 'property':
                         $url = '/divisions/williams-connect-home/detail.php?id=' . $listing['id'];
-                        if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
-                            $image = $listing['thumbnail'];
+                        if (!empty($listing['thumbnail'])) {
+                            $image = kinas_image_url($listing['thumbnail']);
                         }
                         $divisionName = 'Williams Connect Home';
                         $specs = ($listing['beds'] ?? 0) . ' Beds · ' . ($listing['baths'] ?? 0) . ' Baths · ' . number_format($listing['sqft'] ?? 0) . ' sqft';
@@ -923,8 +846,8 @@ html, body {
                         break;
                     case 'marketplace':
                         $url = '/divisions/kinas-marketplace/detail.php?id=' . $listing['id'];
-                        if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
-                            $image = $listing['thumbnail'];
+                        if (!empty($listing['thumbnail'])) {
+                            $image = kinas_image_url($listing['thumbnail']);
                         }
                         $divisionName = 'KINAS Marketplace';
                         $price = '₦' . number_format($listing['price'] ?? 0);
@@ -935,7 +858,10 @@ html, body {
                     <a href="<?php echo $url; ?>">
                         <div class="listing-img">
                             <?php if (!empty($image)): ?>
-                                <img src="<?php echo $image; ?>" alt="<?php echo htmlspecialchars($listing['title'] ?? 'Listing'); ?>" loading="lazy">
+                                <img src="<?php echo htmlspecialchars($image); ?>"
+                                     alt="<?php echo htmlspecialchars($listing['title'] ?? 'Listing'); ?>"
+                                     loading="lazy"
+                                     onerror="this.onerror=null;this.parentElement.innerHTML='<div class=&quot;no-image&quot;><i class=&quot;fas fa-image&quot;></i></div>';">
                             <?php else: ?>
                                 <div class="no-image">
                                     <i class="fas fa-image"></i>
@@ -960,14 +886,12 @@ html, body {
                     </a>
                 </div>
             <?php endforeach; ?>
-
             <?php if (empty($featuredListings)): ?>
                 <!-- No hardcoded fallback listings -->
             <?php endif; ?>
         </div>
     </div>
 </section>
-
 <!-- TRUST BADGES -->
 <section class="section">
     <div class="container">
@@ -995,7 +919,6 @@ html, body {
         </div>
     </div>
 </section>
-
 <!-- CTA BANNER -->
 <section class="cta-banner">
     <div class="container">
@@ -1007,7 +930,6 @@ html, body {
         </div>
     </div>
 </section>
-
 <script>
 // ============================================
 // ROTATING HERO BACKGROUND (4 images)
@@ -1015,7 +937,6 @@ html, body {
 let currentSlide = 0;
 const slides = document.querySelectorAll('.hero-slide');
 const totalSlides = slides.length;
-
 function rotateHeroBackground() {
     if (totalSlides > 1) {
         slides[currentSlide].classList.remove('active');
@@ -1023,11 +944,9 @@ function rotateHeroBackground() {
         slides[currentSlide].classList.add('active');
     }
 }
-
 if (totalSlides > 1) {
     setInterval(rotateHeroBackground, 6000);
 }
-
 // ============================================
 // SEARCH TAB SWITCHER
 // ============================================
@@ -1036,26 +955,23 @@ function switchSearchTab(btn, tab) {
         t.classList.remove('active');
     });
     btn.classList.add('active');
-
     var divisionMap = {
-        'cars':        'automobile',
-        'homes':       'real_estate',
+        'cars': 'automobile',
+        'homes': 'real_estate',
         'marketplace': 'marketplace',
-        'solar':       'solar'
+        'solar': 'solar'
     };
     var hiddenInput = document.getElementById('searchDivision');
     if (hiddenInput) hiddenInput.value = divisionMap[tab] || '';
-
     var placeholderMap = {
-        'cars':        'Search luxury cars, SUVs, exotic vehicles…',
-        'homes':       'Search properties, apartments, luxury homes…',
+        'cars': 'Search luxury cars, SUVs, exotic vehicles…',
+        'homes': 'Search properties, apartments, luxury homes…',
         'marketplace': 'Search products, collectibles, luxury goods…',
-        'solar':       'Search solar panels, installations, energy solutions…'
+        'solar': 'Search solar panels, installations, energy solutions…'
     };
     var input = document.querySelector('.hs-input');
     if (input) input.placeholder = placeholderMap[tab] || 'Search…';
 }
-
 // ============================================
 // FAVORITE TOGGLE
 // ============================================
@@ -1069,5 +985,4 @@ function toggleFavorite(btn) {
     }
 }
 </script>
-
 <?php include 'templates/footer.php'; ?>
