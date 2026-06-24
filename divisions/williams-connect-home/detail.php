@@ -68,7 +68,7 @@ $location = implode(', ', $locParts);
 // Store listing data for JavaScript
 $listingId = (int)$item['id'];
 $agentId = (int)$item['agent_id'];
-$agentName = htmlspecialchars($item['agent_name'] ?? 'Agent');
+$agentName = htmlspecialchars($item['agent_name'] ?? 'Agent', ENT_QUOTES, 'UTF-8');
 ?>
 
 <div class="je-page">
@@ -143,21 +143,21 @@ $agentName = htmlspecialchars($item['agent_name'] ?? 'Agent');
             </dl>
 
             <!-- ============================================================ -->
-            <!-- BUTTONS WITH onclick handlers -->
+            <!-- BUTTONS - Using direct onclick with inline JavaScript -->
             <!-- ============================================================ -->
             <div class="je-cta-row">
                 <!-- Schedule Viewing -->
-                <button class="je-cta-primary" onclick="openScheduleViewing(<?= $listingId ?>, 'property', <?= $agentId ?>)">
+                <button class="je-cta-primary" onclick="openScheduleViewing(<?= $listingId ?>, 'property', <?= $agentId ?>);">
                     <i class="far fa-calendar-alt"></i> Schedule Viewing
                 </button>
                 
                 <!-- Contact Agent -->
-                <button class="je-cta-secondary" onclick="openContactAgent(<?= $agentId ?>, '<?= $agentName ?>', 'property')">
+                <button class="je-cta-secondary" onclick="openContactAgent(<?= $agentId ?>, '<?= $agentName ?>', 'property');">
                     <i class="far fa-envelope"></i> Contact Agent
                 </button>
                 
                 <!-- Save Listing -->
-                <button class="je-cta-secondary" onclick="jeSaveListing('property', <?= $listingId ?>)">
+                <button class="je-cta-secondary" onclick="jeSaveListing('property', <?= $listingId ?>);">
                     <i class="far fa-heart"></i> Save
                 </button>
             </div>
@@ -237,18 +237,19 @@ $agentName = htmlspecialchars($item['agent_name'] ?? 'Agent');
 <?php include __DIR__ . '/../../templates/modal/contact-agent-modal.php'; ?>
 
 <!-- ============================================================ -->
-<!-- JAVASCRIPT - DEFINED BEFORE ANY onclicks ARE CALLED -->
+<!-- JAVASCRIPT - IMMEDIATELY AFTER THE CONTENT -->
 <!-- ============================================================ -->
 <script>
 // ============================================================
-// ALL FUNCTIONS DEFINED AT THE TOP LEVEL (global scope)
+// SIMPLE TEST - Verify JavaScript is working
+// ============================================================
+console.log('=== JavaScript loaded successfully ===');
+
+// ============================================================
+// HELPER FUNCTIONS
 // ============================================================
 
-/**
- * Check if user is logged in
- */
 function isUserLoggedIn() {
-    // Check meta tag for user data
     const meta = document.querySelector('meta[name="user-data"]');
     if (meta) {
         try {
@@ -258,13 +259,9 @@ function isUserLoggedIn() {
             return false;
         }
     }
-    // Fallback: check for user-id meta
     return document.querySelector('meta[name="user-id"]')?.content ? true : false;
 }
 
-/**
- * Show login required message
- */
 function showLoginRequired() {
     alert('Please login to continue');
     setTimeout(function() {
@@ -272,15 +269,8 @@ function showLoginRequired() {
     }, 1500);
 }
 
-/**
- * Show toast notification (fallback uses alert)
- */
-function showToast(message, type) {
-    alert(message);
-}
-
 // ============================================================
-// SCHEDULE VIEWING FUNCTIONS
+// SCHEDULE VIEWING
 // ============================================================
 
 function openScheduleViewing(listingId, listingType, agentId) {
@@ -291,173 +281,15 @@ function openScheduleViewing(listingId, listingType, agentId) {
         return;
     }
     
-    // Open the schedule modal
-    openScheduleModal(listingId, listingType, agentId);
-}
-
-function openScheduleModal(listingId, listingType, agentId) {
-    // Check if modal exists, create if not
-    let modal = document.getElementById('schedule-viewing-modal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'schedule-viewing-modal';
-        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;';
-        modal.innerHTML = `
-            <div style="background:#fff;border-radius:16px;padding:30px;max-width:560px;width:90%;max-height:90vh;overflow-y:auto;position:relative;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                    <h3 style="font-family:'Prata',serif;font-size:22px;color:#0A0A0A;margin:0;">
-                        <i class="fas fa-calendar-check" style="color:#C6A43F;"></i> Schedule Viewing
-                    </h3>
-                    <button onclick="document.getElementById('schedule-viewing-modal').style.display='none'" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;">✕</button>
-                </div>
-                
-                <form id="schedule-form">
-                    <input type="hidden" name="listing_id" id="schedule-listing-id" value="${listingId}">
-                    <input type="hidden" name="listing_type" id="schedule-listing-type" value="${listingType}">
-                    <input type="hidden" name="agent_id" id="schedule-agent-id" value="${agentId}">
-                    <input type="hidden" name="inquiry_type" value="viewing">
-                    
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
-                        <div style="margin-bottom:15px;">
-                            <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Name *</label>
-                            <input type="text" name="name" id="schedule-user-name" required placeholder="John Doe" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
-                        </div>
-                        <div style="margin-bottom:15px;">
-                            <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Email *</label>
-                            <input type="email" name="email" id="schedule-user-email" required placeholder="john@example.com" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom:15px;">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Phone</label>
-                        <input type="tel" name="phone" id="schedule-user-phone" placeholder="+1 (555) 000-0000" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
-                    </div>
-                    
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
-                        <div style="margin-bottom:15px;">
-                            <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Preferred Date *</label>
-                            <input type="date" name="preferred_date" id="schedule-date" required style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
-                        </div>
-                        <div style="margin-bottom:15px;">
-                            <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Preferred Time *</label>
-                            <select name="preferred_time" id="schedule-time" required style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
-                                <option value="">Select time</option>
-                                <option value="09:00">9:00 AM</option>
-                                <option value="10:00">10:00 AM</option>
-                                <option value="11:00">11:00 AM</option>
-                                <option value="12:00">12:00 PM</option>
-                                <option value="13:00">1:00 PM</option>
-                                <option value="14:00">2:00 PM</option>
-                                <option value="15:00">3:00 PM</option>
-                                <option value="16:00">4:00 PM</option>
-                                <option value="17:00">5:00 PM</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom:15px;">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Additional Notes</label>
-                        <textarea name="message" id="schedule-message" rows="3" placeholder="Any special requirements..." style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;"></textarea>
-                    </div>
-                    
-                    <button type="submit" style="width:100%;padding:14px;background:#0A0A0A;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;">
-                        <i class="fas fa-calendar-check"></i> Request Viewing
-                    </button>
-                    
-                    <div id="schedule-error" style="display:none;margin-top:15px;padding:12px;background:#f8d7da;color:#721c24;border-radius:8px;"></div>
-                    <div id="schedule-success" style="display:none;margin-top:15px;padding:12px;background:#d4edda;color:#155724;border-radius:8px;"></div>
-                </form>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        
-        // Close on overlay click
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                this.style.display = 'none';
-            }
-        });
-        
-        // Handle form submission
-        document.getElementById('schedule-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const errorDiv = document.getElementById('schedule-error');
-            const successDiv = document.getElementById('schedule-success');
-            const originalText = submitBtn.innerHTML;
-            
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-            submitBtn.disabled = true;
-            errorDiv.style.display = 'none';
-            successDiv.style.display = 'none';
-            
-            const formData = new FormData(this);
-            
-            // Set message if empty
-            const messageField = document.getElementById('schedule-message');
-            if (!messageField.value.trim()) {
-                messageField.value = 'I would like to schedule a viewing for this property.';
-            }
-            
-            try {
-                const response = await fetch('/api/messages/send-inquiry.php', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    successDiv.innerHTML = '✅ <strong>Viewing requested!</strong> The agent will confirm your appointment shortly.';
-                    successDiv.style.display = 'block';
-                    
-                    setTimeout(function() {
-                        document.getElementById('schedule-viewing-modal').style.display = 'none';
-                        document.getElementById('schedule-form').reset();
-                    }, 3000);
-                } else {
-                    errorDiv.textContent = data.error || 'Failed to schedule viewing. Please try again.';
-                    errorDiv.style.display = 'block';
-                }
-            } catch (error) {
-                errorDiv.textContent = 'Network error. Please check your connection and try again.';
-                errorDiv.style.display = 'block';
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
-        });
-    }
+    // Simple alert for testing
+    alert('Schedule Viewing clicked!\n\nListing ID: ' + listingId + '\nType: ' + listingType + '\nAgent ID: ' + agentId);
     
-    // Set default date to tomorrow
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = tomorrow.toISOString().split('T')[0];
-    const dateInput = document.getElementById('schedule-date');
-    if (dateInput) {
-        dateInput.min = dateStr;
-        dateInput.value = dateStr;
-    }
-    
-    // Pre-fill user info if available
-    const meta = document.querySelector('meta[name="user-data"]');
-    if (meta) {
-        try {
-            const userData = JSON.parse(meta.content);
-            document.getElementById('schedule-user-name').value = userData.name || '';
-            document.getElementById('schedule-user-email').value = userData.email || '';
-            document.getElementById('schedule-user-phone').value = userData.phone || '';
-        } catch (e) {}
-    }
-    
-    // Show modal
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    // Open the schedule modal (will add this next)
+    // For now, just show the alert
 }
 
 // ============================================================
-// CONTACT AGENT FUNCTION
+// CONTACT AGENT
 // ============================================================
 
 function openContactAgent(agentId, agentName, division) {
@@ -468,38 +300,12 @@ function openContactAgent(agentId, agentName, division) {
         return;
     }
     
-    // Get listing info
-    const listingId = <?= $listingId ?>;
-    const listingType = 'property';
-    
-    // Try to use the existing contact agent modal
-    if (typeof openContactAgentModal === 'function') {
-        openContactAgentModal(listingId, listingType, agentId, agentName, false, division);
-    } else {
-        // Fallback: try to open the modal manually
-        const modal = document.getElementById('contact-agent-modal');
-        if (modal) {
-            // Set the values in the modal
-            const listingIdInput = document.getElementById('contact-listing-id');
-            const listingTypeInput = document.getElementById('contact-listing-type');
-            const agentIdInput = document.getElementById('contact-agent-id');
-            const agentNamePreview = document.getElementById('agent-name-preview');
-            
-            if (listingIdInput) listingIdInput.value = listingId;
-            if (listingTypeInput) listingTypeInput.value = listingType;
-            if (agentIdInput) agentIdInput.value = agentId;
-            if (agentNamePreview) agentNamePreview.textContent = agentName;
-            
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        } else {
-            alert('Contact Agent: ' + agentName + ' - ' + division);
-        }
-    }
+    // Simple alert for testing
+    alert('Contact Agent clicked!\n\nAgent: ' + agentName + '\nDivision: ' + division + '\nAgent ID: ' + agentId);
 }
 
 // ============================================================
-// SAVE LISTING FUNCTION
+// SAVE LISTING
 // ============================================================
 
 function jeSaveListing(type, id) {
@@ -510,54 +316,8 @@ function jeSaveListing(type, id) {
         return;
     }
     
-    // Find the button that was clicked
-    const btn = document.querySelector(`button[onclick*="jeSaveListing('${type}', ${id})"]`);
-    const originalHTML = btn ? btn.innerHTML : '';
-    
-    if (btn) {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        btn.disabled = true;
-    }
-    
-    const formData = new FormData();
-    formData.append('listing_type', type);
-    formData.append('listing_id', id);
-    
-    fetch('/api/listings/favorite.php', {
-        method: 'POST',
-        body: formData,
-        credentials: 'same-origin'
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            const icon = btn?.querySelector('i');
-            if (data.action === 'added') {
-                alert('✅ Added to favorites!');
-                if (icon) {
-                    icon.className = 'fas fa-heart';
-                    icon.style.color = '#C6A43F';
-                }
-            } else {
-                alert('Removed from favorites');
-                if (icon) {
-                    icon.className = 'far fa-heart';
-                    icon.style.color = '';
-                }
-            }
-        } else if (data.error) {
-            alert(data.error);
-        }
-    })
-    .catch(function() {
-        alert('Network error. Please try again.');
-    })
-    .finally(function() {
-        if (btn) {
-            btn.innerHTML = originalHTML;
-            btn.disabled = false;
-        }
-    });
+    // Simple alert for testing
+    alert('Save Listing clicked!\n\nType: ' + type + '\nID: ' + id);
 }
 
 // ============================================================
@@ -565,20 +325,10 @@ function jeSaveListing(type, id) {
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('=== Detail page loaded successfully ===');
-    console.log('Listing ID:', <?= $listingId ?>);
-    console.log('Listing Type: property');
-    console.log('Agent ID:', <?= $agentId ?>);
-    console.log('Agent Name:', '<?= $agentName ?>');
-    
-    // Set listing ID and type for contact agent modal
-    const listingIdInput = document.getElementById('contact-listing-id');
-    const listingTypeInput = document.getElementById('contact-listing-type');
-    const agentIdInput = document.getElementById('contact-agent-id');
-    
-    if (listingIdInput) listingIdInput.value = '<?= $listingId ?>';
-    if (listingTypeInput) listingTypeInput.value = 'property';
-    if (agentIdInput) agentIdInput.value = '<?= $agentId ?>';
+    console.log('=== Page fully loaded ===');
+    console.log('Listing ID: <?= $listingId ?>');
+    console.log('Agent ID: <?= $agentId ?>');
+    console.log('Agent Name: <?= $agentName ?>');
 });
 </script>
 
