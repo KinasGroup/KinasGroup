@@ -3,10 +3,10 @@
  * KINAS GROUP - User Messages
  * Professional messaging interface for regular users (buyers)
  */
-require_once '../../includes/session.php';
-require_once '../../includes/functions.php';
-require_once '../../includes/helpers.php';
-require_once '../../api/config/database.php';
+require_once '../includes/session.php';
+require_once '../includes/functions.php';
+require_once '../includes/helpers.php';
+require_once '../api/config/database.php';
 
 // Redirect if not logged in
 if (!SessionManager::isLoggedIn()) {
@@ -112,7 +112,7 @@ if ($viewingConversation) {
     $conversationInfo = $stmt->fetch();
     
     if ($conversationInfo) {
-        // Get all messages - FIXED: Use 'body' column
+        // Get all messages
         $stmt = $db->prepare("
             SELECT 
                 m.*,
@@ -171,7 +171,7 @@ if ($viewingConversation) {
 
 // Page title
 $pageTitle = 'Messages - My Dashboard';
-include '../../templates/header.php';
+include '../templates/header.php';
 ?>
 
 <style>
@@ -733,7 +733,6 @@ include '../../templates/header.php';
                     $unread = ($conv['unread_count'] ?? 0) > 0;
                     $avatarLetter = strtoupper(substr($otherName, 0, 1));
                     
-                    // FIXED: Use 'body' column for last_message
                     $lastMessage = $conv['last_message'] ?? '';
                     ?>
                     <a href="/user/messages.php?conversation=<?= $conv['conversation_id'] ?>" 
@@ -748,7 +747,6 @@ include '../../templates/header.php';
                             </div>
                             <div class="last-message">
                                 <?php 
-                                // FIXED: Check if last_message exists before using substr
                                 if (!empty($lastMessage)) {
                                     echo htmlspecialchars(substr($lastMessage, 0, 60));
                                     if (strlen($lastMessage) > 60) echo '...';
@@ -936,4 +934,4 @@ document.querySelectorAll('.messages-reply textarea').forEach(function(textarea)
 });
 </script>
 
-<?php include '../../templates/footer.php'; ?>
+<?php include '../templates/footer.php'; ?>
