@@ -10,11 +10,6 @@ je_render_footer('site');
 <!-- Shared transparent-header scroll effect (hero pages only) -->
 <script src="/assets/js/header-scroll.js"></script>
 
-<!-- ============================================================ -->
-<!-- DETAIL PAGE FUNCTIONS - ADDED FOR BUTTON FUNCTIONALITY -->
-<!-- ============================================================ -->
-<script src="/assets/js/detail-functions.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // Mobile menu
@@ -42,26 +37,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Ensure X (Twitter) icon displays correctly in footer
 document.addEventListener('DOMContentLoaded', function() {
-    // Fix any Twitter icons to use X icon
     var socialLinks = document.querySelectorAll('.je-footer-social a');
     socialLinks.forEach(function(link) {
         var href = link.getAttribute('href') || '';
-        // Check if it's an X/Twitter link
         if (href.includes('twitter.com') || href.includes('x.com')) {
             var icon = link.querySelector('i');
             if (icon) {
-                // Replace with X icon if it's using old twitter icon
                 if (icon.classList.contains('fa-twitter')) {
                     icon.classList.remove('fa-twitter');
                     icon.classList.add('fa-x-twitter');
                 }
-                // If it has no class or wrong class, set it properly
                 if (!icon.classList.contains('fa-x-twitter') && !icon.classList.contains('fa-twitter')) {
                     icon.className = 'fab fa-x-twitter';
                 }
             }
         }
-        // Also check for any link that might be missing the X icon
         if (href.includes('x.com') && !href.includes('twitter.com')) {
             var icon = link.querySelector('i');
             if (icon) {
@@ -70,7 +60,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // If the footer is rendered dynamically, also fix after a short delay
     setTimeout(function() {
         var socialLinksDelayed = document.querySelectorAll('.je-footer-social a');
         socialLinksDelayed.forEach(function(link) {
