@@ -16,6 +16,21 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'agent') {
     exit;
 }
 
+// ── FORCE REFRESH SUPER AGENT STATUS ──────────────────────────────
+// This ensures the dashboard shows correctly even if the session is stale
+try {
+    $db = Database::getInstance()->getConnection();
+    $stmt = $db->prepare("SELECT is_super_agent FROM agent_profiles WHERE user_id = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($row !== false) {
+        $_SESSION['is_super_agent'] = !empty($row['is_super_agent']);
+    }
+} catch (Exception $e) {
+    // ignore - keep existing session value
+}
+// ────────────────────────────────────────────────────────────────────
+
 $db = Database::getInstance()->getConnection();
 $agentId = $_SESSION['user_id'];
 $userName = $_SESSION['user_name'] ?? 'Agent';
@@ -65,29 +80,12 @@ $inactiveCount = $db->query("
     ) as inactive_listings
 ")->fetchColumn();
 
-$pageTitle = 'Super Agent Dashboard - KINAS GROUP';
+$pageTitle = 'Agent Dashboard - KINAS GROUP';
 include '../templates/header.php';
 ?>
 
 <div class="je-dash-shell">
-    <!-- Sidebar -->
-    <aside class="je-dash-sidebar">
-        <div class="je-dash-sidebar-brand">
-            <i class="fas fa-crown"></i> KINAS GROUP
-        </div>
-        <ul class="je-dash-nav">
-            <li><a href="dashboard.php" class="is-active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="listings.php"><i class="fas fa-list-ul"></i> All Listings</a></li>
-            <li><a href="add-listing.php"><i class="fas fa-plus-circle"></i> Add Listing</a></li>
-            <li><a href="messages.php"><i class="fas fa-envelope"></i> Messages</a></li>
-            <li><a href="analytics.php"><i class="fas fa-chart-bar"></i> Analytics</a></li>
-            <li><a href="earnings.php"><i class="fas fa-money-bill-wave"></i> Earnings</a></li>
-            <li><a href="profile.php"><i class="fas fa-user"></i> Profile</a></li>
-            <li class="je-dash-nav-divider"></li>
-            <li><a href="/"><i class="fas fa-home"></i> Back to Site</a></li>
-            <li class="je-dash-signout"><a href="/auth/logout.php"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
-        </ul>
-    </aside>
+    <?php include __DIR__ . '/../includes/partials/agent-sidebar.php'; ?>
 
     <!-- Main Content -->
     <main class="je-dash-main">
