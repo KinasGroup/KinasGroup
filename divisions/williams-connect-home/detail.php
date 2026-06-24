@@ -150,7 +150,7 @@ function showSuccessBanner(message, isError) {
 }
 
 // ============================================================
-// SCHEDULE VIEWING - FIXED MODAL POSITIONING
+// SCHEDULE VIEWING - PROPER POP-UP MODAL
 // ============================================================
 
 function openScheduleViewing(listingId, listingType, agentId) {
@@ -161,51 +161,47 @@ function openScheduleViewing(listingId, listingType, agentId) {
         return;
     }
     
-    openScheduleModal(listingId, listingType, agentId);
-}
-
-function openScheduleModal(listingId, listingType, agentId) {
-    // Remove existing modal if any
+    // Remove any existing modal first
     const existing = document.getElementById('schedule-viewing-modal');
     if (existing) {
         existing.remove();
     }
     
-    // Create overlay
+    // Create the modal overlay - APPEND TO BODY
     const overlay = document.createElement('div');
     overlay.id = 'schedule-viewing-modal';
     overlay.style.cssText = `
         position: fixed;
         top: 0;
         left: 0;
-        right: 0;
-        bottom: 0;
+        width: 100%;
+        height: 100%;
         background: rgba(0, 0, 0, 0.7);
-        z-index: 99999;
+        z-index: 999999;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 20px;
-        overflow-y: auto;
+        box-sizing: border-box;
     `;
     
-    // Create modal content
+    // Create the modal content
     overlay.innerHTML = `
-        <div style="background:#fff;border-radius:16px;padding:30px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                <h3 style="font-family:'Prata',serif;font-size:22px;color:#0A0A0A;margin:0;">
-                    <i class="fas fa-calendar-check" style="color:#C6A43F;"></i> Schedule Viewing
+        <div style="background: #ffffff; border-radius: 16px; padding: 30px; max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.3); margin: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-family: 'Prata', serif; font-size: 22px; color: #0A0A0A; margin: 0;">
+                    <i class="fas fa-calendar-check" style="color: #C6A43F;"></i> Schedule Viewing
                 </h3>
-                <button onclick="closeScheduleModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;padding:0 8px;">✕</button>
+                <button onclick="closeScheduleModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #888; padding: 0 8px;">✕</button>
             </div>
             
-            <div style="display:flex;align-items:center;gap:15px;padding:15px;background:#f9f9f9;border-radius:8px;margin-bottom:20px;">
-                <div style="width:50px;height:50px;border-radius:50%;background:#C6A43F;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:18px;flex-shrink:0;">
+            <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px; margin-bottom: 20px;">
+                <div style="width: 50px; height: 50px; border-radius: 50%; background: #C6A43F; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 18px; flex-shrink: 0;">
                     <?= substr($agentName, 0, 1) ?>
                 </div>
                 <div>
-                    <strong style="font-size:16px;color:#0A0A0A;"><?= $agentName ?></strong>
-                    <p style="color:#888;font-size:13px;margin:2px 0 0;">
+                    <strong style="font-size: 16px; color: #0A0A0A;"><?= $agentName ?></strong>
+                    <p style="color: #888; font-size: 13px; margin: 2px 0 0;">
                         Williams Connect Home · <?= $listingTitle ?>
                     </p>
                 </div>
@@ -217,30 +213,30 @@ function openScheduleModal(listingId, listingType, agentId) {
                 <input type="hidden" name="agent_id" value="${agentId}">
                 <input type="hidden" name="inquiry_type" value="viewing">
                 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
-                    <div style="margin-bottom:15px;">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Name *</label>
-                        <input type="text" name="name" id="s-name" required placeholder="John Doe" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Your Name *</label>
+                        <input type="text" name="name" id="s-name" required placeholder="John Doe" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
                     </div>
-                    <div style="margin-bottom:15px;">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Email *</label>
-                        <input type="email" name="email" id="s-email" required placeholder="john@example.com" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Your Email *</label>
+                        <input type="email" name="email" id="s-email" required placeholder="john@example.com" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
                     </div>
                 </div>
                 
-                <div style="margin-bottom:15px;">
-                    <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Phone</label>
-                    <input type="tel" name="phone" id="s-phone" placeholder="+1 (555) 000-0000" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Your Phone</label>
+                    <input type="tel" name="phone" id="s-phone" placeholder="+1 (555) 000-0000" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
                 </div>
                 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
-                    <div style="margin-bottom:15px;">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Preferred Date *</label>
-                        <input type="date" name="preferred_date" id="s-date" required style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Preferred Date *</label>
+                        <input type="date" name="preferred_date" id="s-date" required style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
                     </div>
-                    <div style="margin-bottom:15px;">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Preferred Time *</label>
-                        <select name="preferred_time" id="s-time" required style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Preferred Time *</label>
+                        <select name="preferred_time" id="s-time" required style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
                             <option value="">Select time</option>
                             <option value="09:00">9:00 AM</option>
                             <option value="10:00">10:00 AM</option>
@@ -255,27 +251,28 @@ function openScheduleModal(listingId, listingType, agentId) {
                     </div>
                 </div>
                 
-                <div style="margin-bottom:15px;">
-                    <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Additional Notes</label>
-                    <textarea name="message" id="s-message" rows="3" placeholder="Any special requirements..." style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;"></textarea>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Additional Notes</label>
+                    <textarea name="message" id="s-message" rows="3" placeholder="Any special requirements..." style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
                 </div>
                 
-                <div style="background:#FFF8E1;border-radius:8px;padding:12px;margin-bottom:20px;border-left:3px solid #C6A43F;">
-                    <p style="font-size:12px;color:#7A5B00;margin:0;">
+                <div style="background: #FFF8E1; border-radius: 8px; padding: 12px; margin-bottom: 20px; border-left: 3px solid #C6A43F;">
+                    <p style="font-size: 12px; color: #7A5B00; margin: 0;">
                         📅 <strong>What happens next?</strong> The agent will confirm your viewing appointment within 24 hours.
                     </p>
                 </div>
                 
-                <button type="submit" style="width:100%;padding:14px;background:#0A0A0A;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:background 0.3s;">
+                <button type="submit" style="width: 100%; padding: 14px; background: #0A0A0A; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; box-sizing: border-box;">
                     <i class="fas fa-calendar-check"></i> Request Viewing
                 </button>
                 
-                <div id="s-error" style="display:none;margin-top:15px;padding:12px;background:#f8d7da;color:#721c24;border-radius:8px;"></div>
-                <div id="s-success" style="display:none;margin-top:15px;padding:12px;background:#d4edda;color:#155724;border-radius:8px;"></div>
+                <div id="s-error" style="display: none; margin-top: 15px; padding: 12px; background: #f8d7da; color: #721c24; border-radius: 8px;"></div>
+                <div id="s-success" style="display: none; margin-top: 15px; padding: 12px; background: #d4edda; color: #155724; border-radius: 8px;"></div>
             </form>
         </div>
     `;
     
+    // APPEND TO BODY - this is critical for proper positioning
     document.body.appendChild(overlay);
     document.body.style.overflow = 'hidden';
     
@@ -357,14 +354,185 @@ function closeScheduleModal() {
     }
 }
 
+// Close modal when clicking overlay (but not when clicking inside)
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('schedule-viewing-modal');
+    if (modal && e.target === modal) {
+        closeScheduleModal();
+    }
+});
+
 // ============================================================
-// CONTACT AGENT - (TO BE FIXED LATER)
+// CONTACT AGENT - FIXED (opens modal, no 404)
 // ============================================================
 
 function openContactAgent(agentId, agentName, division) {
     console.log('openContactAgent called!', agentId, agentName, division);
-    alert('Contact Agent - Coming soon!');
+    
+    if (!isUserLoggedIn()) {
+        showLoginRequired();
+        return;
+    }
+    
+    // Remove any existing modal
+    const existing = document.getElementById('contact-modal');
+    if (existing) {
+        existing.remove();
+    }
+    
+    // Create the modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'contact-modal';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 999998;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    `;
+    
+    const verifiedBadge = <?= $agentVerified ? 'true' : 'false' ?> ? '<span style="color:#1B5E20;font-weight:600;">✓ Verified</span>' : '';
+    
+    overlay.innerHTML = `
+        <div style="background: #ffffff; border-radius: 16px; padding: 30px; max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.3); margin: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-family: 'Prata', serif; font-size: 22px; color: #0A0A0A; margin: 0;">
+                    <i class="fas fa-envelope" style="color: #C6A43F;"></i> Contact Agent
+                </h3>
+                <button onclick="this.closest('#contact-modal').remove(); document.body.style.overflow = '';" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #888; padding: 0 8px;">✕</button>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px; margin-bottom: 20px;">
+                <div style="width: 50px; height: 50px; border-radius: 50%; background: #C6A43F; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 18px; flex-shrink: 0;">
+                    <?= substr($agentName, 0, 1) ?>
+                </div>
+                <div>
+                    <strong style="font-size: 16px; color: #0A0A0A;"><?= $agentName ?></strong>
+                    <p style="color: #888; font-size: 13px; margin: 2px 0 0;">
+                        ${verifiedBadge} ${division}
+                    </p>
+                </div>
+            </div>
+            
+            <form id="contact-form">
+                <input type="hidden" name="listing_id" value="<?= $listingId ?>">
+                <input type="hidden" name="listing_type" value="property">
+                <input type="hidden" name="agent_id" value="${agentId}">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Your Name *</label>
+                        <input type="text" name="name" id="c-name" required placeholder="John Doe" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Your Email *</label>
+                        <input type="email" name="email" id="c-email" required placeholder="john@example.com" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Your Phone</label>
+                    <input type="tel" name="phone" id="c-phone" placeholder="+1 (555) 000-0000" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Subject</label>
+                    <input type="text" name="subject" id="c-subject" value="Inquiry about property" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Message *</label>
+                    <textarea name="message" id="c-message" rows="5" required placeholder="Hi, I'm interested in your listing..." style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+                </div>
+                
+                <div style="background: #f0f9ff; border-radius: 8px; padding: 12px; margin-bottom: 20px;">
+                    <p style="font-size: 12px; color: #0c5460; margin: 0;">🔒 Your contact information is only shared with the agent for this specific inquiry.</p>
+                </div>
+                
+                <button type="submit" style="width: 100%; padding: 14px; background: #0A0A0A; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; box-sizing: border-box;">
+                    <i class="fas fa-paper-plane"></i> Send Inquiry
+                </button>
+                
+                <div id="c-error" style="display: none; margin-top: 15px; padding: 12px; background: #f8d7da; color: #721c24; border-radius: 8px;"></div>
+                <div id="c-success" style="display: none; margin-top: 15px; padding: 12px; background: #d4edda; color: #155724; border-radius: 8px;"></div>
+            </form>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+    
+    // Pre-fill user info
+    const meta = document.querySelector('meta[name="user-data"]');
+    if (meta) {
+        try {
+            const userData = JSON.parse(meta.content);
+            document.getElementById('c-name').value = userData.name || '';
+            document.getElementById('c-email').value = userData.email || '';
+            document.getElementById('c-phone').value = userData.phone || '';
+        } catch (e) {}
+    }
+    
+    // Handle form submission
+    document.getElementById('contact-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const errorDiv = document.getElementById('c-error');
+        const successDiv = document.getElementById('c-success');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        submitBtn.disabled = true;
+        errorDiv.style.display = 'none';
+        successDiv.style.display = 'none';
+        
+        const formData = new FormData(this);
+        
+        try {
+            const response = await fetch('../../../api/messages/send-inquiry.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                overlay.remove();
+                document.body.style.overflow = '';
+                showSuccessBanner('✅ Inquiry sent successfully! The agent will contact you shortly.', false);
+                document.getElementById('contact-form').reset();
+            } else {
+                errorDiv.textContent = data.error || 'Failed to send inquiry. Please try again.';
+                errorDiv.style.display = 'block';
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        } catch (error) {
+            console.error('Contact error:', error);
+            errorDiv.textContent = 'Network error. Please try again.';
+            errorDiv.style.display = 'block';
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    });
 }
+
+// Close contact modal when clicking overlay
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('contact-modal');
+    if (modal && e.target === modal) {
+        modal.remove();
+        document.body.style.overflow = '';
+    }
+});
 
 // ============================================================
 // SAVE LISTING - WITH FAVOURITE BUTTON STYLING
