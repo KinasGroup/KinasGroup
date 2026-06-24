@@ -674,4 +674,116 @@ if (!document.getElementById('banner-styles')) {
                 · <?= ($item['listing_type'] ?? '') === 'rent' ? 'For Rent' : 'For Sale' ?>
             </div>
             <h1 class="je-spec-title"><?= htmlspecialchars($item['title'] ?? '') ?></h1>
-            <?php if ($location): ?><div style="font-size:13px;color:#888;margin-bottom:8px;"><i class="fas fa-map-marker-alt" style="color:#C6A43F"></i> <?= htmlspecialchars($location
+            <?php if ($location): ?><div style="font-size:13px;color:#888;margin-bottom:8px;"><i class="fas fa-map-marker-alt" style="color:#C6A43F"></i> <?= htmlspecialchars($location) ?></div><?php endif; ?>
+
+            <div class="je-spec-price"><?= function_exists('formatPrice') ? formatPrice((float)$item['price']) : '₦' . number_format((float)$item['price']) ?><?php if (($item['listing_type'] ?? '') === 'rent'): ?> <span style="font-size:14px;color:#888;font-weight:400;">/year</span><?php endif; ?></div>
+
+            <dl class="je-spec-key">
+                <?php
+                $keys = [
+                    'Bedrooms'    => ($item['beds'] ?? null) !== null ? (int)$item['beds'] : null,
+                    'Bathrooms'   => ($item['baths'] ?? null) !== null ? (int)$item['baths'] : null,
+                    'Square Feet' => ($item['sqft'] ?? null) !== null ? number_format((int)$item['sqft']) : null,
+                    'Lot Size'    => ($item['lot_size'] ?? null) !== null ? rtrim(rtrim(number_format((float)$item['lot_size'], 2), '0'), '.') . ' acres' : null,
+                    'Year Built'  => $item['year_built'] ?? null,
+                    'View'        => $item['view_type'] ?? null,
+                    'HOA Fees'    => ($item['hoa_fees'] ?? null) !== null ? formatPrice((float)$item['hoa_fees']) . '/mo' : null,
+                    'Address'     => $item['address'] ?? null,
+                ];
+                foreach ($keys as $label => $val):
+                    if (!$val) continue;
+                ?>
+                    <div><dt><?= htmlspecialchars($label) ?></dt><dd><?= htmlspecialchars($val) ?></dd></div>
+                <?php endforeach; ?>
+            </dl>
+
+            <!-- ============================================================ -->
+            <!-- BUTTONS -->
+            <!-- ============================================================ -->
+            <div class="je-cta-row">
+                <button class="je-cta-primary" onclick="openScheduleViewing(<?= $listingId ?>, 'property', <?= $agentId ?>);">
+                    <i class="far fa-calendar-alt"></i> Schedule Viewing
+                </button>
+                
+                <button class="je-cta-secondary" onclick="openContactAgent(<?= $agentId ?>, '<?= $agentName ?>', 'property');">
+                    <i class="far fa-envelope"></i> Contact Agent
+                </button>
+                
+                <button class="je-cta-secondary" onclick="jeSaveListing('property', <?= $listingId ?>);">
+                    <i class="far fa-heart"></i> Save
+                </button>
+            </div>
+
+            <div class="je-agent-card">
+                <div class="je-agent-avatar">
+                    <?php if (!empty($item['agent_avatar'])): ?>
+                        <img src="<?= htmlspecialchars($item['agent_avatar']) ?>" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
+                    <?php else: ?>
+                        <?= strtoupper(substr($item['agent_name'] ?? 'A', 0, 1)) ?>
+                    <?php endif; ?>
+                </div>
+                <div class="je-agent-info">
+                    <div class="je-agent-name"><?= htmlspecialchars($item['agent_name'] ?? 'Agent') ?></div>
+                    <div class="je-agent-meta">
+                        <?= htmlspecialchars($item['agent_company'] ?? 'Independent Agent') ?>
+                        <?php if (!empty($item['agent_verified'])): ?>
+                            · <span style="color:#1B5E20;font-weight:600;">✓ Verified</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <section class="je-section" style="padding-left:0;padding-right:0;border-top:1px solid #e8e8e8; margin-top:40px;">
+        <h2>About this property</h2>
+        <?php if (!empty($item['description'])): ?>
+            <p><?= nl2br(htmlspecialchars($item['description'])) ?></p>
+        <?php else: ?>
+            <p style="color:#999;font-style:italic;">No description provided.</p>
+        <?php endif; ?>
+
+        <?php if (!empty($features)): ?>
+        <h2 style="margin-top:32px;">Features &amp; Amenities</h2>
+        <div class="je-features-grid">
+            <?php foreach ($features as $f): ?>
+                <div class="je-feature-pill"><i class="fas fa-check"></i> <?= htmlspecialchars(is_array($f) ? ($f['name'] ?? json_encode($f)) : $f) ?></div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </section>
+
+    <?php if (!empty($similar)): ?>
+    <section class="je-section" style="padding-left:0;padding-right:0;border-top:1px solid #e8e8e8;">
+        <h2>Similar properties</h2>
+        <?php
+        $simCards = array_map(function ($s) {
+            $specParts = array_filter([
+                ($s['beds'] ?? null) !== null ? (int)$s['beds'] . ' bd' : null,
+                ($s['baths'] ?? null) !== null ? (int)$s['baths'] . ' ba' : null,
+                ($s['sqft'] ?? null) !== null ? number_format((int)$s['sqft']) . ' sqft' : null,
+            ]);
+            return [
+                'id'         => $s['id'],
+                'title'      => $s['title'] ?? '',
+                'division'   => 'WILLIAMS CONNECT HOME',
+                'price'      => $s['price'],
+                'thumbnail'  => $s['thumbnail'] ?: '',
+                'specs'      => implode(' • ', $specParts),
+                'location'   => trim(($s['city'] ?? '') . ', ' . ($s['state'] ?? ''), ', '),
+                'detail_url' => 'detail.php?id=' . (int)$s['id'],
+                'featured'   => false,
+                'verified'   => false,
+            ];
+        }, $similar);
+        echo '<div class="je-listings-grid" style="grid-template-columns:repeat(4,1fr);">';
+        foreach ($simCards as $c) je_render_card($c);
+        echo '</div>';
+        ?>
+    </section>
+    <?php endif; ?>
+
+</div>
+</div>
+
+<?php include '../../templates/footer.php'; ?>
