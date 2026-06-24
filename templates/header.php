@@ -1,17 +1,44 @@
 <?php
-/**
- * KINAS GROUP - Main Header Template
- * Used across all pages
- */
+require_once __DIR__ . '/../api/config/database.php';
+require_once __DIR__ . '/../includes/functions.php';
+
+$isLoggedIn = isset($_SESSION['user_id']);
+$userRole = $_SESSION['user_role'] ?? null;
+$userName = $_SESSION['user_name'] ?? '';
+
+// Check if this is a "hero page" (for transparent header overlay effect).
+$isHeroPage = false;
+$scriptName = basename($_SERVER['PHP_SELF']);
+$requestUri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+
+// Homepage: / and /index.php
+if ($scriptName === 'index.php' && in_array($requestUri, ['/', '/index.php'], true)) {
+    $isHeroPage = true;
+}
+
+// Division landings: /divisions/*/index.php
+if ($scriptName === 'index.php'
+    && preg_match('#^/divisions/[^/]+/?$#', $requestUri)) {
+    $isHeroPage = true;
+}
+
+// About page
+if ($scriptName === 'about.php'
+    && preg_match('#^/pages/about\.php$#', $requestUri)) {
+    $isHeroPage = true;
+}
+
+$transparentClass = $isHeroPage ? 'transparent' : 'solid';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle ?? 'KINAS GROUP - Luxury Marketplace'; ?></title>
-    <meta name="description" content="<?php echo $pageDescription ?? 'Discover luxury automobiles, properties, solar solutions and more at KINAS GROUP.'; ?>">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="color-scheme" content="light only">
+    <meta name="description" content="<?php echo $pageDescription ?? 'KINAS GROUP - The World\'s Luxury Marketplace: Homes, Cars, Solar & Products for Sale'; ?>">
+    <title><?php echo $pageTitle ?? 'KINAS GROUP | The World\'s Luxury Marketplace'; ?></title>
+
     <!-- ============================================================ -->
     <!-- USER DATA - Pass session data to JavaScript (ADDED FOR FIX) -->
     <!-- ============================================================ -->
@@ -27,151 +54,188 @@
         echo json_encode($userData);
     ?>'>
     <meta name="user-id" content="<?php echo $_SESSION['user_id'] ?? ''; ?>">
-    
-    <!-- ============================================================ -->
-    <!-- STYLES -->
-    <!-- ============================================================ -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prata&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Core CSS -->
-    <link rel="stylesheet" href="/assets/css/style.css">
-    <link rel="stylesheet" href="/assets/css/responsive.css">
-    <link rel="stylesheet" href="/assets/css/luxury-marketplace.css">
-    <link rel="stylesheet" href="/assets/css/james-edition.css">
+
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="/assets/css/footer-social.css">
-    
-    <?php if (isset($isAdminPage) && $isAdminPage): ?>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/james-edition.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
+    <link rel="stylesheet" href="/assets/css/footer-social.css">
+    <?php if ($userRole === 'admin'): ?>
     <link rel="stylesheet" href="/assets/css/admin.css">
     <?php endif; ?>
+
+    <!-- Font Awesome Icons - UPDATED to version 6.5.1 or newer -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     
-    <!-- ============================================================ -->
-    <!-- FAVICON -->
-    <!-- ============================================================ -->
-    <link rel="icon" href="/assets/images/logos/kinas-group-logo.png" type="image/png">
-    
-    <!-- ============================================================ -->
-    <!-- FLASH MESSAGES STYLES (from functions.php) -->
-    <!-- ============================================================ -->
-    <?php if (function_exists('get_flash_styles')): ?>
-        <?php echo get_flash_styles(); ?>
-    <?php endif; ?>
-    
-    <!-- ============================================================ -->
-    <!-- CUSTOM PAGE STYLES -->
-    <!-- ============================================================ -->
-    <?php if (isset($customStyles)): ?>
-        <style><?php echo $customStyles; ?></style>
-    <?php endif; ?>
+    <style>
+        /* CRITICAL MOBILE MENU STYLES - DO NOT REMOVE */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #0A0A0A;
+            padding: 10px;
+            z-index: 1003;
+            position: relative;
+        }
+
+        .mobile-nav-drawer {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 85%;
+            max-width: 320px;
+            height: 100%;
+            background: #0A0A0A;
+            z-index: 1002;
+            transition: right 0.3s ease-in-out;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            overflow-y: auto;
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .mobile-nav-drawer.open {
+            right: 0;
+        }
+
+        .mobile-nav-drawer .close-menu {
+            background: none;
+            border: none;
+            color: #C6A43F;
+            font-size: 28px;
+            cursor: pointer;
+            align-self: flex-end;
+            margin-bottom: 20px;
+            padding: 5px;
+            line-height: 1;
+        }
+
+        .mobile-nav-drawer a {
+            color: #e0e0e0;
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+            padding: 14px 0;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            transition: color 0.3s;
+        }
+
+        .mobile-nav-drawer a:hover {
+            color: #C6A43F;
+        }
+
+        .mobile-nav-drawer hr {
+            border-color: #333;
+            margin: 10px 0;
+        }
+
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1001;
+        }
+
+        .menu-overlay.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block !important;
+            }
+            .header-nav {
+                display: none !important;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-nav-drawer {
+                display: none !important;
+            }
+            .menu-overlay {
+                display: none !important;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- ============================================================ -->
-    <!-- FLASH MESSAGES -->
-    <!-- ============================================================ -->
-    <?php if (function_exists('display_flash_messages')): ?>
-        <?php echo display_flash_messages(); ?>
+
+<!-- Mobile Menu Overlay -->
+<div id="menuOverlay" class="menu-overlay"></div>
+
+<!-- Mobile Navigation Drawer - CRITICAL: This was missing! -->
+<div id="mobileNavDrawer" class="mobile-nav-drawer">
+    <button class="close-menu" id="closeMobileMenu">✕</button>
+    <a href="/divisions/kinas-automobile/">KINAS AUTOMOBILE</a>
+    <a href="/divisions/williams-connect-home/">WILLIAMS CONNECT HOME</a>
+    <a href="/divisions/kinas-volt/">KINAS VOLT</a>
+    <a href="/divisions/kinas-marketplace/">KINAS MARKETPLACE</a>
+    <a href="/pages/about.php">ABOUT US</a>
+    <hr>
+    <?php if ($isLoggedIn): ?>
+        <?php if ($userRole === 'admin'): ?>
+            <a href="/admin/dashboard.php">Admin Dashboard</a>
+        <?php elseif ($userRole === 'agent'): ?>
+            <a href="/agent/dashboard.php">Agent Dashboard</a>
+        <?php else: ?>
+            <a href="/user/dashboard.php">My Dashboard</a>
+        <?php endif; ?>
+        <a href="/auth/logout.php">Sign Out</a>
+    <?php else: ?>
+        <a href="/auth/login.php">Sign In</a>
+        <a href="/auth/register.php">Register as Agent</a>
+        <a href="/auth/register-buyer.php">Register as Buyer</a>
     <?php endif; ?>
+</div>
 
-    <!-- ============================================================ -->
-    <!-- HEADER -->
-    <!-- ============================================================ -->
-    <header id="header" class="je3-header <?php echo $headerClass ?? 'solid'; ?>">
-        <div class="je3-container">
-            <!-- Logo -->
-            <a href="/" class="je3-logo">
-                <img src="/assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" height="50">
-                <span class="je3-logo-text">KINAS <span class="gold">GROUP</span></span>
-            </a>
+<!-- HEADER - Transparent Overlay Effect -->
+<header class="je3-header <?php echo $transparentClass; ?>" id="header">
+    <div class="container header-inner">
+        <a href="/" class="header-logo">
+            <img src="/assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP">
+        </a>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu" aria-expanded="false">
+            <span class="menu-icon" aria-hidden="true">☰</span>
+            <span class="menu-icon-close" style="display:none;" aria-hidden="true">✕</span>
+        </button>
+        <nav class="header-nav" id="mainNav">
+            <a href="/divisions/kinas-automobile/">KINAS AUTOMOBILE</a>
+            <a href="/divisions/williams-connect-home/">WILLIAMS CONNECT HOME</a>
+            <a href="/divisions/kinas-volt/">KINAS VOLT</a>
+            <a href="/divisions/kinas-marketplace/">KINAS MARKETPLACE</a>
+            <a href="/pages/about.php">ABOUT US</a>
+            <?php if ($isLoggedIn): ?>
+                <?php if ($userRole === 'admin'): ?>
+                    <a href="/admin/dashboard.php" class="je2-button nav-btn-outline">Admin Panel</a>
+                <?php elseif ($userRole === 'agent'): ?>
+                    <a href="/agent/dashboard.php" class="je2-button nav-btn-outline">Dashboard</a>
+                <?php else: ?>
+                    <a href="/user/dashboard.php" class="je2-button nav-btn-outline">Dashboard</a>
+                <?php endif; ?>
+                <a href="/auth/logout.php" class="je2-button nav-btn-outline">Sign Out</a>
+            <?php else: ?>
+                <a href="/auth/login.php" class="je2-button nav-btn-outline">Sign In</a>
+                <a href="/auth/register.php" class="je2-button nav-btn-filled">Register</a>
+            <?php endif; ?>
+        </nav>
+    </div>
+</header>
 
-            <!-- Navigation -->
-            <nav class="je3-nav" id="mainNav">
-                <ul class="je3-nav-list">
-                    <li class="je3-nav-item has-dropdown">
-                        <a href="#" class="je3-nav-link">Divisions <i class="fas fa-chevron-down"></i></a>
-                        <div class="je3-dropdown">
-                            <a href="/divisions/kinas-automobile/" class="je3-dropdown-item">
-                                <i class="fas fa-car"></i> KINAS Automobile
-                            </a>
-                            <a href="/divisions/kinas-marketplace/" class="je3-dropdown-item">
-                                <i class="fas fa-store"></i> KINAS Marketplace
-                            </a>
-                            <a href="/divisions/kinas-volt/" class="je3-dropdown-item">
-                                <i class="fas fa-solar-panel"></i> KINAS Volt
-                            </a>
-                            <a href="/divisions/williams-connect-home/" class="je3-dropdown-item">
-                                <i class="fas fa-home"></i> Williams Connect Home
-                            </a>
-                        </div>
-                    </li>
-                    <li class="je3-nav-item"><a href="/about.php" class="je3-nav-link">About</a></li>
-                    <li class="je3-nav-item"><a href="/blog/" class="je3-nav-link">Blog</a></li>
-                    <li class="je3-nav-item"><a href="/contact.php" class="je3-nav-link">Contact</a></li>
-                    
-                    <?php if (SessionManager::isLoggedIn()): ?>
-                        <li class="je3-nav-item has-dropdown">
-                            <a href="#" class="je3-nav-link">
-                                <i class="fas fa-user-circle"></i> 
-                                <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Account'); ?>
-                                <i class="fas fa-chevron-down"></i>
-                            </a>
-                            <div class="je3-dropdown je3-dropdown-right">
-                                <?php if ($_SESSION['user_role'] === 'admin'): ?>
-                                    <a href="/admin/dashboard.php" class="je3-dropdown-item">
-                                        <i class="fas fa-crown"></i> Admin Dashboard
-                                    </a>
-                                <?php elseif ($_SESSION['user_role'] === 'agent'): ?>
-                                    <a href="/agent/dashboard.php" class="je3-dropdown-item">
-                                        <i class="fas fa-user-tie"></i> Agent Dashboard
-                                    </a>
-                                <?php else: ?>
-                                    <a href="/user/dashboard.php" class="je3-dropdown-item">
-                                        <i class="fas fa-user"></i> My Dashboard
-                                    </a>
-                                <?php endif; ?>
-                                <a href="/user/profile.php" class="je3-dropdown-item">
-                                    <i class="fas fa-cog"></i> Profile Settings
-                                </a>
-                                <a href="/user/saved-listings.php" class="je3-dropdown-item">
-                                    <i class="fas fa-heart"></i> Saved Listings
-                                </a>
-                                <hr class="je3-dropdown-divider">
-                                <a href="/auth/logout.php" class="je3-dropdown-item je3-dropdown-danger">
-                                    <i class="fas fa-sign-out-alt"></i> Logout
-                                </a>
-                            </div>
-                        </li>
-                    <?php else: ?>
-                        <li class="je3-nav-item">
-                            <a href="/auth/login.php" class="je3-nav-link je3-nav-cta">Login</a>
-                        </li>
-                        <li class="je3-nav-item">
-                            <a href="/auth/register.php" class="je3-nav-link je3-nav-cta je3-nav-cta-gold">Register</a>
-                        </li>
-                    <?php endif; ?>
-                </ul>
-            </nav>
-
-            <!-- Mobile Menu Toggle -->
-            <button class="je3-mobile-toggle" id="mobileToggle" aria-label="Toggle menu">
-                <span class="je3-mobile-bar"></span>
-                <span class="je3-mobile-bar"></span>
-                <span class="je3-mobile-bar"></span>
-            </button>
-        </div>
-    </header>
-
-    <!-- ============================================================ -->
-    <!-- MAIN CONTENT WRAPPER -->
-    <!-- ============================================================ -->
-    <main id="main-content">
-
-<?php
-// ============================================================
-// FLASH MESSAGE STYLES (inline - already output above)
-// ============================================================
-// The flash styles are output via get_flash_styles() above
-// which is defined in functions.php
-// ============================================================
-?>
+<main>
