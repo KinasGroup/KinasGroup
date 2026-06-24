@@ -286,7 +286,8 @@ function openScheduleModal(listingId, listingType, agentId) {
             }
             
             try {
-                const response = await fetch('/api/messages/send-inquiry.php', {
+                // FIX: Use relative path
+                const response = await fetch('../../../api/messages/send-inquiry.php', {
                     method: 'POST',
                     body: formData
                 });
@@ -348,7 +349,7 @@ function closeScheduleModal() {
 }
 
 // ============================================================
-// CONTACT AGENT - FIXED
+// CONTACT AGENT - FIXED WITH RELATIVE PATH
 // ============================================================
 
 function openContactAgent(agentId, agentName, division) {
@@ -445,7 +446,7 @@ function showContactModal(listingId, listingType, agentId, agentName, division) 
             }
         });
         
-        // Handle form submission
+        // Handle form submission - FIXED WITH RELATIVE PATH
         document.getElementById('contact-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -462,7 +463,8 @@ function showContactModal(listingId, listingType, agentId, agentName, division) 
             const formData = new FormData(this);
             
             try {
-                const response = await fetch('/api/messages/send-inquiry.php', {
+                // FIX: Use relative path instead of absolute
+                const response = await fetch('../../../api/messages/send-inquiry.php', {
                     method: 'POST',
                     body: formData
                 });
@@ -480,6 +482,7 @@ function showContactModal(listingId, listingType, agentId, agentName, division) 
                     submitBtn.disabled = false;
                 }
             } catch (error) {
+                console.error('Fetch error:', error);
                 errorDiv.textContent = 'Network error. Please try again.';
                 errorDiv.style.display = 'block';
                 submitBtn.innerHTML = originalText;
