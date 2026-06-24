@@ -493,7 +493,7 @@ html, body {
     padding-top: 4px;
 }
 
-/* ─── LISTINGS GRID IMAGE ─── */
+/* ─── LISTINGS GRID ─── */
 .listings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -525,7 +525,6 @@ html, body {
     display: block;
 }
 
-/* ─── IMAGE CONTAINER - BULLETPROOF ─── */
 .listing-img {
     position: relative;
     width: 100%;
@@ -538,16 +537,13 @@ html, body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center center;
     display: block;
-    transition: transform 0.5s ease;
 }
 
 .listing-card:hover .listing-img img {
     transform: scale(1.05);
 }
 
-/* Fallback when image fails to load */
 .listing-img .no-image {
     width: 100%;
     height: 100%;
@@ -571,7 +567,6 @@ html, body {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    z-index: 2;
 }
 
 .favorite-btn {
@@ -590,7 +585,6 @@ html, body {
     justify-content: center;
     transition: all 0.3s;
     color: #999;
-    z-index: 2;
 }
 
 .favorite-btn:hover {
@@ -941,7 +935,7 @@ html, body {
                     <a href="<?php echo $url; ?>">
                         <div class="listing-img">
                             <?php if (!empty($image)): ?>
-                                <img src="<?php echo $image; ?>" alt="<?php echo htmlspecialchars($listing['title'] ?? 'Listing'); ?>" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\"no-image\"><i class=\"fas fa-image\"></i></div>';">
+                                <img src="<?php echo $image; ?>" alt="<?php echo htmlspecialchars($listing['title'] ?? 'Listing'); ?>" loading="lazy">
                             <?php else: ?>
                                 <div class="no-image">
                                     <i class="fas fa-image"></i>
@@ -1030,4 +1024,26 @@ function rotateHeroBackground() {
     }
 }
 
-if (totalSlides > 1
+if (totalSlides > 1) {
+    setInterval(rotateHeroBackground, 6000);
+}
+
+// ============================================
+// SEARCH TAB SWITCHER
+// ============================================
+function switchSearchTab(btn, tab) {
+    document.querySelectorAll('.hs-tab').forEach(function(t) {
+        t.classList.remove('active');
+    });
+    btn.classList.add('active');
+
+    var divisionMap = {
+        'cars':        'automobile',
+        'homes':       'real_estate',
+        'marketplace': 'marketplace',
+        'solar':       'solar'
+    };
+    var hiddenInput = document.getElementById('searchDivision');
+    if (hiddenInput) hiddenInput.value = divisionMap[tab] || '';
+
+    var placeholderMap
