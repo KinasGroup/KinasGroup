@@ -173,6 +173,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
         <input type="hidden" name="listing_id" value="<?php echo $listingId; ?>">
         <input type="hidden" name="division" value="<?php echo $divisionParam; ?>">
         <input type="hidden" name="listing_type" id="listing_type" value="<?php echo $divisionParam; ?>">
+        <input type="hidden" name="redirect" value="/agent/listings.php">
         
         <div class="form-grid">
             <div class="form-section"><h3>Basic Information</h3>
@@ -453,13 +454,58 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 </div>
 
                 <div class="checkbox-group"><label class="checkbox-label"><input type="checkbox" name="featured" value="1" <?php echo (!empty($listing['featured'])) ? 'checked' : ''; ?>><span>Feature this listing for premium visibility</span></label></div>
-                <div class="form-actions"><button type="button" class="btn-cancel" onclick="window.location.href='/agent/listings.php'">Cancel</button><button type="submit" class="btn-submit">Update Listing</button></div>
+                <div class="form-actions"><button type="button" class="btn-cancel" onclick="window.location.href='/agent/listings.php'">Cancel</button><button type="submit" class="btn-submit" id="updateBtn">Update Listing</button></div>
             </div>
         </div>
     </form>
 </div>
 
 <script>
+// ============================================
+// FIX: DIRECT FORM SUBMISSION HANDLER
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('editForm');
+    const submitBtn = document.getElementById('updateBtn');
+    
+    if (form && submitBtn) {
+        submitBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Update button clicked');
+            
+            // Validate required fields
+            const title = form.querySelector('input[name="title"]')?.value?.trim() || '';
+            const price = form.querySelector('input[name="price"]')?.value?.trim() || '';
+            const description = form.querySelector('textarea[name="description"]')?.value?.trim() || '';
+            
+            if (!title) {
+                alert('Please enter a listing title.');
+                return;
+            }
+            if (!price || parseFloat(price) <= 0) {
+                alert('Please enter a valid price greater than zero.');
+                return;
+            }
+            if (!description) {
+                alert('Please enter a description.');
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            
+            // Submit the form
+            form.submit();
+        });
+        
+        // Also handle form submit event as backup
+        form.addEventListener('submit', function(e) {
+            console.log('Form submit event triggered');
+        });
+    }
+});
+
 // ============================================
 // IMAGE MANAGEMENT
 // ============================================
@@ -566,6 +612,16 @@ if (imageUpload) {
 // Initial render
 document.addEventListener('DOMContentLoaded', function() {
     renderImages();
+});
+
+// Also render images after any DOM changes
+document.addEventListener('DOMContentLoaded', function() {
+    // Re-render if the image grid is empty after a delay
+    setTimeout(function() {
+        if (imagePreviewGrid && imagePreviewGrid.children.length === 0) {
+            renderImages();
+        }
+    }, 100);
 });
 </script>
 
