@@ -73,6 +73,20 @@ $totalListings = $activeCars + $activeProperties + $activeProducts;
 $allFeatured = array_merge($cars, $properties, $marketplaceItems);
 $featuredListings = array_slice($allFeatured, 0, 8);
 
+// Helper function to fix image path
+function getImageUrl($path) {
+    if (empty($path)) {
+        return '';
+    }
+    // Remove any double slashes
+    $path = preg_replace('#/+#', '/', $path);
+    // Ensure leading slash
+    if (strpos($path, '/') !== 0) {
+        $path = '/' . $path;
+    }
+    return $path;
+}
+
 $extraScripts = ['/assets/js/main.js'];
 
 include 'templates/header.php';
@@ -542,8 +556,6 @@ html, body {
     height: 100% !important;
     object-fit: cover !important;
     display: block !important;
-    min-width: 100% !important;
-    min-height: 100% !important;
 }
 
 .listing-card:hover .listing-img img {
@@ -551,9 +563,6 @@ html, body {
 }
 
 .listing-img .no-image {
-    position: absolute;
-    top: 0;
-    left: 0;
     width: 100%;
     height: 100%;
     display: flex;
@@ -915,7 +924,7 @@ html, body {
                     case 'car':
                         $url = '/divisions/kinas-automobile/detail.php?id=' . $listing['id'];
                         if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
-                            $image = $listing['thumbnail'];
+                            $image = getImageUrl($listing['thumbnail']);
                         }
                         $divisionName = 'KINAS Automobile';
                         $specs = number_format($listing['mileage'] ?? 0) . ' km · ' . ucfirst($listing['transmission'] ?? 'Auto') . ' · ' . ucfirst($listing['fuel_type'] ?? 'Petrol');
@@ -924,7 +933,7 @@ html, body {
                     case 'property':
                         $url = '/divisions/williams-connect-home/detail.php?id=' . $listing['id'];
                         if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
-                            $image = $listing['thumbnail'];
+                            $image = getImageUrl($listing['thumbnail']);
                         }
                         $divisionName = 'Williams Connect Home';
                         $specs = ($listing['beds'] ?? 0) . ' Beds · ' . ($listing['baths'] ?? 0) . ' Baths · ' . number_format($listing['sqft'] ?? 0) . ' sqft';
@@ -933,7 +942,7 @@ html, body {
                     case 'marketplace':
                         $url = '/divisions/kinas-marketplace/detail.php?id=' . $listing['id'];
                         if (!empty($listing['thumbnail']) && $listing['thumbnail'] !== '') {
-                            $image = $listing['thumbnail'];
+                            $image = getImageUrl($listing['thumbnail']);
                         }
                         $divisionName = 'KINAS Marketplace';
                         $price = '₦' . number_format($listing['price'] ?? 0);
@@ -944,7 +953,7 @@ html, body {
                     <a href="<?php echo $url; ?>">
                         <div class="listing-img">
                             <?php if (!empty($image)): ?>
-                                <img src="<?php echo $image; ?>" alt="<?php echo htmlspecialchars($listing['title'] ?? 'Listing'); ?>" loading="lazy">
+                                <img src="<?php echo $image; ?>" alt="<?php echo htmlspecialchars($listing['title'] ?? 'Listing'); ?>" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\"no-image\"><i class=\"fas fa-image\"></i></div>';">
                             <?php else: ?>
                                 <div class="no-image">
                                     <i class="fas fa-image"></i>
@@ -1012,71 +1021,4 @@ html, body {
         <p>Join thousands of verified agents on KINAS GROUP</p>
         <div class="cta-buttons">
             <a href="/auth/register.php" class="je2-button" style="background:white; color:#151515; font-weight:600; padding:14px 32px;">Become an Agent</a>
-            <a href="/auth/login.php" class="je2-button" style="background:#0A0A0A; color:#ffffff; border:2px solid #0A0A0A; font-weight:600; padding:14px 32px;">Sign In</a>
-        </div>
-    </div>
-</section>
-
-<script>
-// ============================================
-// ROTATING HERO BACKGROUND (4 images)
-// ============================================
-let currentSlide = 0;
-const slides = document.querySelectorAll('.hero-slide');
-const totalSlides = slides.length;
-
-function rotateHeroBackground() {
-    if (totalSlides > 1) {
-        slides[currentSlide].classList.remove('active');
-        currentSlide = (currentSlide + 1) % totalSlides;
-        slides[currentSlide].classList.add('active');
-    }
-}
-
-if (totalSlides > 1) {
-    setInterval(rotateHeroBackground, 6000);
-}
-
-// ============================================
-// SEARCH TAB SWITCHER
-// ============================================
-function switchSearchTab(btn, tab) {
-    document.querySelectorAll('.hs-tab').forEach(function(t) {
-        t.classList.remove('active');
-    });
-    btn.classList.add('active');
-
-    var divisionMap = {
-        'cars':        'automobile',
-        'homes':       'real_estate',
-        'marketplace': 'marketplace',
-        'solar':       'solar'
-    };
-    var hiddenInput = document.getElementById('searchDivision');
-    if (hiddenInput) hiddenInput.value = divisionMap[tab] || '';
-
-    var placeholderMap = {
-        'cars':        'Search luxury cars, SUVs, exotic vehicles…',
-        'homes':       'Search properties, apartments, luxury homes…',
-        'marketplace': 'Search products, collectibles, luxury goods…',
-        'solar':       'Search solar panels, installations, energy solutions…'
-    };
-    var input = document.querySelector('.hs-input');
-    if (input) input.placeholder = placeholderMap[tab] || 'Search…';
-}
-
-// ============================================
-// FAVORITE TOGGLE
-// ============================================
-function toggleFavorite(btn) {
-    if (btn.textContent === '♡') {
-        btn.textContent = '♥';
-        btn.style.color = '#e74c3c';
-    } else {
-        btn.textContent = '♡';
-        btn.style.color = '';
-    }
-}
-</script>
-
-<?php include 'templates/footer.php'; ?>
+            <a href="/auth/login.php
