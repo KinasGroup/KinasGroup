@@ -138,12 +138,12 @@ $location = implode(', ', $locParts);
                 <button class="je-cta-primary" onclick="openScheduleViewing(<?= (int)$item['id'] ?>, 'marketplace', <?= (int)$item['agent_id'] ?>)">
                     <i class="far fa-calendar-alt"></i> Schedule Viewing
                 </button>
-                
+    
                 <!-- Contact Agent - opens contact form (not phone) -->
                 <button class="je-cta-secondary" onclick="openContactAgent(<?= (int)$item['agent_id'] ?>, '<?= htmlspecialchars($item['agent_name'] ?? 'Seller') ?>', 'marketplace')">
                     <i class="far fa-envelope"></i> Contact Seller
                 </button>
-                
+    
                 <!-- Save Listing -->
                 <button class="je-cta-secondary" onclick="jeSaveListing('marketplace', <?= (int)$item['id'] ?>)">
                     <i class="far fa-heart"></i> Save
