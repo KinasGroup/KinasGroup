@@ -1,4 +1,8 @@
 <?php
+// FORCE DEBUG - Add this at the very top
+error_log("=== DETAIL.PHP IS BEING LOADED ===");
+error_log("Listing ID: " . ($_GET['id'] ?? 'none'));
+?>
 /**
  * WILLIAMS CONNECT HOME — Property detail
  */
