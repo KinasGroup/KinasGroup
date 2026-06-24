@@ -64,6 +64,11 @@ include '../../templates/header.php';
 
 $locParts = array_filter([$item['city'] ?? null, $item['state'] ?? null, $item['country'] ?? null]);
 $location = implode(', ', $locParts);
+
+// Store listing data for JavaScript
+$listingId = (int)$item['id'];
+$agentId = (int)$item['agent_id'];
+$agentName = htmlspecialchars($item['agent_name'] ?? 'Agent');
 ?>
 
 <div class="je-page">
@@ -138,21 +143,21 @@ $location = implode(', ', $locParts);
             </dl>
 
             <!-- ============================================================ -->
-            <!-- BUTTONS - WORKING ONCLICK HANDLERS -->
+            <!-- BUTTONS WITH onclick handlers -->
             <!-- ============================================================ -->
             <div class="je-cta-row">
                 <!-- Schedule Viewing -->
-                <button class="je-cta-primary" onclick="openScheduleViewing(<?= (int)$item['id'] ?>, 'property', <?= (int)$item['agent_id'] ?>)">
+                <button class="je-cta-primary" onclick="openScheduleViewing(<?= $listingId ?>, 'property', <?= $agentId ?>)">
                     <i class="far fa-calendar-alt"></i> Schedule Viewing
                 </button>
                 
                 <!-- Contact Agent -->
-                <button class="je-cta-secondary" onclick="openContactAgent(<?= (int)$item['agent_id'] ?>, '<?= htmlspecialchars($item['agent_name'] ?? 'Agent') ?>', 'property')">
+                <button class="je-cta-secondary" onclick="openContactAgent(<?= $agentId ?>, '<?= $agentName ?>', 'property')">
                     <i class="far fa-envelope"></i> Contact Agent
                 </button>
                 
                 <!-- Save Listing -->
-                <button class="je-cta-secondary" onclick="jeSaveListing('property', <?= (int)$item['id'] ?>)">
+                <button class="je-cta-secondary" onclick="jeSaveListing('property', <?= $listingId ?>)">
                     <i class="far fa-heart"></i> Save
                 </button>
             </div>
@@ -232,14 +237,18 @@ $location = implode(', ', $locParts);
 <?php include __DIR__ . '/../../templates/modal/contact-agent-modal.php'; ?>
 
 <!-- ============================================================ -->
-<!-- JAVASCRIPT - INLINE FOR RELIABILITY -->
+<!-- JAVASCRIPT - DEFINED BEFORE ANY onclicks ARE CALLED -->
 <!-- ============================================================ -->
 <script>
 // ============================================================
-// HELPER FUNCTIONS
+// ALL FUNCTIONS DEFINED AT THE TOP LEVEL (global scope)
 // ============================================================
 
+/**
+ * Check if user is logged in
+ */
 function isUserLoggedIn() {
+    // Check meta tag for user data
     const meta = document.querySelector('meta[name="user-data"]');
     if (meta) {
         try {
@@ -249,9 +258,13 @@ function isUserLoggedIn() {
             return false;
         }
     }
+    // Fallback: check for user-id meta
     return document.querySelector('meta[name="user-id"]')?.content ? true : false;
 }
 
+/**
+ * Show login required message
+ */
 function showLoginRequired() {
     alert('Please login to continue');
     setTimeout(function() {
@@ -259,12 +272,15 @@ function showLoginRequired() {
     }, 1500);
 }
 
+/**
+ * Show toast notification (fallback uses alert)
+ */
 function showToast(message, type) {
     alert(message);
 }
 
 // ============================================================
-// SCHEDULE VIEWING
+// SCHEDULE VIEWING FUNCTIONS
 // ============================================================
 
 function openScheduleViewing(listingId, listingType, agentId) {
@@ -441,7 +457,7 @@ function openScheduleModal(listingId, listingType, agentId) {
 }
 
 // ============================================================
-// CONTACT AGENT
+// CONTACT AGENT FUNCTION
 // ============================================================
 
 function openContactAgent(agentId, agentName, division) {
@@ -452,26 +468,38 @@ function openContactAgent(agentId, agentName, division) {
         return;
     }
     
-    // Get listing info from the page
-    const listingId = <?= (int)$item['id'] ?>;
+    // Get listing info
+    const listingId = <?= $listingId ?>;
     const listingType = 'property';
     
-    // Use existing contact agent modal
+    // Try to use the existing contact agent modal
     if (typeof openContactAgentModal === 'function') {
         openContactAgentModal(listingId, listingType, agentId, agentName, false, division);
     } else {
-        alert('Contact Agent: ' + agentName + ' - ' + division);
         // Fallback: try to open the modal manually
         const modal = document.getElementById('contact-agent-modal');
         if (modal) {
+            // Set the values in the modal
+            const listingIdInput = document.getElementById('contact-listing-id');
+            const listingTypeInput = document.getElementById('contact-listing-type');
+            const agentIdInput = document.getElementById('contact-agent-id');
+            const agentNamePreview = document.getElementById('agent-name-preview');
+            
+            if (listingIdInput) listingIdInput.value = listingId;
+            if (listingTypeInput) listingTypeInput.value = listingType;
+            if (agentIdInput) agentIdInput.value = agentId;
+            if (agentNamePreview) agentNamePreview.textContent = agentName;
+            
             modal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
+        } else {
+            alert('Contact Agent: ' + agentName + ' - ' + division);
         }
     }
 }
 
 // ============================================================
-// SAVE LISTING
+// SAVE LISTING FUNCTION
 // ============================================================
 
 function jeSaveListing(type, id) {
@@ -537,20 +565,20 @@ function jeSaveListing(type, id) {
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Detail page ready!');
-    console.log('Listing ID:', <?= (int)$item['id'] ?>);
+    console.log('=== Detail page loaded successfully ===');
+    console.log('Listing ID:', <?= $listingId ?>);
     console.log('Listing Type: property');
-    console.log('Agent ID:', <?= (int)$item['agent_id'] ?>);
+    console.log('Agent ID:', <?= $agentId ?>);
+    console.log('Agent Name:', '<?= $agentName ?>');
     
     // Set listing ID and type for contact agent modal
     const listingIdInput = document.getElementById('contact-listing-id');
     const listingTypeInput = document.getElementById('contact-listing-type');
-    if (listingIdInput) listingIdInput.value = '<?= (int)$item['id'] ?>';
-    if (listingTypeInput) listingTypeInput.value = 'property';
-    
-    // Also set agent ID if exists
     const agentIdInput = document.getElementById('contact-agent-id');
-    if (agentIdInput) agentIdInput.value = '<?= (int)$item['agent_id'] ?>';
+    
+    if (listingIdInput) listingIdInput.value = '<?= $listingId ?>';
+    if (listingTypeInput) listingTypeInput.value = 'property';
+    if (agentIdInput) agentIdInput.value = '<?= $agentId ?>';
 });
 </script>
 
