@@ -1046,4 +1046,28 @@ function switchSearchTab(btn, tab) {
     var hiddenInput = document.getElementById('searchDivision');
     if (hiddenInput) hiddenInput.value = divisionMap[tab] || '';
 
-    var placeholderMap
+    var placeholderMap = {
+        'cars':        'Search luxury cars, SUVs, exotic vehicles…',
+        'homes':       'Search properties, apartments, luxury homes…',
+        'marketplace': 'Search products, collectibles, luxury goods…',
+        'solar':       'Search solar panels, installations, energy solutions…'
+    };
+    var input = document.querySelector('.hs-input');
+    if (input) input.placeholder = placeholderMap[tab] || 'Search…';
+}
+
+// ============================================
+// FAVORITE TOGGLE
+// ============================================
+function toggleFavorite(btn) {
+    if (btn.textContent === '♡') {
+        btn.textContent = '♥';
+        btn.style.color = '#e74c3c';
+    } else {
+        btn.textContent = '♡';
+        btn.style.color = '';
+    }
+}
+</script>
+
+<?php include 'templates/footer.php'; ?>
