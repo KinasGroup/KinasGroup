@@ -13,7 +13,7 @@
     <meta name="description" content="<?php echo $pageDescription ?? 'Discover luxury automobiles, properties, solar solutions and more at KINAS GROUP.'; ?>">
     
     <!-- ============================================================ -->
-    <!-- USER DATA - Pass session data to JavaScript -->
+    <!-- USER DATA - Pass session data to JavaScript (ADDED FOR FIX) -->
     <!-- ============================================================ -->
     <meta name="user-data" content='<?php 
         $userData = [
