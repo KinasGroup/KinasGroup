@@ -102,9 +102,53 @@ function showLoginRequired() {
     }, 1500);
 }
 
-function showToast(message, type) {
-    // Simple toast using alert for now
-    alert(message);
+// ============================================================
+// SHOW SUCCESS BANNER ON LISTING PAGE
+// ============================================================
+
+function showSuccessBanner(message) {
+    // Remove any existing banners
+    const existingBanners = document.querySelectorAll('.custom-success-banner');
+    existingBanners.forEach(function(b) { b.remove(); });
+    
+    // Create banner
+    const banner = document.createElement('div');
+    banner.className = 'custom-success-banner';
+    banner.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        z-index: 10000;
+        padding: 16px 24px;
+        background: #d4edda;
+        color: #155724;
+        border-left: 4px solid #28a745;
+        border-radius: 8px;
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        max-width: 450px;
+        animation: slideInRight 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    `;
+    banner.innerHTML = `
+        <i class="fas fa-check-circle" style="color: #28a745; font-size: 18px;"></i>
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#155724;margin-left:auto;">✕</button>
+    `;
+    document.body.appendChild(banner);
+    
+    // Auto remove after 5 seconds
+    setTimeout(function() {
+        if (banner.parentElement) {
+            banner.style.opacity = '0';
+            banner.style.transition = 'opacity 0.3s ease';
+            setTimeout(function() { banner.remove(); }, 300);
+        }
+    }, 5000);
 }
 
 // ============================================================
@@ -119,12 +163,10 @@ function openScheduleViewing(listingId, listingType, agentId) {
         return;
     }
     
-    // Open the schedule modal
     openScheduleModal(listingId, listingType, agentId);
 }
 
 function openScheduleModal(listingId, listingType, agentId) {
-    // Check if modal exists, create if not
     let modal = document.getElementById('schedule-viewing-modal');
     if (!modal) {
         modal = document.createElement('div');
@@ -218,14 +260,13 @@ function openScheduleModal(listingId, listingType, agentId) {
         `;
         document.body.appendChild(modal);
         
-        // Close on overlay click
         modal.addEventListener('click', function(e) {
             if (e.target === this) {
                 closeScheduleModal();
             }
         });
         
-        // Handle form submission
+        // Handle form submission - FIXED: Close modal and show banner
         document.getElementById('schedule-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -256,21 +297,21 @@ function openScheduleModal(listingId, listingType, agentId) {
                 const data = await response.json();
                 
                 if (data.success) {
-                    successDiv.innerHTML = '✅ <strong>Viewing requested!</strong> The agent will confirm your appointment shortly.';
-                    successDiv.style.display = 'block';
-                    
-                    setTimeout(function() {
-                        closeScheduleModal();
-                        document.getElementById('schedule-form').reset();
-                    }, 3000);
+                    // CLOSE MODAL
+                    closeScheduleModal();
+                    // SHOW BANNER ON LISTING PAGE
+                    showSuccessBanner('✅ Viewing requested successfully! The agent will confirm your appointment within 24 hours.');
+                    // Reset form
+                    document.getElementById('schedule-form').reset();
                 } else {
                     errorDiv.textContent = data.error || 'Failed to schedule viewing. Please try again.';
                     errorDiv.style.display = 'block';
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
                 }
             } catch (error) {
                 errorDiv.textContent = 'Network error. Please check your connection and try again.';
                 errorDiv.style.display = 'block';
-            } finally {
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
             }
@@ -287,7 +328,7 @@ function openScheduleModal(listingId, listingType, agentId) {
         dateInput.value = dateStr;
     }
     
-    // Pre-fill user info if available
+    // Pre-fill user info
     const meta = document.querySelector('meta[name="user-data"]');
     if (meta) {
         try {
@@ -303,7 +344,6 @@ function openScheduleModal(listingId, listingType, agentId) {
     document.getElementById('schedule-agent-name').textContent = '<?= $agentName ?>';
     document.getElementById('schedule-listing-title').textContent = '<?= $listingTitle ?>';
     
-    // Show modal
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 }
@@ -328,53 +368,191 @@ function openContactAgent(agentId, agentName, division) {
         return;
     }
     
-    // Get listing info
     const listingId = <?= $listingId ?>;
     const listingType = 'property';
     
-    // Try to use the existing contact agent modal
-    if (typeof openContactAgentModal === 'function') {
-        openContactAgentModal(listingId, listingType, agentId, agentName, <?= $agentVerified ?>, division);
-    } else {
-        // Fallback: manually open the modal
-        const modal = document.getElementById('contact-agent-modal');
-        if (modal) {
-            // Set the values in the modal
-            const listingIdInput = document.getElementById('contact-listing-id');
-            const listingTypeInput = document.getElementById('contact-listing-type');
-            const agentIdInput = document.getElementById('contact-agent-id');
-            const agentNamePreview = document.getElementById('agent-name-preview');
-            const agentDivisionPreview = document.getElementById('agent-division-preview');
-            const agentAvatarPreview = document.getElementById('agent-avatar-preview');
-            const agentVerifiedPreview = document.getElementById('agent-verified-preview');
-            const subjectInput = document.getElementById('contact-subject');
-            
-            if (listingIdInput) listingIdInput.value = listingId;
-            if (listingTypeInput) listingTypeInput.value = listingType;
-            if (agentIdInput) agentIdInput.value = agentId;
-            if (agentNamePreview) agentNamePreview.textContent = agentName;
-            if (agentDivisionPreview) agentDivisionPreview.textContent = division;
-            if (agentAvatarPreview) agentAvatarPreview.textContent = agentName.charAt(0).toUpperCase();
-            if (subjectInput) subjectInput.value = 'Inquiry about ' + division + ' listing';
-            
-            if (<?= $agentVerified ?>) {
-                if (agentVerifiedPreview) {
-                    agentVerifiedPreview.innerHTML = '<span class="verified-badge" style="display:inline-block;margin-right:8px;">✓ Verified</span>';
-                }
-            } else {
-                if (agentVerifiedPreview) agentVerifiedPreview.innerHTML = '';
+    // Show the contact modal
+    showContactModal(listingId, listingType, agentId, agentName, division);
+}
+
+function showContactModal(listingId, listingType, agentId, agentName, division) {
+    // First, make sure the modal exists in the DOM
+    let modal = document.getElementById('contact-agent-modal');
+    
+    if (!modal) {
+        // If modal doesn't exist, create it dynamically
+        modal = document.createElement('div');
+        modal.id = 'contact-agent-modal';
+        modal.className = 'admin-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;';
+        modal.innerHTML = `
+            <div class="admin-modal-content" style="max-width:520px;background:#fff;border-radius:16px;padding:30px;width:90%;max-height:90vh;overflow-y:auto;position:relative;">
+                <div class="admin-modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <h3 style="font-family:'Prata',serif;font-size:22px;color:#0A0A0A;margin:0;">Contact Agent</h3>
+                    <button onclick="closeContactModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;padding:0 8px;">✕</button>
+                </div>
+                
+                <div id="agent-info-preview" style="display:flex;align-items:center;gap:15px;padding:15px;background:#f9f9f9;border-radius:8px;margin-bottom:20px;">
+                    <div id="agent-avatar-preview" style="width:50px;height:50px;border-radius:50%;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;">A</div>
+                    <div>
+                        <strong id="agent-name-preview">Agent Name</strong>
+                        <p style="color:#888;font-size:12px;margin:2px 0 0;">
+                            <span id="agent-verified-preview"></span>
+                            <span id="agent-division-preview"></span>
+                        </p>
+                    </div>
+                </div>
+                
+                <form id="contact-agent-form">
+                    <input type="hidden" name="listing_id" id="contact-listing-id">
+                    <input type="hidden" name="listing_type" id="contact-listing-type">
+                    <input type="hidden" name="agent_id" id="contact-agent-id">
+                    
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+                        <div class="form-group" style="margin-bottom:15px;">
+                            <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Name *</label>
+                            <input type="text" name="name" id="contact-name" required placeholder="John Doe" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom:15px;">
+                            <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Email *</label>
+                            <input type="email" name="email" id="contact-email" required placeholder="john@example.com" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom:15px;">
+                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Phone</label>
+                        <input type="tel" name="phone" id="contact-phone" placeholder="+1 (555) 000-0000" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom:15px;">
+                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Subject</label>
+                        <input type="text" name="subject" id="contact-subject" placeholder="Inquiry about your listing" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom:15px;">
+                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Message *</label>
+                        <textarea name="message" id="contact-message" rows="5" required placeholder="Hi, I'm interested in your listing..." style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;"></textarea>
+                    </div>
+                    
+                    <div style="background:#f0f9ff;border-radius:8px;padding:12px;margin-bottom:20px;">
+                        <p style="font-size:12px;color:#0c5460;margin:0;">🔒 Your contact information is only shared with the agent for this specific inquiry.</p>
+                    </div>
+                    
+                    <button type="submit" style="width:100%;padding:14px;background:#0A0A0A;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;">
+                        📧 Send Inquiry
+                    </button>
+                    
+                    <div id="contact-form-error" style="display:none;margin-top:15px;padding:12px;background:#f8d7da;color:#721c24;border-radius:8px;"></div>
+                    <div id="contact-form-success" style="display:none;margin-top:15px;padding:12px;background:#d4edda;color:#155724;border-radius:8px;"></div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Close on overlay click
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeContactModal();
             }
+        });
+        
+        // Handle form submission
+        document.getElementById('contact-agent-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
             
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        } else {
-            alert('Contact Agent: ' + agentName + ' - ' + division);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const errorDiv = document.getElementById('contact-form-error');
+            const successDiv = document.getElementById('contact-form-success');
+            const originalText = submitBtn.innerHTML;
+            
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            submitBtn.disabled = true;
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch('/api/messages/send-inquiry.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    successDiv.innerHTML = '✅ Inquiry sent successfully! The agent will contact you shortly.';
+                    successDiv.style.display = 'block';
+                    closeContactModal();
+                    showSuccessBanner('✅ Inquiry sent successfully! The agent will contact you shortly.');
+                    document.getElementById('contact-agent-form').reset();
+                } else {
+                    errorDiv.textContent = data.error || 'Failed to send inquiry. Please try again.';
+                    errorDiv.style.display = 'block';
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    }
+    
+    // Set the values in the modal
+    const listingIdInput = document.getElementById('contact-listing-id');
+    const listingTypeInput = document.getElementById('contact-listing-type');
+    const agentIdInput = document.getElementById('contact-agent-id');
+    const agentNamePreview = document.getElementById('agent-name-preview');
+    const agentDivisionPreview = document.getElementById('agent-division-preview');
+    const agentAvatarPreview = document.getElementById('agent-avatar-preview');
+    const agentVerifiedPreview = document.getElementById('agent-verified-preview');
+    const subjectInput = document.getElementById('contact-subject');
+    
+    if (listingIdInput) listingIdInput.value = listingId;
+    if (listingTypeInput) listingTypeInput.value = listingType;
+    if (agentIdInput) agentIdInput.value = agentId;
+    if (agentNamePreview) agentNamePreview.textContent = agentName;
+    if (agentDivisionPreview) agentDivisionPreview.textContent = division;
+    if (agentAvatarPreview) agentAvatarPreview.textContent = agentName.charAt(0).toUpperCase();
+    if (subjectInput) subjectInput.value = 'Inquiry about ' + division + ' listing';
+    
+    // Set verified badge
+    if (<?= $agentVerified ?>) {
+        if (agentVerifiedPreview) {
+            agentVerifiedPreview.innerHTML = '<span class="verified-badge" style="display:inline-block;margin-right:8px;color:#1B5E20;font-weight:600;">✓ Verified</span>';
         }
+    } else {
+        if (agentVerifiedPreview) agentVerifiedPreview.innerHTML = '';
+    }
+    
+    // Pre-fill user info
+    const meta = document.querySelector('meta[name="user-data"]');
+    if (meta) {
+        try {
+            const userData = JSON.parse(meta.content);
+            document.getElementById('contact-name').value = userData.name || '';
+            document.getElementById('contact-email').value = userData.email || '';
+            document.getElementById('contact-phone').value = userData.phone || '';
+        } catch (e) {}
+    }
+    
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeContactModal() {
+    const modal = document.getElementById('contact-agent-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
     }
 }
 
 // ============================================================
-// SAVE LISTING - Toggle Favorite
+// SAVE LISTING - Toggle Favorite (FIXED)
 // ============================================================
 
 function jeSaveListing(type, id) {
@@ -385,7 +563,7 @@ function jeSaveListing(type, id) {
         return;
     }
     
-    // Find the button that was clicked
+    // Find the button
     const buttons = document.querySelectorAll('button[onclick*="jeSaveListing"]');
     let btn = null;
     for (let b of buttons) {
@@ -401,6 +579,7 @@ function jeSaveListing(type, id) {
         btn.disabled = true;
     }
     
+    // Use FormData for the request
     const formData = new FormData();
     formData.append('listing_type', type);
     formData.append('listing_id', id);
@@ -410,29 +589,36 @@ function jeSaveListing(type, id) {
         body: formData,
         credentials: 'same-origin'
     })
-    .then(function(r) { return r.json(); })
+    .then(function(response) {
+        return response.json();
+    })
     .then(function(data) {
+        console.log('Favorite response:', data);
+        
         if (data.success) {
             const icon = btn?.querySelector('i');
             if (data.action === 'added') {
-                showToast('✅ Added to favorites!', 'success');
+                showSuccessBanner('✅ Added to favorites!');
                 if (icon) {
                     icon.className = 'fas fa-heart';
                     icon.style.color = '#C6A43F';
                 }
             } else {
-                showToast('Removed from favorites', 'info');
+                showSuccessBanner('Removed from favorites');
                 if (icon) {
                     icon.className = 'far fa-heart';
                     icon.style.color = '';
                 }
             }
-        } else if (data.error) {
-            showToast(data.error, 'error');
+        } else {
+            // Show specific error message
+            const errorMsg = data.error || 'Failed to update favorites. Please try again.';
+            showSuccessBanner('❌ ' + errorMsg);
         }
     })
-    .catch(function() {
-        showToast('Network error. Please try again.', 'error');
+    .catch(function(error) {
+        console.error('Favorite error:', error);
+        showSuccessBanner('❌ Network error. Please try again.');
     })
     .finally(function() {
         if (btn) {
@@ -450,7 +636,22 @@ console.log('=== Detail page loaded successfully ===');
 console.log('Listing ID: <?= $listingId ?>');
 console.log('Agent ID: <?= $agentId ?>');
 console.log('Agent Name: <?= $agentName ?>');
-console.log('Functions: openScheduleViewing, openContactAgent, jeSaveListing');
+
+// Add CSS animation for banner
+if (!document.getElementById('banner-styles')) {
+    const style = document.createElement('style');
+    style.id = 'banner-styles';
+    style.textContent = `
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .custom-success-banner {
+            animation: slideInRight 0.3s ease;
+        }
+    `;
+    document.head.appendChild(style);
+}
 </script>
 
 <div class="je-page">
@@ -615,18 +816,5 @@ console.log('Functions: openScheduleViewing, openContactAgent, jeSaveListing');
 
 </div>
 </div>
-
-<!-- Contact Agent Modal -->
-<?php include __DIR__ . '/../../templates/modal/contact-agent-modal.php'; ?>
-
-<!-- ============================================================ -->
-<!-- SAFETY: Functions defined again at the bottom -->
-<!-- ============================================================ -->
-<script>
-console.log('=== All functions wired up successfully ===');
-console.log('✅ Schedule Viewing: Opens calendar modal');
-console.log('✅ Contact Agent: Opens contact form');
-console.log('✅ Save Listing: Toggles favorites');
-</script>
 
 <?php include '../../templates/footer.php'; ?>
