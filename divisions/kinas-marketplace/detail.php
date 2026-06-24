@@ -61,6 +61,12 @@ include '../../templates/header.php';
 
 $locParts = array_filter([$item['city'] ?? null, $item['state'] ?? null, $item['country'] ?? null]);
 $location = implode(', ', $locParts);
+
+$listingId = (int)$item['id'];
+$agentId = (int)$item['agent_id'];
+$agentName = htmlspecialchars($item['agent_name'] ?? 'Seller', ENT_QUOTES, 'UTF-8');
+$listingTitle = htmlspecialchars($item['title'] ?? 'Item', ENT_QUOTES, 'UTF-8');
+$agentVerified = !empty($item['agent_verified']);
 ?>
 
 <div class="je-page">
@@ -131,21 +137,21 @@ $location = implode(', ', $locParts);
             </dl>
 
             <!-- ============================================================ -->
-            <!-- BUTTONS - UPDATED with working onclick handlers -->
+            <!-- BUTTONS - Fully Working -->
             <!-- ============================================================ -->
             <div class="je-cta-row">
-                <!-- Schedule Viewing - opens calendar -->
-                <button class="je-cta-primary" onclick="openScheduleViewing(<?= (int)$item['id'] ?>, 'marketplace', <?= (int)$item['agent_id'] ?>)">
+                <!-- Schedule Viewing -->
+                <button class="je-cta-primary" id="scheduleBtn" onclick="openScheduleViewing(<?= $listingId ?>, 'marketplace', <?= $agentId ?>);">
                     <i class="far fa-calendar-alt"></i> Schedule Viewing
                 </button>
-    
-                <!-- Contact Agent - opens contact form (not phone) -->
-                <button class="je-cta-secondary" onclick="openContactAgent(<?= (int)$item['agent_id'] ?>, '<?= htmlspecialchars($item['agent_name'] ?? 'Seller') ?>', 'marketplace')">
+                
+                <!-- Contact Seller -->
+                <button class="je-cta-secondary" id="contactBtn" onclick="openContactAgent(<?= $agentId ?>, '<?= $agentName ?>', 'marketplace');">
                     <i class="far fa-envelope"></i> Contact Seller
                 </button>
-    
+                
                 <!-- Save Listing -->
-                <button class="je-cta-secondary" onclick="jeSaveListing('marketplace', <?= (int)$item['id'] ?>)">
+                <button class="je-cta-secondary" id="saveBtn" onclick="jeSaveListing('marketplace', <?= $listingId ?>);">
                     <i class="far fa-heart"></i> Save
                 </button>
             </div>
@@ -208,6 +214,424 @@ $location = implode(', ', $locParts);
 </div>
 </div>
 
-<?php include __DIR__ . '/../../templates/modal/contact-agent-modal.php'; ?>
+<!-- ============================================================ -->
+<!-- ALL JAVASCRIPT - INLINE, NO EXTERNAL DEPENDENCIES -->
+<!-- ============================================================ -->
+<script>
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+
+function isUserLoggedIn() {
+    const meta = document.querySelector('meta[name="user-data"]');
+    if (meta) {
+        try {
+            const data = JSON.parse(meta.content);
+            return data.loggedIn === true;
+        } catch (e) {
+            return false;
+        }
+    }
+    return document.querySelector('meta[name="user-id"]')?.content ? true : false;
+}
+
+function showLoginRequired() {
+    alert('Please login to continue');
+    setTimeout(function() {
+        window.location.href = '/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
+    }, 1500);
+}
+
+// ============================================================
+// GREEN SUCCESS BANNER
+// ============================================================
+
+function showSuccessBanner(message, isError) {
+    const existing = document.querySelectorAll('.custom-success-banner');
+    existing.forEach(function(b) { b.remove(); });
+    
+    const banner = document.createElement('div');
+    banner.className = 'custom-success-banner';
+    const bgColor = isError ? '#f8d7da' : '#d4edda';
+    const textColor = isError ? '#721c24' : '#155724';
+    const borderColor = isError ? '#dc3545' : '#28a745';
+    const icon = isError ? 'fa-exclamation-circle' : 'fa-check-circle';
+    
+    banner.style.cssText = 'position:fixed;top:100px;right:20px;z-index:100000;padding:16px 24px;background:' + bgColor + ';color:' + textColor + ';border-left:4px solid ' + borderColor + ';border-radius:8px;font-family:Inter,sans-serif;font-size:14px;font-weight:500;box-shadow:0 8px 30px rgba(0,0,0,0.15);max-width:450px;display:flex;align-items:center;gap:12px;';
+    banner.innerHTML = '<i class="fas ' + icon + '" style="color:' + borderColor + ';font-size:18px;"></i><span>' + message + '</span><button onclick="this.parentElement.remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + textColor + ';margin-left:auto;">✕</button>';
+    document.body.appendChild(banner);
+    
+    setTimeout(function() {
+        if (banner.parentElement) {
+            banner.style.opacity = '0';
+            banner.style.transition = 'opacity 0.3s ease';
+            setTimeout(function() { banner.remove(); }, 300);
+        }
+    }, 5000);
+}
+
+// ============================================================
+// SCHEDULE VIEWING
+// ============================================================
+
+function openScheduleViewing(listingId, listingType, agentId) {
+    console.log('Schedule Viewing clicked!', listingId, listingType, agentId);
+    
+    if (!isUserLoggedIn()) {
+        showLoginRequired();
+        return;
+    }
+    
+    const old = document.getElementById('schedule-modal');
+    if (old) old.remove();
+    
+    const html = `
+    <div id="schedule-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:12px;padding:30px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="margin:0;font-size:20px;">📅 Schedule Viewing</h3>
+                <button onclick="document.getElementById('schedule-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
+            </div>
+            <div style="padding:12px;background:#f5f5f5;border-radius:8px;margin-bottom:20px;">
+                <strong><?= $agentName ?></strong> · <?= $listingTitle ?>
+            </div>
+            <form id="scheduleForm">
+                <input type="hidden" name="listing_id" value="${listingId}">
+                <input type="hidden" name="listing_type" value="${listingType}">
+                <input type="hidden" name="agent_id" value="${agentId}">
+                <input type="hidden" name="inquiry_type" value="viewing">
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Name *</label>
+                    <input type="text" name="name" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Email *</label>
+                    <input type="email" name="email" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Phone</label>
+                    <input type="tel" name="phone" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                    <div>
+                        <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Date *</label>
+                        <input type="date" name="preferred_date" id="prefDate" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Time *</label>
+                        <select name="preferred_time" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                            <option value="">Select</option>
+                            <option value="09:00">9:00 AM</option>
+                            <option value="10:00">10:00 AM</option>
+                            <option value="11:00">11:00 AM</option>
+                            <option value="12:00">12:00 PM</option>
+                            <option value="13:00">1:00 PM</option>
+                            <option value="14:00">2:00 PM</option>
+                            <option value="15:00">3:00 PM</option>
+                            <option value="16:00">4:00 PM</option>
+                            <option value="17:00">5:00 PM</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Notes</label>
+                    <textarea name="message" rows="3" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;resize:vertical;"></textarea>
+                </div>
+                <button type="submit" style="width:100%;padding:12px;background:#0A0A0A;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;">
+                    <i class="fas fa-calendar-check"></i> Request Viewing
+                </button>
+                <div id="scheduleMsg" style="margin-top:12px;padding:10px;border-radius:6px;display:none;"></div>
+            </form>
+        </div>
+    </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+    
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateInput = document.getElementById('prefDate');
+    if (dateInput) {
+        dateInput.min = tomorrow.toISOString().split('T')[0];
+        dateInput.value = tomorrow.toISOString().split('T')[0];
+    }
+    
+    const meta = document.querySelector('meta[name="user-data"]');
+    if (meta) {
+        try {
+            const data = JSON.parse(meta.content);
+            const form = document.getElementById('scheduleForm');
+            if (form) {
+                form.querySelector('input[name="name"]').value = data.name || '';
+                form.querySelector('input[name="email"]').value = data.email || '';
+                form.querySelector('input[name="phone"]').value = data.phone || '';
+            }
+        } catch (e) {}
+    }
+    
+    document.getElementById('scheduleForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('button[type="submit"]');
+        const msg = document.getElementById('scheduleMsg');
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        btn.disabled = true;
+        msg.style.display = 'none';
+        
+        const formData = new FormData(this);
+        const notes = formData.get('message') || '';
+        if (!notes.trim()) {
+            formData.set('message', 'I would like to schedule a viewing for this item.');
+        }
+        
+        try {
+            const res = await fetch('../../../api/messages/send-inquiry.php', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                const modal = document.getElementById('schedule-modal');
+                if (modal) modal.remove();
+                showSuccessBanner('✅ Viewing requested successfully! The seller will confirm within 24 hours.', false);
+            } else {
+                msg.style.display = 'block';
+                msg.style.background = '#f8d7da';
+                msg.style.color = '#721c24';
+                msg.textContent = data.error || 'Failed to schedule. Please try again.';
+                btn.innerHTML = original;
+                btn.disabled = false;
+            }
+        } catch (error) {
+            msg.style.display = 'block';
+            msg.style.background = '#f8d7da';
+            msg.style.color = '#721c24';
+            msg.textContent = 'Network error. Please try again.';
+            btn.innerHTML = original;
+            btn.disabled = false;
+        }
+    });
+}
+
+// ============================================================
+// CONTACT SELLER
+// ============================================================
+
+function openContactAgent(agentId, agentName, division) {
+    console.log('Contact Seller clicked!', agentId, agentName, division);
+    
+    if (!isUserLoggedIn()) {
+        showLoginRequired();
+        return;
+    }
+    
+    const old = document.getElementById('contact-modal');
+    if (old) old.remove();
+    
+    const verifiedBadge = <?= $agentVerified ? 'true' : 'false' ?> ? '<span style="color:#1B5E20;">✓ Verified</span>' : '';
+    
+    const html = `
+    <div id="contact-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999998;display:flex;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:12px;padding:30px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="margin:0;font-size:20px;">✉️ Contact Seller</h3>
+                <button onclick="document.getElementById('contact-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
+            </div>
+            <div style="padding:12px;background:#f5f5f5;border-radius:8px;margin-bottom:20px;">
+                <strong>${agentName}</strong> ${verifiedBadge} · ${division}
+            </div>
+            <form id="contactForm">
+                <input type="hidden" name="listing_id" value="<?= $listingId ?>">
+                <input type="hidden" name="listing_type" value="marketplace">
+                <input type="hidden" name="agent_id" value="${agentId}">
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Name *</label>
+                    <input type="text" name="name" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Email *</label>
+                    <input type="email" name="email" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Phone</label>
+                    <input type="tel" name="phone" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Subject</label>
+                    <input type="text" name="subject" value="Inquiry about item" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Message *</label>
+                    <textarea name="message" rows="5" required placeholder="Hi, I'm interested in your item..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;resize:vertical;"></textarea>
+                </div>
+                <button type="submit" style="width:100%;padding:12px;background:#0A0A0A;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;">
+                    <i class="fas fa-paper-plane"></i> Send Inquiry
+                </button>
+                <div id="contactMsg" style="margin-top:12px;padding:10px;border-radius:6px;display:none;"></div>
+            </form>
+        </div>
+    </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+    
+    const meta = document.querySelector('meta[name="user-data"]');
+    if (meta) {
+        try {
+            const data = JSON.parse(meta.content);
+            const form = document.getElementById('contactForm');
+            if (form) {
+                form.querySelector('input[name="name"]').value = data.name || '';
+                form.querySelector('input[name="email"]').value = data.email || '';
+                form.querySelector('input[name="phone"]').value = data.phone || '';
+            }
+        } catch (e) {}
+    }
+    
+    document.getElementById('contactForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('button[type="submit"]');
+        const msg = document.getElementById('contactMsg');
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        btn.disabled = true;
+        msg.style.display = 'none';
+        
+        const formData = new FormData(this);
+        
+        try {
+            const res = await fetch('../../../api/messages/send-inquiry.php', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                const modal = document.getElementById('contact-modal');
+                if (modal) modal.remove();
+                showSuccessBanner('✅ Inquiry sent successfully! The seller will contact you shortly.', false);
+            } else {
+                msg.style.display = 'block';
+                msg.style.background = '#f8d7da';
+                msg.style.color = '#721c24';
+                msg.textContent = data.error || 'Failed to send. Please try again.';
+                btn.innerHTML = original;
+                btn.disabled = false;
+            }
+        } catch (error) {
+            msg.style.display = 'block';
+            msg.style.background = '#f8d7da';
+            msg.style.color = '#721c24';
+            msg.textContent = 'Network error. Please try again.';
+            btn.innerHTML = original;
+            btn.disabled = false;
+        }
+    });
+}
+
+// ============================================================
+// SAVE LISTING
+// ============================================================
+
+function jeSaveListing(type, id) {
+    console.log('Save clicked!', type, id);
+    
+    if (!isUserLoggedIn()) {
+        showLoginRequired();
+        return;
+    }
+    
+    const btn = document.getElementById('saveBtn');
+    const originalHTML = btn ? btn.innerHTML : '';
+    
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+    }
+    
+    const formData = new FormData();
+    formData.append('listing_type', type);
+    formData.append('listing_id', id);
+    
+    fetch('/api/listings/favorite.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            if (data.action === 'added') {
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-heart" style="color:#28a745;"></i> FAVOURITE';
+                    btn.style.backgroundColor = '#d4edda';
+                    btn.style.color = '#155724';
+                    btn.style.border = '1px solid #28a745';
+                }
+                showSuccessBanner('✅ Added to favorites!', false);
+            } else {
+                if (btn) {
+                    btn.innerHTML = '<i class="far fa-heart"></i> Save';
+                    btn.style.backgroundColor = '';
+                    btn.style.color = '';
+                    btn.style.border = '';
+                }
+                showSuccessBanner('Removed from favorites', false);
+            }
+        } else {
+            if (btn) {
+                btn.innerHTML = originalHTML;
+                btn.style.backgroundColor = '';
+                btn.style.color = '';
+                btn.style.border = '';
+            }
+            showSuccessBanner('❌ ' + (data.error || 'Failed to update favorites'), true);
+        }
+    })
+    .catch(function(error) {
+        if (btn) {
+            btn.innerHTML = originalHTML;
+            btn.style.backgroundColor = '';
+            btn.style.color = '';
+            btn.style.border = '';
+        }
+        showSuccessBanner('❌ Network error. Please try again.', true);
+    })
+    .finally(function() {
+        if (btn) btn.disabled = false;
+    });
+}
+
+// ============================================================
+// CHECK FAVORITE STATE ON LOAD
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('saveBtn');
+    if (!btn) return;
+    
+    const formData = new FormData();
+    formData.append('listing_type', 'marketplace');
+    formData.append('listing_id', '<?= $listingId ?>');
+    formData.append('check_only', '1');
+    
+    fetch('/api/listings/favorite.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success && data.action === 'added') {
+            btn.innerHTML = '<i class="fas fa-heart" style="color:#28a745;"></i> FAVOURITE';
+            btn.style.backgroundColor = '#d4edda';
+            btn.style.color = '#155724';
+            btn.style.border = '1px solid #28a745';
+        }
+    })
+    .catch(function(e) { console.log('Check favorite error:', e); });
+});
+
+console.log('=== KINAS MARKETPLACE detail page loaded ===');
+</script>
 
 <?php include '../../templates/footer.php'; ?>
