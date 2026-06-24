@@ -124,7 +124,7 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
                 </li>
             <?php endforeach; ?>
             <li class="je-dash-nav-divider"></li>
-            <li><a href="<?= htmlspecialchars($homeHref) ?>"><i class="fas fa-home"></i> Back to Site</a></li>
+            <li><a href="<?= htmlspecialchars($homeHref) ?>"><i class="fas fa-home"></i> Back to Site</li>
             <li class="je-dash-signout"><a href="<?= htmlspecialchars($logoutHref) ?>"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
         </ul>
     </aside>
