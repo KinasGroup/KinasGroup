@@ -5,13 +5,13 @@
  * Open Schedule Viewing Modal with Calendar
  */
 function openScheduleViewing(listingId, listingType, agentId) {
-    // First, check if user is logged in
+    // Check if user is logged in
     if (!isUserLoggedIn()) {
         showLoginRequired();
         return;
     }
     
-    // Get listing and agent details
+    // Get listing details
     fetch(`/api/listings/get.php?id=${listingId}&type=${listingType}`)
         .then(r => r.json())
         .then(data => {
@@ -19,8 +19,6 @@ function openScheduleViewing(listingId, listingType, agentId) {
                 const listing = data.listing;
                 const agentName = data.agent_name || 'Agent';
                 const division = listingType.charAt(0).toUpperCase() + listingType.slice(1);
-                
-                // Open the schedule viewing modal
                 openScheduleModal(listingId, listingType, agentId, agentName, division, listing.title);
             }
         })
@@ -47,14 +45,18 @@ function openScheduleModal(listingId, listingType, agentId, agentName, division,
     document.getElementById('schedule-agent-id').value = agentId;
     document.getElementById('schedule-agent-name').textContent = agentName;
     document.getElementById('schedule-listing-title').textContent = listingTitle;
-    document.getElementById('schedule-division').textContent = division;
+    document.getElementById('schedule-division').textContent = division.charAt(0).toUpperCase() + division.slice(1);
+    document.getElementById('schedule-agent-initial').textContent = agentName.charAt(0).toUpperCase();
     
     // Set default date to tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const dateStr = tomorrow.toISOString().split('T')[0];
-    document.getElementById('schedule-date').min = dateStr;
-    document.getElementById('schedule-date').value = dateStr;
+    const dateInput = document.getElementById('schedule-date');
+    if (dateInput) {
+        dateInput.min = dateStr;
+        dateInput.value = dateStr;
+    }
     
     // Show modal
     modal.style.display = 'flex';
@@ -71,10 +73,10 @@ function openScheduleModal(listingId, listingType, agentId, agentName, division,
     const userEmail = document.getElementById('schedule-user-email');
     const userPhone = document.getElementById('schedule-user-phone');
     
-    if (userName && window.userData) {
-        userName.value = window.userData.name || '';
-        userEmail.value = window.userData.email || '';
-        userPhone.value = window.userData.phone || '';
+    if (window.userData) {
+        if (userName) userName.value = window.userData.name || '';
+        if (userEmail) userEmail.value = window.userData.email || '';
+        if (userPhone) userPhone.value = window.userData.phone || '';
     }
 }
 
@@ -87,18 +89,20 @@ function createScheduleModal() {
     modal.className = 'admin-modal';
     modal.style.display = 'none';
     modal.innerHTML = `
-        <div class="admin-modal-content" style="max-width: 560px;">
-            <div class="admin-modal-header">
-                <h3><i class="fas fa-calendar-check" style="color:#C6A43F;"></i> Schedule Viewing</h3>
-                <button onclick="closeScheduleModal()" class="modal-close">✕</button>
+        <div class="admin-modal-content" style="max-width: 560px; background: #fff; border-radius: 16px; padding: 30px; position: relative; margin: 20px;">
+            <div class="admin-modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-family: 'Prata', serif; font-size: 22px; color: #0A0A0A; margin: 0;">
+                    <i class="fas fa-calendar-check" style="color: #C6A43F;"></i> Schedule Viewing
+                </h3>
+                <button onclick="closeScheduleModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #888; padding: 0 8px;">✕</button>
             </div>
             
             <div id="schedule-agent-info" style="display: flex; align-items: center; gap: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px; margin-bottom: 20px;">
-                <div style="width: 50px; height: 50px; border-radius: 50%; background: #C6A43F; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 18px;">
+                <div style="width: 50px; height: 50px; border-radius: 50%; background: #C6A43F; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 18px; flex-shrink: 0;">
                     <span id="schedule-agent-initial">A</span>
                 </div>
                 <div>
-                    <strong id="schedule-agent-name">Agent Name</strong>
+                    <strong id="schedule-agent-name" style="font-size: 16px; color: #0A0A0A;">Agent Name</strong>
                     <p style="color: #888; font-size: 13px; margin: 2px 0 0;">
                         <span id="schedule-division">Division</span> · 
                         <span id="schedule-listing-title">Listing</span>
@@ -113,29 +117,29 @@ function createScheduleModal() {
                 <input type="hidden" name="inquiry_type" value="viewing">
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div class="form-group">
-                        <label>Your Name *</label>
-                        <input type="text" name="name" id="schedule-user-name" required placeholder="John Doe">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Your Name *</label>
+                        <input type="text" name="name" id="schedule-user-name" required placeholder="John Doe" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
                     </div>
-                    <div class="form-group">
-                        <label>Your Email *</label>
-                        <input type="email" name="email" id="schedule-user-email" required placeholder="john@example.com">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Your Email *</label>
+                        <input type="email" name="email" id="schedule-user-email" required placeholder="john@example.com" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label>Your Phone</label>
-                    <input type="tel" name="phone" id="schedule-user-phone" placeholder="+1 (555) 000-0000">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Your Phone</label>
+                    <input type="tel" name="phone" id="schedule-user-phone" placeholder="+1 (555) 000-0000" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div class="form-group">
-                        <label>Preferred Date *</label>
-                        <input type="date" name="preferred_date" id="schedule-date" required>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Preferred Date *</label>
+                        <input type="date" name="preferred_date" id="schedule-date" required style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
                     </div>
-                    <div class="form-group">
-                        <label>Preferred Time *</label>
-                        <select name="preferred_time" id="schedule-time" required>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Preferred Time *</label>
+                        <select name="preferred_time" id="schedule-time" required style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
                             <option value="">Select time</option>
                             <option value="09:00">9:00 AM</option>
                             <option value="10:00">10:00 AM</option>
@@ -150,9 +154,9 @@ function createScheduleModal() {
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label>Additional Notes</label>
-                    <textarea name="message" id="schedule-message" rows="3" placeholder="Any special requirements or questions about the property..."></textarea>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px;">Additional Notes</label>
+                    <textarea name="message" id="schedule-message" rows="3" placeholder="Any special requirements or questions about the property..." style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical;"></textarea>
                 </div>
                 
                 <div style="background: #FFF8E1; border-radius: 8px; padding: 12px; margin-bottom: 20px; border-left: 3px solid #C6A43F;">
@@ -162,12 +166,12 @@ function createScheduleModal() {
                     </p>
                 </div>
                 
-                <button type="submit" class="je2-button black" style="width: 100%; padding: 14px; font-size: 16px;">
+                <button type="submit" style="width: 100%; padding: 14px; background: #0A0A0A; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s;">
                     <i class="fas fa-calendar-check"></i> Request Viewing
                 </button>
                 
-                <div id="schedule-error" class="alert alert-danger" style="display: none; margin-top: 15px;"></div>
-                <div id="schedule-success" class="alert alert-success" style="display: none; margin-top: 15px;"></div>
+                <div id="schedule-error" class="alert alert-danger" style="display: none; margin-top: 15px; padding: 12px; background: #f8d7da; color: #721c24; border-radius: 8px;"></div>
+                <div id="schedule-success" class="alert alert-success" style="display: none; margin-top: 15px; padding: 12px; background: #d4edda; color: #155724; border-radius: 8px;"></div>
             </form>
         </div>
     `;
@@ -255,6 +259,9 @@ function openContactAgent(agentId, agentName, division) {
     
     // Use existing contact agent modal
     if (typeof openContactAgentModal === 'function') {
+        // Get listing title from page
+        const titleEl = document.querySelector('h1.je-spec-title');
+        const listingTitle = titleEl ? titleEl.textContent.trim() : 'Listing';
         openContactAgentModal(listingId, listingType, agentId, agentName, false, division);
     } else {
         // Fallback: redirect to contact page
@@ -271,7 +278,8 @@ function jeSaveListing(type, id) {
         return;
     }
     
-    const btn = event?.target?.closest?.('button') || document.querySelector(`[data-save-btn="${id}"]`);
+    // Find the button that was clicked
+    const btn = document.querySelector(`button[onclick*="jeSaveListing('${type}', ${id})"]`);
     const originalHTML = btn ? btn.innerHTML : '';
     
     if (btn) {
@@ -291,7 +299,7 @@ function jeSaveListing(type, id) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            const icon = btn?.querySelector('i') || document.querySelector(`[data-save-btn="${id}"] i`);
+            const icon = btn?.querySelector('i');
             if (data.action === 'added') {
                 showToast('✅ Added to favorites!', 'success');
                 if (icon) {
@@ -324,7 +332,18 @@ function jeSaveListing(type, id) {
  * Check if user is logged in
  */
 function isUserLoggedIn() {
-    return window.userLoggedIn === true || document.querySelector('[data-user-id]') !== null;
+    // Check meta tag for user data
+    const meta = document.querySelector('meta[name="user-data"]');
+    if (meta) {
+        try {
+            const data = JSON.parse(meta.content);
+            return data.loggedIn === true;
+        } catch (e) {
+            return false;
+        }
+    }
+    // Fallback: check for user-id meta
+    return document.querySelector('meta[name="user-id"]')?.content ? true : false;
 }
 
 /**
@@ -374,17 +393,14 @@ function showToast(message, type = 'info') {
     }, 4000);
 }
 
-// Load user data from meta tags or session
+// Load user data from meta tags
 document.addEventListener('DOMContentLoaded', function() {
-    // Check for user data in meta tags
-    const userMeta = document.querySelector('meta[name="user-data"]');
-    if (userMeta) {
+    const meta = document.querySelector('meta[name="user-data"]');
+    if (meta) {
         try {
-            window.userData = JSON.parse(userMeta.content);
-            window.userLoggedIn = true;
+            window.userData = JSON.parse(meta.content);
         } catch (e) {
             window.userData = null;
-            window.userLoggedIn = false;
         }
     }
     
