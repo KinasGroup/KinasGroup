@@ -231,7 +231,7 @@ $agentVerified = !empty($item['agent_verified']);
 </div>
 
 <!-- ============================================================ -->
-<!-- ALL JAVASCRIPT - INLINE, NO EXTERNAL DEPENDENCIES -->
+<!-- ALL JAVASCRIPT - INLINE -->
 <!-- ============================================================ -->
 <script>
 // ============================================================
@@ -258,13 +258,39 @@ function showLoginRequired() {
     }, 1500);
 }
 
-function showToast(message, isError) {
-    // Simple alert for now
-    alert(message);
+// ============================================================
+// GREEN SUCCESS BANNER - FIXED
+// ============================================================
+
+function showSuccessBanner(message, isError) {
+    // Remove any existing banners
+    const existing = document.querySelectorAll('.custom-success-banner');
+    existing.forEach(function(b) { b.remove(); });
+    
+    // Create banner
+    const banner = document.createElement('div');
+    banner.className = 'custom-success-banner';
+    const bgColor = isError ? '#f8d7da' : '#d4edda';
+    const textColor = isError ? '#721c24' : '#155724';
+    const borderColor = isError ? '#dc3545' : '#28a745';
+    const icon = isError ? 'fa-exclamation-circle' : 'fa-check-circle';
+    
+    banner.style.cssText = 'position:fixed;top:100px;right:20px;z-index:100000;padding:16px 24px;background:' + bgColor + ';color:' + textColor + ';border-left:4px solid ' + borderColor + ';border-radius:8px;font-family:Inter,sans-serif;font-size:14px;font-weight:500;box-shadow:0 8px 30px rgba(0,0,0,0.15);max-width:450px;display:flex;align-items:center;gap:12px;';
+    banner.innerHTML = '<i class="fas ' + icon + '" style="color:' + borderColor + ';font-size:18px;"></i><span>' + message + '</span><button onclick="this.parentElement.remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + textColor + ';margin-left:auto;">✕</button>';
+    document.body.appendChild(banner);
+    
+    // Auto remove after 5 seconds
+    setTimeout(function() {
+        if (banner.parentElement) {
+            banner.style.opacity = '0';
+            banner.style.transition = 'opacity 0.3s ease';
+            setTimeout(function() { banner.remove(); }, 300);
+        }
+    }, 5000);
 }
 
 // ============================================================
-// SCHEDULE VIEWING - SIMPLE POPUP
+// SCHEDULE VIEWING
 // ============================================================
 
 function openScheduleViewing(listingId, listingType, agentId) {
@@ -275,11 +301,9 @@ function openScheduleViewing(listingId, listingType, agentId) {
         return;
     }
     
-    // Remove existing modal
     const old = document.getElementById('schedule-modal');
     if (old) old.remove();
     
-    // Create the modal HTML
     const html = `
     <div id="schedule-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;">
         <div style="background:#fff;border-radius:12px;padding:30px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
@@ -343,7 +367,6 @@ function openScheduleViewing(listingId, listingType, agentId) {
     
     document.body.insertAdjacentHTML('beforeend', html);
     
-    // Set default date
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const dateInput = document.getElementById('prefDate');
@@ -352,7 +375,6 @@ function openScheduleViewing(listingId, listingType, agentId) {
         dateInput.value = tomorrow.toISOString().split('T')[0];
     }
     
-    // Pre-fill user info
     const meta = document.querySelector('meta[name="user-data"]');
     if (meta) {
         try {
@@ -366,7 +388,6 @@ function openScheduleViewing(listingId, listingType, agentId) {
         } catch (e) {}
     }
     
-    // Handle form submit
     document.getElementById('scheduleForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btn = this.querySelector('button[type="submit"]');
@@ -389,14 +410,11 @@ function openScheduleViewing(listingId, listingType, agentId) {
             });
             const data = await res.json();
             if (data.success) {
-                msg.style.display = 'block';
-                msg.style.background = '#d4edda';
-                msg.style.color = '#155724';
-                msg.innerHTML = '✅ Viewing requested successfully! The agent will confirm within 24 hours.';
-                setTimeout(() => {
-                    const modal = document.getElementById('schedule-modal');
-                    if (modal) modal.remove();
-                }, 3000);
+                // Close modal
+                const modal = document.getElementById('schedule-modal');
+                if (modal) modal.remove();
+                // Show green banner
+                showSuccessBanner('✅ Viewing requested successfully! The agent will confirm within 24 hours.', false);
             } else {
                 msg.style.display = 'block';
                 msg.style.background = '#f8d7da';
@@ -417,7 +435,7 @@ function openScheduleViewing(listingId, listingType, agentId) {
 }
 
 // ============================================================
-// CONTACT AGENT - SIMPLE POPUP
+// CONTACT AGENT
 // ============================================================
 
 function openContactAgent(agentId, agentName, division) {
@@ -428,7 +446,6 @@ function openContactAgent(agentId, agentName, division) {
         return;
     }
     
-    // Remove existing modal
     const old = document.getElementById('contact-modal');
     if (old) old.remove();
     
@@ -479,7 +496,6 @@ function openContactAgent(agentId, agentName, division) {
     
     document.body.insertAdjacentHTML('beforeend', html);
     
-    // Pre-fill user info
     const meta = document.querySelector('meta[name="user-data"]');
     if (meta) {
         try {
@@ -493,7 +509,6 @@ function openContactAgent(agentId, agentName, division) {
         } catch (e) {}
     }
     
-    // Handle form submit
     document.getElementById('contactForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btn = this.querySelector('button[type="submit"]');
@@ -512,14 +527,11 @@ function openContactAgent(agentId, agentName, division) {
             });
             const data = await res.json();
             if (data.success) {
-                msg.style.display = 'block';
-                msg.style.background = '#d4edda';
-                msg.style.color = '#155724';
-                msg.innerHTML = '✅ Inquiry sent successfully! The agent will contact you shortly.';
-                setTimeout(() => {
-                    const modal = document.getElementById('contact-modal');
-                    if (modal) modal.remove();
-                }, 3000);
+                // Close modal
+                const modal = document.getElementById('contact-modal');
+                if (modal) modal.remove();
+                // Show green banner
+                showSuccessBanner('✅ Inquiry sent successfully! The agent will contact you shortly.', false);
             } else {
                 msg.style.display = 'block';
                 msg.style.background = '#f8d7da';
@@ -578,7 +590,7 @@ function jeSaveListing(type, id) {
                     btn.style.color = '#155724';
                     btn.style.border = '1px solid #28a745';
                 }
-                alert('✅ Added to favorites!');
+                showSuccessBanner('✅ Added to favorites!', false);
             } else {
                 if (btn) {
                     btn.innerHTML = '<i class="far fa-heart"></i> Save';
@@ -586,7 +598,7 @@ function jeSaveListing(type, id) {
                     btn.style.color = '';
                     btn.style.border = '';
                 }
-                alert('Removed from favorites');
+                showSuccessBanner('Removed from favorites', false);
             }
         } else {
             if (btn) {
@@ -595,7 +607,7 @@ function jeSaveListing(type, id) {
                 btn.style.color = '';
                 btn.style.border = '';
             }
-            alert('❌ ' + (data.error || 'Failed to update favorites'));
+            showSuccessBanner('❌ ' + (data.error || 'Failed to update favorites'), true);
         }
     })
     .catch(function(error) {
@@ -605,7 +617,7 @@ function jeSaveListing(type, id) {
             btn.style.color = '';
             btn.style.border = '';
         }
-        alert('❌ Network error. Please try again.');
+        showSuccessBanner('❌ Network error. Please try again.', true);
     })
     .finally(function() {
         if (btn) btn.disabled = false;
@@ -643,8 +655,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 console.log('=== Detail page loaded ===');
-console.log('Listing ID: <?= $listingId ?>');
-console.log('Agent ID: <?= $agentId ?>');
 </script>
 
 <?php include '../../templates/footer.php'; ?>
