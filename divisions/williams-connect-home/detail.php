@@ -145,11 +145,11 @@ $agentVerified = !empty($item['agent_verified']);
             <!-- BUTTONS -->
             <!-- ============================================================ -->
             <div class="je-cta-row">
-                <button class="je-cta-primary" onclick="openScheduleViewing(<?= $listingId ?>, 'property', <?= $agentId ?>);">
+                <button class="je-cta-primary" id="scheduleBtn" onclick="openScheduleViewing(<?= $listingId ?>, 'property', <?= $agentId ?>);">
                     <i class="far fa-calendar-alt"></i> Schedule Viewing
                 </button>
                 
-                <button class="je-cta-secondary" onclick="openContactAgent(<?= $agentId ?>, '<?= $agentName ?>', 'property');">
+                <button class="je-cta-secondary" id="contactBtn" onclick="openContactAgent(<?= $agentId ?>, '<?= $agentName ?>', 'property');">
                     <i class="far fa-envelope"></i> Contact Agent
                 </button>
                 
@@ -231,14 +231,9 @@ $agentVerified = !empty($item['agent_verified']);
 </div>
 
 <!-- ============================================================ -->
-<!-- ALL JAVASCRIPT - INLINE TO AVOID EXTERNAL FILE CONFLICTS -->
+<!-- ALL JAVASCRIPT - INLINE, NO EXTERNAL DEPENDENCIES -->
 <!-- ============================================================ -->
 <script>
-// Override any external JS functions
-window.openScheduleViewing = null;
-window.openContactAgent = null;
-window.jeSaveListing = null;
-
 // ============================================================
 // HELPER FUNCTIONS
 // ============================================================
@@ -263,99 +258,64 @@ function showLoginRequired() {
     }, 1500);
 }
 
-function showSuccessBanner(message, isError) {
-    const existingBanners = document.querySelectorAll('.custom-success-banner');
-    existingBanners.forEach(function(b) { b.remove(); });
-    
-    const banner = document.createElement('div');
-    banner.className = 'custom-success-banner';
-    const bgColor = isError ? '#f8d7da' : '#d4edda';
-    const textColor = isError ? '#721c24' : '#155724';
-    const borderColor = isError ? '#dc3545' : '#28a745';
-    const icon = isError ? 'fa-exclamation-circle' : 'fa-check-circle';
-    
-    banner.style.cssText = 'position:fixed;top:100px;right:20px;z-index:10000;padding:16px 24px;background:' + bgColor + ';color:' + textColor + ';border-left:4px solid ' + borderColor + ';border-radius:8px;font-family:Inter,sans-serif;font-size:14px;font-weight:500;box-shadow:0 8px 30px rgba(0,0,0,0.15);max-width:450px;display:flex;align-items:center;gap:12px;';
-    banner.innerHTML = '<i class="fas ' + icon + '" style="color:' + borderColor + ';font-size:18px;"></i><span>' + message + '</span><button onclick="this.parentElement.remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + textColor + ';margin-left:auto;">✕</button>';
-    document.body.appendChild(banner);
-    
-    setTimeout(function() {
-        if (banner.parentElement) {
-            banner.style.opacity = '0';
-            banner.style.transition = 'opacity 0.3s ease';
-            setTimeout(function() { banner.remove(); }, 300);
-        }
-    }, 5000);
+function showToast(message, isError) {
+    // Simple alert for now
+    alert(message);
 }
 
 // ============================================================
-// SCHEDULE VIEWING - PROPER POPUP MODAL
+// SCHEDULE VIEWING - SIMPLE POPUP
 // ============================================================
 
 function openScheduleViewing(listingId, listingType, agentId) {
-    console.log('openScheduleViewing called!', listingId, listingType, agentId);
+    console.log('Schedule Viewing clicked!', listingId, listingType, agentId);
     
     if (!isUserLoggedIn()) {
         showLoginRequired();
         return;
     }
     
-    // Remove any existing modal
-    const existing = document.getElementById('schedule-viewing-modal');
-    if (existing) existing.remove();
+    // Remove existing modal
+    const old = document.getElementById('schedule-modal');
+    if (old) old.remove();
     
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.id = 'schedule-viewing-modal';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
-    
-    overlay.innerHTML = `
-        <div style="background:#fff;border-radius:16px;padding:30px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;">
+    // Create the modal HTML
+    const html = `
+    <div id="schedule-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:12px;padding:30px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                <h3 style="font-family:Prata,serif;font-size:22px;color:#0A0A0A;margin:0;">
-                    <i class="fas fa-calendar-check" style="color:#C6A43F;"></i> Schedule Viewing
-                </h3>
-                <button onclick="closeScheduleModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;padding:0 8px;">✕</button>
+                <h3 style="margin:0;font-size:20px;">📅 Schedule Viewing</h3>
+                <button onclick="document.getElementById('schedule-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
             </div>
-            
-            <div style="display:flex;align-items:center;gap:15px;padding:15px;background:#f9f9f9;border-radius:8px;margin-bottom:20px;">
-                <div style="width:50px;height:50px;border-radius:50%;background:#C6A43F;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:18px;flex-shrink:0;"><?= substr($agentName, 0, 1) ?></div>
-                <div>
-                    <strong style="font-size:16px;color:#0A0A0A;"><?= $agentName ?></strong>
-                    <p style="color:#888;font-size:13px;margin:2px 0 0;">Williams Connect Home · <?= $listingTitle ?></p>
-                </div>
+            <div style="padding:12px;background:#f5f5f5;border-radius:8px;margin-bottom:20px;">
+                <strong><?= $agentName ?></strong> · <?= $listingTitle ?>
             </div>
-            
-            <form id="schedule-form">
+            <form id="scheduleForm">
                 <input type="hidden" name="listing_id" value="${listingId}">
                 <input type="hidden" name="listing_type" value="${listingType}">
                 <input type="hidden" name="agent_id" value="${agentId}">
                 <input type="hidden" name="inquiry_type" value="viewing">
-                
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
-                    <div style="margin-bottom:15px;">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Name *</label>
-                        <input type="text" name="name" id="s-name" required placeholder="John Doe" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
-                    </div>
-                    <div style="margin-bottom:15px;">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Email *</label>
-                        <input type="email" name="email" id="s-email" required placeholder="john@example.com" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
-                    </div>
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Name *</label>
+                    <input type="text" name="name" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
                 </div>
-                
-                <div style="margin-bottom:15px;">
-                    <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Phone</label>
-                    <input type="tel" name="phone" id="s-phone" placeholder="+1 (555) 000-0000" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Email *</label>
+                    <input type="email" name="email" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
                 </div>
-                
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
-                    <div style="margin-bottom:15px;">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Preferred Date *</label>
-                        <input type="date" name="preferred_date" id="s-date" required style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Phone</label>
+                    <input type="tel" name="phone" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                    <div>
+                        <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Date *</label>
+                        <input type="date" name="preferred_date" id="prefDate" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
                     </div>
-                    <div style="margin-bottom:15px;">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Preferred Time *</label>
-                        <select name="preferred_time" id="s-time" required style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
-                            <option value="">Select time</option>
+                    <div>
+                        <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Time *</label>
+                        <select name="preferred_time" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                            <option value="">Select</option>
                             <option value="09:00">9:00 AM</option>
                             <option value="10:00">10:00 AM</option>
                             <option value="11:00">11:00 AM</option>
@@ -368,267 +328,223 @@ function openScheduleViewing(listingId, listingType, agentId) {
                         </select>
                     </div>
                 </div>
-                
-                <div style="margin-bottom:15px;">
-                    <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Additional Notes</label>
-                    <textarea name="message" id="s-message" rows="3" placeholder="Any special requirements..." style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Notes</label>
+                    <textarea name="message" rows="3" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;resize:vertical;"></textarea>
                 </div>
-                
-                <div style="background:#FFF8E1;border-radius:8px;padding:12px;margin-bottom:20px;border-left:3px solid #C6A43F;">
-                    <p style="font-size:12px;color:#7A5B00;margin:0;">📅 <strong>What happens next?</strong> The agent will confirm your viewing appointment within 24 hours.</p>
-                </div>
-                
-                <button type="submit" style="width:100%;padding:14px;background:#0A0A0A;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;box-sizing:border-box;">
+                <button type="submit" style="width:100%;padding:12px;background:#0A0A0A;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;">
                     <i class="fas fa-calendar-check"></i> Request Viewing
                 </button>
-                
-                <div id="s-error" style="display:none;margin-top:15px;padding:12px;background:#f8d7da;color:#721c24;border-radius:8px;"></div>
-                <div id="s-success" style="display:none;margin-top:15px;padding:12px;background:#d4edda;color:#155724;border-radius:8px;"></div>
+                <div id="scheduleMsg" style="margin-top:12px;padding:10px;border-radius:6px;display:none;"></div>
             </form>
         </div>
+    </div>
     `;
     
-    document.body.appendChild(overlay);
-    document.body.style.overflow = 'hidden';
+    document.body.insertAdjacentHTML('beforeend', html);
     
     // Set default date
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = tomorrow.toISOString().split('T')[0];
-    const dateInput = document.getElementById('s-date');
-    if (dateInput) { dateInput.min = dateStr; dateInput.value = dateStr; }
+    const dateInput = document.getElementById('prefDate');
+    if (dateInput) {
+        dateInput.min = tomorrow.toISOString().split('T')[0];
+        dateInput.value = tomorrow.toISOString().split('T')[0];
+    }
     
     // Pre-fill user info
     const meta = document.querySelector('meta[name="user-data"]');
     if (meta) {
         try {
-            const userData = JSON.parse(meta.content);
-            document.getElementById('s-name').value = userData.name || '';
-            document.getElementById('s-email').value = userData.email || '';
-            document.getElementById('s-phone').value = userData.phone || '';
+            const data = JSON.parse(meta.content);
+            const form = document.getElementById('scheduleForm');
+            if (form) {
+                form.querySelector('input[name="name"]').value = data.name || '';
+                form.querySelector('input[name="email"]').value = data.email || '';
+                form.querySelector('input[name="phone"]').value = data.phone || '';
+            }
         } catch (e) {}
     }
     
-    // Handle form submission
-    document.getElementById('schedule-form').addEventListener('submit', async function(e) {
+    // Handle form submit
+    document.getElementById('scheduleForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
-        const submitBtn = this.querySelector('button[type="submit"]');
-        const errorDiv = document.getElementById('s-error');
-        const successDiv = document.getElementById('s-success');
-        const originalText = submitBtn.innerHTML;
-        
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-        submitBtn.disabled = true;
-        errorDiv.style.display = 'none';
-        successDiv.style.display = 'none';
+        const btn = this.querySelector('button[type="submit"]');
+        const msg = document.getElementById('scheduleMsg');
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        btn.disabled = true;
+        msg.style.display = 'none';
         
         const formData = new FormData(this);
-        const messageField = document.getElementById('s-message');
-        if (!messageField.value.trim()) {
-            messageField.value = 'I would like to schedule a viewing for this property.';
-            formData.set('message', messageField.value);
+        const notes = formData.get('message') || '';
+        if (!notes.trim()) {
+            formData.set('message', 'I would like to schedule a viewing for this property.');
         }
         
         try {
-            const response = await fetch('../../../api/messages/send-inquiry.php', {
+            const res = await fetch('../../../api/messages/send-inquiry.php', {
                 method: 'POST',
                 body: formData
             });
-            const data = await response.json();
-            
+            const data = await res.json();
             if (data.success) {
-                closeScheduleModal();
-                showSuccessBanner('✅ Viewing requested successfully! The agent will confirm your appointment within 24 hours.', false);
-                document.getElementById('schedule-form').reset();
+                msg.style.display = 'block';
+                msg.style.background = '#d4edda';
+                msg.style.color = '#155724';
+                msg.innerHTML = '✅ Viewing requested successfully! The agent will confirm within 24 hours.';
+                setTimeout(() => {
+                    const modal = document.getElementById('schedule-modal');
+                    if (modal) modal.remove();
+                }, 3000);
             } else {
-                errorDiv.textContent = data.error || 'Failed to schedule viewing. Please try again.';
-                errorDiv.style.display = 'block';
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
+                msg.style.display = 'block';
+                msg.style.background = '#f8d7da';
+                msg.style.color = '#721c24';
+                msg.textContent = data.error || 'Failed to schedule. Please try again.';
+                btn.innerHTML = original;
+                btn.disabled = false;
             }
         } catch (error) {
-            errorDiv.textContent = 'Network error. Please check your connection and try again.';
-            errorDiv.style.display = 'block';
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
+            msg.style.display = 'block';
+            msg.style.background = '#f8d7da';
+            msg.style.color = '#721c24';
+            msg.textContent = 'Network error. Please try again.';
+            btn.innerHTML = original;
+            btn.disabled = false;
         }
     });
 }
 
-function closeScheduleModal() {
-    const modal = document.getElementById('schedule-viewing-modal');
-    if (modal) {
-        modal.remove();
-        document.body.style.overflow = '';
-    }
-}
-
-// Close modal when clicking overlay
-document.addEventListener('click', function(e) {
-    const modal = document.getElementById('schedule-viewing-modal');
-    if (modal && e.target === modal) {
-        closeScheduleModal();
-    }
-});
-
 // ============================================================
-// CONTACT AGENT - PROPER POPUP MODAL (NO 404)
+// CONTACT AGENT - SIMPLE POPUP
 // ============================================================
 
 function openContactAgent(agentId, agentName, division) {
-    console.log('openContactAgent called!', agentId, agentName, division);
+    console.log('Contact Agent clicked!', agentId, agentName, division);
     
     if (!isUserLoggedIn()) {
         showLoginRequired();
         return;
     }
     
-    // Remove any existing modal
-    const existing = document.getElementById('contact-modal');
-    if (existing) existing.remove();
+    // Remove existing modal
+    const old = document.getElementById('contact-modal');
+    if (old) old.remove();
     
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.id = 'contact-modal';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:999998;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+    const verifiedBadge = <?= $agentVerified ? 'true' : 'false' ?> ? '<span style="color:#1B5E20;">✓ Verified</span>' : '';
     
-    const verifiedBadge = <?= $agentVerified ? 'true' : 'false' ?> ? '<span style="color:#1B5E20;font-weight:600;">✓ Verified</span>' : '';
-    
-    overlay.innerHTML = `
-        <div style="background:#fff;border-radius:16px;padding:30px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;">
+    const html = `
+    <div id="contact-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999998;display:flex;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:12px;padding:30px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                <h3 style="font-family:Prata,serif;font-size:22px;color:#0A0A0A;margin:0;">
-                    <i class="fas fa-envelope" style="color:#C6A43F;"></i> Contact Agent
-                </h3>
-                <button onclick="this.closest('#contact-modal').remove();document.body.style.overflow='';" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;padding:0 8px;">✕</button>
+                <h3 style="margin:0;font-size:20px;">✉️ Contact Agent</h3>
+                <button onclick="document.getElementById('contact-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
             </div>
-            
-            <div style="display:flex;align-items:center;gap:15px;padding:15px;background:#f9f9f9;border-radius:8px;margin-bottom:20px;">
-                <div style="width:50px;height:50px;border-radius:50%;background:#C6A43F;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:18px;flex-shrink:0;"><?= substr($agentName, 0, 1) ?></div>
-                <div>
-                    <strong style="font-size:16px;color:#0A0A0A;"><?= $agentName ?></strong>
-                    <p style="color:#888;font-size:13px;margin:2px 0 0;">${verifiedBadge} ${division}</p>
-                </div>
+            <div style="padding:12px;background:#f5f5f5;border-radius:8px;margin-bottom:20px;">
+                <strong>${agentName}</strong> ${verifiedBadge} · ${division}
             </div>
-            
-            <form id="contact-form">
+            <form id="contactForm">
                 <input type="hidden" name="listing_id" value="<?= $listingId ?>">
                 <input type="hidden" name="listing_type" value="property">
                 <input type="hidden" name="agent_id" value="${agentId}">
-                
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
-                    <div style="margin-bottom:15px;">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Name *</label>
-                        <input type="text" name="name" id="c-name" required placeholder="John Doe" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
-                    </div>
-                    <div style="margin-bottom:15px;">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Email *</label>
-                        <input type="email" name="email" id="c-email" required placeholder="john@example.com" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
-                    </div>
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Name *</label>
+                    <input type="text" name="name" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
                 </div>
-                
-                <div style="margin-bottom:15px;">
-                    <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Your Phone</label>
-                    <input type="tel" name="phone" id="c-phone" placeholder="+1 (555) 000-0000" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Email *</label>
+                    <input type="email" name="email" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
                 </div>
-                
-                <div style="margin-bottom:15px;">
-                    <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Subject</label>
-                    <input type="text" name="subject" id="c-subject" value="Inquiry about property" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Phone</label>
+                    <input type="tel" name="phone" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
                 </div>
-                
-                <div style="margin-bottom:15px;">
-                    <label style="display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px;">Message *</label>
-                    <textarea name="message" id="c-message" rows="5" required placeholder="Hi, I'm interested in your listing..." style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Subject</label>
+                    <input type="text" name="subject" value="Inquiry about property" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
                 </div>
-                
-                <div style="background:#f0f9ff;border-radius:8px;padding:12px;margin-bottom:20px;">
-                    <p style="font-size:12px;color:#0c5460;margin:0;">🔒 Your contact information is only shared with the agent for this specific inquiry.</p>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Message *</label>
+                    <textarea name="message" rows="5" required placeholder="Hi, I'm interested in your listing..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;resize:vertical;"></textarea>
                 </div>
-                
-                <button type="submit" style="width:100%;padding:14px;background:#0A0A0A;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;box-sizing:border-box;">
+                <button type="submit" style="width:100%;padding:12px;background:#0A0A0A;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;">
                     <i class="fas fa-paper-plane"></i> Send Inquiry
                 </button>
-                
-                <div id="c-error" style="display:none;margin-top:15px;padding:12px;background:#f8d7da;color:#721c24;border-radius:8px;"></div>
-                <div id="c-success" style="display:none;margin-top:15px;padding:12px;background:#d4edda;color:#155724;border-radius:8px;"></div>
+                <div id="contactMsg" style="margin-top:12px;padding:10px;border-radius:6px;display:none;"></div>
             </form>
         </div>
+    </div>
     `;
     
-    document.body.appendChild(overlay);
-    document.body.style.overflow = 'hidden';
+    document.body.insertAdjacentHTML('beforeend', html);
     
     // Pre-fill user info
     const meta = document.querySelector('meta[name="user-data"]');
     if (meta) {
         try {
-            const userData = JSON.parse(meta.content);
-            document.getElementById('c-name').value = userData.name || '';
-            document.getElementById('c-email').value = userData.email || '';
-            document.getElementById('c-phone').value = userData.phone || '';
+            const data = JSON.parse(meta.content);
+            const form = document.getElementById('contactForm');
+            if (form) {
+                form.querySelector('input[name="name"]').value = data.name || '';
+                form.querySelector('input[name="email"]').value = data.email || '';
+                form.querySelector('input[name="phone"]').value = data.phone || '';
+            }
         } catch (e) {}
     }
     
-    // Handle form submission
-    document.getElementById('contact-form').addEventListener('submit', async function(e) {
+    // Handle form submit
+    document.getElementById('contactForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
-        const submitBtn = this.querySelector('button[type="submit"]');
-        const errorDiv = document.getElementById('c-error');
-        const successDiv = document.getElementById('c-success');
-        const originalText = submitBtn.innerHTML;
-        
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-        submitBtn.disabled = true;
-        errorDiv.style.display = 'none';
-        successDiv.style.display = 'none';
+        const btn = this.querySelector('button[type="submit"]');
+        const msg = document.getElementById('contactMsg');
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        btn.disabled = true;
+        msg.style.display = 'none';
         
         const formData = new FormData(this);
         
         try {
-            const response = await fetch('../../../api/messages/send-inquiry.php', {
+            const res = await fetch('../../../api/messages/send-inquiry.php', {
                 method: 'POST',
                 body: formData
             });
-            const data = await response.json();
-            
+            const data = await res.json();
             if (data.success) {
-                overlay.remove();
-                document.body.style.overflow = '';
-                showSuccessBanner('✅ Inquiry sent successfully! The agent will contact you shortly.', false);
-                document.getElementById('contact-form').reset();
+                msg.style.display = 'block';
+                msg.style.background = '#d4edda';
+                msg.style.color = '#155724';
+                msg.innerHTML = '✅ Inquiry sent successfully! The agent will contact you shortly.';
+                setTimeout(() => {
+                    const modal = document.getElementById('contact-modal');
+                    if (modal) modal.remove();
+                }, 3000);
             } else {
-                errorDiv.textContent = data.error || 'Failed to send inquiry. Please try again.';
-                errorDiv.style.display = 'block';
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
+                msg.style.display = 'block';
+                msg.style.background = '#f8d7da';
+                msg.style.color = '#721c24';
+                msg.textContent = data.error || 'Failed to send. Please try again.';
+                btn.innerHTML = original;
+                btn.disabled = false;
             }
         } catch (error) {
-            errorDiv.textContent = 'Network error. Please try again.';
-            errorDiv.style.display = 'block';
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
+            msg.style.display = 'block';
+            msg.style.background = '#f8d7da';
+            msg.style.color = '#721c24';
+            msg.textContent = 'Network error. Please try again.';
+            btn.innerHTML = original;
+            btn.disabled = false;
         }
     });
 }
 
-// Close contact modal when clicking overlay
-document.addEventListener('click', function(e) {
-    const modal = document.getElementById('contact-modal');
-    if (modal && e.target === modal) {
-        modal.remove();
-        document.body.style.overflow = '';
-    }
-});
-
 // ============================================================
-// SAVE LISTING - WITH FAVOURITE BUTTON
+// SAVE LISTING
 // ============================================================
 
 function jeSaveListing(type, id) {
-    console.log('jeSaveListing called!', type, id);
+    console.log('Save clicked!', type, id);
     
     if (!isUserLoggedIn()) {
         showLoginRequired();
@@ -639,7 +555,7 @@ function jeSaveListing(type, id) {
     const originalHTML = btn ? btn.innerHTML : '';
     
     if (btn) {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         btn.disabled = true;
     }
     
@@ -652,29 +568,25 @@ function jeSaveListing(type, id) {
         body: formData,
         credentials: 'same-origin'
     })
-    .then(function(response) { return response.json(); })
+    .then(function(r) { return r.json(); })
     .then(function(data) {
-        console.log('Favorite response:', data);
-        
         if (data.success) {
             if (data.action === 'added') {
                 if (btn) {
                     btn.innerHTML = '<i class="fas fa-heart" style="color:#28a745;"></i> FAVOURITE';
                     btn.style.backgroundColor = '#d4edda';
                     btn.style.color = '#155724';
-                    btn.style.borderColor = '#28a745';
                     btn.style.border = '1px solid #28a745';
                 }
-                showSuccessBanner('✅ Added to favorites!', false);
+                alert('✅ Added to favorites!');
             } else {
                 if (btn) {
                     btn.innerHTML = '<i class="far fa-heart"></i> Save';
                     btn.style.backgroundColor = '';
                     btn.style.color = '';
                     btn.style.border = '';
-                    btn.style.borderColor = '';
                 }
-                showSuccessBanner('Removed from favorites', false);
+                alert('Removed from favorites');
             }
         } else {
             if (btn) {
@@ -682,21 +594,18 @@ function jeSaveListing(type, id) {
                 btn.style.backgroundColor = '';
                 btn.style.color = '';
                 btn.style.border = '';
-                btn.style.borderColor = '';
             }
-            showSuccessBanner('❌ ' + (data.error || 'Failed to update favorites'), true);
+            alert('❌ ' + (data.error || 'Failed to update favorites'));
         }
     })
     .catch(function(error) {
-        console.error('Favorite error:', error);
         if (btn) {
             btn.innerHTML = originalHTML;
             btn.style.backgroundColor = '';
             btn.style.color = '';
             btn.style.border = '';
-            btn.style.borderColor = '';
         }
-        showSuccessBanner('❌ Network error. Please try again.', true);
+        alert('❌ Network error. Please try again.');
     })
     .finally(function() {
         if (btn) btn.disabled = false;
@@ -704,48 +613,38 @@ function jeSaveListing(type, id) {
 }
 
 // ============================================================
-// PAGE INITIALIZATION
+// CHECK FAVORITE STATE ON LOAD
 // ============================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('saveBtn');
+    if (!btn) return;
+    
+    const formData = new FormData();
+    formData.append('listing_type', 'property');
+    formData.append('listing_id', '<?= $listingId ?>');
+    formData.append('check_only', '1');
+    
+    fetch('/api/listings/favorite.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success && data.action === 'added') {
+            btn.innerHTML = '<i class="fas fa-heart" style="color:#28a745;"></i> FAVOURITE';
+            btn.style.backgroundColor = '#d4edda';
+            btn.style.color = '#155724';
+            btn.style.border = '1px solid #28a745';
+        }
+    })
+    .catch(function(e) { console.log('Check favorite error:', e); });
+});
 
 console.log('=== Detail page loaded ===');
 console.log('Listing ID: <?= $listingId ?>');
 console.log('Agent ID: <?= $agentId ?>');
-
-// Add CSS animations
-if (!document.getElementById('banner-styles')) {
-    const style = document.createElement('style');
-    style.id = 'banner-styles';
-    style.textContent = '@keyframes slideInRight{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}.custom-success-banner{animation:slideInRight .3s ease}';
-    document.head.appendChild(style);
-}
-
-// Check if already favorited
-document.addEventListener('DOMContentLoaded', function() {
-    const btn = document.getElementById('saveBtn');
-    if (btn) {
-        const formData = new FormData();
-        formData.append('listing_type', 'property');
-        formData.append('listing_id', '<?= $listingId ?>');
-        formData.append('check_only', '1');
-        
-        fetch('/api/listings/favorite.php', {
-            method: 'POST',
-            body: formData,
-            credentials: 'same-origin'
-        })
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
-            if (data.success && data.action === 'added') {
-                btn.innerHTML = '<i class="fas fa-heart" style="color:#28a745;"></i> FAVOURITE';
-                btn.style.backgroundColor = '#d4edda';
-                btn.style.color = '#155724';
-                btn.style.borderColor = '#28a745';
-                btn.style.border = '1px solid #28a745';
-            }
-        })
-        .catch(function(error) { console.log('Check favorite error:', error); });
-    }
-});
 </script>
 
 <?php include '../../templates/footer.php'; ?>
