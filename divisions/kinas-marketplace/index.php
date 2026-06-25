@@ -413,7 +413,7 @@ include '../../templates/header.php';
 
 			<!-- Worldwide Shipping -->
 			<div class="feature-card">
-				<div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1591379189818-8352b1b2f2e4?w=600&q=80'); background-color: #1a1a2e;"></div>
+				<div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&q=80'); background-color: #1a1a2e;"></div>
 				<div class="feature-overlay"></div>
 				<div class="feature-content">
 					<h3>Worldwide Shipping</h3>
