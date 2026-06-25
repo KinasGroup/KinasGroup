@@ -10,7 +10,7 @@ $current_page = 'dashboard';
 $user_id = $_SESSION['user_id'];
 $db = Database::getInstance()->getConnection();
 
-// Simple stats - no complex grouping
+// Simple stats
 $stmt = $db->prepare("SELECT COUNT(*) FROM messages WHERE sender_id = ?");
 $stmt->execute([$user_id]);
 $messages_sent = $stmt->fetchColumn();
@@ -27,7 +27,7 @@ $stmt = $db->prepare("SELECT COUNT(*) FROM favorites WHERE user_id = ?");
 $stmt->execute([$user_id]);
 $saved_listings = $stmt->fetchColumn();
 
-// Simple recent messages - just the last 5, no grouping
+// Recent messages (simple)
 $stmt = $db->prepare("
     SELECT m.*, u.name AS other_name
     FROM messages m
@@ -39,6 +39,7 @@ $stmt = $db->prepare("
 $stmt->execute([$user_id, $user_id, $user_id]);
 $recent_messages = $stmt->fetchAll();
 
+// Get user info
 $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch();
@@ -58,11 +59,12 @@ include __DIR__ . '/../templates/header.php';
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .section-title { font-family: 'Prata', serif; font-size: 22px; color: #0A0A0A; }
 .view-all { color: #C6A43F; text-decoration: none; font-weight: 600; }
-.message-item { background: #fff; border-radius: 10px; padding: 16px 20px; border: 1px solid #e8e5e0; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-.message-item.unread { border-left: 4px solid #C6A43F; }
-.message-item .sender { font-weight: 600; font-size: 14px; }
+.message-item { background: #fff; border-radius: 10px; padding: 16px 20px; border: 1px solid #e8e5e0; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; text-decoration: none; color: inherit; transition: 0.2s; }
+.message-item:hover { border-color: #C6A43F; }
+.message-item.unread { border-left: 4px solid #C6A43F; background: #FFFDF5; }
+.message-item .sender { font-weight: 600; font-size: 14px; color: #0A0A0A; }
 .message-item .preview { font-size: 13px; color: #666; margin-top: 2px; }
-.message-item .time { font-size: 12px; color: #999; }
+.message-item .time { font-size: 12px; color: #999; flex-shrink: 0; }
 .empty-state { text-align: center; padding: 60px 20px; background: #fff; border-radius: 12px; border: 1px solid #e8e5e0; }
 .empty-state i { font-size: 40px; color: #ccc; margin-bottom: 16px; }
 .quick-actions { background: #fff; border-radius: 12px; padding: 24px; margin-top: 30px; border: 1px solid #e8e5e0; }
@@ -111,7 +113,7 @@ include __DIR__ . '/../templates/header.php';
     <?php if (empty($recent_messages)): ?>
         <div class="empty-state">
             <i class="fas fa-inbox"></i>
-            <p>No messages yet.</p>
+            <p>No messages yet. Start a conversation with an agent!</p>
         </div>
     <?php else: ?>
         <?php foreach ($recent_messages as $msg): 
@@ -119,10 +121,10 @@ include __DIR__ . '/../templates/header.php';
             $otherName = $isSender ? ($msg['other_name'] ?? 'Agent') : ($msg['other_name'] ?? 'User');
             $unread = ($msg['receiver_id'] == $user_id && $msg['is_read'] == 0);
         ?>
-        <a href="messages.php" class="message-item <?php echo $unread ? 'unread' : ''; ?>" style="text-decoration:none;color:inherit;">
+        <a href="messages.php" class="message-item <?php echo $unread ? 'unread' : ''; ?>">
             <div>
                 <div class="sender"><?php echo htmlspecialchars($otherName); ?></div>
-                <div class="preview"><?php echo htmlspecialchars(substr($msg['body'] ?? '', 0, 60)); ?></div>
+                <div class="preview"><?php echo htmlspecialchars(substr($msg['body'] ?? '', 0, 60) ?: 'No message content'); ?></div>
             </div>
             <div class="time"><?php echo date('M j, g:i A', strtotime($msg['created_at'])); ?></div>
         </a>
