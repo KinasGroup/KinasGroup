@@ -9,47 +9,6 @@ if (!defined('SOCIAL_MEDIA')) {
     require_once __DIR__ . '/../api/config/constants.php';
 }
 
-/**
- * Helper function to get the correct detail URL based on division
- */
-function je_get_detail_url($card) {
-    $detail_url = $card['detail_url'] ?? '#';
-    $division = $card['division'] ?? '';
-    
-    // If it's already a full path starting with /divisions/, return it
-    if (strpos($detail_url, '/divisions/') === 0) {
-        return $detail_url;
-    }
-    
-    // If it's just "detail.php?id=X", determine the folder from division
-    if (strpos($detail_url, 'detail.php') !== false) {
-        // Get the ID from the URL
-        parse_str(parse_url($detail_url, PHP_URL_QUERY), $params);
-        $id = $params['id'] ?? 0;
-        
-        if (!$id) {
-            return $detail_url;
-        }
-        
-        // Determine the folder based on division
-        $divisionLower = strtolower($division);
-        
-        if (strpos($divisionLower, 'automobile') !== false || strpos($divisionLower, 'car') !== false) {
-            return '/divisions/kinas-automobile/detail.php?id=' . $id;
-        } elseif (strpos($divisionLower, 'williams') !== false || strpos($divisionLower, 'connect home') !== false || strpos($divisionLower, 'property') !== false) {
-            return '/divisions/williams-connect-home/detail.php?id=' . $id;
-        } elseif (strpos($divisionLower, 'volt') !== false || strpos($divisionLower, 'solar') !== false) {
-            return '/divisions/kinas-volt/detail.php?id=' . $id;
-        } elseif (strpos($divisionLower, 'marketplace') !== false) {
-            return '/divisions/kinas-marketplace/detail.php?id=' . $id;
-        } else {
-            return '/divisions/detail.php?id=' . $id;
-        }
-    }
-    
-    return $detail_url;
-}
-
 function je_render_footer(string $variant = 'site'): void
 {
     $year = date('Y');
@@ -236,8 +195,67 @@ function je_render_pagination($page, $total, $perPage, $action, $pageParam, $cur
 }
 
 /**
+ * je_render_card - Renders a single listing card
+ * This function is called by je_render_listing_grid for each card
+ */
+function je_render_card($card) {
+    // Handle both array and object input
+    $card = (array)$card;
+    
+    // Extract card data with defaults
+    $id = $card['id'] ?? 0;
+    $title = $card['title'] ?? 'Untitled';
+    $price = $card['price'] ?? null;
+    $thumbnail = $card['thumbnail'] ?? '';
+    $specs = $card['specs'] ?? '';
+    $location = $card['location'] ?? '';
+    $detail_url = $card['detail_url'] ?? '#';
+    $featured = $card['featured'] ?? false;
+    $verified = $card['verified'] ?? false;
+    $views = $card['views'] ?? 0;
+    $division = $card['division'] ?? 'KINAS GROUP';
+    
+    // Format price
+    $priceFormatted = $price !== null ? '₦' . number_format((float)$price) : 'Contact for price';
+    ?>
+    <a href="<?php echo htmlspecialchars($detail_url); ?>" class="je-card">
+        <div class="je-card-img">
+            <?php if (!empty($thumbnail)): ?>
+                <img src="<?php echo htmlspecialchars($thumbnail); ?>" alt="<?php echo htmlspecialchars($title); ?>" loading="lazy">
+            <?php else: ?>
+                <div style="width:100%; height:100%; background:#f0f0f0; display:flex; align-items:center; justify-content:center; color:#ccc; font-size:40px;">
+                    <i class="fas fa-image"></i>
+                </div>
+            <?php endif; ?>
+            <?php if ($featured): ?>
+                <span class="je-card-badge">⭐ Featured</span>
+            <?php endif; ?>
+            <?php if ($verified): ?>
+                <span class="je-card-verified-badge"><i class="fas fa-check-circle"></i> Verified</span>
+            <?php endif; ?>
+        </div>
+        <div class="je-card-body">
+            <div class="je-card-eyebrow"><?php echo htmlspecialchars($division); ?></div>
+            <div class="je-card-title"><?php echo htmlspecialchars($title); ?></div>
+            <?php if (!empty($specs)): ?>
+                <div class="je-card-specs"><?php echo htmlspecialchars($specs); ?></div>
+            <?php endif; ?>
+            <?php if (!empty($location)): ?>
+                <div class="je-card-location"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($location); ?></div>
+            <?php endif; ?>
+            <div class="je-card-bottom">
+                <div class="je-card-price"><?php echo $priceFormatted; ?></div>
+                <?php if ($views > 0): ?>
+                    <div class="je-card-views"><i class="far fa-eye"></i> <?php echo number_format($views); ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </a>
+    <?php
+}
+
+/**
  * Render Listing Grid
- * FIXED: Uses je_get_detail_url() to construct correct detail URLs
  */
 function je_render_listing_grid($cards, $emptyTitle = 'No listings found', $emptyText = 'Try adjusting your search filters', $action = 'search.php') {
     if (empty($cards)) {
@@ -247,37 +265,7 @@ function je_render_listing_grid($cards, $emptyTitle = 'No listings found', $empt
     ?>
     <div class="je-listings-grid">
         <?php foreach ($cards as $card): ?>
-            <?php 
-            // FIX: Get the correct detail URL with division folder
-            $detail_url = je_get_detail_url($card);
-            ?>
-            <a href="<?php echo htmlspecialchars($detail_url); ?>" class="je-card">
-                <div class="je-card-img">
-                    <?php if (!empty($card['thumbnail'])): ?>
-                        <img src="<?php echo htmlspecialchars($card['thumbnail']); ?>" alt="<?php echo htmlspecialchars($card['title'] ?? ''); ?>" loading="lazy">
-                    <?php else: ?>
-                        <div style="width:100%; height:100%; background:#f0f0f0; display:flex; align-items:center; justify-content:center; color:#ccc; font-size:40px;">
-                            <i class="fas fa-image"></i>
-                        </div>
-                    <?php endif; ?>
-                    <?php if (!empty($card['featured'])): ?>
-                        <span class="je-card-badge">⭐ Featured</span>
-                    <?php endif; ?>
-                    <?php if (!empty($card['verified'])): ?>
-                        <span class="je-card-verified-badge"><i class="fas fa-check-circle"></i> Verified</span>
-                    <?php endif; ?>
-                </div>
-                <div class="je-card-body">
-                    <div class="je-card-eyebrow"><?php echo htmlspecialchars($card['division'] ?? 'KINAS GROUP'); ?></div>
-                    <div class="je-card-title"><?php echo htmlspecialchars($card['title'] ?? ''); ?></div>
-                    <div class="je-card-specs"><?php echo htmlspecialchars($card['specs'] ?? ''); ?></div>
-                    <div class="je-card-location"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($card['location'] ?? ''); ?></div>
-                    <div class="je-card-bottom">
-                        <div class="je-card-price">₦<?php echo number_format($card['price'] ?? 0); ?></div>
-                        <div class="je-card-views"><i class="far fa-eye"></i> <?php echo number_format($card['views'] ?? 0); ?></div>
-                    </div>
-                </div>
-            </a>
+            <?php je_render_card($card); ?>
         <?php endforeach; ?>
     </div>
     <?php
