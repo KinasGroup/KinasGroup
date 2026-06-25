@@ -524,7 +524,7 @@ include 'templates/header.php';
             
             <!-- Verified Sellers -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/3862624/pexels-photo-3862624.jpeg?w=600&q=80'); background-color: #1a2e1a;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/4017968/pexels-photo-4017968.jpeg?w=600&q=80'); background-color: #1a2e1a;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Verified Sellers</h3>
