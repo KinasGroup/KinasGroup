@@ -37,49 +37,55 @@ $stmt->execute([$user_id]);
 $saved_listings = $stmt->fetch()['total'];
 
 // ============================================================
-// RECENT CONVERSATIONS - Group by conversation (sender + receiver + listing)
+// RECENT CONVERSATIONS - Fixed for sql_mode=only_full_group_by
 // ============================================================
 $stmt = $db->prepare("
     SELECT 
-        CONCAT(
-            LEAST(m.sender_id, m.receiver_id), '_', 
-            GREATEST(m.sender_id, m.receiver_id), '_', 
-            COALESCE(m.listing_id, 0)
-        ) AS conversation_key,
-        MAX(m.created_at) AS last_message_time,
-        (SELECT body FROM messages m2 
-         WHERE (m2.sender_id = m.sender_id AND m2.receiver_id = m.receiver_id AND m2.listing_id = m.listing_id)
-            OR (m2.sender_id = m.receiver_id AND m2.receiver_id = m.sender_id AND m2.listing_id = m.listing_id)
-         ORDER BY m2.created_at DESC LIMIT 1) AS last_message,
-        (SELECT sender_id FROM messages m2 
-         WHERE (m2.sender_id = m.sender_id AND m2.receiver_id = m.receiver_id AND m2.listing_id = m.listing_id)
-            OR (m2.sender_id = m.receiver_id AND m2.receiver_id = m.sender_id AND m2.listing_id = m.listing_id)
-         ORDER BY m2.created_at DESC LIMIT 1) AS last_sender_id,
-        (SELECT COUNT(*) FROM messages m2 
-         WHERE (m2.sender_id = m.sender_id AND m2.receiver_id = m.receiver_id AND m2.listing_id = m.listing_id)
-            OR (m2.sender_id = m.receiver_id AND m2.receiver_id = m.sender_id AND m2.listing_id = m.listing_id)
-            AND m2.receiver_id = ? AND m2.is_read = 0) AS unread_count,
-        (SELECT name FROM users WHERE id = 
-            (CASE 
-                WHEN m.sender_id = ? THEN m.receiver_id 
-                ELSE m.sender_id 
-            END)
-        ) AS other_party_name,
-        (SELECT email FROM users WHERE id = 
-            (CASE 
-                WHEN m.sender_id = ? THEN m.receiver_id 
-                ELSE m.sender_id 
-            END)
-        ) AS other_party_email,
-        COALESCE(
-            (SELECT title FROM car_listings WHERE id = m.listing_id),
-            (SELECT title FROM property_listings WHERE id = m.listing_id),
-            (SELECT title FROM solar_listings WHERE id = m.listing_id),
-            (SELECT title FROM marketplace_listings WHERE id = m.listing_id)
-        ) AS listing_title,
-        m.listing_type
-    FROM messages m
-    WHERE m.sender_id = ? OR m.receiver_id = ?
+        conversation_key,
+        MAX(last_message_time) AS last_message_time,
+        MAX(last_message) AS last_message,
+        MAX(last_sender_id) AS last_sender_id,
+        MAX(other_party_name) AS other_party_name,
+        MAX(other_party_email) AS other_party_email,
+        MAX(listing_title) AS listing_title,
+        MAX(listing_type) AS listing_type,
+        MAX(unread_count) AS unread_count
+    FROM (
+        SELECT 
+            CONCAT(
+                LEAST(m.sender_id, m.receiver_id), '_', 
+                GREATEST(m.sender_id, m.receiver_id), '_', 
+                COALESCE(m.listing_id, 0)
+            ) AS conversation_key,
+            m.created_at AS last_message_time,
+            m.body AS last_message,
+            m.sender_id AS last_sender_id,
+            (SELECT name FROM users WHERE id = 
+                (CASE 
+                    WHEN m.sender_id = ? THEN m.receiver_id 
+                    ELSE m.sender_id 
+                END)
+            ) AS other_party_name,
+            (SELECT email FROM users WHERE id = 
+                (CASE 
+                    WHEN m.sender_id = ? THEN m.receiver_id 
+                    ELSE m.sender_id 
+                END)
+            ) AS other_party_email,
+            COALESCE(
+                (SELECT title FROM car_listings WHERE id = m.listing_id),
+                (SELECT title FROM property_listings WHERE id = m.listing_id),
+                (SELECT title FROM solar_listings WHERE id = m.listing_id),
+                (SELECT title FROM marketplace_listings WHERE id = m.listing_id)
+            ) AS listing_title,
+            m.listing_type,
+            (SELECT COUNT(*) FROM messages m2 
+             WHERE (m2.sender_id = m.sender_id AND m2.receiver_id = m.receiver_id AND m2.listing_id = m.listing_id)
+                OR (m2.sender_id = m.receiver_id AND m2.receiver_id = m.sender_id AND m2.listing_id = m.listing_id)
+                AND m2.receiver_id = ? AND m2.is_read = 0) AS unread_count
+        FROM messages m
+        WHERE m.sender_id = ? OR m.receiver_id = ?
+    ) AS conversations
     GROUP BY conversation_key
     ORDER BY last_message_time DESC
     LIMIT 5
@@ -204,13 +210,13 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
         <?php foreach ($recent_conversations as $conv):
             $isSender = ($conv['last_sender_id'] == $user_id);
             $otherName = $conv['other_party_name'] ?? 'User';
-            $isViewing = !empty($conv['listing_type']) && $conv['listing_type'] == 'viewing';
             $unread = ($conv['unread_count'] ?? 0) > 0;
             $unreadCount = $conv['unread_count'] ?? 0;
             
             $body = $conv['last_message'] ?? '';
             $preview = strlen($body) > 80 ? substr($body, 0, 80) . '...' : $body;
             $listingTitle = $conv['listing_title'] ?? '';
+            $isViewing = $conv['listing_type'] === 'viewing';
             
             // Determine badge
             $badgeText = '';
