@@ -195,7 +195,7 @@ function je_render_pagination($page, $total, $perPage, $action, $pageParam, $cur
 
 /**
  * je_render_card - Renders a single listing card
- * Uses the existing CSS classes from style.css
+ * FIXED: Uses full URL paths for detail links
  */
 function je_render_card($card) {
     // Handle both array and object input
@@ -213,6 +213,24 @@ function je_render_card($card) {
     $verified = $card['verified'] ?? false;
     $views = $card['views'] ?? 0;
     $division = $card['division'] ?? 'KINAS GROUP';
+    
+    // ============================================================
+    // FIX: Ensure detail_url has the full path
+    // If detail_url is just "detail.php?id=X", prepend the division path
+    // ============================================================
+    if (strpos($detail_url, 'detail.php') !== false && strpos($detail_url, '/divisions/') === false) {
+        // Map division name to folder path
+        $divisionMap = [
+            'KINAS Automobile' => '/divisions/kinas-automobile/',
+            'KINAS Marketplace' => '/divisions/kinas-marketplace/',
+            'KINAS VOLT' => '/divisions/kinas-volt/',
+            'Williams Connect Home' => '/divisions/williams-connect-home/',
+            'KINAS GROUP' => '/divisions/',
+        ];
+        
+        $folder = $divisionMap[$division] ?? '/divisions/';
+        $detail_url = $folder . $detail_url;
+    }
     
     // Format price
     $priceFormatted = $price !== null ? '₦' . number_format((float)$price) : 'Contact for price';
