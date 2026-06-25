@@ -21,7 +21,7 @@ $stmt = $db->prepare("SELECT COUNT(*) as total FROM favorites WHERE user_id = ?"
 $stmt->execute([$user_id]);
 $saved_listings = $stmt->fetch()['total'];
 
-// Get inquiries count (assuming inquiries table exists)
+// Get inquiries count (assuming messages table exists)
 $stmt = $db->prepare("SELECT COUNT(*) as total FROM messages WHERE sender_id = ? AND listing_type IS NOT NULL");
 $stmt->execute([$user_id]);
 $inquiries_sent = $stmt->fetch()['total'];
@@ -33,42 +33,60 @@ $responses_received = $stmt->fetch()['total'];
 // Get recent saved listings - FIXED: Use favorites table with images
 $stmt = $db->prepare("
     SELECT * FROM (
-        SELECT CONCAT('car_', f.listing_id) as unique_id, f.created_at as saved_at, 
-               cl.title, cl.price,
-               COALESCE(NULLIF(cl.location, ''), CONCAT_WS(0x2C20, cl.city, cl.state)) AS location,
-               cl.status,
-               (SELECT url FROM listing_images WHERE listing_id = cl.id AND listing_type = 'car' ORDER BY sort_order LIMIT 1) as thumbnail,
-               'car' as listing_type
+        SELECT 
+            CONCAT('car_', f.listing_id) as unique_id, 
+            f.created_at as saved_at, 
+            cl.title, 
+            cl.price,
+            COALESCE(NULLIF(cl.location, ''), CONCAT_WS(', ', cl.city, cl.state)) AS location,
+            cl.status,
+            (SELECT url FROM listing_images WHERE listing_id = cl.id AND listing_type = 'car' ORDER BY sort_order LIMIT 1) as thumbnail,
+            'car' as listing_type
         FROM favorites f
         JOIN car_listings cl ON f.listing_id = cl.id AND f.listing_type = 'car'
         WHERE f.user_id = ? AND cl.status = 'active'
 
         UNION ALL
 
-        SELECT CONCAT('property_', f.listing_id) as unique_id, f.created_at as saved_at,
-               pl.title, pl.price, CONCAT_WS(0x2C20, pl.city, pl.state) AS location, pl.status,
-               (SELECT url FROM listing_images WHERE listing_id = pl.id AND listing_type = 'property' ORDER BY sort_order LIMIT 1) as thumbnail,
-               'property' as listing_type
+        SELECT 
+            CONCAT('property_', f.listing_id) as unique_id, 
+            f.created_at as saved_at,
+            pl.title, 
+            pl.price, 
+            CONCAT_WS(', ', pl.city, pl.state) AS location, 
+            pl.status,
+            (SELECT url FROM listing_images WHERE listing_id = pl.id AND listing_type = 'property' ORDER BY sort_order LIMIT 1) as thumbnail,
+            'property' as listing_type
         FROM favorites f
         JOIN property_listings pl ON f.listing_id = pl.id AND f.listing_type = 'property'
         WHERE f.user_id = ? AND pl.status = 'active'
 
         UNION ALL
 
-        SELECT CONCAT('solar_', f.listing_id) as unique_id, f.created_at as saved_at,
-               sol.title, sol.price, CONCAT_WS(0x2C20, sol.city, sol.state) AS location, sol.status,
-               (SELECT url FROM listing_images WHERE listing_id = sol.id AND listing_type = 'solar' ORDER BY sort_order LIMIT 1) as thumbnail,
-               'solar' as listing_type
+        SELECT 
+            CONCAT('solar_', f.listing_id) as unique_id, 
+            f.created_at as saved_at,
+            sol.title, 
+            sol.price, 
+            CONCAT_WS(', ', sol.city, sol.state) AS location, 
+            sol.status,
+            (SELECT url FROM listing_images WHERE listing_id = sol.id AND listing_type = 'solar' ORDER BY sort_order LIMIT 1) as thumbnail,
+            'solar' as listing_type
         FROM favorites f
         JOIN solar_listings sol ON f.listing_id = sol.id AND f.listing_type = 'solar'
         WHERE f.user_id = ? AND sol.status = 'active'
 
         UNION ALL
 
-        SELECT CONCAT('marketplace_', f.listing_id) as unique_id, f.created_at as saved_at,
-               ml.title, ml.price, CONCAT_WS(0x2C20, ml.city, ml.state) AS location, ml.status,
-               (SELECT url FROM listing_images WHERE listing_id = ml.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) as thumbnail,
-               'marketplace' as listing_type
+        SELECT 
+            CONCAT('marketplace_', f.listing_id) as unique_id, 
+            f.created_at as saved_at,
+            ml.title, 
+            ml.price, 
+            CONCAT_WS(', ', ml.city, ml.state) AS location, 
+            ml.status,
+            (SELECT url FROM listing_images WHERE listing_id = ml.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) as thumbnail,
+            'marketplace' as listing_type
         FROM favorites f
         JOIN marketplace_listings ml ON f.listing_id = ml.id AND f.listing_type = 'marketplace'
         WHERE f.user_id = ? AND ml.status = 'active'
@@ -219,8 +237,15 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 // Extract the listing ID from unique_id
                 $listing_id = str_replace($listing['listing_type'] . '_', '', $listing['unique_id']);
                 $thumbnail = $listing['thumbnail'] ?? '';
-                // Build detail URL
-                $detailUrl = '/divisions/' . ($listing['listing_type'] === 'property' ? 'williams-connect-home' : 'kinas-' . $listing['listing_type']) . '/detail.php?id=' . $listing_id;
+                // Build detail URL based on listing type
+                $divisionMap = [
+                    'car' => 'kinas-automobile',
+                    'property' => 'williams-connect-home',
+                    'solar' => 'kinas-volt',
+                    'marketplace' => 'kinas-marketplace'
+                ];
+                $folder = $divisionMap[$listing['listing_type']] ?? 'kinas-automobile';
+                $detailUrl = '/divisions/' . $folder . '/detail.php?id=' . $listing_id;
             ?>
             <div class="listing-card">
                 <a href="<?php echo $detailUrl; ?>">
