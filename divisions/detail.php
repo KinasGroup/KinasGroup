@@ -3,6 +3,7 @@
  * Unified Detail Page - KINAS GROUP
  * Displays details for any listing across all divisions
  * Includes "You Might Also Like" and "Also Viewed" sections
+ * FIXED: Uses je_render_listing_grid() for consistent card rendering
  */
 
 require_once '../includes/session.php';
@@ -10,6 +11,7 @@ require_once '../includes/functions.php';
 require_once '../includes/helpers.php';
 require_once '../api/config/database.php';
 require_once '../includes/je-components.php';
+require_once '../includes/security.php';
 
 $db = Database::getInstance()->getConnection();
 
@@ -468,7 +470,7 @@ include '../templates/header.php';
     </div>
 
     <!-- ============================================================ -->
-    <!-- YOU MIGHT ALSO LIKE & ALSO VIEWED SECTIONS -->
+    <!-- YOU MIGHT ALSO LIKE & ALSO VIEWED SECTIONS - FIXED -->
     <!-- ============================================================ -->
     <?php if (!empty($similarListings) || !empty($recentListings)): ?>
     <div class="suggestions-section">
@@ -477,27 +479,27 @@ include '../templates/header.php';
                 <h2 style="font-family: 'Prata', serif; font-size: 24px; color: #0A0A0A;">
                     <i class="fas fa-lightbulb" style="color: #C6A43F;"></i> You Might Also Like
                 </h2>
-                <div class="suggestions-grid">
-                    <?php foreach ($similarListings as $similar): ?>
-                        <a href="/divisions/detail.php?division=<?php echo $division; ?>&id=<?php echo $similar['id']; ?>" 
-                           class="suggestion-card">
-                            <div class="suggestion-image">
-                                <?php if (!empty($similar['thumbnail'])): ?>
-                                    <img src="<?php echo htmlspecialchars($similar['thumbnail']); ?>" 
-                                         alt="<?php echo htmlspecialchars($similar['title']); ?>">
-                                <?php else: ?>
-                                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ccc; font-size: 32px;">
-                                        <i class="fas fa-image"></i>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                            <div class="suggestion-info">
-                                <h4><?php echo htmlspecialchars($similar['title']); ?></h4>
-                                <div class="suggestion-price">₦<?php echo number_format($similar['price']); ?></div>
-                            </div>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
+                <?php
+                // Convert similar listings to card format for je_render_listing_grid
+                $similarCards = array_map(function($item) use ($division, $config) {
+                    // Get the division folder from the division name
+                    $divisionSlug = $config['folder'] ?? 'kinas-automobile';
+                    return [
+                        'id' => $item['id'],
+                        'title' => $item['title'],
+                        'price' => $item['price'],
+                        'thumbnail' => $item['thumbnail'] ?: '',
+                        'specs' => '',
+                        'location' => '',
+                        'detail_url' => '/divisions/' . $divisionSlug . '/detail.php?id=' . $item['id'],
+                        'featured' => false,
+                        'verified' => false,
+                        'views' => 0,
+                        'division' => $config['title']
+                    ];
+                }, $similarListings);
+                je_render_listing_grid($similarCards);
+                ?>
             </div>
         <?php endif; ?>
 
@@ -506,30 +508,43 @@ include '../templates/header.php';
                 <h2 style="font-family: 'Prata', serif; font-size: 24px; color: #0A0A0A;">
                     <i class="fas fa-history" style="color: #C6A43F;"></i> Also Viewed
                 </h2>
-                <div class="suggestions-grid">
-                    <?php foreach ($recentListings as $recent): ?>
-                        <?php 
-                        $recentDiv = $recent['division'] ?? 'solar';
-                        ?>
-                        <a href="/divisions/detail.php?division=<?php echo $recentDiv; ?>&id=<?php echo $recent['id']; ?>" 
-                           class="suggestion-card">
-                            <div class="suggestion-image">
-                                <?php if (!empty($recent['thumbnail'])): ?>
-                                    <img src="<?php echo htmlspecialchars($recent['thumbnail']); ?>" 
-                                         alt="<?php echo htmlspecialchars($recent['title']); ?>">
-                                <?php else: ?>
-                                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ccc; font-size: 32px;">
-                                        <i class="fas fa-image"></i>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                            <div class="suggestion-info">
-                                <h4><?php echo htmlspecialchars($recent['title']); ?></h4>
-                                <div class="suggestion-price">₦<?php echo number_format($recent['price']); ?></div>
-                            </div>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
+                <?php
+                // Convert recent listings to card format for je_render_listing_grid
+                $recentCards = array_map(function($item) {
+                    $recentDiv = $item['division'] ?? 'solar';
+                    // Map division to folder
+                    $divisionMap2 = [
+                        'car' => 'kinas-automobile',
+                        'solar' => 'kinas-volt',
+                        'property' => 'williams-connect-home',
+                        'marketplace' => 'kinas-marketplace'
+                    ];
+                    $folder = $divisionMap2[$recentDiv] ?? 'kinas-automobile';
+                    $divisionTitles = [
+                        'car' => 'KINAS Automobile',
+                        'solar' => 'KINAS Volt',
+                        'property' => 'Williams Connect Home',
+                        'marketplace' => 'KINAS Marketplace'
+                    ];
+                    return [
+                        'id' => $item['id'],
+                        'title' => $item['title'],
+                        'price' => $item['price'],
+                        'thumbnail' => $item['thumbnail'] ?: '',
+                        'specs' => '',
+                        'location' => '',
+                        'detail_url' => '/divisions/' . $folder . '/detail.php?id=' . $item['id'],
+                        'featured' => false,
+                        'verified' => false,
+                        'views' => 0,
+                        'division' => $divisionTitles[$recentDiv] ?? 'KINAS Group'
+                    ];
+                }, $recentListings);
+                
+                if (!empty($recentCards)) {
+                    je_render_listing_grid($recentCards);
+                }
+                ?>
             </div>
         <?php endif; ?>
     </div>
