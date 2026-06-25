@@ -1,23 +1,24 @@
 <?php
 /**
- * WILLIAMS CONNECT HOME — Property detail
+ * KINAS AUTOMOBILE — Listing detail page
  */
 require_once '../../includes/session.php';
 require_once '../../includes/functions.php';
 require_once '../../includes/helpers.php';
 require_once '../../api/config/database.php';
 require_once '../../includes/je-components.php';
+require_once '../../includes/security.php';
 
 $id = (int)($_GET['id'] ?? 0);
 $db = Database::getInstance()->getConnection();
 
 $stmt = $db->prepare("
-    SELECT p.*, a.verified as agent_verified, a.name as agent_name, a.email as agent_email, a.phone as agent_phone,
+    SELECT c.*, a.verified as agent_verified, a.name as agent_name, a.email as agent_email, a.phone as agent_phone,
            ap.company_name as agent_company, ap.avatar as agent_avatar
-    FROM property_listings p
-    LEFT JOIN users a ON p.agent_id = a.id
+    FROM car_listings c
+    LEFT JOIN users a ON c.agent_id = a.id
     LEFT JOIN agent_profiles ap ON a.id = ap.user_id
-    WHERE p.id = ?
+    WHERE c.id = ?
 ");
 $stmt->execute([$id]);
 $item = $stmt->fetch();
@@ -34,41 +35,69 @@ if (!$item || ($item['status'] !== 'active' && !$isOwnerOrAdmin)) {
 $isPreview = $item['status'] !== 'active';
 
 if (!$isPreview) {
-    $db->prepare("UPDATE property_listings SET views = views + 1 WHERE id = ?")->execute([$id]);
+    $db->prepare("UPDATE car_listings SET views = views + 1 WHERE id = ?")->execute([$id]);
 }
 
-$images = $db->prepare("SELECT * FROM listing_images WHERE listing_id = ? AND listing_type = 'property' ORDER BY sort_order");
+$images = $db->prepare("SELECT * FROM listing_images WHERE listing_id = ? AND listing_type = 'car' ORDER BY sort_order");
 $images->execute([$id]);
 $images = $images->fetchAll();
 
 $similar = $db->prepare("
-    SELECT p.id, p.title, p.property_type, p.price, p.beds, p.baths, p.sqft, p.city, p.state,
-           (SELECT url FROM listing_images WHERE listing_id = p.id AND listing_type = 'property' ORDER BY sort_order LIMIT 1) AS thumbnail
-    FROM property_listings p
-    WHERE p.id != ? AND p.status = 'active' AND (p.property_type = ? OR p.city = ?)
-    ORDER BY p.featured DESC, p.created_at DESC
+    SELECT c.id, c.title, c.brand, c.model, c.year, c.price,
+           (SELECT url FROM listing_images WHERE listing_id = c.id AND listing_type = 'car' ORDER BY sort_order LIMIT 1) AS thumbnail
+    FROM car_listings c
+    WHERE c.id != ? AND c.status = 'active' AND (c.brand = ? OR c.body_type = ?)
+    ORDER BY c.featured DESC, c.created_at DESC
     LIMIT 4
 ");
-$similar->execute([$id, $item['property_type'] ?? '', $item['city'] ?? '']);
+$similar->execute([$id, $item['brand'] ?? '', $item['body_type'] ?? '']);
 $similar = $similar->fetchAll();
 
 $features = [];
-if (!empty($item['features']))     $features = array_merge($features, is_array($item['features'])     ? $item['features']     : (json_decode($item['features'], true) ?: []));
-if (!empty($item['amenities']))    $features = array_merge($features, is_array($item['amenities'])    ? $item['amenities']    : (json_decode($item['amenities'], true) ?: []));
+if (!empty($item['features'])) {
+    $features = is_array($item['features']) ? $item['features'] : (json_decode($item['features'], true) ?: []);
+}
 
-$pageTitle = ($item['title'] ?? 'Property') . ' - Williams Connect Home';
-$division = 'property';
+$pageTitle = trim(($item['brand'] ?? '') . ' ' . ($item['model'] ?? '') . ' ' . ($item['year'] ?? '')) . ' - KINAS AUTOMOBILE';
+$pageDescription = substr(strip_tags($item['description'] ?? ''), 0, 160);
+
+$division = 'car';
 include '../../templates/header.php';
 
 $locParts = array_filter([$item['city'] ?? null, $item['state'] ?? null, $item['country'] ?? null]);
 $location = implode(', ', $locParts);
+$addressParts = array_filter([$item['address'] ?? null, $item['city'] ?? null, $item['state'] ?? null, $item['country'] ?? null]);
+$fullAddress = implode(', ', $addressParts);
 
 $listingId = (int)$item['id'];
 $agentId = (int)$item['agent_id'];
 $agentName = htmlspecialchars($item['agent_name'] ?? 'Agent', ENT_QUOTES, 'UTF-8');
-$listingTitle = htmlspecialchars($item['title'] ?? 'Property', ENT_QUOTES, 'UTF-8');
+$listingTitle = htmlspecialchars($item['title'] ?? 'Car', ENT_QUOTES, 'UTF-8');
 $agentVerified = !empty($item['agent_verified']);
 ?>
+
+<!-- ============================================================ -->
+<!-- JAVASCRIPT - DEFINED AT THE TOP BEFORE ANY HTML -->
+<!-- ============================================================ -->
+<script>
+// Make functions globally accessible
+window.openScheduleViewing = function(listingId, listingType, agentId) {
+    console.log('openScheduleViewing called!', listingId, listingType, agentId);
+    alert('Schedule Viewing: ' + listingId + ', ' + listingType + ', ' + agentId);
+};
+
+window.openContactAgent = function(agentId, agentName, division) {
+    console.log('openContactAgent called!', agentId, agentName, division);
+    alert('Contact Agent: ' + agentName + ', ' + division);
+};
+
+window.jeSaveListing = function(type, id) {
+    console.log('jeSaveListing called!', type, id);
+    alert('Save Listing: ' + type + ', ' + id);
+};
+
+console.log('Functions defined at top of page!');
+</script>
 
 <div class="je-page">
 <div class="je-detail-wrap">
@@ -82,21 +111,26 @@ $agentVerified = !empty($item['agent_verified']);
     <div class="je-breadcrumb">
         <a href="/">Home</a>
         <span class="je-breadcrumb-sep">/</span>
-        <a href="/divisions/williams-connect-home/">WILLIAMS CONNECT HOME</a>
+        <a href="/divisions/kinas-automobile/">KINAS AUTOMOBILE</a>
         <span class="je-breadcrumb-sep">/</span>
-        <a href="/divisions/williams-connect-home/search.php">Search</a>
+        <a href="/divisions/kinas-automobile/search.php">Search</a>
         <span class="je-breadcrumb-sep">/</span>
-        <span><?= htmlspecialchars($item['title'] ?? '') ?></span>
+        <span><?= htmlspecialchars(trim(($item['brand'] ?? '') . ' ' . ($item['model'] ?? ''))) ?></span>
     </div>
 
     <div class="je-detail-grid">
         <div>
             <?php if (empty($images)): ?>
                 <div class="je-gallery-main" style="background:linear-gradient(135deg,#1a1a1a,#0a0a0a); display:flex; align-items:center; justify-content:center; color:#C6A43F; font-size:64px;">
-                    <i class="fas fa-home"></i>
+                    <i class="fas fa-car"></i>
                 </div>
             <?php else: ?>
-                <div class="je-gallery-main"><img id="jeMainImage" src="<?= htmlspecialchars($images[0]['url']) ?>" alt="<?= htmlspecialchars($item['title']) ?>"></div>
+                <div class="je-gallery-main" id="jeGalleryMain">
+                    <img id="jeMainImage" src="<?= htmlspecialchars($images[0]['url']) ?>" alt="<?= htmlspecialchars($item['title']) ?>">
+                    <?php if (!empty($item['featured'])): ?>
+                        <span class="je-card-badge" style="top:16px;left:16px;">Featured</span>
+                    <?php endif; ?>
+                </div>
                 <?php if (count($images) > 1): ?>
                 <div class="je-gallery-thumbs">
                     <?php foreach ($images as $idx => $img): ?>
@@ -113,47 +147,57 @@ $agentVerified = !empty($item['agent_verified']);
         </div>
 
         <aside class="je-spec-panel">
-            <div class="je-spec-eyebrow">
-                <?= htmlspecialchars($item['property_type'] ?? 'Residential') ?>
-                · <?= ($item['listing_type'] ?? '') === 'rent' ? 'For Rent' : 'For Sale' ?>
+            <div class="je-spec-eyebrow">KINAS AUTOMOBILE</div>
+            <h1 class="je-spec-title"><?= htmlspecialchars(trim(($item['brand'] ?? '') . ' ' . ($item['model'] ?? ''))) ?></h1>
+            <div style="font-size:13px; color:#888; margin-bottom:8px;"><?= htmlspecialchars($item['year'] ?? '') ?></div>
+
+            <div class="je-spec-price"><?= function_exists('formatPrice') ? formatPrice((float)$item['price']) : '₦' . number_format((float)$item['price']) ?></div>
+            <div class="je-spec-price-note"><?= !empty($item['negotiable']) ? 'Negotiable' : 'Fixed price' ?></div>
+
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #E0E0E0;">
+                <h3 style="font-size:14px; font-weight:600; color:#C6A43F; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">Car Details</h3>
+                <dl class="je-spec-key">
+                    <?php
+                    if (!empty($item['brand'])) echo '<div><dt>Make</dt><dd>' . htmlspecialchars($item['brand']) . '</dd></div>';
+                    if (!empty($item['model'])) echo '<div><dt>Model</dt><dd>' . htmlspecialchars($item['model']) . '</dd></div>';
+                    if (!empty($item['year'])) echo '<div><dt>Year</dt><dd>' . htmlspecialchars($item['year']) . '</dd></div>';
+                    if (!empty($location)) echo '<div><dt>Location</dt><dd>' . htmlspecialchars($location) . '</dd></div>';
+                    if (!empty($fullAddress) && !empty($item['address'])) echo '<div><dt>Address</dt><dd>' . htmlspecialchars($fullAddress) . '</dd></div>';
+                    elseif (!empty($item['address'])) echo '<div><dt>Address</dt><dd>' . htmlspecialchars($item['address']) . '</dd></div>';
+                    if (!empty($item['mileage'])) echo '<div><dt>Mileage</dt><dd>' . htmlspecialchars($item['mileage']) . '</dd></div>';
+                    if (!empty($item['engine'])) echo '<div><dt>Engine</dt><dd>' . htmlspecialchars($item['engine']) . '</dd></div>';
+                    if (!empty($item['gearbox'])) echo '<div><dt>Gearbox</dt><dd>' . htmlspecialchars($item['gearbox']) . '</dd></div>';
+                    elseif (!empty($item['transmission'])) echo '<div><dt>Transmission</dt><dd>' . htmlspecialchars($item['transmission']) . '</dd></div>';
+                    if (!empty($item['car_type'])) echo '<div><dt>Car Type</dt><dd>' . htmlspecialchars($item['car_type']) . '</dd></div>';
+                    elseif (!empty($item['body_type'])) echo '<div><dt>Body Type</dt><dd>' . htmlspecialchars($item['body_type']) . '</dd></div>';
+                    if (!empty($item['drive'])) echo '<div><dt>Drive</dt><dd>' . htmlspecialchars($item['drive']) . '</dd></div>';
+                    if (!empty($item['drive_train'])) echo '<div><dt>Drive Train</dt><dd>' . htmlspecialchars($item['drive_train']) . '</dd></div>';
+                    elseif (!empty($item['drivetrain'])) echo '<div><dt>Drivetrain</dt><dd>' . htmlspecialchars($item['drivetrain']) . '</dd></div>';
+                    if (!empty($item['fuel_type'])) echo '<div><dt>Fuel Type</dt><dd>' . htmlspecialchars($item['fuel_type']) . '</dd></div>';
+                    if (!empty($item['condition_status'])) echo '<div><dt>Condition</dt><dd>' . htmlspecialchars($item['condition_status']) . '</dd></div>';
+                    if (!empty($item['vin'])) echo '<div><dt>VIN</dt><dd>' . htmlspecialchars($item['vin']) . '</dd></div>';
+                    if (!empty($item['color'])) echo '<div><dt>Exterior Color</dt><dd>' . htmlspecialchars($item['color']) . '</dd></div>';
+                    if (!empty($item['interior_color'])) echo '<div><dt>Interior Color</dt><dd>' . htmlspecialchars($item['interior_color']) . '</dd></div>';
+                    if (!empty($item['doors'])) echo '<div><dt>Doors</dt><dd>' . htmlspecialchars($item['doors']) . '</dd></div>';
+                    if (!empty($item['seats'])) echo '<div><dt>Seats</dt><dd>' . htmlspecialchars($item['seats']) . '</dd></div>';
+                    if (!empty($item['country']) && empty($location)) echo '<div><dt>Country</dt><dd>' . htmlspecialchars($item['country']) . '</dd></div>';
+                    ?>
+                </dl>
             </div>
-            <h1 class="je-spec-title"><?= htmlspecialchars($item['title'] ?? '') ?></h1>
-            <?php if ($location): ?><div style="font-size:13px;color:#888;margin-bottom:8px;"><i class="fas fa-map-marker-alt" style="color:#C6A43F"></i> <?= htmlspecialchars($location) ?></div><?php endif; ?>
-
-            <div class="je-spec-price"><?= function_exists('formatPrice') ? formatPrice((float)$item['price']) : '₦' . number_format((float)$item['price']) ?><?php if (($item['listing_type'] ?? '') === 'rent'): ?> <span style="font-size:14px;color:#888;font-weight:400;">/year</span><?php endif; ?></div>
-
-            <dl class="je-spec-key">
-                <?php
-                $keys = [
-                    'Bedrooms'    => ($item['beds'] ?? null) !== null ? (int)$item['beds'] : null,
-                    'Bathrooms'   => ($item['baths'] ?? null) !== null ? (int)$item['baths'] : null,
-                    'Square Feet' => ($item['sqft'] ?? null) !== null ? number_format((int)$item['sqft']) : null,
-                    'Lot Size'    => ($item['lot_size'] ?? null) !== null ? rtrim(rtrim(number_format((float)$item['lot_size'], 2), '0'), '.') . ' acres' : null,
-                    'Year Built'  => $item['year_built'] ?? null,
-                    'View'        => $item['view_type'] ?? null,
-                    'HOA Fees'    => ($item['hoa_fees'] ?? null) !== null ? formatPrice((float)$item['hoa_fees']) . '/mo' : null,
-                    'Address'     => $item['address'] ?? null,
-                ];
-                foreach ($keys as $label => $val):
-                    if (!$val) continue;
-                ?>
-                    <div><dt><?= htmlspecialchars($label) ?></dt><dd><?= htmlspecialchars($val) ?></dd></div>
-                <?php endforeach; ?>
-            </dl>
 
             <!-- ============================================================ -->
             <!-- BUTTONS -->
             <!-- ============================================================ -->
             <div class="je-cta-row">
-                <button class="je-cta-primary" id="scheduleBtn" onclick="openScheduleViewing(<?= $listingId ?>, 'property', <?= $agentId ?>);">
+                <button class="je-cta-primary" id="scheduleBtn" onclick="window.openScheduleViewing(<?= $listingId ?>, 'car', <?= $agentId ?>);">
                     <i class="far fa-calendar-alt"></i> Schedule Viewing
                 </button>
                 
-                <button class="je-cta-secondary" id="contactBtn" onclick="openContactAgent(<?= $agentId ?>, '<?= $agentName ?>', 'property');">
+                <button class="je-cta-secondary" id="contactBtn" onclick="window.openContactAgent(<?= $agentId ?>, '<?= $agentName ?>', 'car');">
                     <i class="far fa-envelope"></i> Contact Agent
                 </button>
                 
-                <button class="je-cta-secondary" id="saveBtn" onclick="jeSaveListing('property', <?= $listingId ?>);">
+                <button class="je-cta-secondary" id="saveBtn" onclick="window.jeSaveListing('car', <?= $listingId ?>);">
                     <i class="far fa-heart"></i> Save
                 </button>
             </div>
@@ -180,7 +224,7 @@ $agentVerified = !empty($item['agent_verified']);
     </div>
 
     <section class="je-section" style="padding-left:0;padding-right:0;border-top:1px solid #e8e8e8; margin-top:40px;">
-        <h2>About this property</h2>
+        <h2>About This Car</h2>
         <?php if (!empty($item['description'])): ?>
             <p><?= nl2br(htmlspecialchars($item['description'])) ?></p>
         <?php else: ?>
@@ -188,7 +232,7 @@ $agentVerified = !empty($item['agent_verified']);
         <?php endif; ?>
 
         <?php if (!empty($features)): ?>
-        <h2 style="margin-top:32px;">Features &amp; Amenities</h2>
+        <h2 style="margin-top:32px;">Features &amp; Equipment</h2>
         <div class="je-features-grid">
             <?php foreach ($features as $f): ?>
                 <div class="je-feature-pill"><i class="fas fa-check"></i> <?= htmlspecialchars(is_array($f) ? ($f['name'] ?? json_encode($f)) : $f) ?></div>
@@ -199,462 +243,29 @@ $agentVerified = !empty($item['agent_verified']);
 
     <?php if (!empty($similar)): ?>
     <section class="je-section" style="padding-left:0;padding-right:0;border-top:1px solid #e8e8e8;">
-        <h2>Similar properties</h2>
+        <h2>You may also like</h2>
         <?php
         $simCards = array_map(function ($s) {
-            $specParts = array_filter([
-                ($s['beds'] ?? null) !== null ? (int)$s['beds'] . ' bd' : null,
-                ($s['baths'] ?? null) !== null ? (int)$s['baths'] . ' ba' : null,
-                ($s['sqft'] ?? null) !== null ? number_format((int)$s['sqft']) . ' sqft' : null,
-            ]);
+            $specParts = array_filter([$s['year'] ?? null, $s['model'] ?? null]);
             return [
                 'id'         => $s['id'],
-                'title'      => $s['title'] ?? '',
-                'division'   => 'WILLIAMS CONNECT HOME',
+                'title'      => trim(($s['brand'] ?? '') . ' ' . ($s['model'] ?? '') . ' ' . ($s['year'] ?? '')),
+                'division'   => 'KINAS AUTOMOBILE',
                 'price'      => $s['price'],
                 'thumbnail'  => $s['thumbnail'] ?: '',
                 'specs'      => implode(' • ', $specParts),
-                'location'   => trim(($s['city'] ?? '') . ', ' . ($s['state'] ?? ''), ', '),
+                'location'   => '',
                 'detail_url' => 'detail.php?id=' . (int)$s['id'],
                 'featured'   => false,
                 'verified'   => false,
             ];
         }, $similar);
-        echo '<div class="je-listings-grid" style="grid-template-columns:repeat(4,1fr);">';
-        foreach ($simCards as $c) je_render_card($c);
-        echo '</div>';
+        je_render_listing_grid($simCards);
         ?>
     </section>
     <?php endif; ?>
 
 </div>
 </div>
-
-<!-- ============================================================ -->
-<!-- ALL JAVASCRIPT - INLINE -->
-<!-- ============================================================ -->
-<script>
-// ============================================================
-// HELPER FUNCTIONS
-// ============================================================
-
-function isUserLoggedIn() {
-    const meta = document.querySelector('meta[name="user-data"]');
-    if (meta) {
-        try {
-            const data = JSON.parse(meta.content);
-            return data.loggedIn === true;
-        } catch (e) {
-            return false;
-        }
-    }
-    return document.querySelector('meta[name="user-id"]')?.content ? true : false;
-}
-
-function showLoginRequired() {
-    alert('Please login to continue');
-    setTimeout(function() {
-        window.location.href = '/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
-    }, 1500);
-}
-
-// ============================================================
-// GREEN SUCCESS BANNER - FIXED
-// ============================================================
-
-function showSuccessBanner(message, isError) {
-    // Remove any existing banners
-    const existing = document.querySelectorAll('.custom-success-banner');
-    existing.forEach(function(b) { b.remove(); });
-    
-    // Create banner
-    const banner = document.createElement('div');
-    banner.className = 'custom-success-banner';
-    const bgColor = isError ? '#f8d7da' : '#d4edda';
-    const textColor = isError ? '#721c24' : '#155724';
-    const borderColor = isError ? '#dc3545' : '#28a745';
-    const icon = isError ? 'fa-exclamation-circle' : 'fa-check-circle';
-    
-    banner.style.cssText = 'position:fixed;top:100px;right:20px;z-index:100000;padding:16px 24px;background:' + bgColor + ';color:' + textColor + ';border-left:4px solid ' + borderColor + ';border-radius:8px;font-family:Inter,sans-serif;font-size:14px;font-weight:500;box-shadow:0 8px 30px rgba(0,0,0,0.15);max-width:450px;display:flex;align-items:center;gap:12px;';
-    banner.innerHTML = '<i class="fas ' + icon + '" style="color:' + borderColor + ';font-size:18px;"></i><span>' + message + '</span><button onclick="this.parentElement.remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + textColor + ';margin-left:auto;">✕</button>';
-    document.body.appendChild(banner);
-    
-    // Auto remove after 5 seconds
-    setTimeout(function() {
-        if (banner.parentElement) {
-            banner.style.opacity = '0';
-            banner.style.transition = 'opacity 0.3s ease';
-            setTimeout(function() { banner.remove(); }, 300);
-        }
-    }, 5000);
-}
-
-// ============================================================
-// SCHEDULE VIEWING
-// ============================================================
-
-function openScheduleViewing(listingId, listingType, agentId) {
-    console.log('Schedule Viewing clicked!', listingId, listingType, agentId);
-    
-    if (!isUserLoggedIn()) {
-        showLoginRequired();
-        return;
-    }
-    
-    const old = document.getElementById('schedule-modal');
-    if (old) old.remove();
-    
-    const html = `
-    <div id="schedule-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;">
-        <div style="background:#fff;border-radius:12px;padding:30px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                <h3 style="margin:0;font-size:20px;">📅 Schedule Viewing</h3>
-                <button onclick="document.getElementById('schedule-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
-            </div>
-            <div style="padding:12px;background:#f5f5f5;border-radius:8px;margin-bottom:20px;">
-                <strong><?= $agentName ?></strong> · <?= $listingTitle ?>
-            </div>
-            <form id="scheduleForm">
-                <input type="hidden" name="listing_id" value="${listingId}">
-                <input type="hidden" name="listing_type" value="${listingType}">
-                <input type="hidden" name="agent_id" value="${agentId}">
-                <input type="hidden" name="inquiry_type" value="viewing">
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Name *</label>
-                    <input type="text" name="name" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Email *</label>
-                    <input type="email" name="email" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Phone</label>
-                    <input type="tel" name="phone" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-                    <div>
-                        <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Date *</label>
-                        <input type="date" name="preferred_date" id="prefDate" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                    </div>
-                    <div>
-                        <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Time *</label>
-                        <select name="preferred_time" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                            <option value="">Select</option>
-                            <option value="09:00">9:00 AM</option>
-                            <option value="10:00">10:00 AM</option>
-                            <option value="11:00">11:00 AM</option>
-                            <option value="12:00">12:00 PM</option>
-                            <option value="13:00">1:00 PM</option>
-                            <option value="14:00">2:00 PM</option>
-                            <option value="15:00">3:00 PM</option>
-                            <option value="16:00">4:00 PM</option>
-                            <option value="17:00">5:00 PM</option>
-                        </select>
-                    </div>
-                </div>
-                <div style="margin-bottom:16px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Notes</label>
-                    <textarea name="message" rows="3" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;resize:vertical;"></textarea>
-                </div>
-                <button type="submit" style="width:100%;padding:12px;background:#0A0A0A;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;">
-                    <i class="fas fa-calendar-check"></i> Request Viewing
-                </button>
-                <div id="scheduleMsg" style="margin-top:12px;padding:10px;border-radius:6px;display:none;"></div>
-            </form>
-        </div>
-    </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', html);
-    
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateInput = document.getElementById('prefDate');
-    if (dateInput) {
-        dateInput.min = tomorrow.toISOString().split('T')[0];
-        dateInput.value = tomorrow.toISOString().split('T')[0];
-    }
-    
-    const meta = document.querySelector('meta[name="user-data"]');
-    if (meta) {
-        try {
-            const data = JSON.parse(meta.content);
-            const form = document.getElementById('scheduleForm');
-            if (form) {
-                form.querySelector('input[name="name"]').value = data.name || '';
-                form.querySelector('input[name="email"]').value = data.email || '';
-                form.querySelector('input[name="phone"]').value = data.phone || '';
-            }
-        } catch (e) {}
-    }
-    
-    document.getElementById('scheduleForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = this.querySelector('button[type="submit"]');
-        const msg = document.getElementById('scheduleMsg');
-        const original = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-        btn.disabled = true;
-        msg.style.display = 'none';
-        
-        const formData = new FormData(this);
-        const notes = formData.get('message') || '';
-        if (!notes.trim()) {
-            formData.set('message', 'I would like to schedule a viewing for this property.');
-        }
-        
-        try {
-            const res = await fetch('../../../api/messages/send-inquiry.php', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await res.json();
-            if (data.success) {
-                // Close modal
-                const modal = document.getElementById('schedule-modal');
-                if (modal) modal.remove();
-                // Show green banner
-                showSuccessBanner('✅ Viewing requested successfully! The agent will confirm within 24 hours.', false);
-            } else {
-                msg.style.display = 'block';
-                msg.style.background = '#f8d7da';
-                msg.style.color = '#721c24';
-                msg.textContent = data.error || 'Failed to schedule. Please try again.';
-                btn.innerHTML = original;
-                btn.disabled = false;
-            }
-        } catch (error) {
-            msg.style.display = 'block';
-            msg.style.background = '#f8d7da';
-            msg.style.color = '#721c24';
-            msg.textContent = 'Network error. Please try again.';
-            btn.innerHTML = original;
-            btn.disabled = false;
-        }
-    });
-}
-
-// ============================================================
-// CONTACT AGENT
-// ============================================================
-
-function openContactAgent(agentId, agentName, division) {
-    console.log('Contact Agent clicked!', agentId, agentName, division);
-    
-    if (!isUserLoggedIn()) {
-        showLoginRequired();
-        return;
-    }
-    
-    const old = document.getElementById('contact-modal');
-    if (old) old.remove();
-    
-    const verifiedBadge = <?= $agentVerified ? 'true' : 'false' ?> ? '<span style="color:#1B5E20;">✓ Verified</span>' : '';
-    
-    const html = `
-    <div id="contact-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999998;display:flex;align-items:center;justify-content:center;">
-        <div style="background:#fff;border-radius:12px;padding:30px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                <h3 style="margin:0;font-size:20px;">✉️ Contact Agent</h3>
-                <button onclick="document.getElementById('contact-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
-            </div>
-            <div style="padding:12px;background:#f5f5f5;border-radius:8px;margin-bottom:20px;">
-                <strong>${agentName}</strong> ${verifiedBadge} · ${division}
-            </div>
-            <form id="contactForm">
-                <input type="hidden" name="listing_id" value="<?= $listingId ?>">
-                <input type="hidden" name="listing_type" value="property">
-                <input type="hidden" name="agent_id" value="${agentId}">
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Name *</label>
-                    <input type="text" name="name" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Email *</label>
-                    <input type="email" name="email" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Phone</label>
-                    <input type="tel" name="phone" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Subject</label>
-                    <input type="text" name="subject" value="Inquiry about property" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:16px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Message *</label>
-                    <textarea name="message" rows="5" required placeholder="Hi, I'm interested in your listing..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;resize:vertical;"></textarea>
-                </div>
-                <button type="submit" style="width:100%;padding:12px;background:#0A0A0A;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;">
-                    <i class="fas fa-paper-plane"></i> Send Inquiry
-                </button>
-                <div id="contactMsg" style="margin-top:12px;padding:10px;border-radius:6px;display:none;"></div>
-            </form>
-        </div>
-    </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', html);
-    
-    const meta = document.querySelector('meta[name="user-data"]');
-    if (meta) {
-        try {
-            const data = JSON.parse(meta.content);
-            const form = document.getElementById('contactForm');
-            if (form) {
-                form.querySelector('input[name="name"]').value = data.name || '';
-                form.querySelector('input[name="email"]').value = data.email || '';
-                form.querySelector('input[name="phone"]').value = data.phone || '';
-            }
-        } catch (e) {}
-    }
-    
-    document.getElementById('contactForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = this.querySelector('button[type="submit"]');
-        const msg = document.getElementById('contactMsg');
-        const original = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-        btn.disabled = true;
-        msg.style.display = 'none';
-        
-        const formData = new FormData(this);
-        
-        try {
-            const res = await fetch('../../../api/messages/send-inquiry.php', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await res.json();
-            if (data.success) {
-                // Close modal
-                const modal = document.getElementById('contact-modal');
-                if (modal) modal.remove();
-                // Show green banner
-                showSuccessBanner('✅ Inquiry sent successfully! The agent will contact you shortly.', false);
-            } else {
-                msg.style.display = 'block';
-                msg.style.background = '#f8d7da';
-                msg.style.color = '#721c24';
-                msg.textContent = data.error || 'Failed to send. Please try again.';
-                btn.innerHTML = original;
-                btn.disabled = false;
-            }
-        } catch (error) {
-            msg.style.display = 'block';
-            msg.style.background = '#f8d7da';
-            msg.style.color = '#721c24';
-            msg.textContent = 'Network error. Please try again.';
-            btn.innerHTML = original;
-            btn.disabled = false;
-        }
-    });
-}
-
-// ============================================================
-// SAVE LISTING
-// ============================================================
-
-function jeSaveListing(type, id) {
-    console.log('Save clicked!', type, id);
-    
-    if (!isUserLoggedIn()) {
-        showLoginRequired();
-        return;
-    }
-    
-    const btn = document.getElementById('saveBtn');
-    const originalHTML = btn ? btn.innerHTML : '';
-    
-    if (btn) {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        btn.disabled = true;
-    }
-    
-    const formData = new FormData();
-    formData.append('listing_type', type);
-    formData.append('listing_id', id);
-    
-    fetch('/api/listings/favorite.php', {
-        method: 'POST',
-        body: formData,
-        credentials: 'same-origin'
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            if (data.action === 'added') {
-                if (btn) {
-                    btn.innerHTML = '<i class="fas fa-heart" style="color:#28a745;"></i> FAVOURITE';
-                    btn.style.backgroundColor = '#d4edda';
-                    btn.style.color = '#155724';
-                    btn.style.border = '1px solid #28a745';
-                }
-                showSuccessBanner('✅ Added to favorites!', false);
-            } else {
-                if (btn) {
-                    btn.innerHTML = '<i class="far fa-heart"></i> Save';
-                    btn.style.backgroundColor = '';
-                    btn.style.color = '';
-                    btn.style.border = '';
-                }
-                showSuccessBanner('Removed from favorites', false);
-            }
-        } else {
-            if (btn) {
-                btn.innerHTML = originalHTML;
-                btn.style.backgroundColor = '';
-                btn.style.color = '';
-                btn.style.border = '';
-            }
-            showSuccessBanner('❌ ' + (data.error || 'Failed to update favorites'), true);
-        }
-    })
-    .catch(function(error) {
-        if (btn) {
-            btn.innerHTML = originalHTML;
-            btn.style.backgroundColor = '';
-            btn.style.color = '';
-            btn.style.border = '';
-        }
-        showSuccessBanner('❌ Network error. Please try again.', true);
-    })
-    .finally(function() {
-        if (btn) btn.disabled = false;
-    });
-}
-
-// ============================================================
-// CHECK FAVORITE STATE ON LOAD
-// ============================================================
-
-document.addEventListener('DOMContentLoaded', function() {
-    const btn = document.getElementById('saveBtn');
-    if (!btn) return;
-    
-    const formData = new FormData();
-    formData.append('listing_type', 'property');
-    formData.append('listing_id', '<?= $listingId ?>');
-    formData.append('check_only', '1');
-    
-    fetch('/api/listings/favorite.php', {
-        method: 'POST',
-        body: formData,
-        credentials: 'same-origin'
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success && data.action === 'added') {
-            btn.innerHTML = '<i class="fas fa-heart" style="color:#28a745;"></i> FAVOURITE';
-            btn.style.backgroundColor = '#d4edda';
-            btn.style.color = '#155724';
-            btn.style.border = '1px solid #28a745';
-        }
-    })
-    .catch(function(e) { console.log('Check favorite error:', e); });
-});
-
-console.log('=== Detail page loaded ===');
-</script>
 
 <?php include '../../templates/footer.php'; ?>
