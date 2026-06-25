@@ -335,7 +335,8 @@ include '../../templates/header.php';
                 'price' => $s['price'], 'thumbnail' => $s['thumbnail'] ?: '',
                 'specs' => implode(' • ', array_map('ucfirst', $specParts)),
                 'location' => implode(', ', $locParts),
-                'detail_url' => 'detail.php?id=' . (int)$s['id'],
+                // FIXED: Full path to detail page
+                'detail_url' => '/divisions/kinas-volt/detail.php?id=' . (int)$s['id'],
                 'featured' => false, 'verified' => !empty($s['agent_verified']),
                 'views' => $s['views'] ?? 0,
             ];
@@ -479,4 +480,4 @@ if (totalSlides > 1) {
 })();
 </script>
 
-<?php include '../../templates/footer.php'; ?>S
+<?php include '../../templates/footer.php'; ?>
