@@ -401,9 +401,9 @@ include '../../templates/header.php';
                 </div>
             </div>
             
-            <!-- Secure Payments - Lock/security concept -->
+            <!-- Secure Payments - Modern secure payment concept -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/39284/lock-keyhole-security-key-39284.jpeg?w=600&q=80'); background-color: #0c1a2e;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/4381393/pexels-photo-4381393.jpeg?w=600&q=80'); background-color: #0c1a2e;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Secure Payments</h3>
@@ -411,13 +411,13 @@ include '../../templates/header.php';
                 </div>
             </div>
             
-            <!-- White-Glove Shipping - Luxury packaging/delivery -->
+            <!-- Worldwide Shipping - Global shipping/delivery (Renamed from White-Glove Shipping) -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/129493/pexels-photo-129493.jpeg?w=600&q=80'); background-color: #1a1a2e;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/162539/architecture-building-city-skyline-162539.jpeg?w=600&q=80'); background-color: #1a1a2e;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
-                    <h3>White-Glove Shipping</h3>
-                    <p>Insured, door-to-door delivery for high-value items, with real-time tracking and signature confirmation.</p>
+                    <h3>Worldwide Shipping</h3>
+                    <p>Insured, door-to-door delivery to over 190 countries, with real-time tracking and signature confirmation.</p>
                 </div>
             </div>
             
