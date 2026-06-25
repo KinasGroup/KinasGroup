@@ -13,7 +13,7 @@ $user_id = $_SESSION['user_id'];
 $db = Database::getInstance()->getConnection();
 
 // ============================================================
-// STATS - Using messages table (FIXED)
+// STATS - Using messages table
 // ============================================================
 
 // Messages Sent (sent by this user)
@@ -37,35 +37,55 @@ $stmt->execute([$user_id]);
 $saved_listings = $stmt->fetch()['total'];
 
 // ============================================================
-// RECENT MESSAGES (FIXED: From messages table)
+// RECENT CONVERSATIONS - Group by conversation (sender + receiver + listing)
 // ============================================================
 $stmt = $db->prepare("
     SELECT 
-        m.*,
-        u.name AS sender_name,
-        u.email AS sender_email,
-        u2.name AS receiver_name,
-        u2.email AS receiver_email,
-        COALESCE(cl.title, pl.title, sol.title, ml.title) AS listing_title,
-        CASE 
-            WHEN cl.id IS NOT NULL THEN 'car'
-            WHEN pl.id IS NOT NULL THEN 'property'
-            WHEN sol.id IS NOT NULL THEN 'solar'
-            WHEN ml.id IS NOT NULL THEN 'marketplace'
-        END AS listing_type
+        CONCAT(
+            LEAST(m.sender_id, m.receiver_id), '_', 
+            GREATEST(m.sender_id, m.receiver_id), '_', 
+            COALESCE(m.listing_id, 0)
+        ) AS conversation_key,
+        MAX(m.created_at) AS last_message_time,
+        (SELECT body FROM messages m2 
+         WHERE (m2.sender_id = m.sender_id AND m2.receiver_id = m.receiver_id AND m2.listing_id = m.listing_id)
+            OR (m2.sender_id = m.receiver_id AND m2.receiver_id = m.sender_id AND m2.listing_id = m.listing_id)
+         ORDER BY m2.created_at DESC LIMIT 1) AS last_message,
+        (SELECT sender_id FROM messages m2 
+         WHERE (m2.sender_id = m.sender_id AND m2.receiver_id = m.receiver_id AND m2.listing_id = m.listing_id)
+            OR (m2.sender_id = m.receiver_id AND m2.receiver_id = m.sender_id AND m2.listing_id = m.listing_id)
+         ORDER BY m2.created_at DESC LIMIT 1) AS last_sender_id,
+        (SELECT COUNT(*) FROM messages m2 
+         WHERE (m2.sender_id = m.sender_id AND m2.receiver_id = m.receiver_id AND m2.listing_id = m.listing_id)
+            OR (m2.sender_id = m.receiver_id AND m2.receiver_id = m.sender_id AND m2.listing_id = m.listing_id)
+            AND m2.receiver_id = ? AND m2.is_read = 0) AS unread_count,
+        (SELECT name FROM users WHERE id = 
+            (CASE 
+                WHEN m.sender_id = ? THEN m.receiver_id 
+                ELSE m.sender_id 
+            END)
+        ) AS other_party_name,
+        (SELECT email FROM users WHERE id = 
+            (CASE 
+                WHEN m.sender_id = ? THEN m.receiver_id 
+                ELSE m.sender_id 
+            END)
+        ) AS other_party_email,
+        COALESCE(
+            (SELECT title FROM car_listings WHERE id = m.listing_id),
+            (SELECT title FROM property_listings WHERE id = m.listing_id),
+            (SELECT title FROM solar_listings WHERE id = m.listing_id),
+            (SELECT title FROM marketplace_listings WHERE id = m.listing_id)
+        ) AS listing_title,
+        m.listing_type
     FROM messages m
-    LEFT JOIN users u ON m.sender_id = u.id
-    LEFT JOIN users u2 ON m.receiver_id = u2.id
-    LEFT JOIN car_listings cl ON m.listing_id = cl.id AND m.listing_type = 'car'
-    LEFT JOIN property_listings pl ON m.listing_id = pl.id AND m.listing_type = 'property'
-    LEFT JOIN solar_listings sol ON m.listing_id = sol.id AND m.listing_type = 'solar'
-    LEFT JOIN marketplace_listings ml ON m.listing_id = ml.id AND m.listing_type = 'marketplace'
     WHERE m.sender_id = ? OR m.receiver_id = ?
-    ORDER BY m.created_at DESC
+    GROUP BY conversation_key
+    ORDER BY last_message_time DESC
     LIMIT 5
 ");
-$stmt->execute([$user_id, $user_id]);
-$recent_messages = $stmt->fetchAll();
+$stmt->execute([$user_id, $user_id, $user_id, $user_id, $user_id]);
+$recent_conversations = $stmt->fetchAll();
 
 // Get user info
 $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
@@ -103,18 +123,18 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .view-all { color: #C6A43F; text-decoration: none; font-weight: 600; transition: all 0.3s; }
 .view-all:hover { color: #A8882E; transform: translateX(5px); }
 
-/* Message Cards */
-.message-card { background: white; border-radius: 14px; border: 1px solid #E0E0E0; margin-bottom: 12px; overflow: hidden; transition: all 0.3s; display: block; text-decoration: none; color: inherit; }
-.message-card:hover { transform: translateX(4px); box-shadow: 0 4px 15px rgba(0,0,0,0.08); border-color: #C6A43F; }
-.message-card.unread { border-left: 4px solid #C6A43F; background: #FFFDF5; }
-.message-card .msg-body { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-.message-card .msg-info { flex: 1; min-width: 0; }
-.message-card .msg-sender { font-weight: 600; font-size: 14px; color: #0A0A0A; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.message-card .msg-sender .badge { font-size: 10px; font-weight: 600; padding: 2px 10px; border-radius: 12px; background: #FFF3E0; color: #F57C00; }
-.message-card .msg-sender .badge.viewing { background: #E8F5E9; color: #2E7D32; }
-.message-card .msg-preview { font-size: 13px; color: #666; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.message-card .msg-meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: #999; flex-shrink: 0; }
-.message-card .msg-meta .unread-dot { width: 8px; height: 8px; background: #C6A43F; border-radius: 50%; display: inline-block; }
+/* Conversation Cards */
+.conversation-card { background: white; border-radius: 14px; border: 1px solid #E0E0E0; margin-bottom: 12px; overflow: hidden; transition: all 0.3s; display: block; text-decoration: none; color: inherit; }
+.conversation-card:hover { transform: translateX(4px); box-shadow: 0 4px 15px rgba(0,0,0,0.08); border-color: #C6A43F; }
+.conversation-card.unread { border-left: 4px solid #C6A43F; background: #FFFDF5; }
+.conversation-card .conv-body { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.conversation-card .conv-info { flex: 1; min-width: 0; }
+.conversation-card .conv-sender { font-weight: 600; font-size: 14px; color: #0A0A0A; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.conversation-card .conv-sender .badge { font-size: 10px; font-weight: 600; padding: 2px 10px; border-radius: 12px; background: #FFF3E0; color: #F57C00; }
+.conversation-card .conv-sender .badge.viewing { background: #E8F5E9; color: #2E7D32; }
+.conversation-card .conv-preview { font-size: 13px; color: #666; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conversation-card .conv-meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: #999; flex-shrink: 0; }
+.conversation-card .conv-meta .unread-dot { width: 8px; height: 8px; background: #C6A43F; border-radius: 50%; display: inline-block; }
 .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 16px; border: 1px solid #E0E0E0; color: #999; }
 .empty-state i { font-size: 48px; color: #C6A43F; margin-bottom: 20px; }
 .empty-state p { color: #666; margin-bottom: 20px; }
@@ -129,7 +149,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .action-btn span { color: #333; font-weight: 600; font-size: 13px; }
 .action-btn:hover i, .action-btn:hover span { color: #0A0A0A; }
 
-@media (max-width: 768px) { .dashboard-container { padding: 20px 15px; } .welcome-banner h1 { font-size: 24px; } .section-title { font-size: 20px; } .message-card .msg-body { flex-direction: column; align-items: flex-start; } }
+@media (max-width: 768px) { .dashboard-container { padding: 20px 15px; } .welcome-banner h1 { font-size: 24px; } .section-title { font-size: 20px; } .conversation-card .conv-body { flex-direction: column; align-items: flex-start; } }
 </style>
 
 <div class="je-dash-shell">
@@ -170,22 +190,27 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     </div>
 
     <div class="section-header">
-        <h2 class="section-title">Recent Messages</h2>
+        <h2 class="section-title">Recent Conversations</h2>
         <a href="messages.php" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
     </div>
     
-    <?php if (empty($recent_messages)): ?>
+    <?php if (empty($recent_conversations)): ?>
         <div class="empty-state">
             <i class="fas fa-inbox"></i>
             <p>You haven't sent or received any messages yet.</p>
             <a href="/" class="btn-view" style="display: inline-block;">Browse Listings</a>
         </div>
     <?php else: ?>
-        <?php foreach ($recent_messages as $msg):
-            $isSender = ($msg['sender_id'] == $user_id);
-            $otherName = $isSender ? ($msg['receiver_name'] ?? 'Agent') : ($msg['sender_name'] ?? 'User');
-            $isViewing = !empty($msg['is_viewing_request']) && $msg['is_viewing_request'] == 1;
-            $unread = ($msg['receiver_id'] == $user_id && $msg['is_read'] == 0);
+        <?php foreach ($recent_conversations as $conv):
+            $isSender = ($conv['last_sender_id'] == $user_id);
+            $otherName = $conv['other_party_name'] ?? 'User';
+            $isViewing = !empty($conv['listing_type']) && $conv['listing_type'] == 'viewing';
+            $unread = ($conv['unread_count'] ?? 0) > 0;
+            $unreadCount = $conv['unread_count'] ?? 0;
+            
+            $body = $conv['last_message'] ?? '';
+            $preview = strlen($body) > 80 ? substr($body, 0, 80) . '...' : $body;
+            $listingTitle = $conv['listing_title'] ?? '';
             
             // Determine badge
             $badgeText = '';
@@ -200,33 +225,29 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 $badgeText = 'Reply';
                 $badgeClass = '';
             }
-            
-            $body = $msg['body'] ?? '';
-            $preview = strlen($body) > 80 ? substr($body, 0, 80) . '...' : $body;
-            $listingTitle = $msg['listing_title'] ?? '';
         ?>
-        <a href="messages.php" class="message-card <?php echo $unread ? 'unread' : ''; ?>">
-            <div class="msg-body">
-                <div class="msg-info">
-                    <div class="msg-sender">
+        <a href="messages.php" class="conversation-card <?php echo $unread ? 'unread' : ''; ?>">
+            <div class="conv-body">
+                <div class="conv-info">
+                    <div class="conv-sender">
                         <?php echo htmlspecialchars($otherName); ?>
                         <?php if ($badgeText): ?>
                             <span class="badge <?php echo $badgeClass; ?>"><?php echo $badgeText; ?></span>
                         <?php endif; ?>
-                        <?php if ($unread): ?>
-                            <span class="badge" style="background:#C6A43F;color:#fff;">New</span>
+                        <?php if ($unread && $unreadCount > 0): ?>
+                            <span class="badge" style="background:#C6A43F;color:#fff;"><?php echo $unreadCount; ?> new</span>
                         <?php endif; ?>
                         <?php if ($listingTitle): ?>
                             <span style="font-size:11px;color:#C6A43F;font-weight:400;">· <?php echo htmlspecialchars($listingTitle); ?></span>
                         <?php endif; ?>
                     </div>
-                    <div class="msg-preview"><?php echo htmlspecialchars($preview ?: 'No message content'); ?></div>
+                    <div class="conv-preview"><?php echo htmlspecialchars($preview ?: 'No message content'); ?></div>
                 </div>
-                <div class="msg-meta">
+                <div class="conv-meta">
                     <?php if ($unread): ?>
                         <span class="unread-dot"></span>
                     <?php endif; ?>
-                    <span><?php echo date('M j, g:i A', strtotime($msg['created_at'])); ?></span>
+                    <span><?php echo date('M j, g:i A', strtotime($conv['last_message_time'])); ?></span>
                     <i class="fas fa-chevron-right" style="color:#C6A43F;"></i>
                 </div>
             </div>
