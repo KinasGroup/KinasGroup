@@ -1,7 +1,7 @@
 <?php
 /**
  * KINAS GROUP - User Messages
- * Premium messaging interface inspired by Gmail/Yahoo
+ * Premium Gmail/Yahoo style messaging interface
  */
 require_once '../includes/session.php';
 require_once '../includes/functions.php';
@@ -89,7 +89,7 @@ foreach ($allMessages as $msg) {
             'last_message' => $msg['body'],
             'last_message_time' => $msg['created_at'],
             'unread_count' => 0,
-            'subject' => $msg['subject']
+            'subject' => $msg['subject'] ?? 'Message'
         ];
     }
     
@@ -102,7 +102,7 @@ foreach ($allMessages as $msg) {
         $conversations[$key]['last_message_time'] = $msg['created_at'];
         $conversations[$key]['listing_id'] = $msg['listing_id'];
         $conversations[$key]['listing_type'] = $msg['listing_type'];
-        $conversations[$key]['subject'] = $msg['subject'];
+        $conversations[$key]['subject'] = $msg['subject'] ?? 'Message';
     }
 }
 
@@ -181,7 +181,7 @@ include '../templates/header.php';
 ?>
 
 <!-- ============================================================ -->
-<!-- PREMIUM GMAIL/YAHOO STYLE MESSAGING -->
+<!-- GMAIL/YAHOO STYLE MESSAGING - COMPLETE REDESIGN -->
 <!-- ============================================================ -->
 <style>
 /* ----- RESET & BASE ----- */
@@ -189,123 +189,165 @@ include '../templates/header.php';
     box-sizing: border-box;
 }
 
-.messages-app {
+.mail-app {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 20px 30px;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 20px 24px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #ffffff;
+    min-height: 100vh;
 }
 
-/* ----- HEADER ----- */
-.messages-app-header {
+/* ----- HEADER (Gmail-style) ----- */
+.mail-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 16px;
+    padding: 8px 0 16px 0;
     border-bottom: 1px solid #e8eaed;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
-.messages-app-header h1 {
-    font-size: 24px;
-    font-weight: 600;
-    color: #1a1a2e;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.messages-app-header h1 i {
-    color: #C6A43F;
-}
-
-.messages-app-header .header-actions {
+.mail-header .logo-area {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.messages-app-header .header-actions .compose-btn {
-    padding: 8px 20px;
-    background: #C6A43F;
-    color: #fff;
-    border: none;
-    border-radius: 20px;
-    font-weight: 500;
-    font-size: 14px;
+.mail-header .logo-area .menu-icon {
+    font-size: 20px;
+    color: #5f6368;
     cursor: pointer;
-    transition: all 0.2s;
+    padding: 4px 8px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.mail-header .logo-area .menu-icon:hover {
+    background: #f1f3f4;
+}
+
+.mail-header .logo-area h1 {
+    font-size: 22px;
+    font-weight: 500;
+    color: #1a1a2e;
+    margin: 0;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.messages-app-header .header-actions .compose-btn:hover {
-    background: #b8942f;
-    transform: scale(1.02);
+.mail-header .logo-area h1 .mail-icon {
+    color: #C6A43F;
 }
 
-/* ----- MAIN LAYOUT (Gmail-style) ----- */
-.messages-layout {
+.mail-header .logo-area h1 .count-badge {
+    font-size: 12px;
+    font-weight: 400;
+    color: #5f6368;
+    background: #f1f3f4;
+    padding: 2px 10px;
+    border-radius: 12px;
+}
+
+.mail-header .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mail-header .header-actions button {
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #5f6368;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.mail-header .header-actions button:hover {
+    background: #f1f3f4;
+}
+
+.mail-header .header-actions .compose-btn {
+    background: #C6A43F;
+    color: #fff;
+    padding: 8px 20px;
+    border-radius: 24px;
+    font-weight: 500;
+}
+
+.mail-header .header-actions .compose-btn:hover {
+    background: #b8942f;
+    box-shadow: 0 2px 8px rgba(198, 164, 63, 0.3);
+}
+
+/* ----- MAIN LAYOUT (Gmail 3-column) ----- */
+.mail-layout {
     display: grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 280px 1fr;
     gap: 0;
     background: #ffffff;
-    border-radius: 12px;
     border: 1px solid #e8eaed;
+    border-radius: 12px;
     overflow: hidden;
-    min-height: 600px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    min-height: 620px;
 }
 
-/* ----- SIDEBAR (Conversation List) ----- */
-.sidebar {
+/* ----- SIDEBAR ----- */
+.mail-sidebar {
     background: #f8f9fa;
     border-right: 1px solid #e8eaed;
     display: flex;
     flex-direction: column;
-    max-height: 680px;
+    max-height: 700px;
 }
 
-.sidebar-tabs {
+/* Sidebar Tabs */
+.mail-tabs {
+    padding: 12px 12px 8px 12px;
     display: flex;
-    padding: 8px 12px;
-    gap: 4px;
+    gap: 2px;
     border-bottom: 1px solid #e8eaed;
     background: #fff;
     flex-shrink: 0;
 }
 
-.sidebar-tabs button {
-    padding: 8px 16px;
+.mail-tabs button {
+    padding: 6px 14px;
     border: none;
     background: transparent;
     font-size: 13px;
     font-weight: 500;
     color: #5f6368;
-    border-radius: 20px;
+    border-radius: 16px;
     cursor: pointer;
     transition: all 0.2s;
 }
 
-.sidebar-tabs button.active {
+.mail-tabs button.active {
     background: #e8f0fe;
     color: #1a73e8;
 }
 
-.sidebar-tabs button:hover {
+.mail-tabs button:hover {
     background: #f1f3f4;
 }
 
-.sidebar-search {
+/* Sidebar Search */
+.mail-search {
     padding: 8px 12px;
     flex-shrink: 0;
 }
 
-.sidebar-search input {
+.mail-search input {
     width: 100%;
-    padding: 8px 14px;
+    padding: 7px 14px;
     border: 1px solid #e8eaed;
     border-radius: 20px;
     font-size: 13px;
@@ -313,77 +355,77 @@ include '../templates/header.php';
     transition: all 0.2s;
 }
 
-.sidebar-search input:focus {
+.mail-search input:focus {
     outline: none;
     border-color: #C6A43F;
-    box-shadow: 0 0 0 2px rgba(198, 164, 63, 0.15);
+    box-shadow: 0 0 0 2px rgba(198, 164, 63, 0.1);
 }
 
-.sidebar-list {
+/* Conversation List */
+.mail-list {
     flex: 1;
     overflow-y: auto;
     padding: 4px 0;
 }
 
-.sidebar-list::-webkit-scrollbar {
+.mail-list::-webkit-scrollbar {
     width: 4px;
 }
-.sidebar-list::-webkit-scrollbar-track {
+.mail-list::-webkit-scrollbar-track {
     background: transparent;
 }
-.sidebar-list::-webkit-scrollbar-thumb {
+.mail-list::-webkit-scrollbar-thumb {
     background: #dadce0;
     border-radius: 4px;
 }
 
 /* ----- Conversation Item (Gmail-style) ----- */
-.conversation-item {
+.mail-item {
     display: flex;
     align-items: center;
-    padding: 10px 16px;
+    padding: 10px 14px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.1s;
     text-decoration: none;
     color: inherit;
     border-bottom: 1px solid #f1f3f4;
-    position: relative;
+    gap: 10px;
 }
 
-.conversation-item:hover {
+.mail-item:hover {
     background: #f1f3f4;
 }
 
-.conversation-item.active {
+.mail-item.active {
     background: #e8f0fe;
     border-left: 3px solid #C6A43F;
 }
 
-.conversation-item .avatar {
-    width: 40px;
-    height: 40px;
+.mail-item .avatar {
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     background: #dadce0;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 15px;
     color: #3c4043;
     flex-shrink: 0;
-    margin-right: 12px;
 }
 
-.conversation-item .avatar.unread {
+.mail-item .avatar.unread {
     background: #C6A43F;
     color: #fff;
 }
 
-.conversation-item .content {
+.mail-item .content {
     flex: 1;
     min-width: 0;
 }
 
-.conversation-item .content .sender {
+.mail-item .content .sender {
     font-weight: 500;
     font-size: 14px;
     color: #1a1a2e;
@@ -392,7 +434,7 @@ include '../templates/header.php';
     gap: 6px;
 }
 
-.conversation-item .content .sender .role-tag {
+.mail-item .content .sender .tag {
     font-size: 10px;
     font-weight: 400;
     color: #5f6368;
@@ -401,17 +443,16 @@ include '../templates/header.php';
     border-radius: 10px;
 }
 
-.conversation-item .content .sender .role-tag.admin {
+.mail-item .content .sender .tag.admin {
     background: #C6A43F;
     color: #fff;
 }
-
-.conversation-item .content .sender .role-tag.agent {
+.mail-item .content .sender .tag.agent {
     background: #1B5E20;
     color: #fff;
 }
 
-.conversation-item .content .subject {
+.mail-item .content .subject-line {
     font-size: 13px;
     color: #3c4043;
     white-space: nowrap;
@@ -420,7 +461,7 @@ include '../templates/header.php';
     margin-top: 1px;
 }
 
-.conversation-item .content .preview {
+.mail-item .content .preview-line {
     font-size: 12px;
     color: #5f6368;
     white-space: nowrap;
@@ -429,19 +470,18 @@ include '../templates/header.php';
     margin-top: 1px;
 }
 
-.conversation-item .meta {
+.mail-item .meta {
     text-align: right;
     flex-shrink: 0;
-    margin-left: 8px;
 }
 
-.conversation-item .meta .time {
+.mail-item .meta .time {
     font-size: 11px;
     color: #5f6368;
     white-space: nowrap;
 }
 
-.conversation-item .meta .unread-dot {
+.mail-item .meta .unread-dot {
     display: inline-block;
     width: 8px;
     height: 8px;
@@ -450,49 +490,17 @@ include '../templates/header.php';
     margin-top: 4px;
 }
 
-/* ----- Empty State ----- */
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 30px;
-    color: #5f6368;
-    text-align: center;
-    height: 100%;
-}
-
-.empty-state .icon {
-    font-size: 48px;
-    color: #dadce0;
-    margin-bottom: 16px;
-}
-
-.empty-state h3 {
-    font-size: 18px;
-    font-weight: 500;
-    color: #1a1a2e;
-    margin: 0 0 6px 0;
-}
-
-.empty-state p {
-    font-size: 14px;
-    color: #5f6368;
-    max-width: 300px;
-    margin: 0;
-}
-
-/* ----- MESSAGE AREA (Gmail-style) ----- */
-.message-area {
+/* ----- MESSAGE VIEW (Gmail-style) ----- */
+.mail-view {
     display: flex;
     flex-direction: column;
     background: #ffffff;
     min-height: 500px;
 }
 
-/* --- Message Header --- */
-.message-header {
-    padding: 16px 24px;
+/* View Header */
+.mail-view-header {
+    padding: 14px 20px;
     border-bottom: 1px solid #e8eaed;
     display: flex;
     justify-content: space-between;
@@ -501,107 +509,107 @@ include '../templates/header.php';
     flex-shrink: 0;
 }
 
-.message-header .sender-info {
+.mail-view-header .sender-block {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.message-header .sender-info .avatar-sm {
-    width: 36px;
-    height: 36px;
+.mail-view-header .sender-block .av-sm {
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: #C6A43F;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 15px;
+    font-size: 14px;
     color: #fff;
+    flex-shrink: 0;
 }
 
-.message-header .sender-info .details .name {
+.mail-view-header .sender-block .info .name {
     font-weight: 600;
     font-size: 15px;
     color: #1a1a2e;
 }
 
-.message-header .sender-info .details .email {
+.mail-view-header .sender-block .info .email-line {
     font-size: 12px;
     color: #5f6368;
 }
 
-.message-header .listing-ref {
+.mail-view-header .listing-tag {
     font-size: 12px;
     color: #C6A43F;
     background: #f1f3f4;
-    padding: 4px 12px;
+    padding: 4px 14px;
     border-radius: 16px;
 }
 
-/* --- Message Body --- */
-.message-body {
+/* View Body */
+.mail-view-body {
     flex: 1;
     padding: 20px 24px;
     overflow-y: auto;
     background: #ffffff;
-    max-height: 500px;
+    max-height: 480px;
 }
 
-.message-body::-webkit-scrollbar {
+.mail-view-body::-webkit-scrollbar {
     width: 6px;
 }
-.message-body::-webkit-scrollbar-track {
+.mail-view-body::-webkit-scrollbar-track {
     background: transparent;
 }
-.message-body::-webkit-scrollbar-thumb {
+.mail-view-body::-webkit-scrollbar-thumb {
     background: #dadce0;
     border-radius: 4px;
 }
 
-/* Individual Message - Clean Gmail Style */
-.message-row {
+/* Message Row - Clean Gmail Style */
+.msg-row {
     display: flex;
-    margin-bottom: 16px;
-    padding: 0 4px;
+    margin-bottom: 14px;
+    padding: 2px 0;
 }
 
-.message-row.sent {
+.msg-row.sent {
     justify-content: flex-end;
 }
 
-.message-row.received {
+.msg-row.received {
     justify-content: flex-start;
 }
 
-.message-row .bubble {
-    max-width: 75%;
+.msg-row .bubble {
+    max-width: 72%;
     padding: 10px 16px;
     border-radius: 18px;
-    position: relative;
     word-wrap: break-word;
     line-height: 1.6;
     font-size: 14px;
 }
 
-.message-row.sent .bubble {
+.msg-row.sent .bubble {
     background: #e8f0fe;
     color: #1a1a2e;
     border-bottom-right-radius: 4px;
 }
 
-.message-row.received .bubble {
+.msg-row.received .bubble {
     background: #f1f3f4;
     color: #1a1a2e;
     border-bottom-left-radius: 4px;
 }
 
-.message-row .bubble .msg-text {
+.msg-row .bubble .text {
     margin: 0;
     white-space: pre-wrap;
 }
 
-.message-row .bubble .msg-meta {
+.msg-row .bubble .footer {
     font-size: 11px;
     color: #5f6368;
     margin-top: 6px;
@@ -610,20 +618,12 @@ include '../templates/header.php';
     gap: 8px;
 }
 
-.message-row.sent .bubble .msg-meta {
+.msg-row.sent .bubble .footer {
     justify-content: flex-end;
 }
 
-.message-row .bubble .msg-meta .sender-name {
-    font-weight: 500;
-}
-
-.message-row .bubble .msg-meta .read-status {
-    color: #1a73e8;
-}
-
 /* Viewing Request Badge */
-.message-row .bubble .viewing-badge {
+.msg-row .bubble .v-badge {
     display: inline-block;
     font-size: 11px;
     font-weight: 500;
@@ -634,25 +634,25 @@ include '../templates/header.php';
     color: #fff;
 }
 
-.message-row.received .bubble .viewing-badge {
+.msg-row.received .bubble .v-badge {
     background: #f1f3f4;
     color: #C6A43F;
 }
 
-.message-row .bubble .viewing-details {
+.msg-row .bubble .v-details {
     font-size: 12px;
     color: #5f6368;
     margin-bottom: 4px;
 }
 
 /* Date Separator */
-.date-separator {
+.date-divider {
     text-align: center;
-    margin: 20px 0 16px 0;
+    margin: 18px 0 14px 0;
     position: relative;
 }
 
-.date-separator span {
+.date-divider span {
     background: #ffffff;
     padding: 0 16px;
     font-size: 12px;
@@ -662,7 +662,7 @@ include '../templates/header.php';
     z-index: 1;
 }
 
-.date-separator::after {
+.date-divider::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -673,26 +673,26 @@ include '../templates/header.php';
     z-index: 0;
 }
 
-/* --- Reply Area (Gmail-style) --- */
-.reply-area {
-    padding: 12px 20px;
+/* ----- REPLY AREA (Gmail-style) ----- */
+.mail-reply {
+    padding: 10px 20px;
     border-top: 1px solid #e8eaed;
     background: #fafbfc;
     flex-shrink: 0;
 }
 
-.reply-area form {
+.mail-reply form {
     display: flex;
     gap: 10px;
     align-items: flex-end;
 }
 
-.reply-area .reply-input-wrapper {
+.mail-reply .input-wrap {
     flex: 1;
     position: relative;
 }
 
-.reply-area .reply-input-wrapper textarea {
+.mail-reply .input-wrap textarea {
     width: 100%;
     padding: 10px 16px;
     border: 1px solid #dadce0;
@@ -700,23 +700,23 @@ include '../templates/header.php';
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     resize: none;
-    height: 44px;
+    height: 42px;
     transition: all 0.2s;
     background: #fff;
     line-height: 1.5;
 }
 
-.reply-area .reply-input-wrapper textarea:focus {
+.mail-reply .input-wrap textarea:focus {
     outline: none;
     border-color: #C6A43F;
-    box-shadow: 0 0 0 2px rgba(198, 164, 63, 0.1);
+    box-shadow: 0 0 0 2px rgba(198, 164, 63, 0.08);
 }
 
-.reply-area .reply-input-wrapper textarea::placeholder {
+.mail-reply .input-wrap textarea::placeholder {
     color: #9aa0a6;
 }
 
-.reply-area .send-btn {
+.mail-reply .send-btn {
     padding: 10px 24px;
     background: #C6A43F;
     color: #fff;
@@ -726,28 +726,58 @@ include '../templates/header.php';
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
-    height: 44px;
+    height: 42px;
     display: flex;
     align-items: center;
     gap: 8px;
     white-space: nowrap;
 }
 
-.reply-area .send-btn:hover {
+.mail-reply .send-btn:hover {
     background: #b8942f;
-    transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(198, 164, 63, 0.3);
 }
 
-.reply-area .send-btn:disabled {
+.mail-reply .send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
     box-shadow: none;
 }
 
-/* ----- Success Toast ----- */
-.success-toast {
+/* ----- EMPTY STATE ----- */
+.empty-mail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 30px;
+    color: #5f6368;
+    text-align: center;
+    height: 100%;
+}
+
+.empty-mail .big-icon {
+    font-size: 48px;
+    color: #dadce0;
+    margin-bottom: 16px;
+}
+
+.empty-mail h3 {
+    font-size: 18px;
+    font-weight: 500;
+    color: #1a1a2e;
+    margin: 0 0 6px 0;
+}
+
+.empty-mail p {
+    font-size: 14px;
+    color: #5f6368;
+    max-width: 300px;
+    margin: 0;
+}
+
+/* ----- SUCCESS TOAST ----- */
+.toast-success {
     margin-top: 16px;
     padding: 12px 20px;
     background: #e6f4ea;
@@ -761,162 +791,107 @@ include '../templates/header.php';
     animation: slideDown 0.3s ease;
 }
 
-.success-toast i {
+.toast-success i {
     color: #1e7e34;
     font-size: 18px;
 }
 
-/* ----- Animations ----- */
+/* ----- ANIMATIONS ----- */
 @keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.message-row {
-    animation: fadeIn 0.25s ease;
+.msg-row {
+    animation: fadeIn 0.2s ease;
 }
 
-/* ----- Responsive ----- */
+/* ----- RESPONSIVE ----- */
 @media (max-width: 992px) {
-    .messages-app {
-        padding: 12px 16px;
-    }
-    
-    .messages-layout {
-        grid-template-columns: 1fr;
-        border-radius: 8px;
-    }
-    
-    .sidebar {
-        max-height: 350px;
-        border-right: none;
-        border-bottom: 1px solid #e8eaed;
-    }
-    
-    .sidebar-list {
-        max-height: 280px;
-    }
-    
-    .message-body {
-        max-height: 350px;
-    }
-    
-    .messages-app-header {
-        flex-wrap: wrap;
-        gap: 10px;
-    }
+    .mail-app { padding: 12px 16px; }
+    .mail-layout { grid-template-columns: 1fr; border-radius: 8px; }
+    .mail-sidebar { max-height: 340px; border-right: none; border-bottom: 1px solid #e8eaed; }
+    .mail-list { max-height: 260px; }
+    .mail-view-body { max-height: 340px; }
+    .mail-header .logo-area h1 { font-size: 18px; }
 }
 
 @media (max-width: 576px) {
-    .messages-app {
-        padding: 8px 10px;
-    }
-    
-    .messages-app-header h1 {
-        font-size: 18px;
-    }
-    
-    .message-header {
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 12px 16px;
-    }
-    
-    .message-body {
-        padding: 12px 16px;
-    }
-    
-    .reply-area {
-        padding: 10px 16px;
-    }
-    
-    .reply-area form {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .reply-area .send-btn {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .message-row .bubble {
-        max-width: 92%;
-    }
-    
-    .conversation-item {
-        padding: 8px 12px;
-    }
+    .mail-app { padding: 8px 10px; }
+    .mail-header { flex-wrap: wrap; gap: 8px; }
+    .mail-header .header-actions .compose-btn { padding: 6px 14px; font-size: 13px; }
+    .mail-view-header { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
+    .mail-view-body { padding: 12px 14px; }
+    .mail-reply { padding: 8px 14px; }
+    .mail-reply form { flex-direction: column; align-items: stretch; }
+    .mail-reply .send-btn { width: 100%; justify-content: center; }
+    .msg-row .bubble { max-width: 92%; }
+    .mail-item { padding: 8px 10px; }
 }
 </style>
 
 <!-- ============================================================ -->
-<!-- MESSAGES APP -->
+<!-- MAIL APP -->
 <!-- ============================================================ -->
-<div class="messages-app">
+<div class="mail-app">
 
-    <!-- App Header -->
-    <div class="messages-app-header">
-        <h1>
-            <i class="fas fa-envelope"></i> Messages
-            <span style="font-size: 14px; font-weight: 400; color: #5f6368; margin-left: 8px;">
-                <?php if ($viewingConversation && $conversationInfo): ?>
-                    · <?= htmlspecialchars($otherUser['name'] ?? 'User') ?>
-                <?php else: ?>
-                    · <?= count($conversations) ?> conversations
-                <?php endif; ?>
-            </span>
-        </h1>
+    <!-- Header -->
+    <div class="mail-header">
+        <div class="logo-area">
+            <span class="menu-icon"><i class="fas fa-bars"></i></span>
+            <h1>
+                <span class="mail-icon"><i class="fas fa-envelope"></i></span>
+                Messages
+                <span class="count-badge">
+                    <?php if ($viewingConversation && $conversationInfo): ?>
+                        <?= htmlspecialchars($otherUser['name'] ?? 'User') ?>
+                    <?php else: ?>
+                        <?= count($conversations) ?> conversations
+                    <?php endif; ?>
+                </span>
+            </h1>
+        </div>
         <div class="header-actions">
             <?php if ($viewingConversation): ?>
-                <a href="/user/messages.php" style="color: #5f6368; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                <a href="/user/messages.php" style="color: #5f6368; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; transition: background 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='transparent'">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
             <?php endif; ?>
+            <button><i class="fas fa-refresh"></i></button>
+            <button><i class="fas fa-ellipsis-v"></i></button>
+            <button class="compose-btn"><i class="fas fa-pen"></i> Compose</button>
         </div>
     </div>
 
     <!-- Main Layout -->
-    <div class="messages-layout">
+    <div class="mail-layout">
 
         <!-- Sidebar -->
-        <div class="sidebar">
+        <div class="mail-sidebar">
             <!-- Tabs -->
-            <div class="sidebar-tabs">
+            <div class="mail-tabs">
                 <button class="active"><i class="fas fa-inbox"></i> Inbox</button>
                 <button><i class="fas fa-clock"></i> Snoozed</button>
                 <button><i class="fas fa-check-circle"></i> Done</button>
             </div>
 
             <!-- Search -->
-            <div class="sidebar-search">
-                <input type="text" placeholder="Search messages..." id="messageSearch">
+            <div class="mail-search">
+                <input type="text" placeholder="Search messages..." id="mailSearch">
             </div>
 
             <!-- Conversation List -->
-            <div class="sidebar-list" id="conversationList">
+            <div class="mail-list" id="mailList">
                 <?php if (empty($conversations)): ?>
-                    <div class="empty-state" style="padding: 40px 20px;">
-                        <div class="icon"><i class="fas fa-inbox"></i></div>
+                    <div class="empty-mail" style="padding: 30px 20px;">
+                        <div class="big-icon"><i class="fas fa-inbox"></i></div>
                         <h3>No messages</h3>
-                        <p>When you receive messages, they'll appear here.</p>
+                        <p>Messages will appear here when you receive them.</p>
                     </div>
                 <?php else: ?>
                     <?php foreach ($conversations as $conv): ?>
@@ -930,26 +905,26 @@ include '../templates/header.php';
                         $subject = $conv['subject'] ?? 'Message';
                         ?>
                         <a href="/user/messages.php?user=<?= $conv['other_user_id'] ?>&listing=<?= $conv['listing_id'] ?? 0 ?>" 
-                           class="conversation-item <?= $isActive ? 'active' : '' ?>">
+                           class="mail-item <?= $isActive ? 'active' : '' ?>">
                             <div class="avatar <?= $unread ? 'unread' : '' ?>">
                                 <?= $avatarLetter ?>
                             </div>
                             <div class="content">
                                 <div class="sender">
                                     <?= htmlspecialchars($otherName) ?>
-                                    <span class="role-tag <?= $otherRole ?>"><?= ucfirst($otherRole) ?></span>
+                                    <span class="tag <?= $otherRole ?>"><?= ucfirst($otherRole) ?></span>
                                 </div>
-                                <div class="subject">
+                                <div class="subject-line">
                                     <?php if (!empty($conv['listing_id'])): ?>
-                                        <span style="color: #C6A43F;">[Listing #<?= $conv['listing_id'] ?>]</span>
+                                        <span style="color: #C6A43F; font-weight: 500;">[#<?= $conv['listing_id'] ?>]</span>
                                     <?php endif; ?>
                                     <?= htmlspecialchars($subject) ?>
                                 </div>
-                                <div class="preview">
+                                <div class="preview-line">
                                     <?php 
                                     if (!empty($lastMessage)) {
-                                        echo htmlspecialchars(substr($lastMessage, 0, 50));
-                                        if (strlen($lastMessage) > 50) echo '...';
+                                        echo htmlspecialchars(substr($lastMessage, 0, 45));
+                                        if (strlen($lastMessage) > 45) echo '...';
                                     } else {
                                         echo 'No messages yet';
                                     }
@@ -972,23 +947,27 @@ include '../templates/header.php';
             </div>
         </div>
 
-        <!-- Message Area -->
-        <div class="message-area">
+        <!-- Message View -->
+        <div class="mail-view">
 
             <?php if ($viewingConversation && $conversationInfo && !empty($messages)): ?>
-                <!-- Header -->
-                <div class="message-header">
-                    <div class="sender-info">
-                        <div class="avatar-sm">
+                <!-- View Header -->
+                <div class="mail-view-header">
+                    <div class="sender-block">
+                        <div class="av-sm">
                             <?= strtoupper(substr($otherUser['name'] ?? 'U', 0, 1)) ?>
                         </div>
-                        <div class="details">
+                        <div class="info">
                             <div class="name"><?= htmlspecialchars($otherUser['name'] ?? 'Unknown') ?></div>
-                            <div class="email"><?= htmlspecialchars($otherUser['email'] ?? '') ?> · <?= ucfirst($otherUser['role'] ?? 'user') ?></div>
+                            <div class="email-line">
+                                <?= htmlspecialchars($otherUser['email'] ?? '') ?> 
+                                <span style="color: #5f6368;">·</span> 
+                                <?= ucfirst($otherUser['role'] ?? 'user') ?>
+                            </div>
                         </div>
                     </div>
                     <?php if ($listingInfo): ?>
-                        <div class="listing-ref">
+                        <div class="listing-tag">
                             <i class="fas fa-tag"></i> <?= htmlspecialchars($listingInfo['title']) ?>
                             <?php if (!empty($listingInfo['price'])): ?>
                                 · ₦<?= number_format($listingInfo['price']) ?>
@@ -997,8 +976,8 @@ include '../templates/header.php';
                     <?php endif; ?>
                 </div>
 
-                <!-- Messages -->
-                <div class="message-body" id="messageBody">
+                <!-- View Body -->
+                <div class="mail-view-body" id="mailBody">
                     <?php 
                     $lastDate = '';
                     foreach ($messages as $msg): 
@@ -1011,19 +990,19 @@ include '../templates/header.php';
                             $lastDate = $msgDate;
                             $displayDate = date('l, F j, Y', strtotime($msg['created_at']));
                     ?>
-                        <div class="date-separator">
+                        <div class="date-divider">
                             <span><?= $displayDate ?></span>
                         </div>
                     <?php endif; ?>
                         
-                        <div class="message-row <?= $isSent ? 'sent' : 'received' ?>">
+                        <div class="msg-row <?= $isSent ? 'sent' : 'received' ?>">
                             <div class="bubble">
                                 <?php if ($isViewing): ?>
-                                    <div class="viewing-badge">
+                                    <div class="v-badge">
                                         <i class="fas fa-calendar-check"></i> Viewing Request
                                     </div>
                                     <?php if (!empty($msg['preferred_date'])): ?>
-                                        <div class="viewing-details">
+                                        <div class="v-details">
                                             📅 <?= date('M j, Y', strtotime($msg['preferred_date'])) ?>
                                             <?php if (!empty($msg['preferred_time'])): ?>
                                                 at <?= htmlspecialchars($msg['preferred_time']) ?>
@@ -1031,9 +1010,9 @@ include '../templates/header.php';
                                         </div>
                                     <?php endif; ?>
                                 <?php endif; ?>
-                                <p class="msg-text"><?= nl2br(htmlspecialchars($msg['body'])) ?></p>
-                                <div class="msg-meta">
-                                    <span class="sender-name"><?= htmlspecialchars($senderName) ?></span>
+                                <p class="text"><?= nl2br(htmlspecialchars($msg['body'])) ?></p>
+                                <div class="footer">
+                                    <span><?= htmlspecialchars($senderName) ?></span>
                                     <span>·</span>
                                     <span><?= date('g:i A', strtotime($msg['created_at'])) ?></span>
                                     <?php if ($isSent && $msg['is_read']): ?>
@@ -1048,13 +1027,13 @@ include '../templates/header.php';
                 </div>
 
                 <!-- Reply -->
-                <div class="reply-area">
+                <div class="mail-reply">
                     <form method="POST">
                         <input type="hidden" name="receiver_id" value="<?= $otherUser['id'] ?? 0 ?>">
                         <input type="hidden" name="listing_id" value="<?= $conversationInfo['listing_id'] ?? 0 ?>">
                         <input type="hidden" name="listing_type" value="<?= $conversationInfo['listing_type'] ?? 'property' ?>">
                         
-                        <div class="reply-input-wrapper">
+                        <div class="input-wrap">
                             <textarea name="reply_message" placeholder="Type your reply..." required></textarea>
                         </div>
                         <button type="submit" class="send-btn">
@@ -1065,19 +1044,19 @@ include '../templates/header.php';
 
             <?php elseif ($viewingConversation && $conversationInfo): ?>
                 <!-- Empty conversation -->
-                <div class="empty-state" style="height: 100%;">
-                    <div class="icon"><i class="fas fa-comment-dots"></i></div>
+                <div class="empty-mail" style="height: 100%;">
+                    <div class="big-icon"><i class="fas fa-comment-dots"></i></div>
                     <h3>No messages yet</h3>
                     <p>Start the conversation by sending a message.</p>
                 </div>
                 
-                <div class="reply-area">
+                <div class="mail-reply">
                     <form method="POST">
                         <input type="hidden" name="receiver_id" value="<?= $otherUser['id'] ?? 0 ?>">
                         <input type="hidden" name="listing_id" value="<?= $conversationInfo['listing_id'] ?? 0 ?>">
                         <input type="hidden" name="listing_type" value="<?= $conversationInfo['listing_type'] ?? 'property' ?>">
                         
-                        <div class="reply-input-wrapper">
+                        <div class="input-wrap">
                             <textarea name="reply_message" placeholder="Type your message..." required></textarea>
                         </div>
                         <button type="submit" class="send-btn">
@@ -1088,10 +1067,10 @@ include '../templates/header.php';
 
             <?php else: ?>
                 <!-- No conversation selected -->
-                <div class="empty-state" style="height: 100%;">
-                    <div class="icon"><i class="fas fa-envelope-open-text"></i></div>
+                <div class="empty-mail" style="height: 100%;">
+                    <div class="big-icon"><i class="fas fa-envelope-open-text"></i></div>
                     <h3>Select a conversation</h3>
-                    <p>Choose a conversation from the sidebar to view and reply to messages.</p>
+                    <p>Choose a conversation from the sidebar to view messages.</p>
                 </div>
             <?php endif; ?>
 
@@ -1099,7 +1078,7 @@ include '../templates/header.php';
     </div>
 
     <?php if (isset($_GET['sent']) && $_GET['sent'] == 1): ?>
-        <div class="success-toast">
+        <div class="toast-success">
             <i class="fas fa-check-circle"></i>
             <span>Reply sent successfully!</span>
         </div>
@@ -1109,22 +1088,22 @@ include '../templates/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-scroll to bottom of messages
-    const messageBody = document.getElementById('messageBody');
-    if (messageBody) {
-        messageBody.scrollTop = messageBody.scrollHeight;
+    // Auto-scroll to bottom
+    const mailBody = document.getElementById('mailBody');
+    if (mailBody) {
+        mailBody.scrollTop = mailBody.scrollHeight;
     }
     
     // Auto-resize textarea (Gmail style)
-    document.querySelectorAll('.reply-input-wrapper textarea').forEach(function(textarea) {
+    document.querySelectorAll('.input-wrap textarea').forEach(function(textarea) {
         textarea.addEventListener('input', function() {
-            this.style.height = '44px';
+            this.style.height = '42px';
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         });
     });
     
-    // Enter key to send (Shift+Enter for new line)
-    document.querySelectorAll('.reply-input-wrapper textarea').forEach(function(textarea) {
+    // Enter to send, Shift+Enter for new line
+    document.querySelectorAll('.input-wrap textarea').forEach(function(textarea) {
         textarea.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -1133,12 +1112,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Search functionality
-    const searchInput = document.getElementById('messageSearch');
+    // Search filter
+    const searchInput = document.getElementById('mailSearch');
     if (searchInput) {
         searchInput.addEventListener('input', function() {
             const query = this.value.toLowerCase().trim();
-            const items = document.querySelectorAll('.conversation-item');
+            const items = document.querySelectorAll('.mail-item');
             
             items.forEach(function(item) {
                 const text = item.textContent.toLowerCase();
