@@ -11,83 +11,43 @@ if (!defined('SOCIAL_MEDIA')) {
 
 /**
  * Helper function to get the correct detail URL based on division
- * ULTIMATE FIX: Handles all possible cases
  */
 function je_get_detail_url($card) {
     $detail_url = $card['detail_url'] ?? '#';
     $division = $card['division'] ?? '';
     
-    // If the URL already has a full path with a division, return it
-    if (strpos($detail_url, '/divisions/kinas-automobile/') !== false ||
-        strpos($detail_url, '/divisions/williams-connect-home/') !== false ||
-        strpos($detail_url, '/divisions/kinas-volt/') !== false ||
-        strpos($detail_url, '/divisions/kinas-marketplace/') !== false) {
+    // If it's already a full path starting with /divisions/, return it
+    if (strpos($detail_url, '/divisions/') === 0) {
         return $detail_url;
     }
     
-    // If it's an absolute URL, return it
-    if (strpos($detail_url, 'http') === 0) {
-        return $detail_url;
-    }
-    
-    // If it's already a full path starting with /, check if it's a division path
-    if (strpos($detail_url, '/') === 0 && strpos($detail_url, '/divisions/') !== false) {
-        // Check if it's in the wrong format like /divisions/detail.php
-        if (strpos($detail_url, '/divisions/detail.php') !== false) {
-            // We need to fix this - extract the ID and rebuild with correct division
-            parse_str(parse_url($detail_url, PHP_URL_QUERY), $params);
-            $id = $params['id'] ?? 0;
-            
-            // Determine the correct folder based on division
-            $folder = je_get_division_folder($division);
-            return $folder . 'detail.php?id=' . $id;
-        }
-        return $detail_url;
-    }
-    
-    // If it's just "detail.php?id=X" or "detail.php?id=X&division=property"
+    // If it's just "detail.php?id=X", determine the folder from division
     if (strpos($detail_url, 'detail.php') !== false) {
-        // Extract the ID from the URL
+        // Get the ID from the URL
         parse_str(parse_url($detail_url, PHP_URL_QUERY), $params);
         $id = $params['id'] ?? 0;
         
-        if ($id) {
-            $folder = je_get_division_folder($division);
-            return $folder . 'detail.php?id=' . $id;
+        if (!$id) {
+            return $detail_url;
         }
         
-        // Fallback: try to use the division from the URL
-        if (isset($params['division'])) {
-            $folder = je_get_division_folder($params['division']);
-            return $folder . 'detail.php?id=' . $id;
+        // Determine the folder based on division
+        $divisionLower = strtolower($division);
+        
+        if (strpos($divisionLower, 'automobile') !== false || strpos($divisionLower, 'car') !== false) {
+            return '/divisions/kinas-automobile/detail.php?id=' . $id;
+        } elseif (strpos($divisionLower, 'williams') !== false || strpos($divisionLower, 'connect home') !== false || strpos($divisionLower, 'property') !== false) {
+            return '/divisions/williams-connect-home/detail.php?id=' . $id;
+        } elseif (strpos($divisionLower, 'volt') !== false || strpos($divisionLower, 'solar') !== false) {
+            return '/divisions/kinas-volt/detail.php?id=' . $id;
+        } elseif (strpos($divisionLower, 'marketplace') !== false) {
+            return '/divisions/kinas-marketplace/detail.php?id=' . $id;
+        } else {
+            return '/divisions/detail.php?id=' . $id;
         }
     }
     
-    // Final fallback
     return $detail_url;
-}
-
-/**
- * Helper function to get the division folder path
- */
-function je_get_division_folder($division) {
-    $divisionLower = strtolower($division);
-    
-    if (strpos($divisionLower, 'automobile') !== false || 
-        strpos($divisionLower, 'car') !== false) {
-        return '/divisions/kinas-automobile/';
-    } elseif (strpos($divisionLower, 'williams') !== false || 
-              strpos($divisionLower, 'connect home') !== false || 
-              strpos($divisionLower, 'property') !== false) {
-        return '/divisions/williams-connect-home/';
-    } elseif (strpos($divisionLower, 'volt') !== false || 
-              strpos($divisionLower, 'solar') !== false) {
-        return '/divisions/kinas-volt/';
-    } elseif (strpos($divisionLower, 'marketplace') !== false) {
-        return '/divisions/kinas-marketplace/';
-    } else {
-        return '/divisions/';
-    }
 }
 
 function je_render_footer(string $variant = 'site'): void
