@@ -370,7 +370,7 @@ include '../../templates/header.php';
                 </div>
             </div>
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&q=80');"></div>
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=600&q=80');"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Long Warranties</h3>
