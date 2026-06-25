@@ -186,6 +186,7 @@ $agentVerified = !empty($item['agent_verified']);
         <?php endif; ?>
     </section>
 
+    <!-- ── Similar listings ── FIXED -->
     <?php if (!empty($similar)): ?>
     <section class="je-section" style="padding-left:0;padding-right:0;border-top:1px solid #e8e8e8;">
         <h2>You may also like</h2>
@@ -199,14 +200,14 @@ $agentVerified = !empty($item['agent_verified']);
                 'thumbnail'  => $s['thumbnail'] ?: '',
                 'specs'      => $s['category_name'] ?? '',
                 'location'   => '',
-                'detail_url' => 'detail.php?id=' . (int)$s['id'],
+                // FIXED: Full path to detail page
+                'detail_url' => '/divisions/kinas-marketplace/detail.php?id=' . (int)$s['id'],
                 'featured'   => false,
                 'verified'   => false,
             ];
         }, $similar);
-        echo '<div class="je-listings-grid" style="grid-template-columns:repeat(4,1fr);">';
-        foreach ($simCards as $c) je_render_card($c);
-        echo '</div>';
+        // FIXED: Use je_render_listing_grid instead of je_render_card
+        je_render_listing_grid($simCards);
         ?>
     </section>
     <?php endif; ?>
