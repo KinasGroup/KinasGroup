@@ -195,7 +195,7 @@ function je_render_pagination($page, $total, $perPage, $action, $pageParam, $cur
 
 /**
  * je_render_card - Renders a single listing card
- * FIXED: Uses full URL paths for detail links
+ * FIXED: Better division mapping with fallbacks for correct detail URLs
  */
 function je_render_card($card) {
     // Handle both array and object input
@@ -215,20 +215,53 @@ function je_render_card($card) {
     $division = $card['division'] ?? 'KINAS GROUP';
     
     // ============================================================
-    // FIX: Ensure detail_url has the full path
-    // If detail_url is just "detail.php?id=X", prepend the division path
+    // FIX: Better division mapping with multiple matching strategies
     // ============================================================
     if (strpos($detail_url, 'detail.php') !== false && strpos($detail_url, '/divisions/') === false) {
-        // Map division name to folder path
+        // Map division name to folder path - more flexible matching
         $divisionMap = [
             'KINAS Automobile' => '/divisions/kinas-automobile/',
             'KINAS Marketplace' => '/divisions/kinas-marketplace/',
             'KINAS VOLT' => '/divisions/kinas-volt/',
+            'KINAS Volt' => '/divisions/kinas-volt/',
             'Williams Connect Home' => '/divisions/williams-connect-home/',
+            'WILLIAMS CONNECT HOME' => '/divisions/williams-connect-home/',
             'KINAS GROUP' => '/divisions/',
+            'car' => '/divisions/kinas-automobile/',
+            'property' => '/divisions/williams-connect-home/',
+            'solar' => '/divisions/kinas-volt/',
+            'marketplace' => '/divisions/kinas-marketplace/'
         ];
         
-        $folder = $divisionMap[$division] ?? '/divisions/';
+        // Try exact match first
+        $folder = $divisionMap[$division] ?? null;
+        
+        // If no match, try case-insensitive match
+        if (!$folder) {
+            $divisionLower = strtolower($division);
+            foreach ($divisionMap as $key => $path) {
+                if (strtolower($key) === $divisionLower) {
+                    $folder = $path;
+                    break;
+                }
+            }
+        }
+        
+        // If still no match, try partial match
+        if (!$folder) {
+            foreach ($divisionMap as $key => $path) {
+                if (strpos($division, $key) !== false || strpos($key, $division) !== false) {
+                    $folder = $path;
+                    break;
+                }
+            }
+        }
+        
+        // Final fallback
+        if (!$folder) {
+            $folder = '/divisions/';
+        }
+        
         $detail_url = $folder . $detail_url;
     }
     
