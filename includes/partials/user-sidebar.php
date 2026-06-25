@@ -6,13 +6,10 @@ $current_page = $current_page ?? 'dashboard';
 ?>
 <aside class="je-dash-sidebar">
     <div class="je-dash-sidebar-inner">
-        <!-- User Profile Section -->
-        <div class="je-dash-user">
-            <div class="je-dash-avatar">
-                <?php echo strtoupper(substr($_SESSION['user_name'] ?? 'U', 0, 1)); ?>
-            </div>
-            <div class="je-dash-user-name"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'User'); ?></div>
-            <div class="je-dash-user-role">Member</div>
+        <!-- Simple Logo/Brand at top instead of user name -->
+        <div class="je-dash-brand">
+            <i class="fas fa-user-circle" style="font-size: 32px; color: #C6A43F; display: block; margin-bottom: 8px;"></i>
+            <div class="je-dash-user-role" style="color: #888; font-size: 13px;">Member Dashboard</div>
         </div>
         
         <!-- Navigation -->
@@ -23,7 +20,6 @@ $current_page = $current_page ?? 'dashboard';
             <a href="/user/messages.php" class="je-dash-nav-item <?php echo $current_page === 'messages' ? 'active' : ''; ?>">
                 <i class="fas fa-envelope"></i> Messages
                 <?php 
-                // Show unread count
                 try {
                     $db = Database::getInstance()->getConnection();
                     $stmt = $db->prepare("SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND is_read = 0");
@@ -32,9 +28,7 @@ $current_page = $current_page ?? 'dashboard';
                     if ($unread > 0): ?>
                         <span class="je-dash-badge"><?php echo $unread; ?></span>
                     <?php endif; 
-                } catch (Exception $e) {
-                    // Table might not exist yet, ignore
-                }
+                } catch (Exception $e) { /* ignore */ }
                 ?>
             </a>
             <a href="/user/saved-listings.php" class="je-dash-nav-item <?php echo $current_page === 'saved' ? 'active' : ''; ?>">
