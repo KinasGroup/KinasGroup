@@ -169,11 +169,6 @@ include 'templates/header.php';
     color: #fff;
     width: 100%;
 }
-.division-card .card-content .icon {
-    font-size: 32px;
-    margin-bottom: 10px;
-    display: block;
-}
 .division-card .card-content h3 {
     font-family: 'Prata', serif;
     font-size: 22px;
@@ -447,7 +442,7 @@ include 'templates/header.php';
 <?php endif; ?>
 
 <!-- ============================================================ -->
-<!-- DIVISIONS SECTION -->
+<!-- DIVISIONS SECTION - ICONS REMOVED -->
 <!-- ============================================================ -->
 <section style="padding:60px 0; <?= empty($featuredListings) ? '' : 'padding-top:0;' ?>">
     <div class="je-container">
@@ -464,7 +459,6 @@ include 'templates/header.php';
                 <div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=600&q=80');"></div>
                 <div class="card-overlay"></div>
                 <div class="card-content">
-                    <span class="icon">🚗</span>
                     <h3>KINAS Automobile</h3>
                     <p>Luxury cars, supercars & exotic vehicles</p>
                     <span class="count"><?= number_format($carCount) ?> vehicles</span>
@@ -476,7 +470,6 @@ include 'templates/header.php';
                 <div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80');"></div>
                 <div class="card-overlay"></div>
                 <div class="card-content">
-                    <span class="icon">🏠</span>
                     <h3>Williams Connect Home</h3>
                     <p>Luxury estates, villas & penthouses</p>
                     <span class="count"><?= number_format($propertyCount) ?> properties</span>
@@ -488,7 +481,6 @@ include 'templates/header.php';
                 <div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=600&q=80');"></div>
                 <div class="card-overlay"></div>
                 <div class="card-content">
-                    <span class="icon">☀️</span>
                     <h3>KINAS Volt</h3>
                     <p>Premium solar & energy solutions</p>
                     <span class="count"><?= number_format($solarCount) ?> systems</span>
@@ -500,7 +492,6 @@ include 'templates/header.php';
                 <div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1601924582970-9238bcb495d9?w=600&q=80');"></div>
                 <div class="card-overlay"></div>
                 <div class="card-content">
-                    <span class="icon">🛍️</span>
                     <h3>KINAS Marketplace</h3>
                     <p>Curated watches, jewelry, art & fashion</p>
                     <span class="count"><?= number_format($marketplaceCount) ?> items</span>
