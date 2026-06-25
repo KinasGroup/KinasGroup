@@ -196,7 +196,7 @@ function je_render_pagination($page, $total, $perPage, $action, $pageParam, $cur
 
 /**
  * je_render_card - Renders a single listing card
- * This function is called by je_render_listing_grid for each card
+ * FIXED: This function was missing and causing fatal errors
  */
 function je_render_card($card) {
     // Handle both array and object input
