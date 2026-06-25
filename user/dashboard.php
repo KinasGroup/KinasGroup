@@ -3,7 +3,6 @@ require_once __DIR__ . '/../api/config/database.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
 
-
 SessionManager::requireLogin();
 
 $page_title = 'My Dashboard';
@@ -13,71 +12,91 @@ $user_id = $_SESSION['user_id'];
 
 $db = Database::getInstance()->getConnection();
 
-// Get counts - using proper table structure
-$stmt = $db->prepare("SELECT COUNT(*) as total FROM saved_listings WHERE user_id = ?");
+// ============================================================
+// FIXED: Use 'favorites' table instead of 'saved_listings'
+// ============================================================
+
+// Get counts - using FAVORITES table
+$stmt = $db->prepare("SELECT COUNT(*) as total FROM favorites WHERE user_id = ?");
 $stmt->execute([$user_id]);
 $saved_listings = $stmt->fetch()['total'];
 
-$stmt = $db->prepare("SELECT COUNT(*) as total FROM inquiries WHERE user_id = ?");
+// Get inquiries count (assuming inquiries table exists)
+$stmt = $db->prepare("SELECT COUNT(*) as total FROM messages WHERE sender_id = ? AND listing_type IS NOT NULL");
 $stmt->execute([$user_id]);
 $inquiries_sent = $stmt->fetch()['total'];
 
-$stmt = $db->prepare("SELECT COUNT(*) as total FROM inquiries WHERE user_id = ? AND is_read = 1");
+$stmt = $db->prepare("SELECT COUNT(*) as total FROM messages WHERE receiver_id = ? AND is_read = 1");
 $stmt->execute([$user_id]);
 $responses_received = $stmt->fetch()['total'];
 
-// Get recent saved listings - use UNION to combine all listing types
+// Get recent saved listings - FIXED: Use favorites table with images
 $stmt = $db->prepare("
     SELECT * FROM (
-        SELECT CONCAT('car_', sl.listing_id) as unique_id, sl.saved_at, cl.title, cl.price,
+        SELECT CONCAT('car_', f.listing_id) as unique_id, f.created_at as saved_at, 
+               cl.title, cl.price,
                COALESCE(NULLIF(cl.location, ''), CONCAT_WS(0x2C20, cl.city, cl.state)) AS location,
                cl.status,
                (SELECT url FROM listing_images WHERE listing_id = cl.id AND listing_type = 'car' ORDER BY sort_order LIMIT 1) as thumbnail,
                'car' as listing_type
-        FROM saved_listings sl
-        JOIN car_listings cl ON sl.listing_id = cl.id AND sl.listing_type = 'car'
-        WHERE sl.user_id = ?
+        FROM favorites f
+        JOIN car_listings cl ON f.listing_id = cl.id AND f.listing_type = 'car'
+        WHERE f.user_id = ? AND cl.status = 'active'
 
         UNION ALL
 
-        SELECT CONCAT('property_', sl.listing_id) as unique_id, sl.saved_at, pl.title, pl.price, CONCAT_WS(0x2C20, pl.city, pl.state) AS location, pl.status,
+        SELECT CONCAT('property_', f.listing_id) as unique_id, f.created_at as saved_at,
+               pl.title, pl.price, CONCAT_WS(0x2C20, pl.city, pl.state) AS location, pl.status,
                (SELECT url FROM listing_images WHERE listing_id = pl.id AND listing_type = 'property' ORDER BY sort_order LIMIT 1) as thumbnail,
                'property' as listing_type
-        FROM saved_listings sl
-        JOIN property_listings pl ON sl.listing_id = pl.id AND sl.listing_type = 'property'
-        WHERE sl.user_id = ?
+        FROM favorites f
+        JOIN property_listings pl ON f.listing_id = pl.id AND f.listing_type = 'property'
+        WHERE f.user_id = ? AND pl.status = 'active'
 
         UNION ALL
 
-        SELECT CONCAT('marketplace_', sl.listing_id) as unique_id, sl.saved_at, ml.title, ml.price, CONCAT_WS(0x2C20, ml.city, ml.state) AS location, ml.status,
+        SELECT CONCAT('solar_', f.listing_id) as unique_id, f.created_at as saved_at,
+               sol.title, sol.price, CONCAT_WS(0x2C20, sol.city, sol.state) AS location, sol.status,
+               (SELECT url FROM listing_images WHERE listing_id = sol.id AND listing_type = 'solar' ORDER BY sort_order LIMIT 1) as thumbnail,
+               'solar' as listing_type
+        FROM favorites f
+        JOIN solar_listings sol ON f.listing_id = sol.id AND f.listing_type = 'solar'
+        WHERE f.user_id = ? AND sol.status = 'active'
+
+        UNION ALL
+
+        SELECT CONCAT('marketplace_', f.listing_id) as unique_id, f.created_at as saved_at,
+               ml.title, ml.price, CONCAT_WS(0x2C20, ml.city, ml.state) AS location, ml.status,
                (SELECT url FROM listing_images WHERE listing_id = ml.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) as thumbnail,
                'marketplace' as listing_type
-        FROM saved_listings sl
-        JOIN marketplace_listings ml ON sl.listing_id = ml.id AND sl.listing_type = 'marketplace'
-        WHERE sl.user_id = ?
+        FROM favorites f
+        JOIN marketplace_listings ml ON f.listing_id = ml.id AND f.listing_type = 'marketplace'
+        WHERE f.user_id = ? AND ml.status = 'active'
     ) as combined
     ORDER BY saved_at DESC
     LIMIT 5
 ");
-$stmt->execute([$user_id, $user_id, $user_id]);
+$stmt->execute([$user_id, $user_id, $user_id, $user_id]);
 $recent_saved = $stmt->fetchAll();
 
 // Get recent inquiries with agent and listing info
 $stmt = $db->prepare("
-    SELECT i.*, u.name as agent_name,
-           COALESCE(cl.title, pl.title, ml.title) as listing_title,
+    SELECT m.*, u.name as agent_name,
+           COALESCE(cl.title, pl.title, sol.title, ml.title) as listing_title,
            CASE
                WHEN cl.title IS NOT NULL THEN 'car'
                WHEN pl.title IS NOT NULL THEN 'property'
+               WHEN sol.title IS NOT NULL THEN 'solar'
                ELSE 'marketplace'
            END as listing_type
-    FROM inquiries i
-    LEFT JOIN users u ON i.agent_id = u.id
-    LEFT JOIN car_listings cl ON i.listing_id = cl.id AND i.listing_type = 'car'
-    LEFT JOIN property_listings pl ON i.listing_id = pl.id AND i.listing_type = 'property'
-    LEFT JOIN marketplace_listings ml ON i.listing_id = ml.id AND i.listing_type = 'marketplace'
-    WHERE i.user_id = ?
-    ORDER BY i.created_at DESC
+    FROM messages m
+    LEFT JOIN users u ON m.receiver_id = u.id
+    LEFT JOIN car_listings cl ON m.listing_id = cl.id AND m.listing_type = 'car'
+    LEFT JOIN property_listings pl ON m.listing_id = pl.id AND m.listing_type = 'property'
+    LEFT JOIN solar_listings sol ON m.listing_id = sol.id AND m.listing_type = 'solar'
+    LEFT JOIN marketplace_listings ml ON m.listing_id = ml.id AND m.listing_type = 'marketplace'
+    WHERE m.sender_id = ?
+    ORDER BY m.created_at DESC
     LIMIT 5
 ");
 $stmt->execute([$user_id]);
@@ -122,7 +141,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .listings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; margin-bottom: 40px; }
 .listing-card { background: white; border-radius: 16px; overflow: hidden; transition: all 0.3s; border: 1px solid #E0E0E0; }
 .listing-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.1); border-color: #C6A43F; }
-.listing-image { width: 100%; height: 200px; object-fit: cover; }
+.listing-image { width: 100%; height: 200px; object-fit: cover; background: #f0f0f0; }
 .listing-details { padding: 20px; }
 .listing-title { font-weight: 700; font-size: 16px; color: #0A0A0A; margin-bottom: 8px; }
 .listing-price { font-size: 20px; font-weight: 700; color: #C6A43F; margin-bottom: 8px; }
@@ -197,11 +216,21 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     <?php else: ?>
         <div class="listings-grid">
             <?php foreach ($recent_saved as $listing):
-                $thumbnail = $listing['thumbnail'] ?? 'https://via.placeholder.com/300x200?text=No+Image';
+                // Extract the listing ID from unique_id
+                $listing_id = str_replace($listing['listing_type'] . '_', '', $listing['unique_id']);
+                $thumbnail = $listing['thumbnail'] ?? '';
+                // Build detail URL
+                $detailUrl = '/divisions/' . ($listing['listing_type'] === 'property' ? 'williams-connect-home' : 'kinas-' . $listing['listing_type']) . '/detail.php?id=' . $listing_id;
             ?>
             <div class="listing-card">
-                <a href="/divisions/kinas-<?php echo $listing['listing_type']; ?>/detail.php?id=<?php echo str_replace($listing['listing_type'] . '_', '', $listing['unique_id']); ?>">
-                    <img src="<?php echo htmlspecialchars($thumbnail); ?>" alt="<?php echo htmlspecialchars($listing['title']); ?>" class="listing-image" onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
+                <a href="<?php echo $detailUrl; ?>">
+                    <?php if (!empty($thumbnail)): ?>
+                        <img src="<?php echo htmlspecialchars($thumbnail); ?>" alt="<?php echo htmlspecialchars($listing['title']); ?>" class="listing-image" loading="lazy">
+                    <?php else: ?>
+                        <div class="listing-image" style="display:flex; align-items:center; justify-content:center; background: #f0f0f0; color: #ccc; font-size:48px;">
+                            <i class="fas fa-image"></i>
+                        </div>
+                    <?php endif; ?>
                     <div class="listing-details">
                         <div class="listing-title"><?php echo htmlspecialchars($listing['title']); ?></div>
                         <div class="listing-price">₦<?php echo number_format($listing['price'] ?? 0); ?></div>
@@ -243,7 +272,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                         <tr>
                             <td><?php echo htmlspecialchars($inquiry['listing_title'] ?? 'N/A'); ?></td>
                             <td><?php echo htmlspecialchars($inquiry['agent_name'] ?? 'Unknown'); ?></td>
-                            <td><?php echo htmlspecialchars(substr($inquiry['message'] ?? '', 0, 50)) . '...'; ?></td>
+                            <td><?php echo htmlspecialchars(substr($inquiry['body'] ?? '', 0, 50)) . '...'; ?></td>
                             <td><?php echo date('M d, Y', strtotime($inquiry['created_at'])); ?></td>
                             <td><span class="status-badge <?php echo !empty($inquiry['is_read']) ? 'status-read' : 'status-unread'; ?>"><?php echo !empty($inquiry['is_read']) ? 'Read' : 'Unread'; ?></span></td>
                             <td><a href="my-inquiries.php?id=<?php echo $inquiry['id']; ?>" class="btn-view">View</a></td>
