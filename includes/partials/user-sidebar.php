@@ -1,15 +1,18 @@
 <?php
 /**
  * User Sidebar - Navigation for user dashboard
+ * Styled to match the Agent sidebar design
  */
 $current_page = $current_page ?? 'dashboard';
 ?>
 <aside class="je-dash-sidebar">
     <div class="je-dash-sidebar-inner">
-        <!-- Simple Logo/Brand at top instead of user name -->
+        <!-- Brand / Logo area - clean like Agent sidebar -->
         <div class="je-dash-brand">
-            <i class="fas fa-user-circle" style="font-size: 32px; color: #C6A43F; display: block; margin-bottom: 8px;"></i>
-            <div class="je-dash-user-role" style="color: #888; font-size: 13px;">Member Dashboard</div>
+            <div class="je-dash-avatar">
+                <?php echo strtoupper(substr($_SESSION['user_name'] ?? 'U', 0, 1)); ?>
+            </div>
+            <div class="je-dash-user-role">Member</div>
         </div>
         
         <!-- Navigation -->
