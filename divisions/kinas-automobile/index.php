@@ -355,7 +355,8 @@ include '../../templates/header.php';
                 'thumbnail'  => $c['thumbnail'] ?: '',
                 'specs'      => implode(' • ', $specParts),
                 'location'   => implode(', ', $locParts),
-                'detail_url' => 'detail.php?id=' . (int)$c['id'],
+                // FIXED: Full path to detail page
+                'detail_url' => '/divisions/kinas-automobile/detail.php?id=' . (int)$c['id'],
                 'featured'   => !empty($c['featured']),
                 'verified'   => !empty($c['agent_verified']),
                 'views'      => $c['views'] ?? 0,
@@ -384,7 +385,7 @@ include '../../templates/header.php';
     </div>
 </section>
 
-<!-- Why Kinas Automobile - Updated with Feature Cards (same style as Volt and Williams) -->
+<!-- Why Kinas Automobile -->
 <section style="padding:80px 0;">
     <div class="je-container">
         <div style="text-align:center; margin-bottom:48px;">
