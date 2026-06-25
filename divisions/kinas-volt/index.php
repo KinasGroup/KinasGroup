@@ -370,7 +370,7 @@ include '../../templates/header.php';
                 </div>
             </div>
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=600&q=80');"></div>
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1567427018141-0584cfcbf1b8?w=600&q=80');"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Long Warranties</h3>
@@ -479,4 +479,4 @@ if (totalSlides > 1) {
 })();
 </script>
 
-<?php include '../../templates/footer.php'; ?>
+<?php include '../../templates/footer.php'; ?>S
