@@ -73,7 +73,6 @@ function je_render_footer(string $variant = 'site'): void
                             Subscribe
                         </button>
                     </div>
-                    <!-- ADMIN PORTAL BUTTON REMOVED -->
                 </div>
             </div>
             <div class="je-footer-bottom">
@@ -195,7 +194,74 @@ function je_render_pagination($page, $total, $perPage, $action, $pageParam, $cur
 }
 
 /**
+ * je_render_card - Renders a single listing card
+ * This function is called by je_render_listing_grid
+ */
+function je_render_card($card) {
+    // Handle both array and object input
+    $card = (array)$card;
+    
+    // Extract card data with defaults
+    $id = $card['id'] ?? 0;
+    $title = $card['title'] ?? 'Untitled';
+    $price = $card['price'] ?? null;
+    $thumbnail = $card['thumbnail'] ?? '';
+    $specs = $card['specs'] ?? '';
+    $location = $card['location'] ?? '';
+    $detail_url = $card['detail_url'] ?? '#';
+    $featured = $card['featured'] ?? false;
+    $verified = $card['verified'] ?? false;
+    $views = $card['views'] ?? 0;
+    $division = $card['division'] ?? 'KINAS GROUP';
+    
+    // Format price
+    $priceFormatted = $price !== null ? '₦' . number_format((float)$price) : 'Contact for price';
+    
+    // Build thumbnail
+    $thumbHtml = '';
+    if (!empty($thumbnail)) {
+        $thumbHtml = '<img src="' . htmlspecialchars($thumbnail) . '" alt="' . htmlspecialchars($title) . '" loading="lazy">';
+    } else {
+        $thumbHtml = '<div style="width:100%; height:100%; background:#f0f0f0; display:flex; align-items:center; justify-content:center; color:#ccc; font-size:40px;"><i class="fas fa-image"></i></div>';
+    }
+    
+    // Build badges
+    $badges = '';
+    if ($featured) {
+        $badges .= '<span class="je-card-badge" style="position:absolute; top:10px; left:10px; background:#C6A43F; color:#0A0A0A; padding:4px 12px; border-radius:4px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; z-index:2;">⭐ Featured</span>';
+    }
+    if ($verified) {
+        $badges .= '<span class="je-card-verified-badge" style="position:absolute; bottom:10px; left:10px; background:rgba(0,0,0,0.7); color:#fff; padding:4px 12px; border-radius:4px; font-size:11px; font-weight:500; z-index:2;"><i class="fas fa-check-circle" style="color:#28a745;"></i> Verified</span>';
+    }
+    ?>
+    <a href="<?php echo htmlspecialchars($detail_url); ?>" class="je-card" style="display:block; background:#fff; border-radius:12px; overflow:hidden; text-decoration:none; color:inherit; transition:all 0.3s ease; border:1px solid #e8e5e0; height:100%;">
+        <div class="je-card-img" style="position:relative; width:100%; padding-top:75%; background:#f5f5f5; overflow:hidden;">
+            <?php echo $thumbHtml; ?>
+            <?php echo $badges; ?>
+        </div>
+        <div class="je-card-body" style="padding:16px 18px 18px;">
+            <div class="je-card-eyebrow" style="font-size:11px; color:#C6A43F; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin-bottom:4px;"><?php echo htmlspecialchars($division); ?></div>
+            <div class="je-card-title" style="font-family:'Prata',serif; font-size:16px; font-weight:400; color:#0A0A0A; margin-bottom:4px;"><?php echo htmlspecialchars($title); ?></div>
+            <?php if (!empty($specs)): ?>
+                <div class="je-card-specs" style="font-size:13px; color:#666; margin-bottom:4px;"><?php echo htmlspecialchars($specs); ?></div>
+            <?php endif; ?>
+            <?php if (!empty($location)): ?>
+                <div class="je-card-location" style="font-size:12px; color:#888;"><i class="fas fa-map-marker-alt" style="margin-right:4px;"></i> <?php echo htmlspecialchars($location); ?></div>
+            <?php endif; ?>
+            <div class="je-card-bottom" style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid #f0ede8;">
+                <div class="je-card-price" style="font-size:18px; font-weight:600; color:#C6A43F;"><?php echo $priceFormatted; ?></div>
+                <?php if ($views > 0): ?>
+                    <div class="je-card-views" style="font-size:12px; color:#888;"><i class="far fa-eye"></i> <?php echo number_format($views); ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </a>
+    <?php
+}
+
+/**
  * Render Listing Grid
+ * Uses je_render_card() for each card
  */
 function je_render_listing_grid($cards, $emptyTitle = 'No listings found', $emptyText = 'Try adjusting your search filters', $action = 'search.php') {
     if (empty($cards)) {
@@ -203,35 +269,9 @@ function je_render_listing_grid($cards, $emptyTitle = 'No listings found', $empt
         return;
     }
     ?>
-    <div class="je-listings-grid">
+    <div class="je-listings-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:24px;">
         <?php foreach ($cards as $card): ?>
-            <a href="<?php echo htmlspecialchars($card['detail_url'] ?? '#'); ?>" class="je-card">
-                <div class="je-card-img">
-                    <?php if (!empty($card['thumbnail'])): ?>
-                        <img src="<?php echo htmlspecialchars($card['thumbnail']); ?>" alt="<?php echo htmlspecialchars($card['title'] ?? ''); ?>" loading="lazy">
-                    <?php else: ?>
-                        <div style="width:100%; height:100%; background:#f0f0f0; display:flex; align-items:center; justify-content:center; color:#ccc; font-size:40px;">
-                            <i class="fas fa-image"></i>
-                        </div>
-                    <?php endif; ?>
-                    <?php if (!empty($card['featured'])): ?>
-                        <span class="je-card-badge">⭐ Featured</span>
-                    <?php endif; ?>
-                    <?php if (!empty($card['verified'])): ?>
-                        <span class="je-card-verified-badge"><i class="fas fa-check-circle"></i> Verified</span>
-                    <?php endif; ?>
-                </div>
-                <div class="je-card-body">
-                    <div class="je-card-eyebrow"><?php echo htmlspecialchars($card['division'] ?? 'KINAS GROUP'); ?></div>
-                    <div class="je-card-title"><?php echo htmlspecialchars($card['title'] ?? ''); ?></div>
-                    <div class="je-card-specs"><?php echo htmlspecialchars($card['specs'] ?? ''); ?></div>
-                    <div class="je-card-location"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($card['location'] ?? ''); ?></div>
-                    <div class="je-card-bottom">
-                        <div class="je-card-price">₦<?php echo number_format($card['price'] ?? 0); ?></div>
-                        <div class="je-card-views"><i class="far fa-eye"></i> <?php echo number_format($card['views'] ?? 0); ?></div>
-                    </div>
-                </div>
-            </a>
+            <?php je_render_card($card); ?>
         <?php endforeach; ?>
     </div>
     <?php
