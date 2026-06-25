@@ -534,7 +534,7 @@ include 'templates/header.php';
             
             <!-- Global Reach -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/393570/pexels-photo-393570.jpeg?w=600&q=80'); background-color: #0c1a2e;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/31144030/pexels-photo-31144030.jpeg?w=600&q=80'); background-color: #0c1a2e;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Global Reach</h3>
