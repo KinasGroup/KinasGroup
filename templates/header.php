@@ -40,7 +40,7 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <title><?php echo $pageTitle ?? 'KINAS GROUP | The World\'s Luxury Marketplace'; ?></title>
 
     <!-- ============================================================ -->
-    <!-- USER DATA - Pass session data to JavaScript (ADDED FOR FIX) -->
+    <!-- USER DATA - Pass session data to JavaScript -->
     <!-- ============================================================ -->
     <meta name="user-data" content='<?php 
         $userData = [
@@ -65,8 +65,17 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <link rel="stylesheet" href="/assets/css/admin.css">
     <?php endif; ?>
 
-    <!-- Font Awesome Icons - UPDATED to version 6.5.1 or newer -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- ============================================================ -->
+    <!-- FONT AWESOME - MULTIPLE CDN SOURCES FOR RELIABILITY -->
+    <!-- ============================================================ -->
+    <!-- Primary: jsDelivr CDN (often works when cloudflare is blocked) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
+    
+    <!-- Fallback: If jsDelivr fails, try Font Awesome's official CDN -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.5.1/css/all.css" media="print" onload="this.media='all'">
+    
+    <!-- Keep cloudflare as a third option -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -180,7 +189,7 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
 <!-- Mobile Menu Overlay -->
 <div id="menuOverlay" class="menu-overlay"></div>
 
-<!-- Mobile Navigation Drawer - CRITICAL: This was missing! -->
+<!-- Mobile Navigation Drawer -->
 <div id="mobileNavDrawer" class="mobile-nav-drawer">
     <button class="close-menu" id="closeMobileMenu">✕</button>
     <a href="/divisions/kinas-automobile/">KINAS AUTOMOBILE</a>
