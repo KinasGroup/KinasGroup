@@ -1,6 +1,6 @@
 <?php
 /**
- * KINAS GROUP — Saved Listings (FIXED: Uses favorites table)
+ * KINAS GROUP — Saved Listings (FIXED: Uses favorites table with images)
  */
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
@@ -23,10 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && Security::verifyCSRFToken($_POST['c
     }
 }
 
-// ── Fetch saved listings from favorites table with UNION across division tables ───
+// ── Fetch saved listings from favorites table with images ───
 $saved = $db->prepare("
     SELECT 'car' AS listing_type, f.listing_id, f.created_at AS saved_at,
-           cl.title, cl.price, cl.city, cl.country, cl.status
+           cl.title, cl.price, cl.city, cl.country, cl.status,
+           (SELECT url FROM listing_images WHERE listing_id = cl.id AND listing_type = 'car' ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM favorites f
     JOIN car_listings cl ON f.listing_id = cl.id
     WHERE f.user_id = ? AND f.listing_type = 'car' AND cl.status = 'active'
@@ -34,7 +35,8 @@ $saved = $db->prepare("
     UNION ALL
 
     SELECT 'property', f.listing_id, f.created_at,
-           pl.title, pl.price, pl.city, pl.country, pl.status
+           pl.title, pl.price, pl.city, pl.country, pl.status,
+           (SELECT url FROM listing_images WHERE listing_id = pl.id AND listing_type = 'property' ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM favorites f
     JOIN property_listings pl ON f.listing_id = pl.id
     WHERE f.user_id = ? AND f.listing_type = 'property' AND pl.status = 'active'
@@ -42,7 +44,8 @@ $saved = $db->prepare("
     UNION ALL
 
     SELECT 'solar', f.listing_id, f.created_at,
-           sol.title, sol.price, sol.city, sol.country, sol.status
+           sol.title, sol.price, sol.city, sol.country, sol.status,
+           (SELECT url FROM listing_images WHERE listing_id = sol.id AND listing_type = 'solar' ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM favorites f
     JOIN solar_listings sol ON f.listing_id = sol.id
     WHERE f.user_id = ? AND f.listing_type = 'solar' AND sol.status = 'active'
@@ -50,7 +53,8 @@ $saved = $db->prepare("
     UNION ALL
 
     SELECT 'marketplace', f.listing_id, f.created_at,
-           ml.title, ml.price, ml.city, ml.country, ml.status
+           ml.title, ml.price, ml.city, ml.country, ml.status,
+           (SELECT url FROM listing_images WHERE listing_id = ml.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM favorites f
     JOIN marketplace_listings ml ON f.listing_id = ml.id
     WHERE f.user_id = ? AND f.listing_type = 'marketplace' AND ml.status = 'active'
@@ -75,7 +79,8 @@ include __DIR__ . '/../templates/header.php';
 .listing-card{background:white;border-radius:16px;border:1px solid #E0E0E0;overflow:hidden;transition:all .3s}
 .listing-card:hover{transform:translateY(-4px);border-color:#C6A43F;box-shadow:0 8px 24px rgba(0,0,0,.08)}
 .listing-img{height:180px;background:linear-gradient(135deg,#F5F7FA,#E0E0E0);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
-.listing-img i{font-size:3rem;color:#C6A43F}
+.listing-img img{width:100%;height:100%;object-fit:cover}
+.listing-img .no-image{font-size:3rem;color:#C6A43F}
 .listing-type-badge{position:absolute;top:10px;left:10px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:600;background:rgba(198,164,63,.9);color:#0A0A0A}
 .listing-body{padding:18px}
 .listing-title{font-size:15px;font-weight:600;color:#0A0A0A;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -132,10 +137,17 @@ include __DIR__ . '/../templates/header.php';
                 'marketplace' => '/divisions/kinas-marketplace/detail.php?id='
             ];
             $detailUrl = ($divisionMap[$item['listing_type']] ?? '/divisions/') . $item['listing_id'];
+            
+            // Get thumbnail
+            $thumbnail = $item['thumbnail'] ?? '';
         ?>
         <div class="listing-card">
             <div class="listing-img">
-                <i class="fas <?= $icon ?>"></i>
+                <?php if (!empty($thumbnail)): ?>
+                    <img src="<?= htmlspecialchars($thumbnail) ?>" alt="<?= htmlspecialchars($item['title']) ?>" loading="lazy">
+                <?php else: ?>
+                    <i class="fas <?= $icon ?> no-image"></i>
+                <?php endif; ?>
                 <span class="listing-type-badge"><?= $label ?></span>
             </div>
             <div class="listing-body">
