@@ -362,7 +362,7 @@ include '../../templates/header.php';
                 </div>
             </div>
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1581094794322-c7c5c9a0ee65?w=600&q=80');"></div>
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=600&q=80');"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Certified Installers</h3>
@@ -370,7 +370,7 @@ include '../../templates/header.php';
                 </div>
             </div>
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1581091226033-d5d7e5f3c6b2?w=600&q=80');"></div>
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1567427018141-0584cfcbf1b8?w=600&q=80');"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Long Warranties</h3>
