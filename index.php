@@ -18,6 +18,7 @@ $solarCount = (int)$db->query("SELECT COUNT(*) FROM solar_listings WHERE status 
 $marketplaceCount = (int)$db->query("SELECT COUNT(*) FROM marketplace_listings WHERE status = 'active'")->fetchColumn();
 
 // Get featured listings from all divisions
+// CAR - has featured column
 $featuredCar = $db->query("
     SELECT c.id, c.title, c.brand, c.model, c.year, c.price, c.featured,
            'car' as listing_type, 'KINAS Automobile' as division,
@@ -28,6 +29,7 @@ $featuredCar = $db->query("
     LIMIT 2
 ")->fetchAll();
 
+// PROPERTY - has featured column
 $featuredProperty = $db->query("
     SELECT p.id, p.title, p.price, p.featured, p.property_type,
            'property' as listing_type, 'Williams Connect Home' as division,
@@ -38,16 +40,18 @@ $featuredProperty = $db->query("
     LIMIT 2
 ")->fetchAll();
 
+// SOLAR - does NOT have featured column, get latest 2 instead
 $featuredSolar = $db->query("
-    SELECT s.id, s.title, s.price, s.featured, s.service_type,
+    SELECT s.id, s.title, s.price, s.service_type,
            'solar' as listing_type, 'KINAS Volt' as division,
            (SELECT url FROM listing_images WHERE listing_id = s.id AND listing_type = 'solar' ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM solar_listings s
-    WHERE s.status = 'active' AND s.featured = 1
+    WHERE s.status = 'active'
     ORDER BY s.created_at DESC
     LIMIT 2
 ")->fetchAll();
 
+// MARKETPLACE - has featured column
 $featuredMarketplace = $db->query("
     SELECT m.id, m.title, m.price, m.featured, m.brand,
            'marketplace' as listing_type, 'KINAS Marketplace' as division,
@@ -389,7 +393,7 @@ include 'templates/header.php';
 </section>
 
 <!-- ============================================================ -->
-<!-- FEATURED LISTINGS SECTION - RESTORED -->
+<!-- FEATURED LISTINGS SECTION -->
 <!-- ============================================================ -->
 <?php if (!empty($featuredListings)): ?>
 <section style="padding:60px 0;">
@@ -404,7 +408,12 @@ include 'templates/header.php';
         
         <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px;">
             <?php foreach ($featuredListings as $item): 
-                $detailUrl = '/divisions/' . strtolower(str_replace(' ', '-', $item['division'])) . '/detail.php?id=' . $item['id'];
+                $divisionSlug = strtolower(str_replace(' ', '-', str_replace('KINAS ', '', $item['division'])));
+                // Special handling for Williams Connect Home
+                if (strpos($item['division'], 'Williams') !== false) {
+                    $divisionSlug = 'williams-connect-home';
+                }
+                $detailUrl = '/divisions/' . $divisionSlug . '/detail.php?id=' . $item['id'];
                 $price = isset($item['price']) ? '₦' . number_format($item['price']) : 'Contact for price';
                 $title = $item['title'] ?? 'Featured Listing';
                 $division = $item['division'] ?? '';
