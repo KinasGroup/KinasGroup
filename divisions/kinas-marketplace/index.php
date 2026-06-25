@@ -353,7 +353,8 @@ include '../../templates/header.php';
                     'price' => $r['price'], 'thumbnail' => $r['thumbnail'] ?: '',
                     'specs' => implode(' • ', array_map('ucfirst', $specParts)),
                     'location' => implode(', ', $locParts),
-                    'detail_url' => 'detail.php?id=' . (int)$r['id'],
+                    // FIXED: Full path to detail page
+                    'detail_url' => '/divisions/kinas-marketplace/detail.php?id=' . (int)$r['id'],
                     'featured' => !empty($r['featured']),
                     'verified' => !empty($r['agent_verified']),
                     'views' => $r['views'] ?? 0,
@@ -401,25 +402,25 @@ include '../../templates/header.php';
                 </div>
             </div>
             
-			<!-- Secure Payments -->
-			<div class="feature-card">
-				<div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&q=80'); background-color: #0c1a2e;"></div>
-				<div class="feature-overlay"></div>
-				<div class="feature-content">
-					<h3>Secure Payments</h3>
-					<p>Escrow-protected transactions for peace of mind, ensuring both buyer and seller are protected.</p>
-				</div>
-			</div>
+            <!-- Secure Payments -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&q=80'); background-color: #0c1a2e;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Secure Payments</h3>
+                    <p>Escrow-protected transactions for peace of mind, ensuring both buyer and seller are protected.</p>
+                </div>
+            </div>
 
-			<!-- Worldwide Shipping -->
-			<div class="feature-card">
-				<div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?w=600&q=80'); background-color: #1a1a2e;"></div>
-				<div class="feature-overlay"></div>
-				<div class="feature-content">
-					<h3>Worldwide Shipping</h3>
-					<p>Insured, door-to-door delivery to over 190 countries, with real-time tracking and signature confirmation.</p>
-				</div>
-			</div>
+            <!-- Worldwide Shipping -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?w=600&q=80'); background-color: #1a1a2e;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Worldwide Shipping</h3>
+                    <p>Insured, door-to-door delivery to over 190 countries, with real-time tracking and signature confirmation.</p>
+                </div>
+            </div>
             
             <!-- Seller Protection - Shield/protection -->
             <div class="feature-card">
