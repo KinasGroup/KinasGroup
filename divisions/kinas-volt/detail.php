@@ -214,14 +214,14 @@ $agentVerified = !empty($item['agent_verified']);
                 'thumbnail'  => $s['thumbnail'] ?: '',
                 'specs'      => implode(' • ', array_map('ucfirst', $specParts)),
                 'location'   => '',
-                'detail_url' => 'detail.php?id=' . (int)$s['id'],
+                // FIXED: Full path to detail page
+                'detail_url' => '/divisions/kinas-volt/detail.php?id=' . (int)$s['id'],
                 'featured'   => false,
                 'verified'   => false,
             ];
         }, $similar);
-        echo '<div class="je-listings-grid" style="grid-template-columns:repeat(4,1fr);">';
-        foreach ($simCards as $c) je_render_card($c);
-        echo '</div>';
+        // FIXED: Use je_render_listing_grid instead of je_render_card
+        je_render_listing_grid($simCards);
         ?>
     </section>
     <?php endif; ?>
