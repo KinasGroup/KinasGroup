@@ -17,6 +17,56 @@ $propertyCount = (int)$db->query("SELECT COUNT(*) FROM property_listings WHERE s
 $solarCount = (int)$db->query("SELECT COUNT(*) FROM solar_listings WHERE status = 'active'")->fetchColumn();
 $marketplaceCount = (int)$db->query("SELECT COUNT(*) FROM marketplace_listings WHERE status = 'active'")->fetchColumn();
 
+// Get featured listings from all divisions
+$featuredCar = $db->query("
+    SELECT c.id, c.title, c.brand, c.model, c.year, c.price, c.featured,
+           'car' as listing_type, 'KINAS Automobile' as division,
+           (SELECT url FROM listing_images WHERE listing_id = c.id AND listing_type = 'car' ORDER BY sort_order LIMIT 1) AS thumbnail
+    FROM car_listings c
+    WHERE c.status = 'active' AND c.featured = 1
+    ORDER BY c.created_at DESC
+    LIMIT 2
+")->fetchAll();
+
+$featuredProperty = $db->query("
+    SELECT p.id, p.title, p.price, p.featured, p.property_type,
+           'property' as listing_type, 'Williams Connect Home' as division,
+           (SELECT url FROM listing_images WHERE listing_id = p.id AND listing_type = 'property' ORDER BY sort_order LIMIT 1) AS thumbnail
+    FROM property_listings p
+    WHERE p.status = 'active' AND p.featured = 1
+    ORDER BY p.created_at DESC
+    LIMIT 2
+")->fetchAll();
+
+$featuredSolar = $db->query("
+    SELECT s.id, s.title, s.price, s.featured, s.service_type,
+           'solar' as listing_type, 'KINAS Volt' as division,
+           (SELECT url FROM listing_images WHERE listing_id = s.id AND listing_type = 'solar' ORDER BY sort_order LIMIT 1) AS thumbnail
+    FROM solar_listings s
+    WHERE s.status = 'active' AND s.featured = 1
+    ORDER BY s.created_at DESC
+    LIMIT 2
+")->fetchAll();
+
+$featuredMarketplace = $db->query("
+    SELECT m.id, m.title, m.price, m.featured, m.brand,
+           'marketplace' as listing_type, 'KINAS Marketplace' as division,
+           (SELECT url FROM listing_images WHERE listing_id = m.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) AS thumbnail
+    FROM marketplace_listings m
+    WHERE m.status = 'active' AND m.featured = 1
+    ORDER BY m.created_at DESC
+    LIMIT 2
+")->fetchAll();
+
+// Combine all featured listings
+$featuredListings = array_merge($featuredCar, $featuredProperty, $featuredSolar, $featuredMarketplace);
+
+// Shuffle to mix them up
+shuffle($featuredListings);
+
+// Limit to 8 featured items
+$featuredListings = array_slice($featuredListings, 0, 8);
+
 $pageTitle = 'KINAS GROUP — The World\'s Luxury Marketplace';
 include 'templates/header.php';
 ?>
@@ -138,7 +188,7 @@ include 'templates/header.php';
     font-weight: 500;
 }
 
-/* ----- Feature Cards (same style as divisions) ----- */
+/* ----- Feature Cards ----- */
 .feature-card {
     position: relative;
     border-radius: 16px;
@@ -215,6 +265,62 @@ include 'templates/header.php';
     margin-top: 4px;
 }
 
+/* ----- Featured Listing Card (Homepage Style) ----- */
+.featured-item-card {
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid #f0ede8;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+.featured-item-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+    border-color: #C6A43F;
+}
+.featured-item-card .item-image {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+.featured-item-card .item-image .division-tag {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.featured-item-card .item-body {
+    padding: 16px 18px 18px;
+}
+.featured-item-card .item-body .item-title {
+    font-family: 'Prata', serif;
+    font-size: 16px;
+    color: #0A0A0A;
+    margin-bottom: 4px;
+    font-weight: 400;
+}
+.featured-item-card .item-body .item-price {
+    font-size: 18px;
+    font-weight: 600;
+    color: #C6A43F;
+}
+.featured-item-card .item-body .item-meta {
+    font-size: 13px;
+    color: #888;
+    margin-top: 4px;
+}
+
 /* ----- Responsive ----- */
 @media (max-width: 992px) {
     #heroSection .hero-content h1 { font-size: 38px; }
@@ -227,6 +333,7 @@ include 'templates/header.php';
     #heroSection .hero-content p { font-size: 16px; }
     .division-card { min-height: 220px; }
     .feature-card { min-height: 220px; }
+    .featured-item-card .item-image { height: 160px; }
 }
 
 @media (max-width: 576px) {
@@ -282,9 +389,58 @@ include 'templates/header.php';
 </section>
 
 <!-- ============================================================ -->
+<!-- FEATURED LISTINGS SECTION - RESTORED -->
+<!-- ============================================================ -->
+<?php if (!empty($featuredListings)): ?>
+<section style="padding:60px 0;">
+    <div class="je-container">
+        <div class="je-flex-between" style="margin-bottom:32px;">
+            <div>
+                <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">FEATURED LISTINGS</div>
+                <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Exceptional finds</h2>
+            </div>
+            <a href="/search.php" class="je-btn je-btn-outline">View all <i class="fas fa-arrow-right"></i></a>
+        </div>
+        
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px;">
+            <?php foreach ($featuredListings as $item): 
+                $detailUrl = '/divisions/' . strtolower(str_replace(' ', '-', $item['division'])) . '/detail.php?id=' . $item['id'];
+                $price = isset($item['price']) ? '₦' . number_format($item['price']) : 'Contact for price';
+                $title = $item['title'] ?? 'Featured Listing';
+                $division = $item['division'] ?? '';
+                $thumbnail = $item['thumbnail'] ?? '';
+            ?>
+            <a href="<?= $detailUrl ?>" class="featured-item-card">
+                <div class="item-image" style="background-image: url('<?= htmlspecialchars($thumbnail ?: '/assets/images/placeholder/product-placeholder.svg') ?>');">
+                    <span class="division-tag"><?= htmlspecialchars($division) ?></span>
+                </div>
+                <div class="item-body">
+                    <div class="item-title"><?= htmlspecialchars($title) ?></div>
+                    <div class="item-price"><?= $price ?></div>
+                    <div class="item-meta">
+                        <?php if ($item['listing_type'] == 'car' && isset($item['brand'])): ?>
+                            <?= htmlspecialchars($item['brand']) ?>
+                            <?php if (isset($item['model'])): ?> · <?= htmlspecialchars($item['model']) ?><?php endif; ?>
+                        <?php elseif ($item['listing_type'] == 'property' && isset($item['property_type'])): ?>
+                            <?= htmlspecialchars($item['property_type']) ?>
+                        <?php elseif ($item['listing_type'] == 'solar' && isset($item['service_type'])): ?>
+                            <?= htmlspecialchars(ucfirst($item['service_type'])) ?> Solar
+                        <?php elseif ($item['listing_type'] == 'marketplace' && isset($item['brand'])): ?>
+                            <?= htmlspecialchars($item['brand']) ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<!-- ============================================================ -->
 <!-- DIVISIONS SECTION -->
 <!-- ============================================================ -->
-<section style="padding:60px 0;">
+<section style="padding:60px 0; <?= empty($featuredListings) ? '' : 'padding-top:0;' ?>">
     <div class="je-container">
         <div style="text-align:center; margin-bottom:40px;">
             <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">OUR DIVISIONS</div>
@@ -347,7 +503,7 @@ include 'templates/header.php';
 </section>
 
 <!-- ============================================================ -->
-<!-- WHY KINAS GROUP - Feature Cards (same style as divisions) -->
+<!-- WHY KINAS GROUP - Feature Cards -->
 <!-- ============================================================ -->
 <section style="padding:80px 0; background:#F8F6F1;">
     <div class="je-container">
