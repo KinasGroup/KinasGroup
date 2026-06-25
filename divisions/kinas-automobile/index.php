@@ -221,6 +221,62 @@ include '../../templates/header.php';
         max-height: 240px;
     }
 }
+
+/* Feature Cards - Same style as Volt and Williams Connect Home */
+.feature-card {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    cursor: default;
+    min-height: 280px;
+    display: flex;
+    align-items: flex-end;
+}
+.feature-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.15);
+}
+.feature-card .feature-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.6s ease;
+}
+.feature-card:hover .feature-bg {
+    transform: scale(1.05);
+}
+.feature-card .feature-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
+}
+.feature-card .feature-content {
+    position: relative;
+    z-index: 2;
+    padding: 32px 28px 28px;
+    color: #fff;
+    width: 100%;
+}
+.feature-card .feature-content h3 {
+    font-family: 'Prata', serif;
+    font-size: 22px;
+    margin-bottom: 8px;
+    font-weight: 400;
+}
+.feature-card .feature-content p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
 </style>
 
 <!-- Hero with Rotating Backgrounds -->
@@ -328,30 +384,55 @@ include '../../templates/header.php';
     </div>
 </section>
 
-<!-- Why Kinas -->
+<!-- Why Kinas Automobile - Updated with Feature Cards (same style as Volt and Williams) -->
 <section style="padding:80px 0;">
     <div class="je-container">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:40px; text-align:center;">
-            <div>
-                <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,0.12);"><img src="/assets/images/trust/verified-dealers-icon-120.png" srcset="/assets/images/trust/verified-dealers-icon-240.png 2x" alt="Verified Dealers" width="120" height="120" loading="lazy" style="width:120px; height:120px; display:block;"></div>
-                <h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Verified Dealers</h3>
-                <p style="font-size:13px; color:#666; line-height:1.6;">Every dealer on KINAS is identity-verified through our secure KYC partner.</p>
+        <div style="text-align:center; margin-bottom:48px;">
+            <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">WHY KINAS AUTOMOBILE</div>
+            <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Trusted luxury automotive</h2>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px;">
+            
+            <!-- Verified Dealers -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('/assets/images/trust/verified-dealers-240.jpg'); background-color: #1a2e1a;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Verified Dealers</h3>
+                    <p>Every dealer on KINAS is identity-verified through our secure KYC partner.</p>
+                </div>
             </div>
-            <div>
-                <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,0.12);"><img src="/assets/images/trust/global-inventory-icon-120.png" srcset="/assets/images/trust/global-inventory-icon-240.png 2x" alt="Global Inventory" width="120" height="120" loading="lazy" style="width:120px; height:120px; display:block;"></div>
-                <h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Global Inventory</h3>
-                <p style="font-size:13px; color:#666; line-height:1.6;">Browse vehicles from dealers across 100+ countries, all in one place.</p>
+            
+            <!-- Global Inventory -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('/assets/images/trust/global-inventory-240.jpg'); background-color: #0c1a2e;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Global Inventory</h3>
+                    <p>Browse vehicles from dealers across 100+ countries, all in one place.</p>
+                </div>
             </div>
-            <div>
-                <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,0.12);"><img src="/assets/images/trust/secure-transactions-icon-120.png" srcset="/assets/images/trust/secure-transactions-icon-240.png 2x" alt="Secure Transactions" width="120" height="120" loading="lazy" style="width:120px; height:120px; display:block;"></div>
-                <h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Secure Transactions</h3>
-                <p style="font-size:13px; color:#666; line-height:1.6;">End-to-end encrypted messaging and escrow-protected payments.</p>
+            
+            <!-- Secure Transactions -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('/assets/images/trust/secure-transactions-240.jpg'); background-color: #2e1a0c;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Secure Transactions</h3>
+                    <p>End-to-end encrypted messaging and escrow-protected payments.</p>
+                </div>
             </div>
-            <div>
-                <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,0.12);"><img src="/assets/images/trust/concierge-service-icon-120.png" srcset="/assets/images/trust/concierge-service-icon-240.png 2x" alt="Concierge Service" width="120" height="120" loading="lazy" style="width:120px; height:120px; display:block;"></div>
-                <h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Concierge Service</h3>
-                <p style="font-size:13px; color:#666; line-height:1.6;">Our specialists can source specific vehicles on request.</p>
+            
+            <!-- Concierge Service -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('/assets/images/trust/concierge-service-240.jpg'); background-color: #1a0c2e;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Concierge Service</h3>
+                    <p>Our specialists can source specific vehicles on request.</p>
+                </div>
             </div>
+            
         </div>
     </div>
 </section>
