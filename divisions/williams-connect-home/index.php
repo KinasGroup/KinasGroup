@@ -85,7 +85,7 @@ include '../../templates/header.php';
     transition: all 0.2s ease;
 }
 .custom-dropdown-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255,  igh: 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.2);
 }
 .custom-dropdown-toggle .arrow {
@@ -161,6 +161,61 @@ include '../../templates/header.php';
     .custom-dropdown-menu {
         max-height: 240px;
     }
+}
+
+.feature-card {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    cursor: default;
+    min-height: 280px;
+    display: flex;
+    align-items: flex-end;
+}
+.feature-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.15);
+}
+.feature-card .feature-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.6s ease;
+}
+.feature-card:hover .feature-bg {
+    transform: scale(1.05);
+}
+.feature-card .feature-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
+}
+.feature-card .feature-content {
+    position: relative;
+    z-index: 2;
+    padding: 32px 28px 28px;
+    color: #fff;
+    width: 100%;
+}
+.feature-card .feature-content h3 {
+    font-family: 'Prata', serif;
+    font-size: 22px;
+    margin-bottom: 8px;
+    font-weight: 400;
+}
+.feature-card .feature-content p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 12px;
+    line-height: 1.5;
 }
 </style>
 
@@ -267,14 +322,55 @@ include '../../templates/header.php';
     </div>
 </section>
 
-<!-- Why Choose Us -->
+<!-- Why Choose Us - Updated with Feature Cards (same as Volt style) -->
 <section style="padding:80px 0;">
     <div class="je-container">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:40px; text-align:center;">
-            <div><div style="width:120px; height:120px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,0.12);"><img src="/assets/images/trust/verified-agents-wch-icon-120.png" srcset="/assets/images/trust/verified-agents-wch-icon-240.png 2x" alt="Verified Agents" width="120" height="120" loading="lazy" style="width:120px; height:120px; display:block;"></div><h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Verified Agents</h3><p style="font-size:13px; color:#666; line-height:1.6;">Every agent is identity-verified for your safety and confidence.</p></div>
-            <div><div style="width:120px; height:120px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,0.12);"><img src="/assets/images/trust/curated-locations-wch-icon-120.png" srcset="/assets/images/trust/curated-locations-wch-icon-240.png 2x" alt="Curated Locations" width="120" height="120" loading="lazy" style="width:120px; height:120px; display:block;"></div><h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Curated Locations</h3><p style="font-size:13px; color:#666; line-height:1.6;">Hand-picked properties in the world's most desirable addresses.</p></div>
-            <div><div style="width:120px; height:120px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,0.12);"><img src="/assets/images/trust/transparent-listings-wch-icon-120.png" srcset="/assets/images/trust/transparent-listings-wch-icon-240.png 2x" alt="Transparent Listings" width="120" height="120" loading="lazy" style="width:120px; height:120px; display:block;"></div><h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Transparent Listings</h3><p style="font-size:13px; color:#666; line-height:1.6;">Detailed specs, full image galleries, and verified ownership.</p></div>
-            <div><div style="width:120px; height:120px; border-radius:50%; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,0.12);"><img src="/assets/images/trust/concierge-wch-icon-120.png" srcset="/assets/images/trust/concierge-wch-icon-240.png 2x" alt="Concierge" width="120" height="120" loading="lazy" style="width:120px; height:120px; display:block;"></div><h3 style="font-family:'Prata',serif; font-size:17px; margin-bottom:8px;">Concierge</h3><p style="font-size:13px; color:#666; line-height:1.6;">Our concierge can arrange private viewings anywhere.</p></div>
+        <div style="text-align:center; margin-bottom:48px;">
+            <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">WHY WILLIAMS CONNECT HOME</div>
+            <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Trusted luxury real estate</h2>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px;">
+            
+            <!-- Verified Agents -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('/assets/images/trust/verified-agents-wch-240.jpg'); background-color: #1a2e1a;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Verified Agents</h3>
+                    <p>Every agent is identity-verified for your safety and confidence.</p>
+                </div>
+            </div>
+            
+            <!-- Curated Locations -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('/assets/images/trust/curated-locations-wch-240.jpg'); background-color: #0c1a2e;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Curated Locations</h3>
+                    <p>Hand-picked properties in the world's most desirable addresses.</p>
+                </div>
+            </div>
+            
+            <!-- Transparent Listings -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('/assets/images/trust/transparent-listings-wch-240.jpg'); background-color: #2e1a0c;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Transparent Listings</h3>
+                    <p>Detailed specs, full image galleries, and verified ownership.</p>
+                </div>
+            </div>
+            
+            <!-- Concierge -->
+            <div class="feature-card">
+                <div class="feature-bg" style="background-image: url('/assets/images/trust/concierge-wch-240.jpg'); background-color: #1a0c2e;"></div>
+                <div class="feature-overlay"></div>
+                <div class="feature-content">
+                    <h3>Concierge</h3>
+                    <p>Our concierge can arrange private viewings anywhere.</p>
+                </div>
+            </div>
+            
         </div>
     </div>
 </section>
