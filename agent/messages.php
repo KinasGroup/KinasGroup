@@ -1,12 +1,12 @@
 <?php
 /**
  * KINAS GROUP - Agent Messages
- * Professional messaging interface for agents
+ * Premium Gmail/Yahoo style messaging interface for agents
  */
-require_once '../../includes/session.php';
-require_once '../../includes/functions.php';
-require_once '../../includes/helpers.php';
-require_once '../../api/config/database.php';
+require_once '../includes/session.php';
+require_once '../includes/functions.php';
+require_once '../includes/helpers.php';
+require_once '../api/config/database.php';
 
 // Redirect if not logged in as agent
 if (!SessionManager::isLoggedIn() || $_SESSION['user_role'] !== 'agent') {
@@ -17,20 +17,14 @@ if (!SessionManager::isLoggedIn() || $_SESSION['user_role'] !== 'agent') {
 $userId = SessionManager::getUserId();
 $db = Database::getInstance()->getConnection();
 
-// Get conversation ID if viewing a specific conversation
-$conversationId = isset($_GET['conversation']) ? (int)$_GET['conversation'] : 0;
-$viewingConversation = $conversationId > 0;
-
-// Handle mark as read
-if ($viewingConversation && isset($_GET['mark_read'])) {
-    $stmt = $db->prepare("UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND receiver_id = ?");
-    $stmt->execute([$conversationId, $userId]);
-}
+// Get the other user ID if viewing a conversation
+$otherUserId = isset($_GET['user']) ? (int)$_GET['user'] : 0;
+$listingId = isset($_GET['listing']) ? (int)$_GET['listing'] : 0;
+$viewingConversation = $otherUserId > 0;
 
 // Handle new message reply
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reply_message'])) {
     $replyMessage = trim($_POST['reply_message']);
-    $conversationId = (int)$_POST['conversation_id'];
     $receiverId = (int)$_POST['receiver_id'];
     $listingId = (int)$_POST['listing_id'];
     $listingType = $_POST['listing_type'] ?? 'property';
@@ -42,8 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reply_message'])) {
         ");
         $stmt->execute([$userId, $receiverId, $listingId, $listingType, $replyMessage]);
         
-        // Redirect to refresh
-        header('Location: /agent/messages.php?conversation=' . $conversationId . '&sent=1');
+        header('Location: /agent/messages.php?user=' . $receiverId . '&listing=' . $listingId . '&sent=1');
         exit;
     }
 }
@@ -51,10 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reply_message'])) {
 // Get all conversations for the agent
 $conversationsStmt = $db->prepare("
     SELECT 
-        m.conversation_id,
+        m.id,
         m.listing_id,
         m.listing_type,
         m.subject,
+        m.body,
         m.created_at,
         m.is_read,
         m.sender_id,
@@ -64,21 +58,57 @@ $conversationsStmt = $db->prepare("
         u.role AS sender_role,
         u2.name AS receiver_name,
         u2.email AS receiver_email,
-        u2.role AS receiver_role,
-        COUNT(DISTINCT m2.id) AS total_messages,
-        SUM(CASE WHEN m2.is_read = 0 AND m2.receiver_id = ? THEN 1 ELSE 0 END) AS unread_count,
-        (SELECT body FROM messages WHERE conversation_id = m.conversation_id ORDER BY created_at DESC LIMIT 1) AS last_message,
-        (SELECT created_at FROM messages WHERE conversation_id = m.conversation_id ORDER BY created_at DESC LIMIT 1) AS last_message_time
+        u2.role AS receiver_role
     FROM messages m
     LEFT JOIN users u ON m.sender_id = u.id
     LEFT JOIN users u2 ON m.receiver_id = u2.id
-    LEFT JOIN messages m2 ON m.conversation_id = m2.conversation_id
     WHERE m.receiver_id = ? OR m.sender_id = ?
-    GROUP BY m.conversation_id
-    ORDER BY last_message_time DESC
+    ORDER BY m.created_at DESC
 ");
-$conversationsStmt->execute([$userId, $userId, $userId]);
-$conversations = $conversationsStmt->fetchAll();
+$conversationsStmt->execute([$userId, $userId]);
+$allMessages = $conversationsStmt->fetchAll();
+
+// Group messages by conversation
+$conversations = [];
+foreach ($allMessages as $msg) {
+    $otherId = ($msg['sender_id'] == $userId) ? $msg['receiver_id'] : $msg['sender_id'];
+    $otherName = ($msg['sender_id'] == $userId) ? $msg['receiver_name'] : $msg['sender_name'];
+    $otherRole = ($msg['sender_id'] == $userId) ? $msg['receiver_role'] : $msg['sender_role'];
+    $otherEmail = ($msg['sender_id'] == $userId) ? $msg['receiver_email'] : $msg['sender_email'];
+    
+    $key = $otherId;
+    
+    if (!isset($conversations[$key])) {
+        $conversations[$key] = [
+            'other_user_id' => $otherId,
+            'other_name' => $otherName,
+            'other_email' => $otherEmail,
+            'other_role' => $otherRole,
+            'listing_id' => $msg['listing_id'],
+            'listing_type' => $msg['listing_type'],
+            'last_message' => $msg['body'],
+            'last_message_time' => $msg['created_at'],
+            'unread_count' => 0,
+            'subject' => $msg['subject'] ?? 'Message'
+        ];
+    }
+    
+    if ($msg['is_read'] == 0 && $msg['receiver_id'] == $userId) {
+        $conversations[$key]['unread_count']++;
+    }
+    
+    if (strtotime($msg['created_at']) > strtotime($conversations[$key]['last_message_time'])) {
+        $conversations[$key]['last_message'] = $msg['body'];
+        $conversations[$key]['last_message_time'] = $msg['created_at'];
+        $conversations[$key]['listing_id'] = $msg['listing_id'];
+        $conversations[$key]['listing_type'] = $msg['listing_type'];
+        $conversations[$key]['subject'] = $msg['subject'] ?? 'Message';
+    }
+}
+
+usort($conversations, function($a, $b) {
+    return strtotime($b['last_message_time']) - strtotime($a['last_message_time']);
+});
 
 // Get messages for a specific conversation
 $messages = [];
@@ -87,737 +117,862 @@ $otherUser = null;
 $listingInfo = null;
 
 if ($viewingConversation) {
-    // Get conversation info
-    $stmt = $db->prepare("
-        SELECT 
-            m.conversation_id,
-            m.listing_id,
-            m.listing_type,
-            m.subject,
-            m.sender_id,
-            m.receiver_id,
-            u.name AS sender_name,
-            u.email AS sender_email,
-            u.role AS sender_role,
-            u2.name AS receiver_name,
-            u2.email AS receiver_email,
-            u2.role AS receiver_role
-        FROM messages m
-        LEFT JOIN users u ON m.sender_id = u.id
-        LEFT JOIN users u2 ON m.receiver_id = u2.id
-        WHERE m.conversation_id = ?
-        LIMIT 1
-    ");
-    $stmt->execute([$conversationId]);
-    $conversationInfo = $stmt->fetch();
+    foreach ($conversations as $conv) {
+        if ($conv['other_user_id'] == $otherUserId) {
+            $conversationInfo = $conv;
+            break;
+        }
+    }
     
     if ($conversationInfo) {
-        // Get all messages
+        $otherUser = [
+            'id' => $conversationInfo['other_user_id'],
+            'name' => $conversationInfo['other_name'],
+            'email' => $conversationInfo['other_email'],
+            'role' => $conversationInfo['other_role']
+        ];
+        
         $stmt = $db->prepare("
             SELECT 
                 m.*,
                 u.name AS sender_name,
                 u.email AS sender_email,
-                u.role AS sender_role,
-                u2.name AS receiver_name,
-                u2.email AS receiver_email,
-                u2.role AS receiver_role
+                u.role AS sender_role
             FROM messages m
             LEFT JOIN users u ON m.sender_id = u.id
-            LEFT JOIN users u2 ON m.receiver_id = u2.id
-            WHERE m.conversation_id = ?
+            WHERE (m.sender_id = ? AND m.receiver_id = ?) 
+               OR (m.sender_id = ? AND m.receiver_id = ?)
             ORDER BY m.created_at ASC
         ");
-        $stmt->execute([$conversationId]);
+        $stmt->execute([$userId, $otherUserId, $otherUserId, $userId]);
         $messages = $stmt->fetchAll();
         
-        // Determine other user
-        if ($conversationInfo['sender_id'] == $userId) {
-            $otherUser = [
-                'id' => $conversationInfo['receiver_id'],
-                'name' => $conversationInfo['receiver_name'],
-                'email' => $conversationInfo['receiver_email'],
-                'role' => $conversationInfo['receiver_role']
-            ];
-        } else {
-            $otherUser = [
-                'id' => $conversationInfo['sender_id'],
-                'name' => $conversationInfo['sender_name'],
-                'email' => $conversationInfo['sender_email'],
-                'role' => $conversationInfo['sender_role']
-            ];
+        $stmt = $db->prepare("UPDATE messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0");
+        $stmt->execute([$otherUserId, $userId]);
+        
+        $listingId = null;
+        $listingType = null;
+        foreach ($messages as $msg) {
+            if (!empty($msg['listing_id'])) {
+                $listingId = $msg['listing_id'];
+                $listingType = $msg['listing_type'];
+                break;
+            }
         }
         
-        // Get listing info
-        if ($conversationInfo['listing_id']) {
+        if ($listingId) {
             $tableMap = [
                 'car' => 'car_listings',
                 'property' => 'property_listings',
                 'solar' => 'solar_listings',
                 'marketplace' => 'marketplace_listings'
             ];
-            $table = $tableMap[$conversationInfo['listing_type']] ?? 'property_listings';
+            $table = $tableMap[$listingType] ?? 'property_listings';
             
             $stmt = $db->prepare("SELECT id, title, price FROM $table WHERE id = ?");
-            $stmt->execute([$conversationInfo['listing_id']]);
+            $stmt->execute([$listingId]);
             $listingInfo = $stmt->fetch();
         }
-        
-        // Mark all as read
-        $stmt = $db->prepare("UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND receiver_id = ?");
-        $stmt->execute([$conversationId, $userId]);
     }
 }
 
-// Page title
 $pageTitle = 'Messages - Agent Dashboard';
-include '../../templates/header.php';
+include '../templates/header.php';
 ?>
 
+<!-- ============================================================ -->
+<!-- GMAIL/YAHOO STYLE MESSAGING - COMPLETE REDESIGN -->
+<!-- ============================================================ -->
 <style>
-/* ============================================================
-   PROFESSIONAL MESSAGING STYLES
-   ============================================================ */
-
-/* ----- Container ----- */
-.messages-container {
-    display: grid;
-    grid-template-columns: 380px 1fr;
-    gap: 0;
-    background: #f8f6f3;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-    min-height: 600px;
-    max-height: 800px;
+/* ----- RESET & BASE ----- */
+* {
+    box-sizing: border-box;
 }
 
-/* ----- Sidebar (Conversation List) ----- */
-.messages-sidebar {
-    background: #ffffff;
-    border-right: 1px solid #e8e5e0;
-    overflow-y: auto;
-    max-height: 800px;
-}
-
-.messages-sidebar-header {
+.mail-app {
+    max-width: 1400px;
+    margin: 0 auto;
     padding: 20px 24px;
-    border-bottom: 1px solid #e8e5e0;
-    background: #faf8f6;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #ffffff;
+    min-height: 100vh;
+}
+
+/* ----- HEADER ----- */
+.mail-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
+    padding: 8px 0 16px 0;
+    border-bottom: 1px solid #e8eaed;
+    margin-bottom: 16px;
 }
 
-.messages-sidebar-header h2 {
-    font-family: 'Prata', serif;
-    font-size: 18px;
-    color: #0A0A0A;
-    margin: 0;
-}
-
-.messages-sidebar-header .badge {
-    background: #C6A43F;
-    color: #fff;
-    font-size: 11px;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-weight: 600;
-}
-
-/* ----- Conversation List Item ----- */
-.conversation-item {
+.mail-header .logo-area {
     display: flex;
     align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid #f0ede8;
+    gap: 12px;
+}
+
+.mail-header .logo-area .menu-icon {
+    font-size: 20px;
+    color: #5f6368;
     cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    color: inherit;
-    position: relative;
-}
-
-.conversation-item:hover {
-    background: #faf8f6;
-}
-
-.conversation-item.active {
-    background: #f5f0e8;
-    border-left: 3px solid #C6A43F;
-}
-
-.conversation-item .avatar {
-    width: 48px;
-    height: 48px;
+    padding: 4px 8px;
     border-radius: 50%;
-    background: #e8e5e0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 18px;
-    color: #0A0A0A;
-    flex-shrink: 0;
-    margin-right: 14px;
-    position: relative;
+    transition: background 0.2s;
 }
 
-.conversation-item .avatar .online-dot {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 12px;
-    height: 12px;
-    background: #28a745;
-    border-radius: 50%;
-    border: 2px solid #fff;
+.mail-header .logo-area .menu-icon:hover {
+    background: #f1f3f4;
 }
 
-.conversation-item .info {
-    flex: 1;
-    min-width: 0;
-}
-
-.conversation-item .info .name {
-    font-weight: 600;
-    font-size: 14px;
-    color: #0A0A0A;
+.mail-header .logo-area h1 {
+    font-size: 22px;
+    font-weight: 500;
+    color: #1a1a2e;
+    margin: 0;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.conversation-item .info .name .role-badge {
-    font-size: 10px;
-    font-weight: 500;
-    padding: 1px 8px;
-    border-radius: 12px;
-    background: #e8e5e0;
-    color: #666;
-    text-transform: uppercase;
+.mail-header .logo-area h1 .mail-icon {
+    color: #C6A43F;
 }
 
-.conversation-item .info .name .role-badge.admin {
+.mail-header .logo-area h1 .count-badge {
+    font-size: 12px;
+    font-weight: 400;
+    color: #5f6368;
+    background: #f1f3f4;
+    padding: 2px 10px;
+    border-radius: 12px;
+}
+
+.mail-header .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mail-header .header-actions button {
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #5f6368;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.mail-header .header-actions button:hover {
+    background: #f1f3f4;
+}
+
+.mail-header .header-actions .compose-btn {
+    background: #C6A43F;
+    color: #fff;
+    padding: 8px 20px;
+    border-radius: 24px;
+    font-weight: 500;
+}
+
+.mail-header .header-actions .compose-btn:hover {
+    background: #b8942f;
+    box-shadow: 0 2px 8px rgba(198, 164, 63, 0.3);
+}
+
+/* ----- MAIN LAYOUT ----- */
+.mail-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 0;
+    background: #ffffff;
+    border: 1px solid #e8eaed;
+    border-radius: 12px;
+    overflow: hidden;
+    min-height: 620px;
+}
+
+/* ----- SIDEBAR ----- */
+.mail-sidebar {
+    background: #f8f9fa;
+    border-right: 1px solid #e8eaed;
+    display: flex;
+    flex-direction: column;
+    max-height: 700px;
+}
+
+.mail-tabs {
+    padding: 12px 12px 8px 12px;
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid #e8eaed;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.mail-tabs button {
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: #5f6368;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mail-tabs button.active {
+    background: #e8f0fe;
+    color: #1a73e8;
+}
+
+.mail-tabs button:hover {
+    background: #f1f3f4;
+}
+
+.mail-search {
+    padding: 8px 12px;
+    flex-shrink: 0;
+}
+
+.mail-search input {
+    width: 100%;
+    padding: 7px 14px;
+    border: 1px solid #e8eaed;
+    border-radius: 20px;
+    font-size: 13px;
+    background: #fff;
+    transition: all 0.2s;
+}
+
+.mail-search input:focus {
+    outline: none;
+    border-color: #C6A43F;
+    box-shadow: 0 0 0 2px rgba(198, 164, 63, 0.1);
+}
+
+/* Conversation List */
+.mail-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+.mail-list::-webkit-scrollbar {
+    width: 4px;
+}
+.mail-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.mail-list::-webkit-scrollbar-thumb {
+    background: #dadce0;
+    border-radius: 4px;
+}
+
+/* ----- Conversation Item ----- */
+.mail-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.1s;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid #f1f3f4;
+    gap: 10px;
+}
+
+.mail-item:hover {
+    background: #f1f3f4;
+}
+
+.mail-item.active {
+    background: #e8f0fe;
+    border-left: 3px solid #C6A43F;
+}
+
+.mail-item .avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #dadce0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 15px;
+    color: #3c4043;
+    flex-shrink: 0;
+}
+
+.mail-item .avatar.unread {
     background: #C6A43F;
     color: #fff;
 }
 
-.conversation-item .info .name .role-badge.agent {
+.mail-item .content {
+    flex: 1;
+    min-width: 0;
+}
+
+.mail-item .content .sender {
+    font-weight: 500;
+    font-size: 14px;
+    color: #1a1a2e;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mail-item .content .sender .tag {
+    font-size: 10px;
+    font-weight: 400;
+    color: #5f6368;
+    background: #f1f3f4;
+    padding: 0 8px;
+    border-radius: 10px;
+}
+
+.mail-item .content .sender .tag.admin {
+    background: #C6A43F;
+    color: #fff;
+}
+.mail-item .content .sender .tag.agent {
     background: #1B5E20;
     color: #fff;
 }
+.mail-item .content .sender .tag.user {
+    background: #e8f0fe;
+    color: #1a73e8;
+}
 
-.conversation-item .info .last-message {
+.mail-item .content .subject-line {
     font-size: 13px;
-    color: #888;
+    color: #3c4043;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
-.conversation-item .info .listing-ref {
-    font-size: 11px;
-    color: #C6A43F;
-    margin-top: 2px;
+.mail-item .content .preview-line {
+    font-size: 12px;
+    color: #5f6368;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
 }
 
-.conversation-item .time {
-    font-size: 11px;
-    color: #aaa;
-    flex-shrink: 0;
-    margin-left: 10px;
+.mail-item .meta {
     text-align: right;
-}
-
-.conversation-item .unread-badge {
-    background: #C6A43F;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 12px;
-    margin-left: 8px;
     flex-shrink: 0;
 }
 
-.conversation-item .unread-badge.zero {
-    background: transparent;
-    color: transparent;
+.mail-item .meta .time {
+    font-size: 11px;
+    color: #5f6368;
+    white-space: nowrap;
 }
 
-/* ----- Message Area ----- */
-.messages-area {
+.mail-item .meta .unread-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #C6A43F;
+    border-radius: 50%;
+    margin-top: 4px;
+}
+
+/* ----- MESSAGE VIEW ----- */
+.mail-view {
     display: flex;
     flex-direction: column;
     background: #ffffff;
     min-height: 500px;
 }
 
-/* --- Message Header --- */
-.messages-area-header {
-    padding: 16px 24px;
-    border-bottom: 1px solid #e8e5e0;
+/* View Header */
+.mail-view-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid #e8eaed;
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    background: #faf8f6;
+    align-items: center;
+    background: #fafbfc;
     flex-shrink: 0;
 }
 
-.messages-area-header .user-info {
+.mail-view-header .sender-block {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
 }
 
-.messages-area-header .user-info .avatar {
-    width: 40px;
-    height: 40px;
+.mail-view-header .sender-block .av-sm {
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
-    background: #e8e5e0;
+    background: #C6A43F;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 16px;
-    color: #0A0A0A;
+    font-size: 14px;
+    color: #fff;
+    flex-shrink: 0;
 }
 
-.messages-area-header .user-info .name {
+.mail-view-header .sender-block .info .name {
     font-weight: 600;
     font-size: 15px;
-    color: #0A0A0A;
+    color: #1a1a2e;
 }
 
-.messages-area-header .user-info .role {
+.mail-view-header .sender-block .info .email-line {
     font-size: 12px;
-    color: #888;
+    color: #5f6368;
 }
 
-.messages-area-header .listing-ref {
+.mail-view-header .listing-tag {
     font-size: 12px;
     color: #C6A43F;
-    background: #f5f0e8;
+    background: #f1f3f4;
     padding: 4px 14px;
-    border-radius: 20px;
-    display: inline-block;
+    border-radius: 16px;
 }
 
-/* --- Messages Body --- */
-.messages-body {
+/* View Body */
+.mail-view-body {
     flex: 1;
-    padding: 24px;
+    padding: 20px 24px;
     overflow-y: auto;
-    background: #fcfbf9;
-    max-height: 550px;
+    background: #ffffff;
+    max-height: 480px;
 }
 
-/* Individual Message */
-.message-item {
+.mail-view-body::-webkit-scrollbar {
+    width: 6px;
+}
+.mail-view-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.mail-view-body::-webkit-scrollbar-thumb {
+    background: #dadce0;
+    border-radius: 4px;
+}
+
+/* Message Row */
+.msg-row {
     display: flex;
-    margin-bottom: 20px;
-    animation: fadeInUp 0.3s ease;
+    margin-bottom: 14px;
+    padding: 2px 0;
 }
 
-.message-item.sent {
+.msg-row.sent {
     justify-content: flex-end;
 }
 
-.message-item.received {
+.msg-row.received {
     justify-content: flex-start;
 }
 
-.message-item .bubble {
-    max-width: 75%;
-    padding: 14px 18px;
-    border-radius: 16px;
-    position: relative;
+.msg-row .bubble {
+    max-width: 72%;
+    padding: 10px 16px;
+    border-radius: 18px;
     word-wrap: break-word;
+    line-height: 1.6;
+    font-size: 14px;
 }
 
-.message-item.sent .bubble {
-    background: #C6A43F;
-    color: #fff;
+.msg-row.sent .bubble {
+    background: #e8f0fe;
+    color: #1a1a2e;
     border-bottom-right-radius: 4px;
 }
 
-.message-item.received .bubble {
-    background: #f0ede8;
-    color: #0A0A0A;
+.msg-row.received .bubble {
+    background: #f1f3f4;
+    color: #1a1a2e;
     border-bottom-left-radius: 4px;
 }
 
-.message-item .bubble .message-text {
-    font-size: 14px;
-    line-height: 1.6;
+.msg-row .bubble .text {
     margin: 0;
+    white-space: pre-wrap;
 }
 
-.message-item .bubble .message-meta {
+.msg-row .bubble .footer {
     font-size: 11px;
-    opacity: 0.7;
+    color: #5f6368;
     margin-top: 6px;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.message-item.sent .bubble .message-meta {
-    color: rgba(255,255,255,0.8);
+.msg-row.sent .bubble .footer {
     justify-content: flex-end;
 }
 
-.message-item.received .bubble .message-meta {
-    color: #888;
-}
-
-.message-item .bubble .message-meta .sender-name {
-    font-weight: 500;
-}
-
 /* Viewing Request Badge */
-.message-item .bubble .viewing-badge {
+.msg-row .bubble .v-badge {
     display: inline-block;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
     padding: 2px 12px;
     border-radius: 12px;
-    margin-bottom: 8px;
-    background: rgba(255,255,255,0.2);
+    margin-bottom: 6px;
+    background: #C6A43F;
     color: #fff;
 }
 
-.message-item.received .bubble .viewing-badge {
-    background: rgba(198, 164, 63, 0.15);
+.msg-row.received .bubble .v-badge {
+    background: #f1f3f4;
     color: #C6A43F;
 }
 
+.msg-row .bubble .v-details {
+    font-size: 12px;
+    color: #5f6368;
+    margin-bottom: 4px;
+}
+
 /* Date Separator */
-.message-date-separator {
+.date-divider {
     text-align: center;
-    margin: 20px 0;
+    margin: 18px 0 14px 0;
     position: relative;
 }
 
-.message-date-separator span {
-    background: #fcfbf9;
+.date-divider span {
+    background: #ffffff;
     padding: 0 16px;
     font-size: 12px;
-    color: #aaa;
+    color: #5f6368;
     font-weight: 500;
     position: relative;
     z-index: 1;
 }
 
-.message-date-separator::after {
+.date-divider::after {
     content: '';
     position: absolute;
     top: 50%;
     left: 0;
     right: 0;
     height: 1px;
-    background: #e8e5e0;
+    background: #e8eaed;
     z-index: 0;
 }
 
-/* --- Message Reply Area --- */
-.messages-reply {
-    padding: 16px 24px;
-    border-top: 1px solid #e8e5e0;
-    background: #faf8f6;
+/* ----- REPLY AREA ----- */
+.mail-reply {
+    padding: 10px 20px;
+    border-top: 1px solid #e8eaed;
+    background: #fafbfc;
     flex-shrink: 0;
 }
 
-.messages-reply form {
+.mail-reply form {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: flex-end;
 }
 
-.messages-reply textarea {
+.mail-reply .input-wrap {
     flex: 1;
-    padding: 12px 16px;
-    border: 1px solid #e0dcd5;
-    border-radius: 12px;
+    position: relative;
+}
+
+.mail-reply .input-wrap textarea {
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid #dadce0;
+    border-radius: 24px;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     resize: none;
-    height: 48px;
-    transition: border-color 0.3s ease;
+    height: 42px;
+    transition: all 0.2s;
     background: #fff;
     line-height: 1.5;
 }
 
-.messages-reply textarea:focus {
+.mail-reply .input-wrap textarea:focus {
     outline: none;
     border-color: #C6A43F;
-    box-shadow: 0 0 0 3px rgba(198, 164, 63, 0.1);
+    box-shadow: 0 0 0 2px rgba(198, 164, 63, 0.08);
 }
 
-.messages-reply .send-btn {
-    padding: 12px 24px;
-    background: #0A0A0A;
+.mail-reply .input-wrap textarea::placeholder {
+    color: #9aa0a6;
+}
+
+.mail-reply .send-btn {
+    padding: 10px 24px;
+    background: #C6A43F;
     color: #fff;
     border: none;
-    border-radius: 12px;
-    font-weight: 600;
+    border-radius: 24px;
+    font-weight: 500;
     font-size: 14px;
     cursor: pointer;
-    transition: background 0.3s ease;
-    white-space: nowrap;
-    height: 48px;
+    transition: all 0.2s;
+    height: 42px;
     display: flex;
     align-items: center;
     gap: 8px;
+    white-space: nowrap;
 }
 
-.messages-reply .send-btn:hover {
-    background: #C6A43F;
+.mail-reply .send-btn:hover {
+    background: #b8942f;
+    box-shadow: 0 2px 8px rgba(198, 164, 63, 0.3);
 }
 
-.messages-reply .send-btn:disabled {
+.mail-reply .send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    box-shadow: none;
 }
 
-/* ----- Empty States ----- */
-.empty-state {
+/* ----- EMPTY STATE ----- */
+.empty-mail {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
-    color: #999;
-    padding: 40px;
+    padding: 60px 30px;
+    color: #5f6368;
     text-align: center;
+    height: 100%;
 }
 
-.empty-state .icon {
+.empty-mail .big-icon {
     font-size: 48px;
-    color: #e0dcd5;
+    color: #dadce0;
     margin-bottom: 16px;
 }
 
-.empty-state h3 {
-    font-family: 'Prata', serif;
-    font-size: 20px;
-    color: #0A0A0A;
-    margin-bottom: 8px;
+.empty-mail h3 {
+    font-size: 18px;
+    font-weight: 500;
+    color: #1a1a2e;
+    margin: 0 0 6px 0;
 }
 
-.empty-state p {
+.empty-mail p {
     font-size: 14px;
-    color: #888;
-    max-width: 320px;
+    color: #5f6368;
+    max-width: 300px;
+    margin: 0;
 }
 
-/* ----- Animations ----- */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* ----- SUCCESS TOAST ----- */
+.toast-success {
+    margin-top: 16px;
+    padding: 12px 20px;
+    background: #e6f4ea;
+    color: #1e7e34;
+    border-radius: 8px;
+    border: 1px solid #ceead6;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    animation: slideDown 0.3s ease;
 }
 
-/* ----- Scrollbar Styling ----- */
-.messages-sidebar::-webkit-scrollbar,
-.messages-body::-webkit-scrollbar {
-    width: 4px;
+.toast-success i {
+    color: #1e7e34;
+    font-size: 18px;
 }
 
-.messages-sidebar::-webkit-scrollbar-track,
-.messages-body::-webkit-scrollbar-track {
-    background: transparent;
+/* ----- ANIMATIONS ----- */
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.messages-sidebar::-webkit-scrollbar-thumb,
-.messages-body::-webkit-scrollbar-thumb {
-    background: #d0ccc5;
-    border-radius: 4px;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.messages-sidebar::-webkit-scrollbar-thumb:hover,
-.messages-body::-webkit-scrollbar-thumb:hover {
-    background: #b8b2a8;
+.msg-row {
+    animation: fadeIn 0.2s ease;
 }
 
-/* ----- Responsive ----- */
+/* ----- RESPONSIVE ----- */
 @media (max-width: 992px) {
-    .messages-container {
-        grid-template-columns: 1fr;
-        max-height: none;
-        border-radius: 12px;
-    }
-    
-    .messages-sidebar {
-        max-height: 400px;
-        border-right: none;
-        border-bottom: 1px solid #e8e5e0;
-    }
-    
-    .messages-area {
-        min-height: 400px;
-    }
-    
-    .messages-body {
-        max-height: 400px;
-    }
+    .mail-app { padding: 12px 16px; }
+    .mail-layout { grid-template-columns: 1fr; border-radius: 8px; }
+    .mail-sidebar { max-height: 340px; border-right: none; border-bottom: 1px solid #e8eaed; }
+    .mail-list { max-height: 260px; }
+    .mail-view-body { max-height: 340px; }
+    .mail-header .logo-area h1 { font-size: 18px; }
 }
 
 @media (max-width: 576px) {
-    .messages-area-header {
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-    
-    .messages-reply form {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .messages-reply .send-btn {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .message-item .bubble {
-        max-width: 90%;
-    }
+    .mail-app { padding: 8px 10px; }
+    .mail-header { flex-wrap: wrap; gap: 8px; }
+    .mail-header .header-actions .compose-btn { padding: 6px 14px; font-size: 13px; }
+    .mail-view-header { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
+    .mail-view-body { padding: 12px 14px; }
+    .mail-reply { padding: 8px 14px; }
+    .mail-reply form { flex-direction: column; align-items: stretch; }
+    .mail-reply .send-btn { width: 100%; justify-content: center; }
+    .msg-row .bubble { max-width: 92%; }
+    .mail-item { padding: 8px 10px; }
 }
 </style>
 
-<div class="admin-container" style="padding: 24px 40px; max-width: 1400px; margin: 0 auto;">
+<!-- ============================================================ -->
+<!-- MAIL APP -->
+<!-- ============================================================ -->
+<div class="mail-app">
 
-    <!-- Page Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <div>
-            <h1 style="font-family: 'Prata', serif; font-size: 28px; color: #0A0A0A; margin: 0;">
-                <i class="fas fa-envelope" style="color: #C6A43F; margin-right: 12px;"></i> Messages
-            </h1>
-            <p style="color: #888; margin: 4px 0 0 0; font-size: 14px;">
-                <?php if ($viewingConversation && $conversationInfo): ?>
-                    Conversation with <strong><?= htmlspecialchars($otherUser['name'] ?? 'User') ?></strong>
-                    <?php if ($listingInfo): ?>
-                        · <span style="color: #C6A43F;"><?= htmlspecialchars($listingInfo['title']) ?></span>
+    <!-- Header -->
+    <div class="mail-header">
+        <div class="logo-area">
+            <span class="menu-icon"><i class="fas fa-bars"></i></span>
+            <h1>
+                <span class="mail-icon"><i class="fas fa-envelope"></i></span>
+                Messages
+                <span class="count-badge">
+                    <?php if ($viewingConversation && $conversationInfo): ?>
+                        <?= htmlspecialchars($otherUser['name'] ?? 'User') ?>
+                    <?php else: ?>
+                        <?= count($conversations) ?> conversations
                     <?php endif; ?>
-                <?php else: ?>
-                    <?= count($conversations) ?> conversation(s)
-                <?php endif; ?>
-            </p>
+                </span>
+            </h1>
         </div>
-        <?php if ($viewingConversation): ?>
-            <a href="/agent/messages.php" style="color: #C6A43F; text-decoration: none; font-weight: 500; font-size: 14px;">
-                <i class="fas fa-arrow-left"></i> Back to Inbox
-            </a>
-        <?php endif; ?>
+        <div class="header-actions">
+            <?php if ($viewingConversation): ?>
+                <a href="/agent/messages.php" style="color: #5f6368; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; transition: background 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='transparent'">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+            <?php endif; ?>
+            <button><i class="fas fa-refresh"></i></button>
+            <button><i class="fas fa-ellipsis-v"></i></button>
+            <button class="compose-btn"><i class="fas fa-pen"></i> Compose</button>
+        </div>
     </div>
 
-    <!-- Messages Container -->
-    <div class="messages-container">
+    <!-- Main Layout -->
+    <div class="mail-layout">
 
-        <!-- Sidebar - Conversation List -->
-        <div class="messages-sidebar">
-            <div class="messages-sidebar-header">
-                <h2>Inbox</h2>
-                <span class="badge">
-                    <?php 
-                    $unreadTotal = 0;
-                    foreach ($conversations as $conv) {
-                        $unreadTotal += $conv['unread_count'] ?? 0;
-                    }
-                    echo $unreadTotal;
-                    ?>
-                </span>
+        <!-- Sidebar -->
+        <div class="mail-sidebar">
+            <!-- Tabs -->
+            <div class="mail-tabs">
+                <button class="active"><i class="fas fa-inbox"></i> Inbox</button>
+                <button><i class="fas fa-clock"></i> Snoozed</button>
+                <button><i class="fas fa-check-circle"></i> Done</button>
             </div>
 
-            <?php if (empty($conversations)): ?>
-                <div class="empty-state" style="padding: 40px 20px;">
-                    <div class="icon"><i class="fas fa-inbox"></i></div>
-                    <h3>No messages yet</h3>
-                    <p>When buyers and sellers contact you, their messages will appear here.</p>
-                </div>
-            <?php else: ?>
-                <?php foreach ($conversations as $conv): ?>
-                    <?php 
-                    // Determine the other party's name
-                    $otherName = '';
-                    if ($conv['sender_id'] == $userId) {
-                        $otherName = $conv['receiver_name'] ?? 'Unknown';
-                        $otherRole = $conv['receiver_role'] ?? 'user';
-                    } else {
-                        $otherName = $conv['sender_name'] ?? 'Unknown';
-                        $otherRole = $conv['sender_role'] ?? 'user';
-                    }
-                    $isActive = $viewingConversation && $conv['conversation_id'] == $conversationId;
-                    $unread = ($conv['unread_count'] ?? 0) > 0;
-                    $avatarLetter = strtoupper(substr($otherName, 0, 1));
-                    ?>
-                    <a href="/agent/messages.php?conversation=<?= $conv['conversation_id'] ?>" 
-                       class="conversation-item <?= $isActive ? 'active' : '' ?>">
-                        <div class="avatar">
-                            <?= $avatarLetter ?>
-                        </div>
-                        <div class="info">
-                            <div class="name">
-                                <?= htmlspecialchars($otherName) ?>
-                                <span class="role-badge <?= $otherRole ?>"><?= ucfirst($otherRole) ?></span>
+            <!-- Search -->
+            <div class="mail-search">
+                <input type="text" placeholder="Search messages..." id="mailSearch">
+            </div>
+
+            <!-- Conversation List -->
+            <div class="mail-list" id="mailList">
+                <?php if (empty($conversations)): ?>
+                    <div class="empty-mail" style="padding: 30px 20px;">
+                        <div class="big-icon"><i class="fas fa-inbox"></i></div>
+                        <h3>No messages</h3>
+                        <p>When buyers and sellers contact you, their messages will appear here.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($conversations as $conv): ?>
+                        <?php 
+                        $otherName = $conv['other_name'] ?? 'Unknown';
+                        $otherRole = $conv['other_role'] ?? 'user';
+                        $isActive = $viewingConversation && $conv['other_user_id'] == $otherUserId;
+                        $unread = ($conv['unread_count'] ?? 0) > 0;
+                        $avatarLetter = strtoupper(substr($otherName, 0, 1));
+                        $lastMessage = $conv['last_message'] ?? '';
+                        $subject = $conv['subject'] ?? 'Message';
+                        ?>
+                        <a href="/agent/messages.php?user=<?= $conv['other_user_id'] ?>&listing=<?= $conv['listing_id'] ?? 0 ?>" 
+                           class="mail-item <?= $isActive ? 'active' : '' ?>">
+                            <div class="avatar <?= $unread ? 'unread' : '' ?>">
+                                <?= $avatarLetter ?>
                             </div>
-                            <div class="last-message">
-                                <?= htmlspecialchars(substr($conv['last_message'] ?? '', 0, 60)) ?>
-                                <?php if (strlen($conv['last_message'] ?? '') > 60) echo '...'; ?>
-                            </div>
-                            <?php if (!empty($conv['listing_id'])): ?>
-                                <div class="listing-ref">
-                                    <i class="fas fa-tag" style="font-size: 9px;"></i> 
-                                    Listing #<?= $conv['listing_id'] ?>
+                            <div class="content">
+                                <div class="sender">
+                                    <?= htmlspecialchars($otherName) ?>
+                                    <span class="tag <?= $otherRole ?>"><?= ucfirst($otherRole) ?></span>
+                                    <?php if ($unread): ?>
+                                        <span style="color: #C6A43F; font-size: 10px; font-weight: 600;">● New</span>
+                                    <?php endif; ?>
                                 </div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="time">
-                            <?php if ($conv['last_message_time']): ?>
-                                <?= date('M j', strtotime($conv['last_message_time'])) ?>
-                                <br>
-                                <?= date('g:i A', strtotime($conv['last_message_time'])) ?>
-                            <?php endif; ?>
-                            <?php if ($unread): ?>
-                                <span class="unread-badge"><?= $conv['unread_count'] ?></span>
-                            <?php else: ?>
-                                <span class="unread-badge zero">0</span>
-                            <?php endif; ?>
-                        </div>
-                    </a>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                                <div class="subject-line">
+                                    <?php if (!empty($conv['listing_id'])): ?>
+                                        <span style="color: #C6A43F; font-weight: 500;">[#<?= $conv['listing_id'] ?>]</span>
+                                    <?php endif; ?>
+                                    <?= htmlspecialchars($subject) ?>
+                                </div>
+                                <div class="preview-line">
+                                    <?php 
+                                    if (!empty($lastMessage)) {
+                                        echo htmlspecialchars(substr($lastMessage, 0, 45));
+                                        if (strlen($lastMessage) > 45) echo '...';
+                                    } else {
+                                        echo 'No messages yet';
+                                    }
+                                    ?>
+                                </div>
+                            </div>
+                            <div class="meta">
+                                <div class="time">
+                                    <?php if ($conv['last_message_time']): ?>
+                                        <?= date('M d', strtotime($conv['last_message_time'])) ?>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if ($unread): ?>
+                                    <div class="unread-dot"></div>
+                                <?php endif; ?>
+                            </div>
+                        </a>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
         </div>
 
-        <!-- Message Area -->
-        <div class="messages-area">
+        <!-- Message View -->
+        <div class="mail-view">
 
             <?php if ($viewingConversation && $conversationInfo && !empty($messages)): ?>
-                <!-- Message Header -->
-                <div class="messages-area-header">
-                    <div class="user-info">
-                        <div class="avatar">
+                <!-- View Header -->
+                <div class="mail-view-header">
+                    <div class="sender-block">
+                        <div class="av-sm">
                             <?= strtoupper(substr($otherUser['name'] ?? 'U', 0, 1)) ?>
                         </div>
-                        <div>
+                        <div class="info">
                             <div class="name"><?= htmlspecialchars($otherUser['name'] ?? 'Unknown') ?></div>
-                            <div class="role">
+                            <div class="email-line">
+                                <?= htmlspecialchars($otherUser['email'] ?? '') ?> 
+                                <span style="color: #5f6368;">·</span> 
                                 <?= ucfirst($otherUser['role'] ?? 'user') ?>
-                                <?php if (!empty($otherUser['email'])): ?>
-                                    · <?= htmlspecialchars($otherUser['email']) ?>
-                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
                     <?php if ($listingInfo): ?>
-                        <div class="listing-ref">
+                        <div class="listing-tag">
                             <i class="fas fa-tag"></i> <?= htmlspecialchars($listingInfo['title']) ?>
                             <?php if (!empty($listingInfo['price'])): ?>
                                 · ₦<?= number_format($listingInfo['price']) ?>
@@ -826,8 +981,8 @@ include '../../templates/header.php';
                     <?php endif; ?>
                 </div>
 
-                <!-- Messages Body -->
-                <div class="messages-body" id="messagesBody">
+                <!-- View Body -->
+                <div class="mail-view-body" id="mailBody">
                     <?php 
                     $lastDate = '';
                     foreach ($messages as $msg): 
@@ -836,40 +991,39 @@ include '../../templates/header.php';
                         $senderName = $isSent ? 'You' : ($msg['sender_name'] ?? 'Unknown');
                         $isViewing = !empty($msg['is_viewing_request']) && $msg['is_viewing_request'] == 1;
                         
-                        // Show date separator
                         if ($msgDate != $lastDate): 
                             $lastDate = $msgDate;
                             $displayDate = date('l, F j, Y', strtotime($msg['created_at']));
                     ?>
-                        <div class="message-date-separator">
+                        <div class="date-divider">
                             <span><?= $displayDate ?></span>
                         </div>
                     <?php endif; ?>
                         
-                        <div class="message-item <?= $isSent ? 'sent' : 'received' ?>">
+                        <div class="msg-row <?= $isSent ? 'sent' : 'received' ?>">
                             <div class="bubble">
                                 <?php if ($isViewing): ?>
-                                    <div class="viewing-badge">
+                                    <div class="v-badge">
                                         <i class="fas fa-calendar-check"></i> Viewing Request
                                     </div>
                                     <?php if (!empty($msg['preferred_date'])): ?>
-                                        <div style="font-size: 12px; margin-bottom: 6px; opacity: 0.8;">
-                                            📅 <?= date('l, F j, Y', strtotime($msg['preferred_date'])) ?>
+                                        <div class="v-details">
+                                            📅 <?= date('M j, Y', strtotime($msg['preferred_date'])) ?>
                                             <?php if (!empty($msg['preferred_time'])): ?>
                                                 at <?= htmlspecialchars($msg['preferred_time']) ?>
                                             <?php endif; ?>
                                         </div>
                                     <?php endif; ?>
                                 <?php endif; ?>
-                                <p class="message-text"><?= nl2br(htmlspecialchars($msg['body'])) ?></p>
-                                <div class="message-meta">
-                                    <span class="sender-name"><?= htmlspecialchars($senderName) ?></span>
+                                <p class="text"><?= nl2br(htmlspecialchars($msg['body'])) ?></p>
+                                <div class="footer">
+                                    <span><?= htmlspecialchars($senderName) ?></span>
                                     <span>·</span>
                                     <span><?= date('g:i A', strtotime($msg['created_at'])) ?></span>
                                     <?php if ($isSent && $msg['is_read']): ?>
-                                        <span><i class="fas fa-check-circle" style="color: #28a745;"></i> Read</span>
+                                        <span><i class="fas fa-check-circle" style="color: #1a73e8;"></i> Read</span>
                                     <?php elseif ($isSent): ?>
-                                        <span><i class="fas fa-clock" style="color: #888;"></i> Sent</span>
+                                        <span><i class="fas fa-check" style="color: #5f6368;"></i> Sent</span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -877,15 +1031,16 @@ include '../../templates/header.php';
                     <?php endforeach; ?>
                 </div>
 
-                <!-- Reply Area -->
-                <div class="messages-reply">
+                <!-- Reply -->
+                <div class="mail-reply">
                     <form method="POST">
-                        <input type="hidden" name="conversation_id" value="<?= $conversationId ?>">
                         <input type="hidden" name="receiver_id" value="<?= $otherUser['id'] ?? 0 ?>">
                         <input type="hidden" name="listing_id" value="<?= $conversationInfo['listing_id'] ?? 0 ?>">
                         <input type="hidden" name="listing_type" value="<?= $conversationInfo['listing_type'] ?? 'property' ?>">
                         
-                        <textarea name="reply_message" placeholder="Type your reply..." required></textarea>
+                        <div class="input-wrap">
+                            <textarea name="reply_message" placeholder="Type your reply..." required></textarea>
+                        </div>
                         <button type="submit" class="send-btn">
                             <i class="fas fa-paper-plane"></i> Send
                         </button>
@@ -893,22 +1048,22 @@ include '../../templates/header.php';
                 </div>
 
             <?php elseif ($viewingConversation && $conversationInfo): ?>
-                <!-- No messages in this conversation -->
-                <div class="empty-state" style="height: 100%;">
-                    <div class="icon"><i class="fas fa-comment-dots"></i></div>
+                <!-- Empty conversation -->
+                <div class="empty-mail" style="height: 100%;">
+                    <div class="big-icon"><i class="fas fa-comment-dots"></i></div>
                     <h3>No messages yet</h3>
                     <p>Start the conversation by sending a message.</p>
                 </div>
                 
-                <!-- Reply Area (empty conversation) -->
-                <div class="messages-reply">
+                <div class="mail-reply">
                     <form method="POST">
-                        <input type="hidden" name="conversation_id" value="<?= $conversationId ?>">
                         <input type="hidden" name="receiver_id" value="<?= $otherUser['id'] ?? 0 ?>">
                         <input type="hidden" name="listing_id" value="<?= $conversationInfo['listing_id'] ?? 0 ?>">
                         <input type="hidden" name="listing_type" value="<?= $conversationInfo['listing_type'] ?? 'property' ?>">
                         
-                        <textarea name="reply_message" placeholder="Type your message..." required></textarea>
+                        <div class="input-wrap">
+                            <textarea name="reply_message" placeholder="Type your message..." required></textarea>
+                        </div>
                         <button type="submit" class="send-btn">
                             <i class="fas fa-paper-plane"></i> Send
                         </button>
@@ -917,10 +1072,10 @@ include '../../templates/header.php';
 
             <?php else: ?>
                 <!-- No conversation selected -->
-                <div class="empty-state" style="height: 100%;">
-                    <div class="icon"><i class="fas fa-envelope-open-text"></i></div>
+                <div class="empty-mail" style="height: 100%;">
+                    <div class="big-icon"><i class="fas fa-envelope-open-text"></i></div>
                     <h3>Select a conversation</h3>
-                    <p>Choose a conversation from the sidebar to view and reply to messages.</p>
+                    <p>Choose a conversation from the sidebar to view messages.</p>
                 </div>
             <?php endif; ?>
 
@@ -928,8 +1083,8 @@ include '../../templates/header.php';
     </div>
 
     <?php if (isset($_GET['sent']) && $_GET['sent'] == 1): ?>
-        <div style="margin-top: 16px; padding: 12px 20px; background: #d4edda; color: #155724; border-radius: 8px; border-left: 4px solid #28a745; display: flex; align-items: center; gap: 10px;">
-            <i class="fas fa-check-circle" style="color: #28a745;"></i>
+        <div class="toast-success">
+            <i class="fas fa-check-circle"></i>
             <span>Reply sent successfully!</span>
         </div>
     <?php endif; ?>
@@ -937,21 +1092,49 @@ include '../../templates/header.php';
 </div>
 
 <script>
-// Auto-scroll to bottom of messages
 document.addEventListener('DOMContentLoaded', function() {
-    const messagesBody = document.getElementById('messagesBody');
-    if (messagesBody) {
-        messagesBody.scrollTop = messagesBody.scrollHeight;
+    // Auto-scroll to bottom
+    const mailBody = document.getElementById('mailBody');
+    if (mailBody) {
+        mailBody.scrollTop = mailBody.scrollHeight;
     }
-});
-
-// Auto-resize textarea
-document.querySelectorAll('.messages-reply textarea').forEach(function(textarea) {
-    textarea.addEventListener('input', function() {
-        this.style.height = '48px';
-        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    
+    // Auto-resize textarea
+    document.querySelectorAll('.input-wrap textarea').forEach(function(textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = '42px';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
     });
+    
+    // Enter to send, Shift+Enter for new line
+    document.querySelectorAll('.input-wrap textarea').forEach(function(textarea) {
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.closest('form').submit();
+            }
+        });
+    });
+    
+    // Search filter
+    const searchInput = document.getElementById('mailSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            const items = document.querySelectorAll('.mail-item');
+            
+            items.forEach(function(item) {
+                const text = item.textContent.toLowerCase();
+                if (query === '' || text.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
 });
 </script>
 
-<?php include '../../templates/footer.php'; ?>
+<?php include '../templates/footer.php'; ?>
