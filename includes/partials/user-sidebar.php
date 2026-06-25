@@ -6,6 +6,7 @@ $current_page = $current_page ?? 'dashboard';
 ?>
 <aside class="je-dash-sidebar">
     <div class="je-dash-sidebar-inner">
+        <!-- User Profile Section -->
         <div class="je-dash-user">
             <div class="je-dash-avatar">
                 <?php echo strtoupper(substr($_SESSION['user_name'] ?? 'U', 0, 1)); ?>
@@ -14,6 +15,7 @@ $current_page = $current_page ?? 'dashboard';
             <div class="je-dash-user-role">Member</div>
         </div>
         
+        <!-- Navigation -->
         <nav class="je-dash-nav">
             <a href="/user/dashboard.php" class="je-dash-nav-item <?php echo $current_page === 'dashboard' ? 'active' : ''; ?>">
                 <i class="fas fa-th-large"></i> Dashboard
@@ -22,13 +24,18 @@ $current_page = $current_page ?? 'dashboard';
                 <i class="fas fa-envelope"></i> Messages
                 <?php 
                 // Show unread count
-                $db = Database::getInstance()->getConnection();
-                $stmt = $db->prepare("SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND is_read = 0");
-                $stmt->execute([$_SESSION['user_id']]);
-                $unread = $stmt->fetchColumn();
-                if ($unread > 0): ?>
-                    <span class="je-dash-badge"><?php echo $unread; ?></span>
-                <?php endif; ?>
+                try {
+                    $db = Database::getInstance()->getConnection();
+                    $stmt = $db->prepare("SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND is_read = 0");
+                    $stmt->execute([$_SESSION['user_id']]);
+                    $unread = $stmt->fetchColumn();
+                    if ($unread > 0): ?>
+                        <span class="je-dash-badge"><?php echo $unread; ?></span>
+                    <?php endif; 
+                } catch (Exception $e) {
+                    // Table might not exist yet, ignore
+                }
+                ?>
             </a>
             <a href="/user/saved-listings.php" class="je-dash-nav-item <?php echo $current_page === 'saved' ? 'active' : ''; ?>">
                 <i class="fas fa-heart"></i> Saved Listings
