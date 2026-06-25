@@ -393,7 +393,7 @@ include '../../templates/header.php';
             
             <!-- Authenticated - Luxury watch/authentication -->
             <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1633152825441-19e6e1e6c21b?w=600&q=80'); background-color: #2c1810;"></div>
+                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?w=600&q=80'); background-color: #2c1810;"></div>
                 <div class="feature-overlay"></div>
                 <div class="feature-content">
                     <h3>Authenticated</h3>
@@ -401,25 +401,25 @@ include '../../templates/header.php';
                 </div>
             </div>
             
-            <!-- Secure Payments - Modern secure payment concept -->
-            <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&q=80'); background-color: #0c1a2e;"></div>
-                <div class="feature-overlay"></div>
-                <div class="feature-content">
-                    <h3>Secure Payments</h3>
-                    <p>Escrow-protected transactions for peace of mind, ensuring both buyer and seller are protected.</p>
-                </div>
-            </div>
-            
-            <!-- Worldwide Shipping - Global shipping/delivery (Renamed from White-Glove Shipping) -->
-            <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/162539/architecture-building-city-skyline-162539.jpeg?w=600&q=80'); background-color: #1a1a2e;"></div>
-                <div class="feature-overlay"></div>
-                <div class="feature-content">
-                    <h3>Worldwide Shipping</h3>
-                    <p>Insured, door-to-door delivery to over 190 countries, with real-time tracking and signature confirmation.</p>
-                </div>
-            </div>
+			<!-- Secure Payments -->
+			<div class="feature-card">
+				<div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&q=80'); background-color: #0c1a2e;"></div>
+				<div class="feature-overlay"></div>
+				<div class="feature-content">
+					<h3>Secure Payments</h3>
+					<p>Escrow-protected transactions for peace of mind, ensuring both buyer and seller are protected.</p>
+				</div>
+			</div>
+
+			<!-- Worldwide Shipping -->
+			<div class="feature-card">
+				<div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&q=80'); background-color: #1a1a2e;"></div>
+				<div class="feature-overlay"></div>
+				<div class="feature-content">
+					<h3>Worldwide Shipping</h3>
+					<p>Insured, door-to-door delivery to over 190 countries, with real-time tracking and signature confirmation.</p>
+				</div>
+			</div>
             
             <!-- Seller Protection - Shield/protection -->
             <div class="feature-card">
