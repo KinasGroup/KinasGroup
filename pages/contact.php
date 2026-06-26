@@ -80,7 +80,7 @@ include dirname(__DIR__) . '/templates/header.php';
                 <div style="width: 44px; height: 44px; background: rgba(198,164,63,0.1); color: #C6A43F; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-map-marker-alt"></i></div>
                 <div>
                     <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px;">Office</h4>
-                    <p style="font-size: 14px; color: #0A0A0A;">Victoria Island, Lagos, Nigeria</p>
+                    <p style="font-size: 14px; color: #0A0A0A;">Gwarinpa, 900108, Federal Capital Territory, Nigeria</p>
                 </div>
             </div>
 
