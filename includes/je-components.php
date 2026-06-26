@@ -90,8 +90,8 @@ function je_render_footer(string $variant = 'site'): void
                         Subscribe to receive updates on new luxury listings.
                     </p>
                     <div class="je-footer-newsletter">
-                        <input type="email" placeholder="Your email address" aria-label="Email address" style="width:100%; padding:11px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:3px; color:#fff; font-family:'Inter',sans-serif; font-size:13px; margin-bottom:10px; box-sizing:border-box;">
-                        <button class="je-btn je-btn-gold" style="width:auto; padding:12px 30px; background:#C6A43F; color:#0A0A0A; border:none; border-radius:3px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; font-size:13px; transition:opacity 0.2s;">
+                        <input type="email" placeholder="Your email address" aria-label="Email address" style="width:100%; padding:8px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:3px; color:#fff; font-family:'Inter',sans-serif; font-size:13px; margin-bottom:10px; box-sizing:border-box;">
+                        <button class="je-btn je-btn-gold" style="width:100%; padding:9px 14px; background:#C6A43F; color:#0A0A0A; border:none; border-radius:3px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; font-size:13px; transition:opacity 0.2s;">
                             Subscribe
                         </button>
                     </div>
