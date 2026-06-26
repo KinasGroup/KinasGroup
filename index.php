@@ -348,11 +348,11 @@ include 'templates/header.php';
     <div class="hero-bg" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80');"></div>
     <div class="hero-overlay"></div>
     
-    <div class="je-container" style="position:relative; z-index:2;">
+    <div class="je-container" style="position:relative; z-index:4;">
         <div class="hero-content">
             <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">THE WORLD'S LUXURY MARKETPLACE</div>
-            <h1>Where the world's finest<br>luxury comes to life</h1>
-            <p>Discover extraordinary automobiles, homes, solar solutions, and curated luxury goods from verified sellers across the globe.</p>
+            <h1>One Company. Multiple Solution<br>One Trusted Ecosystem</h1>
+            <p>Building Excellence across Real Estate, Automobiles, Renewable Energy, Hospitality & Global Traade</p>
             <div style="display:flex; gap:14px; flex-wrap:wrap;">
                 <a href="/search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Explore All</a>
                 <a href="/divisions/kinas-automobile/" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Browse Divisions</a>
