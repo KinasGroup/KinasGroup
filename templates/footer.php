@@ -4,9 +4,6 @@ require_once __DIR__ . '/../includes/je-components.php';
 je_render_footer('site');
 ?>
 
-<!-- Font Awesome Icons - Ensures social icons display in footer -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
 <!-- Shared transparent-header scroll effect (hero pages only) -->
 <script src="/assets/js/header-scroll.js"></script>
 

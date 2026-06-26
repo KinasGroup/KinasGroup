@@ -60,22 +60,19 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <link rel="stylesheet" href="/assets/css/style.css">
     <link rel="stylesheet" href="/assets/css/james-edition.css">
     <link rel="stylesheet" href="/assets/css/responsive.css">
-    <link rel="stylesheet" href="/assets/css/footer-social.css">
     <?php if ($userRole === 'admin'): ?>
     <link rel="stylesheet" href="/assets/css/admin.css">
     <?php endif; ?>
 
     <!-- ============================================================ -->
-    <!-- FONT AWESOME - MULTIPLE CDN SOURCES FOR RELIABILITY -->
+    <!-- FONT AWESOME -->
+    <!-- Loaded synchronously (no media=print/onload trick) from -->
+    <!-- cdnjs.cloudflare.com, which is explicitly allow-listed in the -->
+    <!-- Content-Security-Policy (style-src/font-src) in security.php. -->
+    <!-- The previous 3-source fallback setup didn't actually fix -->
+    <!-- anything because none of those domains were CSP-allowed. -->
     <!-- ============================================================ -->
-    <!-- Primary: jsDelivr CDN (often works when cloudflare is blocked) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
-    
-    <!-- Fallback: If jsDelivr fails, try Font Awesome's official CDN -->
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.5.1/css/all.css" media="print" onload="this.media='all'">
-    
-    <!-- Keep cloudflare as a third option -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
