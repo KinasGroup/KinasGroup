@@ -34,51 +34,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
     window.addEventListener('resize', function () { if (window.innerWidth > 768) closeMenu(); });
 });
-
-// Ensure X (Twitter) icon displays correctly in footer
-document.addEventListener('DOMContentLoaded', function() {
-    var socialLinks = document.querySelectorAll('.je-footer-social a');
-    socialLinks.forEach(function(link) {
-        var href = link.getAttribute('href') || '';
-        if (href.includes('twitter.com') || href.includes('x.com')) {
-            var icon = link.querySelector('i');
-            if (icon) {
-                if (icon.classList.contains('fa-twitter')) {
-                    icon.classList.remove('fa-twitter');
-                    icon.classList.add('fa-x-twitter');
-                }
-                if (!icon.classList.contains('fa-x-twitter') && !icon.classList.contains('fa-twitter')) {
-                    icon.className = 'fab fa-x-twitter';
-                }
-            }
-        }
-        if (href.includes('x.com') && !href.includes('twitter.com')) {
-            var icon = link.querySelector('i');
-            if (icon) {
-                icon.className = 'fab fa-x-twitter';
-            }
-        }
-    });
-    
-    setTimeout(function() {
-        var socialLinksDelayed = document.querySelectorAll('.je-footer-social a');
-        socialLinksDelayed.forEach(function(link) {
-            var href = link.getAttribute('href') || '';
-            if (href.includes('twitter.com') || href.includes('x.com')) {
-                var icon = link.querySelector('i');
-                if (icon) {
-                    if (icon.classList.contains('fa-twitter')) {
-                        icon.classList.remove('fa-twitter');
-                        icon.classList.add('fa-x-twitter');
-                    }
-                    if (!icon.classList.contains('fa-x-twitter') && !icon.classList.contains('fa-twitter')) {
-                        icon.className = 'fab fa-x-twitter';
-                    }
-                }
-            }
-        });
-    }, 300);
-});
 </script>
 </body>
 </html>
