@@ -272,7 +272,7 @@ include '../../templates/header.php';
     <div class="je-container" style="color:#fff; position:relative; z-index:1;">
         <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">KINAS VOLT</div>
         <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Premium Solar &amp; Energy Solutions</h1>
-        <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">Sr energy Syatems, INverters, Lithium-ion Batteries, Solar Street Lights, Solar Security Cameras, Backup Power Solutions.</p>
+        <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">Solar energy Syatems, Inverters, Lithium-ion Batteries, Solar Street Lights, Solar Security Cameras, Backup Power Solutions.</p>
         <div class="je-flex" style="gap:14px;">
             <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Systems</a>
             <a href="/divisions/kinas-volt/calculator.php" class="solar-calculator-green-btn">
