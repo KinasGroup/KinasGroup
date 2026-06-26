@@ -348,7 +348,7 @@ include 'templates/header.php';
     <div class="hero-bg" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80');"></div>
     <div class="hero-overlay"></div>
     
-    <div class="je-container" style="position:relative; z-index:4;">
+    <div class="je-container" style="position:relative; z-index:1;">
         <div class="hero-content">
             <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">THE WORLD'S LUXURY MARKETPLACE</div>
             <h1>One Company<br> Multiple Solution<br>One Trusted Ecosystem</h1>
