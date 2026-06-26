@@ -840,6 +840,9 @@ include '../templates/header.php';
 <!-- ============================================================ -->
 <!-- MAIL APP -->
 <!-- ============================================================ -->
+<div class="je-dash-shell">
+    <?php include __DIR__ . '/../includes/partials/agent-sidebar.php'; ?>
+    <main class="je-dash-main" style="padding:0; background:transparent;">
 <div class="mail-app">
 
     <!-- Header -->
@@ -1089,6 +1092,8 @@ include '../templates/header.php';
         </div>
     <?php endif; ?>
 
+</div>
+    </main>
 </div>
 
 <script>
