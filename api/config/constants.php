@@ -184,6 +184,32 @@ define('SOCIAL_MEDIA', [
     'youtube' => 'https://youtube.com/@kinasgroup'
 ]);
 
+// Per-division social handles shown in the footer.
+// 'kinasgroup' is used for the homepage and Kinas Marketplace.
+// Each of the other 3 divisions shows its own TikTok / Instagram / Facebook.
+define('DIVISION_SOCIAL_MEDIA', [
+    'kinasgroup' => [
+        'tiktok'    => 'https://tiktok.com/@kinasgroup',
+        'instagram' => 'https://instagram.com/kinasgroup',
+        'facebook'  => 'https://facebook.com/kinasgroup',
+    ],
+    'williams-connect-home' => [
+        'tiktok'    => 'https://tiktok.com/@williamsconnecthom',
+        'instagram' => 'https://instagram.com/williamsconnecthome',
+        'facebook'  => 'https://facebook.com/williamsconnecthome',
+    ],
+    'kinas-automobile' => [
+        'tiktok'    => 'https://tiktok.com/@kinasautomobile',
+        'instagram' => 'https://instagram.com/kinasautomobile',
+        'facebook'  => 'https://facebook.com/kinasautomobile',
+    ],
+    'kinas-volt' => [
+        'tiktok'    => 'https://tiktok.com/@kinasvolt',
+        'instagram' => 'https://instagram.com/kinasvolt',
+        'facebook'  => 'https://facebook.com/kinasvolt',
+    ],
+]);
+
 // Timezone — must match database.php; use Africa/Lagos for Nigeria operations
 date_default_timezone_set(getenv('TIMEZONE') ?: 'Africa/Lagos');
 ?>
