@@ -82,10 +82,19 @@ include 'templates/header.php';
     height: 80vh;
     min-height: 600px;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     overflow: hidden;
+    padding-bottom: 60px;
 }
-#heroSection .hero-bg {
+#heroSection .hero-slides-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+#heroSection .hero-slide {
     position: absolute;
     top: 0;
     left: 0;
@@ -93,7 +102,12 @@ include 'templates/header.php';
     height: 100%;
     background-size: cover;
     background-position: center;
-    z-index: 0;
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+    will-change: opacity;
+}
+#heroSection .hero-slide.active {
+    opacity: 1;
 }
 #heroSection .hero-overlay {
     position: absolute;
@@ -109,6 +123,7 @@ include 'templates/header.php';
     z-index: 2;
     color: #fff;
     max-width: 700px;
+    padding-bottom: 10px;
 }
 #heroSection .hero-content h1 {
     font-family: 'Prata', serif;
@@ -123,6 +138,32 @@ include 'templates/header.php';
     line-height: 1.7;
     margin-bottom: 32px;
     max-width: 540px;
+}
+#heroSection .hero-indicators {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+    gap: 10px;
+}
+#heroSection .hero-indicators .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.4);
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.3s ease;
+    border: none;
+    padding: 0;
+}
+#heroSection .hero-indicators .dot.active {
+    background: #C6A43F;
+    transform: scale(1.2);
+}
+#heroSection .hero-indicators .dot:hover {
+    background: rgba(255,255,255,0.8);
 }
 
 /* ----- Division Cards ----- */
@@ -320,14 +361,24 @@ include 'templates/header.php';
     margin-top: 4px;
 }
 
+/* ----- Divisions Section Anchor ----- */
+#divisionsSection {
+    scroll-margin-top: 80px;
+}
+
 /* ----- Responsive ----- */
 @media (max-width: 992px) {
     #heroSection .hero-content h1 { font-size: 38px; }
+    #heroSection { padding-bottom: 40px; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
 }
 
 @media (max-width: 768px) {
-    #heroSection { min-height: 500px; }
+    #heroSection { 
+        min-height: 500px; 
+        padding-bottom: 30px;
+        align-items: flex-end;
+    }
     #heroSection .hero-content h1 { font-size: 30px; }
     #heroSection .hero-content p { font-size: 16px; }
     .division-card { min-height: 220px; }
@@ -338,6 +389,7 @@ include 'templates/header.php';
 @media (max-width: 576px) {
     .stats-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
     .stats-grid .stat-item .number { font-size: 28px; }
+    #heroSection { padding-bottom: 20px; min-height: 420px; }
 }
 </style>
 
@@ -345,19 +397,37 @@ include 'templates/header.php';
 <!-- HERO SECTION -->
 <!-- ============================================================ -->
 <section id="heroSection">
-    <div class="hero-bg" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80');"></div>
+    <!-- Slides Container -->
+    <div class="hero-slides-wrapper" id="heroSlides">
+        <!-- Slide 1 - First image (now second image from original) -->
+        <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80');"></div>
+        <!-- Slide 2 - Second image (now first image from original) -->
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80');"></div>
+        <!-- Slide 3 -->
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1920&q=80');"></div>
+        <!-- Slide 4 -->
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1920&q=80');"></div>
+    </div>
     <div class="hero-overlay"></div>
     
-    <div class="je-container" style="position:relative; z-index:2;">
+    <div class="je-container" style="position:relative; z-index:2; width:100%;">
         <div class="hero-content">
             <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">THE WORLD'S LUXURY MARKETPLACE</div>
             <h1>One Company<br> Multiple Solutions<br>One Trusted Ecosystem</h1>
-            <p>Building Excellence across Real Estate, Automobiles, Renewable Energy, Hospitality & Global Traade</p>
+            <p>Building Excellence across Real Estate, Automobiles, Renewable Energy, Hospitality & Global Trade</p>
             <div style="display:flex; gap:14px; flex-wrap:wrap;">
-                <a href="/search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Explore our Divisions</a>
-                <a href="/pages/contact.php/" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Contact Us</a>
+                <a href="#divisionsSection" class="je-btn je-btn-gold je-btn-lg" id="exploreDivisionsBtn"><i class="fas fa-search"></i> Explore our Divisions</a>
+                <a href="/pages/contact.php" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Contact Us</a>
             </div>
         </div>
+    </div>
+    
+    <!-- Slide Indicators -->
+    <div class="hero-indicators" id="heroIndicators">
+        <button class="dot active" data-index="0" aria-label="Slide 1"></button>
+        <button class="dot" data-index="1" aria-label="Slide 2"></button>
+        <button class="dot" data-index="2" aria-label="Slide 3"></button>
+        <button class="dot" data-index="3" aria-label="Slide 4"></button>
     </div>
 </section>
 
@@ -444,7 +514,7 @@ include 'templates/header.php';
 <!-- ============================================================ -->
 <!-- DIVISIONS SECTION - ICONS REMOVED -->
 <!-- ============================================================ -->
-<section style="padding:60px 0; <?= empty($featuredListings) ? '' : 'padding-top:0;' ?>">
+<section id="divisionsSection" style="padding:60px 0; <?= empty($featuredListings) ? '' : 'padding-top:0;' ?>">
     <div class="je-container">
         <div style="text-align:center; margin-bottom:40px;">
             <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">OUR DIVISIONS</div>
@@ -573,29 +643,100 @@ include 'templates/header.php';
 
 <script>
 // ============================================
-// HERO BACKGROUND ROTATION
+// HERO CAROUSEL - FIXED TRANSITION
 // ============================================
-const heroBg = document.querySelector('#heroSection .hero-bg');
-if (heroBg) {
-    const images = [
-        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80',
-        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80',
-        'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1920&q=80',
-        'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1920&q=80'
-    ];
-    let current = 0;
-    
-    setInterval(function() {
-        current = (current + 1) % images.length;
-        heroBg.style.opacity = '0';
-        heroBg.style.transition = 'opacity 1s ease';
+document.addEventListener('DOMContentLoaded', function() {
+    const slides = document.querySelectorAll('#heroSlides .hero-slide');
+    const dots = document.querySelectorAll('#heroIndicators .dot');
+    let currentIndex = 0;
+    let slideInterval;
+    const intervalTime = 6000; // 6 seconds
+
+    function goToSlide(index) {
+        // Remove active class from all slides
+        slides.forEach(function(slide) {
+            slide.classList.remove('active');
+        });
         
-        setTimeout(function() {
-            heroBg.style.backgroundImage = 'url(' + images[current] + ')';
-            heroBg.style.opacity = '1';
-        }, 1000);
-    }, 6000);
-}
+        // Remove active class from all dots
+        dots.forEach(function(dot) {
+            dot.classList.remove('active');
+        });
+        
+        // Add active class to current slide and dot
+        slides[index].classList.add('active');
+        dots[index].classList.add('active');
+        currentIndex = index;
+    }
+
+    function nextSlide() {
+        let nextIndex = (currentIndex + 1) % slides.length;
+        goToSlide(nextIndex);
+    }
+
+    function startSlideshow() {
+        if (slideInterval) {
+            clearInterval(slideInterval);
+        }
+        slideInterval = setInterval(nextSlide, intervalTime);
+    }
+
+    function stopSlideshow() {
+        if (slideInterval) {
+            clearInterval(slideInterval);
+            slideInterval = null;
+        }
+    }
+
+    // Click dots to navigate
+    dots.forEach(function(dot, index) {
+        dot.addEventListener('click', function() {
+            stopSlideshow();
+            goToSlide(index);
+            startSlideshow();
+        });
+    });
+
+    // Start the slideshow
+    startSlideshow();
+
+    // ============================================
+    // SMOOTH SCROLL TO DIVISIONS SECTION
+    // ============================================
+    const exploreBtn = document.getElementById('exploreDivisionsBtn');
+    if (exploreBtn) {
+        exploreBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.getElementById('divisionsSection');
+            if (target) {
+                const headerHeight = document.querySelector('header')?.offsetHeight || 0;
+                const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - headerHeight - 20;
+                
+                window.scrollTo({
+                    top: targetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    }
+
+    // Also handle any other links that might point to #divisionsSection
+    document.querySelectorAll('a[href="#divisionsSection"]').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.getElementById('divisionsSection');
+            if (target) {
+                const headerHeight = document.querySelector('header')?.offsetHeight || 0;
+                const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - headerHeight - 20;
+                
+                window.scrollTo({
+                    top: targetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+});
 </script>
 
 <?php include 'templates/footer.php'; ?>
