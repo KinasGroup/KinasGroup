@@ -559,7 +559,7 @@ include 'templates/header.php';
             
             <!-- KINAS Marketplace -->
             <a href="/divisions/kinas-marketplace/" class="division-card">
-                <div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1558002038-1055907df827?w=600&q=80');"></div>
+                <div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1557324232-b8917d3c3dcb?w=600&q=80');"></div>
                 <div class="card-overlay"></div>
                 <div class="card-content">
                     <h3>KINAS Marketplace</h3>
