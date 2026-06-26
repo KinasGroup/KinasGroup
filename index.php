@@ -519,7 +519,7 @@ include 'templates/header.php';
         <div style="text-align:center; margin-bottom:40px;">
             <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">OUR DIVISIONS</div>
             <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Explore our luxury portfolio</h2>
-            <p style="color:#888; max-width:560px; margin:8px auto 0;">Four exceptional divisions, one unparalleled standard of luxury.</p>
+            <p style="color:#888; max-width:560px; margin:8px auto 0;">Four exceptional Companies, One unparalleled standard of Luxury.</p>
         </div>
         
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px;">
