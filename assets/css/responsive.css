@@ -1,5 +1,51 @@
 /* KINAS GROUP - Complete Responsive Styles */
 
+/* ============================================================
+   GLOBAL SAFETY NET
+   These rules apply site-wide so that ANY page — even ones with
+   bespoke/custom markup that doesn't use the named layout classes
+   below — still behaves correctly on a phone: no sideways scroll,
+   content centered, images/tables never bust the viewport.
+   ============================================================ */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+img, video, iframe, embed, object, svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Generic centering fallback: any top-level wrapper that sets an
+   explicit max-width but forgets margin:auto will still center. */
+.container, .je-container, .page-container, .content-container,
+.form-card, .auth-card, .modal-content {
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+}
+
+/* Any raw <table> not already wrapped in .table-responsive becomes
+   horizontally scrollable instead of overflowing/breaking layout. */
+table {
+    max-width: 100%;
+}
+
+@media (max-width: 768px) {
+    table:not(.table-responsive table) {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
 /* Large Desktops (1200px and up) */
 @media (min-width: 1200px) {
     .container {
@@ -294,6 +340,42 @@
     
     .conversation-list {
         max-height: 200px;
+    }
+}
+
+/* Small Phones (380px and below — iPhone SE / older Android) */
+@media (max-width: 380px) {
+    .container {
+        padding: 0 12px;
+    }
+
+    .hero-text h1 {
+        font-size: 24px;
+    }
+
+    .section-heading {
+        font-size: 20px;
+    }
+
+    .je-dash-main, .je-detail-wrap, .je-section {
+        padding: 14px !important;
+    }
+
+    .je-stat-card {
+        padding: 14px;
+    }
+
+    .je-panel-body {
+        padding: 16px;
+    }
+
+    .je-table th, .je-table td {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    .gallery-thumbnails {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
