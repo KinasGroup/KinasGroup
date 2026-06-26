@@ -1,3 +1,4 @@
+
 <?php
 /**
  * JE Components - JamesEdition style components for KINAS GROUP
@@ -48,9 +49,10 @@ function je_render_footer(string $variant = 'site'): void
                     <!-- Company Address - displayed below social icons -->
                     <div class="je-footer-address">
                         <p style="color:rgba(255,255,255,0.5); font-size:12px; line-height:1.6; margin:12px 0 0 0;">
-                            KINAS GROUP OF COMPANIES LIMITED &bull; RC Number: 7997266<br>
+                            KINAS GROUP OF COMPANIES LIMITED<br>
+							RC: 7997266<br>
                             Gwarinpa, 900108, Federal Capital Territory, Nigeria<br>
-                            Phone: <a href="tel:+2348107576042" style="color:rgba(255,255,255,0.6); text-decoration:none;">+234 810 757 6042</a> &bull; 
+                            Phone: <a href="tel:+2348107576042" style="color:rgba(255,255,255,0.6); text-decoration:none;">+234 810 757 6042<br> 
                             Email: <a href="mailto:support@kinas-group.com" style="color:rgba(255,255,255,0.6); text-decoration:none;">support@kinas-group.com</a>
                         </p>
                     </div>
