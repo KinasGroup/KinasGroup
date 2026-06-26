@@ -61,7 +61,7 @@ function je_render_footer(string $variant = 'site'): void
                         <li><a href="/pages/about.php">About Us</a></li>
                         <li><a href="/pages/contact.php">Contact</a></li>
                         <li><a href="/blog/">Journal</a></li>
-                        <li><a href="/pages/about.php#careers">Careers</a></li>
+                        <li><a href="/pages/careers.php#careers">Careers</a></li>
                     </ul>
                 </div>
                 <div>
