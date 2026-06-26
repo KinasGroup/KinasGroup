@@ -73,7 +73,7 @@ include '../templates/header.php';
     <!-- Sidebar -->
     <aside class="je-dash-sidebar">
         <div class="je-dash-sidebar-brand">
-            <i class="fas fa-solar-panel"></i> KINAS VOLT
+            <i class="fas fa-solar-panel"></i> SUPER AGENT
         </div>
         <ul class="je-dash-nav">
             <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
