@@ -1,4 +1,3 @@
-
 <?php
 /**
  * JE Components - JamesEdition style components for KINAS GROUP
@@ -38,6 +37,7 @@ function je_render_footer(string $variant = 'site'): void
     <footer class="je-footer">
         <div class="je-container">
             <div class="je-footer-grid">
+                <!-- Column 1: Brand, Social, Address -->
                 <div>
                     <div class="je-footer-brand">KINAS GROUP</div>
                     <div class="je-footer-tag">The World's Luxury Marketplace — Homes, Cars, Solar &amp; Curated Goods.</div>
@@ -46,16 +46,18 @@ function je_render_footer(string $variant = 'site'): void
                         <a href="<?= htmlspecialchars($socials['instagram'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                         <a href="<?= htmlspecialchars($socials['facebook'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
                     </div>
-					<!-- Company Address - displayed below social icons -->
-					<div class="je-footer-address">
-					    <p style="color:rgba(255,255,255,0.5); font-size:12px; line-height:1.6; margin:12px 0 0 0;">
-					        KINAS GROUP OF COMPANIES LIMITED<br>
-					        RC: 7997266<br>
-					        Gwarinpa, 900108, Federal Capital Territory, Nigeria<br>
-					        Phone: <a href="tel:+2348107576042" style="color:rgba(255,255,255,0.6); text-decoration:none;">+234 810 757 6042</a><br>
-					        Email: <a href="mailto:support@kinas-group.com" style="color:rgba(255,255,255,0.6); text-decoration:none;">support@kinas-group.com</a>
-					    </p>
-					</div>
+                    <!-- Company Address - displayed below social icons -->
+                    <div class="je-footer-address">
+                        <p style="color:rgba(255,255,255,0.5); font-size:12px; line-height:1.6; margin:12px 0 0 0;">
+                            KINAS GROUP OF COMPANIES LIMITED<br>
+                            RC: 7997266<br>
+                            Gwarinpa, 900108, Federal Capital Territory, Nigeria<br>
+                            Phone: <a href="tel:+2348107576042" style="color:rgba(255,255,255,0.6); text-decoration:none;">+234 810 757 6042</a><br>
+                            Email: <a href="mailto:support@kinas-group.com" style="color:rgba(255,255,255,0.6); text-decoration:none;">support@kinas-group.com</a>
+                        </p>
+                    </div>
+                </div>
+                <!-- Column 2: Divisions -->
                 <div>
                     <h4>Divisions</h4>
                     <ul>
@@ -65,6 +67,7 @@ function je_render_footer(string $variant = 'site'): void
                         <li><a href="/divisions/kinas-marketplace/">Kinas Marketplace</a></li>
                     </ul>
                 </div>
+                <!-- Column 3: Explore -->
                 <div>
                     <h4>Explore</h4>
                     <ul>
@@ -74,6 +77,7 @@ function je_render_footer(string $variant = 'site'): void
                         <li><a href="/pages/privacypolicy.php">Privacy Policy</a></li>
                     </ul>
                 </div>
+                <!-- Column 4: Resources -->
                 <div>
                     <h4>Resources</h4>
                     <ul>
@@ -85,6 +89,7 @@ function je_render_footer(string $variant = 'site'): void
                         <li><a href="/pages/termsofuse.php">Terms of Use</a></li>
                     </ul>
                 </div>
+                <!-- Column 5: Stay Connected -->
                 <div>
                     <h4>Stay Connected</h4>
                     <p style="color:rgba(255,255,255,0.5); font-size:13px; margin-bottom:12px;">
