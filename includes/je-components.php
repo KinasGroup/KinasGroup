@@ -13,13 +13,25 @@ function je_render_footer(string $variant = 'site'): void
 {
     $year = date('Y');
     $role = $_SESSION['user_role'] ?? null;
-    
-    $socials = defined('SOCIAL_MEDIA') ? SOCIAL_MEDIA : [
-        'facebook' => '#',
-        'x' => '#',
+
+    // Work out which division's social icons to show, based on the URL.
+    // The 3 product divisions each get their own TikTok/Instagram/Facebook;
+    // everything else (homepage, Kinas Marketplace, dashboards, blog, etc.)
+    // falls back to the group-wide 'kinasgroup' set.
+    $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
+    $divisionKey = 'kinasgroup';
+    foreach (['williams-connect-home', 'kinas-automobile', 'kinas-volt'] as $divSlug) {
+        if (strpos($requestPath, '/divisions/' . $divSlug) !== false) {
+            $divisionKey = $divSlug;
+            break;
+        }
+    }
+
+    $divisionSocials = defined('DIVISION_SOCIAL_MEDIA') ? DIVISION_SOCIAL_MEDIA : [];
+    $socials = $divisionSocials[$divisionKey] ?? [
+        'tiktok' => '#',
         'instagram' => '#',
-        'linkedin' => '#',
-        'youtube' => '#'
+        'facebook' => '#'
     ];
     ?>
     <footer class="je-footer">
@@ -29,11 +41,9 @@ function je_render_footer(string $variant = 'site'): void
                     <div class="je-footer-brand">KINAS GROUP</div>
                     <div class="je-footer-tag">The World's Luxury Marketplace — Homes, Cars, Solar &amp; Curated Goods.</div>
                     <div class="je-footer-social" aria-label="Social media">
-                        <a href="<?= htmlspecialchars($socials['facebook'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                        <a href="<?= htmlspecialchars($socials['x'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="X (formerly Twitter)"><i class="fab fa-x-twitter"></i></a>
+                        <a href="<?= htmlspecialchars($socials['tiktok'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
                         <a href="<?= htmlspecialchars($socials['instagram'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-                        <a href="<?= htmlspecialchars($socials['linkedin'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-                        <a href="<?= htmlspecialchars($socials['youtube'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+                        <a href="<?= htmlspecialchars($socials['facebook'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
                     </div>
                 </div>
                 <div>
