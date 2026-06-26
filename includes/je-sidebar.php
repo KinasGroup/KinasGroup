@@ -81,14 +81,19 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
     }
     
     $adminNav = [
-        ['key' => 'dashboard',    'icon' => 'tachometer-alt',  'label' => 'Overview',       'href' => 'dashboard.php'],
-        ['key' => 'agents',       'icon' => 'user-tie',         'label' => 'Agent Approvals', 'href' => 'agent-approvals.php'],
-        ['key' => 'agents_all',   'icon' => 'users',            'label' => 'All Agents',     'href' => 'agents.php'],
-        ['key' => 'users',        'icon' => 'user',             'label' => 'Users',          'href' => 'users.php'],
+        ['key' => 'dashboard',    'icon' => 'tachometer-alt',  'label' => 'Dashboard',       'href' => 'dashboard.php'],
+        ['key' => 'users',        'icon' => 'users',            'label' => 'Users',          'href' => 'user-management.php'],
+        ['key' => 'agents',       'icon' => 'user-tie',         'label' => 'Agents',         'href' => 'agents.php'],
         ['key' => 'listings',     'icon' => 'list-alt',         'label' => 'Listings',       'href' => 'listings.php'],
-        ['key' => 'flagged',      'icon' => 'flag',             'label' => 'Flagged',        'href' => 'flagged-listings.php'],
+        ['type' => 'heading',     'label' => 'MODERATION'],
+        ['key' => 'flagged',      'icon' => 'flag',             'label' => 'Flagged Listings', 'href' => 'flagged-listings.php'],
+        ['type' => 'heading',     'label' => 'ANALYTICS'],
         ['key' => 'reports',      'icon' => 'chart-bar',        'label' => 'Reports',        'href' => 'reports.php'],
         ['key' => 'activity',     'icon' => 'history',          'label' => 'Activity Log',   'href' => 'activity-logs.php'],
+        ['type' => 'heading',     'label' => 'FEATURED MANAGEMENT'],
+        ['key' => 'test_algo',    'icon' => 'chart-line',       'label' => 'Test Algorithm', 'href' => 'test-featured.php'],
+        ['key' => 'update_feat',  'icon' => 'sync-alt',         'label' => 'Update Featured', 'href' => 'update-featured.php'],
+        ['type' => 'heading',     'label' => 'SYSTEM'],
         ['key' => 'settings',     'icon' => 'cog',              'label' => 'Settings',       'href' => 'settings.php'],
     ];
 
@@ -115,13 +120,17 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
         </div>
         <ul class="je-dash-nav">
             <?php foreach ($nav as $item): ?>
-                <li>
-                    <a href="<?= htmlspecialchars($base . $role . '/' . $item['href']) ?>"
-                       class="<?= $currentPage === $item['href'] ? 'is-active' : '' ?>">
-                        <i class="fas fa-<?= htmlspecialchars($item['icon']) ?>"></i>
-                        <?= htmlspecialchars($item['label']) ?>
-                    </a>
-                </li>
+                <?php if (($item['type'] ?? '') === 'heading'): ?>
+                    <li class="je-dash-nav-heading"><?= htmlspecialchars($item['label']) ?></li>
+                <?php else: ?>
+                    <li>
+                        <a href="<?= htmlspecialchars($base . $role . '/' . $item['href']) ?>"
+                           class="<?= $currentPage === $item['href'] ? 'is-active' : '' ?>">
+                            <i class="fas fa-<?= htmlspecialchars($item['icon']) ?>"></i>
+                            <?= htmlspecialchars($item['label']) ?>
+                        </a>
+                    </li>
+                <?php endif; ?>
             <?php endforeach; ?>
             <li class="je-dash-nav-divider"></li>
             <li><a href="<?= htmlspecialchars($homeHref) ?>"><i class="fas fa-home"></i> Back to Site</li>
