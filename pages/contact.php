@@ -56,23 +56,15 @@ include dirname(__DIR__) . '/templates/header.php';
                 <div style="width: 44px; height: 44px; background: rgba(198,164,63,0.1); color: #C6A43F; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-envelope"></i></div>
                 <div>
                     <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px;">Email</h4>
-                    <p style="font-size: 14px; color: #0A0A0A;"><a href="mailto:hello@kinas-group.com" style="color: #C6A43F; text-decoration: none;">hello@kinas-group.com</a></p>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 16px; margin-bottom: 26px;">
-                <div style="width: 44px; height: 44px; background: rgba(198,164,63,0.1); color: #C6A43F; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-headset"></i></div>
-                <div>
-                    <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px;">Support</h4>
                     <p style="font-size: 14px; color: #0A0A0A;"><a href="mailto:support@kinas-group.com" style="color: #C6A43F; text-decoration: none;">support@kinas-group.com</a></p>
                 </div>
             </div>
 
             <div style="display: flex; gap: 16px; margin-bottom: 26px;">
-                <div style="width: 44px; height: 44px; background: rgba(198,164,63,0.1); color: #C6A43F; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-newspaper"></i></div>
+                <div style="width: 44px; height: 44px; background: rgba(198,164,63,0.1); color: #C6A43F; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-phone"></i></div>
                 <div>
-                    <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px;">Press</h4>
-                    <p style="font-size: 14px; color: #0A0A0A;"><a href="mailto:press@kinas-group.com" style="color: #C6A43F; text-decoration: none;">press@kinas-group.com</a></p>
+                    <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px;">Phone</h4>
+                    <p style="font-size: 14px; color: #0A0A0A;"><a href="tel:+2348107576042" style="color: #C6A43F; text-decoration: none;">+234-810-757-6042</a></p>
                 </div>
             </div>
 
