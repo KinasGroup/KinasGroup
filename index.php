@@ -351,7 +351,7 @@ include 'templates/header.php';
     <div class="je-container" style="position:relative; z-index:4;">
         <div class="hero-content">
             <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">THE WORLD'S LUXURY MARKETPLACE</div>
-            <h1>One Company. Multiple Solution<br>One Trusted Ecosystem</h1>
+            <h1>One Company<br> Multiple Solution<br>One Trusted Ecosystem</h1>
             <p>Building Excellence across Real Estate, Automobiles, Renewable Energy, Hospitality & Global Traade</p>
             <div style="display:flex; gap:14px; flex-wrap:wrap;">
                 <a href="/search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Explore All</a>
