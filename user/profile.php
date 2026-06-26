@@ -56,7 +56,7 @@ $savedCount = $db->prepare("SELECT COUNT(*) FROM saved_listings WHERE user_id = 
 $savedCount->execute([$user_id]);
 $saved = $savedCount->fetchColumn();
 
-$inquiryCount = $db->prepare("SELECT COUNT(*) FROM messages WHERE sender_id = ? AND sender_type = 'buyer'");
+$inquiryCount = $db->prepare("SELECT COUNT(*) FROM messages WHERE sender_id = ?");
 $inquiryCount->execute([$user_id]);
 $inquiries = $inquiryCount->fetchColumn();
 
