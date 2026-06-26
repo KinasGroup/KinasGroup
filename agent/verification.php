@@ -172,6 +172,9 @@ include __DIR__ . '/../templates/header.php';
 </style>
 
 <div class="je-page">
+<div class="je-dash-shell">
+    <?php include __DIR__ . '/../includes/partials/agent-sidebar.php'; ?>
+    <main class="je-dash-main" style="padding:0; background:transparent;">
 <div class="verify-shell">
 
     <div class="verify-header">
@@ -350,6 +353,8 @@ include __DIR__ . '/../templates/header.php';
         </div>
     </div>
 </div>
+</div>
+    </main>
 </div>
 
 <div id="kycToast" class="toast"></div>
