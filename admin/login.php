@@ -5,31 +5,38 @@ require_once __DIR__ . '/../includes/dotenv.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
 
-// Redirect already-logged-in admins straight to the dashboard
-if (SessionManager::isLoggedIn() && SessionManager::getUserRole() === 'admin') {
-    header('Location: dashboard.php');
-    exit;
-}
-
-// Non-admin logged-in users get sent to their own dashboard
+// Redirect already-logged-in users away from auth pages
 if (SessionManager::isLoggedIn()) {
     $role = SessionManager::getUserRole();
-    header('Location: ' . ($role === 'agent' ? '../agent/dashboard.php' : '../user/dashboard.php'));
+    // FIXED: Use correct paths for all roles
+    if ($role === 'admin') {
+        header('Location: /admin/dashboard.php');
+    } elseif ($role === 'agent') {
+        header('Location: /agent/dashboard.php');
+    } else {
+        header('Location: /user/dashboard.php');
+    }
     exit;
 }
 
-$csrfToken     = Security::generateCSRFToken();
-$errorMessage  = SessionManager::getFlash('error');
+$csrfToken = Security::generateCSRFToken();
+$errorMessage = SessionManager::getFlash('error');
 $successMessage = SessionManager::getFlash('success');
+
+$registrationSuccess = isset($_GET['registered']) && $_GET['registered'] == 1;
+if ($registrationSuccess) {
+    $successMessage = isset($_GET['message']) ? urldecode($_GET['message']) : 'Registration successful! Please sign in below.';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Portal - KINAS GROUP | Luxury Marketplace</title>
+    <title>Sign In - KINAS GROUP | Luxury Marketplace</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -43,27 +50,20 @@ $successMessage = SessionManager::getFlash('success');
             <span></span>
         </a>
         <div>
-            <h1 class="je-auth-headline">Platform Administration.</h1>
+            <h1 class="je-auth-headline">A Luxurious Marketplace.</h1>
             <p class="je-auth-sub"></p>
         </div>
         <blockquote class="je-auth-quote">
-            <p>"Operational clarity and control — everything you need to keep the marketplace running at its best."</p>
-            <cite>— KINAS GROUP Operations</cite>
+            <p>"We bought our Lagos penthouse through KINAS. The verification process gave us total confidence in the agent."</p>
+            <cite>— A. Okonkwo, Lagos</cite>
         </blockquote>
     </aside>
 
     <!-- ── Right form ── -->
     <main class="je-auth-main">
         <div class="je-auth-form">
-            <!-- Admin badge -->
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:28px;">
-                <span style="display:inline-flex; align-items:center; gap:7px; background:#0A0A0A; color:#C6A43F; font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; padding:6px 14px; border-radius:20px; border:1px solid #C6A43F;">
-                    <i class="fas fa-shield-alt"></i> Admin Portal
-                </span>
-            </div>
-
             <h2>Welcome Back</h2>
-            <p class="je-auth-sub-form">Sign in to access the administration dashboard.</p>
+            <p class="je-auth-sub-form">Sign in to access your dashboard, saved listings and messages.</p>
 
             <?php if ($errorMessage): ?>
                 <div class="je-form-error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div>
@@ -76,8 +76,8 @@ $successMessage = SessionManager::getFlash('success');
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
                 <div class="je-form-group">
-                    <label for="email">Admin Email Address</label>
-                    <input type="email" id="email" name="email" placeholder="admin@kinas-group.com" required autocomplete="email">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
                 </div>
                 <div class="je-form-group">
                     <label for="password">Password</label>
@@ -89,18 +89,25 @@ $successMessage = SessionManager::getFlash('success');
                     </div>
                 </div>
 
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; font-size:13px;">
+                    <label style="display:flex; align-items:center; gap:6px; color:#666; cursor:pointer;">
+                        <input type="checkbox" name="remember" value="1" style="accent-color:#C6A43F;"> Remember me
+                    </label>
+                    <a href="forgot-password.php" style="color:#C6A43F; text-decoration:none; font-weight:500;">Forgot password?</a>
+                </div>
+
                 <div class="je-form-group" id="captcha-group">
                     <div id="login-captcha-container"></div>
                     <input type="hidden" id="login-captcha-token" name="captcha_token">
                 </div>
 
                 <button type="submit" id="submitBtn" class="je-btn je-btn-gold je-btn-block je-btn-lg">
-                    <i class="fas fa-sign-in-alt"></i> Sign In to Admin
+                    Sign In
                 </button>
             </form>
 
             <div class="je-auth-switch">
-                Not an admin? <a href="../auth/login.php">Agent / Buyer Login</a>
+                Don't have an account? <a href="register.php">Register as Agent</a> · <a href="register-buyer.php">Register as Buyer</a>
             </div>
         </div>
     </main>
@@ -132,15 +139,20 @@ function onLoginCaptchaLoad() {
     }
 }
 
+if (window.location.search.includes('registered=1')) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('registered');
+    url.searchParams.delete('message');
+    window.history.replaceState({}, document.title, url.pathname);
+}
+
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const form = this;
     const submitBtn = document.getElementById('submitBtn');
     const email = form.email.value.trim();
     const password = form.password.value;
-
     if (!email || !password) { alert('Please enter both email and password'); return; }
-
     const captchaToken = document.getElementById('login-captcha-token')?.value || '';
     if (isLoginCaptchaConfigured && !captchaToken) { alert('Please complete the CAPTCHA verification.'); return; }
 
@@ -156,24 +168,49 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         });
         const data = await res.json();
         if (data.success) {
-            if (data.user.role !== 'admin') {
-                alert('This account does not have admin privileges. Use the Agent/Buyer login instead.');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to Admin';
-                return;
-            }
             localStorage.setItem('kinas_token', data.token);
-            window.location.href = 'dashboard.php';
+            // FIXED: Use absolute paths for redirects
+            if (data.user.role === 'admin') {
+                window.location.href = '/admin/dashboard.php';
+            } else if (data.user.role === 'agent') {
+                window.location.href = '/agent/dashboard.php';
+            } else {
+                window.location.href = '/user/dashboard.php';
+            }
         } else {
-            alert(data.error || 'Login failed. Admin access only.');
+            // Special case: the account exists but the email hasn't been
+            // verified. Show a clear message and offer a "resend the
+            // verification link" action. The API tells us the user's email
+            // so we can re-issue the code without them re-typing it.
+            if (data.error_code === 'email_not_verified') {
+                const wantResend = confirm(
+                    (data.error || 'Please verify your email.') +
+                    '\n\nWould you like us to send a new verification link to ' + (data.email || email) + '?'
+                );
+                if (wantResend) {
+                    try {
+                        const r = await fetch('/api/auth/resend-verification.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: data.email || email })
+                        });
+                        const rd = await r.json();
+                        alert(rd.message || 'If that email is registered and unverified, a new link has been sent.');
+                    } catch (err) {
+                        alert('Could not resend the verification email. Please try again later.');
+                    }
+                }
+            } else {
+                alert(data.error || 'Login failed');
+            }
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to Admin';
+            submitBtn.innerHTML = 'Sign In';
         }
     } catch (err) {
         console.error(err);
         alert('Network error. Please try again.');
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to Admin';
+        submitBtn.innerHTML = 'Sign In';
     }
 });
 </script>

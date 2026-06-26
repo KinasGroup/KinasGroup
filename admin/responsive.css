@@ -1,0 +1,470 @@
+/* KINAS GROUP - Complete Responsive Styles */
+
+/* ============================================================
+   GLOBAL SAFETY NET
+   These rules apply site-wide so that ANY page — even ones with
+   bespoke/custom markup that doesn't use the named layout classes
+   below — still behaves correctly on a phone: no sideways scroll,
+   content centered, images/tables never bust the viewport.
+   ============================================================ */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+img, video, iframe, embed, object, svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Generic centering fallback: any top-level wrapper that sets an
+   explicit max-width but forgets margin:auto will still center. */
+.container, .je-container, .page-container, .content-container,
+.form-card, .auth-card, .modal-content {
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+}
+
+/* Any raw <table> not already wrapped in .table-responsive becomes
+   horizontally scrollable instead of overflowing/breaking layout. */
+table {
+    max-width: 100%;
+}
+
+@media (max-width: 768px) {
+    table:not(.table-responsive table) {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* Large Desktops (1200px and up) */
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    /* The header uses class="container header-inner".
+       We must never let the 1200px cap squeeze the nav items onto a second line.
+       Specificity: two classes beats one class, and this rule is in the same
+       file as the offending rule so source-order wins cleanly. */
+    .container.header-inner {
+        max-width: 100%;
+        width: 100%;
+    }
+    
+    .hero-title {
+        font-size: 68px;
+    }
+    
+    .featured-listings-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Tablets and Small Desktops (768px - 1199px) */
+@media (max-width: 1199px) {
+    .container {
+        padding: 0 30px;
+    }
+    
+    .hero-title {
+        font-size: 48px;
+    }
+    
+    .featured-listings-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .category-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .footer-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .listing-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Tablets (768px and below) */
+@media (max-width: 768px) {
+    .je3-header {
+        height: 66px;
+    }
+    
+    .container {
+        padding: 0 20px;
+    }
+    
+    .hero-section {
+        height: 80vh;
+        min-height: 500px;
+    }
+    
+    .hero-text {
+        bottom: 180px;
+        left: 20px;
+        right: 20px;
+    }
+    
+    .hero-text h1 {
+        font-size: 36px;
+    }
+    
+    .hero-text p {
+        font-size: 16px;
+    }
+    
+    .hero-search {
+        bottom: 40px;
+        left: 20px;
+        right: 20px;
+    }
+    
+    .search-tab {
+        padding: 8px 14px;
+        font-size: 11px;
+    }
+    
+    .search-bar {
+        height: 44px;
+        flex-wrap: wrap;
+    }
+    
+    .search-input {
+        height: 44px;
+        padding: 0 14px;
+    }
+    
+    .search-select {
+        height: 44px;
+        padding: 0 10px;
+    }
+    
+    .search-btn {
+        height: 44px;
+        padding: 0 16px;
+    }
+    
+    .section-heading {
+        font-size: 28px;
+    }
+    
+    .featured-listings-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    
+    .categories-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .solar-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .trust-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+    
+    .footer-columns {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+    
+    .calculator-container {
+        padding: 20px;
+    }
+    
+    .result-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .admin-layout {
+        flex-direction: column;
+    }
+    
+    .admin-sidebar {
+        width: 100%;
+        position: static;
+    }
+    
+    .trust-steps {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .listing-detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .listing-detail-header {
+        flex-direction: column;
+    }
+    
+    .gallery-thumbnails {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Mobile Phones (480px and below) */
+@media (max-width: 480px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    .hero-section {
+        height: 70vh;
+        min-height: 400px;
+    }
+    
+    .hero-text {
+        bottom: 200px;
+    }
+    
+    .hero-text h1 {
+        font-size: 28px;
+    }
+    
+    .hero-text p {
+        font-size: 14px;
+    }
+    
+    .hero-search {
+        bottom: 30px;
+    }
+    
+    .search-tabs {
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .search-bar {
+        flex-direction: column;
+        height: auto;
+        border-radius: 0 8px 8px 8px;
+    }
+    
+    .search-input {
+        width: 100%;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .search-select {
+        width: 100%;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .search-btn {
+        width: 100%;
+        border-radius: 0 0 8px 8px;
+    }
+    
+    .section-heading {
+        font-size: 24px;
+    }
+    
+    .featured-listings-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .categories-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .trust-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .footer-columns {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    
+    .je2-button {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    
+    .hero-buttons {
+        flex-direction: column;
+    }
+    
+    .hero-buttons .je2-button {
+        margin: 5px 0;
+    }
+    
+    .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .result-item .value {
+        font-size: 22px;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 10% auto;
+    }
+    
+    .gallery-thumbnails {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .message-container {
+        flex-direction: column;
+    }
+    
+    .conversation-list {
+        max-height: 200px;
+    }
+}
+
+/* Small Phones (380px and below — iPhone SE / older Android) */
+@media (max-width: 380px) {
+    .container {
+        padding: 0 12px;
+    }
+
+    .hero-text h1 {
+        font-size: 24px;
+    }
+
+    .section-heading {
+        font-size: 20px;
+    }
+
+    .je-dash-main, .je-detail-wrap, .je-section {
+        padding: 14px !important;
+    }
+
+    .je-stat-card {
+        padding: 14px;
+    }
+
+    .je-panel-body {
+        padding: 16px;
+    }
+
+    .je-table th, .je-table td {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    .gallery-thumbnails {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Print Styles */
+@media print {
+    .je3-header,
+    .je2-footer,
+    .mobile-menu-btn,
+    .filter-sidebar,
+    .no-print,
+    .hero-search,
+    .cta-banner {
+        display: none !important;
+    }
+    
+    body {
+        font-size: 12px;
+    }
+    
+    .container {
+        max-width: 100%;
+        padding: 0;
+    }
+    
+    .listing-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    
+    a {
+        text-decoration: none;
+        color: #000;
+    }
+    
+    .calculator-results {
+        border: 1px solid #000;
+    }
+}
+
+/* Dark Mode Support
+   ------------------------------------------------------------------
+   The site has a single, intentional design (light theme). We do NOT
+   want the browser/OS "dark mode" preference to silently swap colors,
+   because only a handful of selectors were ever re-themed here, which
+   left most of the UI unstyled (e.g. white text on white backgrounds,
+   invisible form fields, etc). To guarantee that a visitor using a
+   device/browser set to dark mode sees EXACTLY the same design as a
+   visitor in normal/light mode, we explicitly opt the whole site out
+   of automatic dark theming. */
+:root {
+    color-scheme: light only;
+}
+
+html {
+    color-scheme: light only;
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .je2-button {
+        border: 2px solid currentColor;
+    }
+    
+    .listing-card {
+        border: 2px solid #000;
+    }
+    
+    a {
+        text-decoration: underline;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ============================================
+   MOBILE MENU — nav button desktop hide only
+   All .header-nav mobile styles are in style.css
+   to avoid cascade conflicts.
+   ============================================ */
+
+@media (min-width: 1201px) {
+    .mobile-menu-btn {
+        display: none !important;
+    }
+}
