@@ -68,8 +68,8 @@ function je_render_footer(string $variant = 'site'): void
                     <h4>Resources</h4>
                     <ul>
                         <li><a href="/pages/faq.php">FAQ</a></li>
-                        <li><a href="/pages/terms.php">Terms &amp; Conditions</a></li>
-                        <li><a href="/pages/privacy.php">Privacy Policy</a></li>
+                        <li><a href="/pages/termsandconditions.php">Terms &amp; Conditions</a></li>
+                        <li><a href="/pages/privacypolicy.php">Privacy Policy</a></li>
                     </ul>
                 </div>
                 <div>
