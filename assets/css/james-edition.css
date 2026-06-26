@@ -965,10 +965,14 @@
     .je-dash-sidebar {
         position: static; height: auto;
         display: flex; overflow-x: auto; padding: 0;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
     }
     .je-dash-sidebar-brand { display: none; }
     .je-dash-nav { display: flex; flex-wrap: nowrap; }
-    .je-dash-nav .je-dash-nav-heading, .je-dash-nav-divider, .je-dash-signout { display: none; }
+    .je-dash-nav li { flex-shrink: 0; }
+    .je-dash-nav .je-dash-nav-heading, .je-dash-nav .je-dash-nav-divider { display: none; }
+    .je-dash-nav .je-dash-signout a { border-left: none; }
     .je-dash-nav a { white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; padding: 14px 18px; }
     .je-dash-nav a.is-active { border-bottom-color: var(--je-gold); border-left: none; }
     .je-auth-shell { grid-template-columns: 1fr; }
