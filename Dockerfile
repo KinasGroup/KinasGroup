@@ -29,11 +29,16 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
+# --- FIX: Allow Composer to run as root with source fallback ---
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
 # Copy application files
 COPY . .
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Install PHP dependencies with retry logic for transient failures
+RUN composer install --no-dev --optimize-autoloader --no-interaction || \
+    composer install --no-dev --optimize-autoloader --no-interaction || \
+    composer install --no-dev --optimize-autoloader --no-interaction
 
 # Create all necessary directories with correct permissions
 RUN mkdir -p /var/www/html/uploads/solar-reports \
