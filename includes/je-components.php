@@ -60,8 +60,8 @@ function je_render_footer(string $variant = 'site'): void
                     <ul>
                         <li><a href="/pages/about.php">About Us</a></li>
                         <li><a href="/pages/contact.php">Contact</a></li>
-                        <li><a href="/blog/">Journal</a></li>
                         <li><a href="/pages/careers.php#careers">Careers</a></li>
+						<li><a href="/pages/privacypolicy.php">Privacy Policy</a></li>
                     </ul>
                 </div>
                 <div>
@@ -70,6 +70,9 @@ function je_render_footer(string $variant = 'site'): void
                         <li><a href="/pages/faq.php">FAQ</a></li>
                         <li><a href="/pages/termsandconditions.php">Terms &amp; Conditions</a></li>
                         <li><a href="/pages/privacypolicy.php">Privacy Policy</a></li>
+						<li><a href="/pages/cookiepolicy.php">Cookie Policy</a></li>
+						<li><a href="/pages/refundpolicy.php">Refund Policy</a></li>
+						<li><a href="/pages/termsofuse.php">Terms of Use</a></li>
                     </ul>
                 </div>
                 <div>
