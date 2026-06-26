@@ -232,7 +232,7 @@ include '../../templates/header.php';
     <div class="je-container" style="color:#fff; position:relative; z-index:1;">
         <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">WILLIAMS CONNECT HOME</div>
         <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Where Luxury Meets Address</h1>
-        <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">From penthouses to private estates — discover <?= number_format($totalProps) ?>+ luxury properties from verified agents across the globe.</p>
+        <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">Real Estate, Property Sales, Rentals, Short-let Aprtments, and Property investment opportunities.</p>
         <div class="je-flex" style="gap:14px;">
             <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Properties</a>
             <a href="search.php?listing_type=rent" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">For Rent</a>
