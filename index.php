@@ -412,7 +412,7 @@ include 'templates/header.php';
     
     <div class="je-container" style="position:relative; z-index:2; width:100%;">
         <div class="hero-content">
-            <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">THE WORLD'S LUXURY MARKETPLACE</div>
+            <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">KINAS GROUP OF COMPANIES</div>
             <h1>One Company<br> Multiple Solutions<br>One Trusted Ecosystem</h1>
             <p>Building Excellence across Real Estate, Automobiles, Renewable Energy, Hospitality & Global Trade</p>
             <div style="display:flex; gap:14px; flex-wrap:wrap;">
