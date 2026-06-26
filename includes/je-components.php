@@ -45,6 +45,15 @@ function je_render_footer(string $variant = 'site'): void
                         <a href="<?= htmlspecialchars($socials['instagram'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                         <a href="<?= htmlspecialchars($socials['facebook'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
                     </div>
+                    <!-- Company Address - displayed below social icons -->
+                    <div class="je-footer-address">
+                        <p style="color:rgba(255,255,255,0.5); font-size:12px; line-height:1.6; margin:12px 0 0 0;">
+                            KINAS GROUP OF COMPANIES LIMITED &bull; RC Number: 7997266<br>
+                            Gwarinpa, 900108, Federal Capital Territory, Nigeria<br>
+                            Phone: <a href="tel:+2348107576042" style="color:rgba(255,255,255,0.6); text-decoration:none;">+234 810 757 6042</a> &bull; 
+                            Email: <a href="mailto:support@kinas-group.com" style="color:rgba(255,255,255,0.6); text-decoration:none;">support@kinas-group.com</a>
+                        </p>
+                    </div>
                 </div>
                 <div>
                     <h4>Divisions</h4>
@@ -61,7 +70,7 @@ function je_render_footer(string $variant = 'site'): void
                         <li><a href="/pages/about.php">About Us</a></li>
                         <li><a href="/pages/contact.php">Contact</a></li>
                         <li><a href="/pages/careers.php#careers">Careers</a></li>
-						<li><a href="/pages/privacypolicy.php">Privacy Policy</a></li>
+                        <li><a href="/pages/privacypolicy.php">Privacy Policy</a></li>
                     </ul>
                 </div>
                 <div>
@@ -70,9 +79,9 @@ function je_render_footer(string $variant = 'site'): void
                         <li><a href="/pages/faq.php">FAQ</a></li>
                         <li><a href="/pages/termsandconditions.php">Terms &amp; Conditions</a></li>
                         <li><a href="/pages/privacypolicy.php">Privacy Policy</a></li>
-						<li><a href="/pages/cookiepolicy.php">Cookie Policy</a></li>
-						<li><a href="/pages/refundpolicy.php">Refund Policy</a></li>
-						<li><a href="/pages/termsofuse.php">Terms of Use</a></li>
+                        <li><a href="/pages/cookiepolicy.php">Cookie Policy</a></li>
+                        <li><a href="/pages/refundpolicy.php">Refund Policy</a></li>
+                        <li><a href="/pages/termsofuse.php">Terms of Use</a></li>
                     </ul>
                 </div>
                 <div>
@@ -82,7 +91,7 @@ function je_render_footer(string $variant = 'site'): void
                     </p>
                     <div class="je-footer-newsletter">
                         <input type="email" placeholder="Your email address" aria-label="Email address" style="width:100%; padding:11px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:3px; color:#fff; font-family:'Inter',sans-serif; font-size:13px; margin-bottom:10px; box-sizing:border-box;">
-                        <button class="je-btn je-btn-gold" style="width:100%; padding:12px; background:#C6A43F; color:#0A0A0A; border:none; border-radius:3px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;">
+                        <button class="je-btn je-btn-gold" style="width:auto; padding:12px 30px; background:#C6A43F; color:#0A0A0A; border:none; border-radius:3px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; font-size:13px; transition:opacity 0.2s;">
                             Subscribe
                         </button>
                     </div>
