@@ -302,15 +302,11 @@ require_once __DIR__ . '/../templates/header.php';
                     <i class="fas fa-users"></i>
                     <div><strong>Manage Users</strong><small>Roles, status, suspensions</small></div>
                 </a>
-                <a href="agent-management.php" class="action-link">
+                <a href="agents.php" class="action-link">
                     <i class="fas fa-user-tie"></i>
                     <div><strong>Manage Agents</strong><small>Approve, suspend, verify</small></div>
                 </a>
-                <a href="agent-approvals.php" class="action-link">
-                    <i class="fas fa-user-check"></i>
-                    <div><strong>Agent Approvals</strong><small>Review pending KYC submissions</small></div>
-                </a>
-                <a href="listing-management.php" class="action-link">
+                <a href="listings.php" class="action-link">
                     <i class="fas fa-list-ul"></i>
                     <div><strong>Manage Listings</strong><small>Flag, approve, remove</small></div>
                 </a>

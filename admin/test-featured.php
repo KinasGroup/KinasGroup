@@ -24,24 +24,7 @@ include '../templates/header.php';
 ?>
 
 <div class="je-dash-shell">
-    <aside class="je-dash-sidebar">
-        <div class="je-dash-sidebar-brand">
-            <i class="fas fa-crown"></i> KINAS GROUP
-        </div>
-        <ul class="je-dash-nav">
-            <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="users.php"><i class="fas fa-users"></i> Users</a></li>
-            <li><a href="agents.php"><i class="fas fa-user-tie"></i> Agents</a></li>
-            <li><a href="listings.php"><i class="fas fa-list-ul"></i> Listings</a></li>
-            <li><a href="settings.php"><i class="fas fa-cog"></i> Settings</a></li>
-            <li class="je-dash-nav-heading">FEATURED MANAGEMENT</li>
-            <li><a href="test-featured.php" class="is-active"><i class="fas fa-chart-line"></i> Test Algorithm</a></li>
-            <li><a href="update-featured.php"><i class="fas fa-sync-alt"></i> Update Featured</a></li>
-            <li class="je-dash-nav-divider"></li>
-            <li><a href="/"><i class="fas fa-home"></i> Back to Site</a></li>
-            <li class="je-dash-signout"><a href="/auth/logout.php"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
-        </ul>
-    </aside>
+    <?php include __DIR__ . '/../includes/partials/admin-sidebar.php'; ?>
 
     <main class="je-dash-main">
         <div class="je-dash-header">

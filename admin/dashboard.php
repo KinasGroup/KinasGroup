@@ -86,42 +86,7 @@ include '../templates/header.php';
 
 <div class="je-dash-shell">
     <!-- Sidebar -->
-    <aside class="je-dash-sidebar">
-        <div class="je-dash-sidebar-brand">
-            <i class="fas fa-crown"></i> KINAS GROUP
-        </div>
-        <ul class="je-dash-nav">
-            <!-- Main Navigation -->
-            <li><a href="dashboard.php" class="is-active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="users.php"><i class="fas fa-users"></i> Users</a></li>
-            <li><a href="agents.php"><i class="fas fa-user-tie"></i> Agents</a></li>
-            <li><a href="listings.php"><i class="fas fa-list-ul"></i> Listings</a></li>
-            
-            <!-- Moderation & Oversight -->
-            <li class="je-dash-nav-heading">MODERATION</li>
-            <li><a href="flagged-listings.php"><i class="fas fa-flag"></i> Flagged Listings</a></li>
-            <li><a href="agent-approvals.php"><i class="fas fa-user-check"></i> Agent Approvals</a></li>
-            
-            <!-- Analytics -->
-            <li class="je-dash-nav-heading">ANALYTICS</li>
-            <li><a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
-            <li><a href="activity-logs.php"><i class="fas fa-history"></i> Activity Logs</a></li>
-            
-            <!-- Featured Management -->
-            <li class="je-dash-nav-heading">FEATURED MANAGEMENT</li>
-            <li><a href="test-featured.php"><i class="fas fa-chart-line"></i> Test Algorithm</a></li>
-            <li><a href="update-featured.php"><i class="fas fa-sync-alt"></i> Update Featured</a></li>
-            
-            <!-- Settings -->
-            <li class="je-dash-nav-heading">SYSTEM</li>
-            <li><a href="settings.php"><i class="fas fa-cog"></i> Settings</a></li>
-            
-            <!-- Footer Links -->
-            <li class="je-dash-nav-divider"></li>
-            <li><a href="/"><i class="fas fa-home"></i> Back to Site</a></li>
-            <li class="je-dash-signout"><a href="/auth/logout.php"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
-        </ul>
-    </aside>
+    <?php include __DIR__ . '/../includes/partials/admin-sidebar.php'; ?>
 
     <!-- Main Content -->
     <main class="je-dash-main">
@@ -187,11 +152,6 @@ include '../templates/header.php';
                 <i class="fas fa-flag" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
                 <strong>Flagged Listings</strong>
                 <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Review reported content</p>
-            </a>
-            <a href="agent-approvals.php" style="background: #2E7D32; color: white; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
-                <i class="fas fa-user-check" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
-                <strong>Agent Approvals</strong>
-                <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Review KYC submissions</p>
             </a>
         </div>
 
