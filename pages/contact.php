@@ -95,7 +95,7 @@ include dirname(__DIR__) . '/templates/header.php';
             <div style="border-radius: 4px; overflow: hidden; border: 1px solid #e8e8e8;">
                 <iframe
                     title="KINAS GROUP office location"
-                    src="https://www.google.com/maps?q=Victoria+Island,+Lagos,+Nigeria&output=embed"
+                    src="https://www.google.com/maps?q=Gwarinpa+Estate,+Abuja+900108,+Federal+Capital+Territory,+Nigeria&output=embed"
                     width="100%" height="260" style="border:0; display:block;"
                     loading="lazy"
                     referrerpolicy="no-referrer-when-downgrade">
