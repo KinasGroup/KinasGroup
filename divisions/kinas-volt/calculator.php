@@ -449,20 +449,24 @@ require_once __DIR__ . '/../../templates/header.php';
         }
 
         /* ============================================================
-           RESULTS DISPLAY FIX - FORCE VISIBILITY
+           RESULTS DISPLAY FIX - FORCE VISIBILITY AND CENTER
            ============================================================ */
 
-        /* Force results section to display */
+        /* Force results section to display and center */
         #results {
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
             min-height: 100px !important;
+            max-width: 1200px !important;
+            margin: 0 auto !important;
+            width: 100% !important;
         }
 
         #results .results-section {
             display: none !important;
             margin-top: 40px !important;
+            width: 100% !important;
         }
         #results .results-section.active {
             display: block !important;
@@ -474,6 +478,9 @@ require_once __DIR__ . '/../../templates/header.php';
             padding: 40px !important;
             color: #0A0A0A !important;
             display: block !important;
+            width: 100% !important;
+            margin: 0 auto !important;
+            box-sizing: border-box !important;
         }
 
         #results .results-header {
@@ -509,6 +516,7 @@ require_once __DIR__ . '/../../templates/header.php';
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
             gap: 16px !important;
             margin-bottom: 32px !important;
+            width: 100% !important;
         }
 
         #results .result-item {
@@ -547,6 +555,7 @@ require_once __DIR__ . '/../../templates/header.php';
             gap: 16px !important;
             justify-content: center !important;
             flex-wrap: wrap !important;
+            width: 100% !important;
         }
 
         #results .proposal-buttons .btn-dark {
@@ -650,477 +659,4 @@ require_once __DIR__ . '/../../templates/header.php';
             .form-card { padding: 24px; }
             .form-grid { grid-template-columns: 1fr; gap: 16px; }
             .appliances-header { display: none; }
-            .appliance-row { grid-template-columns: 1fr; gap: 10px; }
-            .btn-group { flex-direction: column; }
-            .btn { justify-content: center; }
-            #results .results-card { padding: 24px; }
-            #results .results-header h2 { font-size: 24px; }
-            #results .result-value { font-size: 20px; }
-            #results .results-grid {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
-            }
-            select,
-            .form-group select,
-            #solarCalculatorForm select {
-                font-size: 15px !important;
-                padding: 12px 14px !important;
-                min-height: 50px !important;
-            }
-        }
-        @media (max-width: 480px) {
-            .calc-wrapper { padding: 20px 16px 60px; }
-            .preset-grid { grid-template-columns: repeat(2, 1fr); }
-            #results .results-grid {
-                grid-template-columns: 1fr 1fr !important;
-            }
-            select option,
-            .form-group select option,
-            #solarCalculatorForm select option {
-                font-size: 14px !important;
-                padding: 10px 12px !important;
-            }
-        }
-    </style>
-</head>
-<body class="solar-calculator-page">
-
-<div class="calculator-hero">
-    <div class="container" style="max-width:1400px; margin:0 auto; padding:0 24px;">
-        <div class="hero-badge" style="display:inline-block; background:rgba(198,164,63,0.15); color:#C6A43F; font-size:12px; font-weight:600; letter-spacing:2px; text-transform:uppercase; padding:6px 16px; border-radius:40px; margin-bottom:20px;">
-            <i class="fas fa-solar-panel"></i> KINAS VOLT
-        </div>
-        <h1 style="font-family:'Prata',serif; font-size:52px; font-weight:400; background:linear-gradient(135deg, #FFFFFF 0%, #C6A43F 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:16px;">Solar Savings Calculator</h1>
-        <p style="font-size:18px; color:rgba(255,255,255,0.7); max-width:600px; margin:0 auto; line-height:1.6;">Get an instant estimate of your solar needs and potential savings</p>
-    </div>
-</div>
-
-<div class="calc-wrapper">
-    <!-- Progress Steps -->
-    <div class="progress-steps">
-        <div class="step-indicator active" data-step="1">
-            <div class="step-number"><span>1</span></div>
-            <div class="step-label">Your Info</div>
-        </div>
-        <div class="step-indicator" data-step="2">
-            <div class="step-number"><span>2</span></div>
-            <div class="step-label">Appliances</div>
-        </div>
-        <div class="step-indicator" data-step="3">
-            <div class="step-number"><span>3</span></div>
-            <div class="step-label">Backup Needs</div>
-        </div>
-    </div>
-
-    <div id="errorMessage" class="error-message"></div>
-
-    <form id="solarCalculatorForm">
-        <?php
-        // Generate a fresh CSRF token
-        $csrfToken = Security::generateCSRFToken();
-        ?>
-        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-
-        <!-- Step 1: Customer Info -->
-        <div class="step active" id="step1">
-            <div class="form-card">
-                <h2><i class="fas fa-user"></i> Customer Information</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label><i class="fas fa-user"></i> Full Name *</label>
-                        <input type="text" name="full_name" placeholder="Enter your full name" required>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-phone"></i> Phone Number *</label>
-                        <input type="tel" name="phone" placeholder="0803 123 4567" required>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-envelope"></i> Email Address *</label>
-                        <input type="email" name="email" placeholder="you@example.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-map-marker-alt"></i> City & State *</label>
-                        <input type="text" name="city_state" placeholder="Lagos, Nigeria" required>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-building"></i> Property Type *</label>
-                        <select name="property_type" required>
-                            <option value="">Select property type</option>
-                            <option value="Apartment">🏢 Apartment</option>
-                            <option value="Duplex">🏠 Duplex</option>
-                            <option value="Bungalow">🏡 Bungalow</option>
-                            <option value="Office">💼 Office</option>
-                            <option value="Commercial">🏭 Commercial Building</option>
-                            <option value="Hotel">🏨 Hotel</option>
-                            <option value="Other">📌 Other</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="btn-group">
-                    <div></div>
-                    <button type="button" class="btn btn-primary" onclick="goToStep(2)">
-                        Continue <i class="fas fa-arrow-right"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Step 2: Appliances -->
-        <div class="step" id="step2">
-            <div class="form-card">
-                <h2><i class="fas fa-plug"></i> Your Appliances</h2>
-                <p style="margin-bottom: 24px; color: var(--text-muted);">Add the appliances you want to power with solar</p>
-                
-                <div class="preset-grid" id="presetGrid"></div>
-                
-                <div class="appliances-header">
-                    <div>Appliance</div>
-                    <div>Quantity</div>
-                    <div>Watts (W)</div>
-                    <div></div>
-                </div>
-                <div id="appliance-list"></div>
-                
-                <button type="button" class="add-appliance-btn" onclick="addCustomAppliance()">
-                    <i class="fas fa-plus"></i> Add Custom Appliance
-                </button>
-                
-                <div class="btn-group">
-                    <button type="button" class="btn btn-secondary" onclick="goToStep(1)">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </button>
-                    <button type="button" class="btn btn-primary" onclick="goToStep(3)">
-                        Continue <i class="fas fa-arrow-right"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Step 3: Backup -->
-        <div class="step" id="step3">
-            <div class="form-card">
-                <h2><i class="fas fa-battery-full"></i> Backup Requirements</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label><i class="fas fa-clock"></i> Backup Hours Needed</label>
-                        <select name="backup_hours">
-                            <option value="8">🕐 8 Hours (Basic - Essential appliances only)</option>
-                            <option value="12">🕑 12 Hours (Standard - Full daytime use)</option>
-                            <option value="24" selected>🕒 24 Hours (Premium - Complete independence)</option>
-                            <option value="48">🕓 48 Hours (Ultimate - Extended cloudy days)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-secondary" onclick="goToStep(2)">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </button>
-                    <button type="button" class="btn btn-primary" id="submitBtn">
-                        <i class="fas fa-calculator"></i> Calculate & Get Proposal
-                    </button>
-                </div>
-            </div>
-        </div>
-    </form>
-
-    <!-- Loading -->
-    <div id="loadingOverlay" class="loading-overlay">
-        <div class="loading-spinner"></div>
-        <p style="color: #C6A43F; font-weight: 600;">Calculating your solar solution...</p>
-        <p style="color: rgba(255,255,255,0.5); font-size: 14px;">This may take a few moments</p>
-    </div>
-
-    <!-- Results -->
-    <div id="results" class="results-section"></div>
-</div>
-
-<script>
-// Appliance presets
-const appliancePresets = [
-    { name: "LED Bulb (10W)", watts: 10 },
-    { name: "Ceiling Fan (70W)", watts: 70 },
-    { name: "Refrigerator (150W)", watts: 150 },
-    { name: "TV (100W)", watts: 100 },
-    { name: "Laptop (50W)", watts: 50 },
-    { name: "Air Conditioner (1HP)", watts: 900 },
-    { name: "Air Conditioner (1.5HP)", watts: 1200 },
-    { name: "Microwave (1000W)", watts: 1000 },
-    { name: "Electric Kettle (1500W)", watts: 1500 },
-    { name: "Washing Machine (500W)", watts: 500 },
-    { name: "Water Pump (750W)", watts: 750 },
-    { name: "Iron (1000W)", watts: 1000 }
-];
-
-let applianceCounter = 0;
-let currentStep = 1;
-
-function loadPresets() {
-    const container = document.getElementById('presetGrid');
-    container.innerHTML = appliancePresets.map(preset => `
-        <div class="preset-chip" onclick="addPresetAppliance('${preset.name}', ${preset.watts})">
-            ${preset.name}
-        </div>
-    `).join('');
-}
-
-function addPresetAppliance(name, watts) {
-    addCustomAppliance(name, watts);
-}
-
-function addCustomAppliance(name = '', watts = '') {
-    applianceCounter++;
-    const container = document.getElementById('appliance-list');
-    const row = document.createElement('div');
-    row.className = 'appliance-row';
-    row.id = `appliance-${applianceCounter}`;
-    row.innerHTML = `
-        <input type="text" name="appliance_name[]" placeholder="Appliance name" value="${escapeHtml(name)}">
-        <input type="number" name="appliance_qty[]" placeholder="Qty" value="1" min="1">
-        <input type="number" name="appliance_watts[]" placeholder="Watts" value="${watts}" min="1">
-        <button type="button" class="remove-appliance" onclick="removeAppliance('appliance-${applianceCounter}')">
-            <i class="fas fa-trash"></i> Delete
-        </button>
-    `;
-    container.appendChild(row);
-}
-
-function removeAppliance(id) {
-    const element = document.getElementById(id);
-    if (element) element.remove();
-}
-
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
-}
-
-function goToStep(step) {
-    // Validate step 1
-    if (step === 2 && currentStep === 1) {
-        const form = document.getElementById('solarCalculatorForm');
-        const inputs = form.querySelectorAll('#step1 input[required], #step1 select[required]');
-        let valid = true;
-        let errorMsg = '';
-        inputs.forEach(input => {
-            if (!input.value.trim()) {
-                valid = false;
-                errorMsg = 'Please fill in all required fields in Customer Information.';
-                input.style.borderColor = '#dc3545';
-            } else {
-                input.style.borderColor = '';
-            }
-        });
-        if (!valid) {
-            showError(errorMsg);
-            return;
-        }
-        hideError();
-    }
-
-    if (step === 3 && currentStep === 2) {
-        const applianceNames = document.querySelectorAll('input[name="appliance_name[]"]');
-        const applianceWatts = document.querySelectorAll('input[name="appliance_watts[]"]');
-        let hasAppliance = false;
-        for (let i = 0; i < applianceNames.length; i++) {
-            if (applianceNames[i].value && applianceWatts[i].value) {
-                hasAppliance = true;
-                break;
-            }
-        }
-        if (!hasAppliance) {
-            showError('Please add at least one appliance.');
-            return;
-        }
-        hideError();
-    }
-
-    document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-    document.getElementById(`step${step}`).classList.add('active');
-    
-    document.querySelectorAll('.step-indicator').forEach((el, idx) => {
-        const stepNum = idx + 1;
-        el.classList.remove('active', 'completed');
-        if (stepNum < step) el.classList.add('completed');
-        else if (stepNum === step) el.classList.add('active');
-    });
-    
-    currentStep = step;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function showError(msg) {
-    const el = document.getElementById('errorMessage');
-    el.textContent = msg;
-    el.classList.add('show');
-}
-
-function hideError() {
-    document.getElementById('errorMessage').classList.remove('show');
-}
-
-document.getElementById('submitBtn').addEventListener('click', async function() {
-    const form = document.getElementById('solarCalculatorForm');
-    
-    // Validate all required fields
-    const allRequired = form.querySelectorAll('input[required], select[required]');
-    let valid = true;
-    allRequired.forEach(input => {
-        if (!input.value.trim()) {
-            valid = false;
-            input.style.borderColor = '#dc3545';
-        } else {
-            input.style.borderColor = '';
-        }
-    });
-    
-    if (!valid) {
-        showError('Please fill in all required fields.');
-        goToStep(1);
-        return;
-    }
-    
-    // Collect appliances
-    const applianceNames = document.querySelectorAll('input[name="appliance_name[]"]');
-    const applianceQtys = document.querySelectorAll('input[name="appliance_qty[]"]');
-    const applianceWatts = document.querySelectorAll('input[name="appliance_watts[]"]');
-    
-    const appliances = [];
-    for (let i = 0; i < applianceNames.length; i++) {
-        if (applianceNames[i].value && applianceWatts[i].value) {
-            appliances.push({
-                name: applianceNames[i].value,
-                quantity: parseInt(applianceQtys[i].value) || 1,
-                watts: parseInt(applianceWatts[i].value)
-            });
-        }
-    }
-    
-    if (appliances.length === 0) {
-        showError('Please add at least one appliance.');
-        goToStep(2);
-        return;
-    }
-    
-    // Build form data
-    const formData = new FormData(form);
-    formData.append('appliances', JSON.stringify(appliances));
-    
-    // Show loading
-    const loading = document.getElementById('loadingOverlay');
-    loading.classList.add('active');
-    this.disabled = true;
-    
-    try {
-        const response = await fetch('/api/solar/calculate.php', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const result = await response.json();
-        
-        loading.classList.remove('active');
-        this.disabled = false;
-        
-        if (result.success) {
-            displayResults(result.data, result.reference, result.pdf_url);
-        } else {
-            showError(result.message || 'Something went wrong. Please try again.');
-        }
-    } catch (error) {
-        loading.classList.remove('active');
-        this.disabled = false;
-        showError('Network error. Please check your connection and try again.');
-        console.error('Error:', error);
-    }
-});
-
-function displayResults(data, reference, pdfUrl) {
-    const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = `
-        <div class="results-card">
-            <div class="results-header">
-                <div class="check-icon"><i class="fas fa-check-circle"></i></div>
-                <h2>Your Solar Solution is Ready!</h2>
-                <p>Based on your inputs, here's what we recommend</p>
-                <p style="font-size: 13px; margin-top: 8px; opacity: 0.7;">Reference: ${reference}</p>
-            </div>
-            <div class="results-grid">
-                <div class="result-item">
-                    <i class="fas fa-bolt"></i>
-                    <div class="result-value">${data.system_size || '--'} kW</div>
-                    <div class="result-label">Recommended System Size</div>
-                </div>
-                <div class="result-item">
-                    <i class="fas fa-solar-panel"></i>
-                    <div class="result-value">${data.panels || '--'}</div>
-                    <div class="result-label">Solar Panels Needed</div>
-                </div>
-                <div class="result-item">
-                    <i class="fas fa-battery-full"></i>
-                    <div class="result-value">${data.battery_capacity || '--'} kWh</div>
-                    <div class="result-label">Battery Storage</div>
-                </div>
-                <div class="result-item">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <div class="result-value">₦${(data.estimated_cost || 0).toLocaleString()}</div>
-                    <div class="result-label">Estimated Investment</div>
-                </div>
-                <div class="result-item">
-                    <i class="fas fa-chart-line"></i>
-                    <div class="result-value">₦${(data.monthly_savings || 0).toLocaleString()}</div>
-                    <div class="result-label">Monthly Savings</div>
-                </div>
-                <div class="result-item">
-                    <i class="fas fa-leaf"></i>
-                    <div class="result-value">${data.co2_saved || '--'}</div>
-                    <div class="result-label">CO₂ Saved (tons/year)</div>
-                </div>
-                <div class="result-item">
-                    <i class="fas fa-calendar-alt"></i>
-                    <div class="result-value">${data.payback_years || '--'} years</div>
-                    <div class="result-label">Payback Period</div>
-                </div>
-                <div class="result-item">
-                    <i class="fas fa-trophy"></i>
-                    <div class="result-value">${data.roi || '--'}%</div>
-                    <div class="result-label">ROI (20 years)</div>
-                </div>
-            </div>
-            <div class="proposal-buttons">
-                ${pdfUrl ? `<a href="${pdfUrl}" target="_blank" class="btn btn-dark"><i class="fas fa-file-pdf"></i> View PDF Proposal</a>` : ''}
-                <button class="btn btn-outline-dark" onclick="location.reload()">
-                    <i class="fas fa-redo"></i> Start Over
-                </button>
-            </div>
-            <p style="text-align: center; margin-top: 20px; font-size: 13px; opacity: 0.7;">
-                <i class="fas fa-envelope"></i> A detailed proposal has been sent to your email.
-            </p>
-        </div>
-    `;
-    resultsDiv.classList.add('active');
-    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    loadPresets();
-    addCustomAppliance('Refrigerator', 150);
-    addCustomAppliance('LED Bulbs', 10);
-    addCustomAppliance('Ceiling Fan', 70);
-});
-
-// Input validation on blur
-document.querySelectorAll('input[required], select[required]').forEach(el => {
-    el.addEventListener('blur', function() {
-        if (this.value.trim()) {
-            this.style.borderColor = '';
-        }
-    });
-});
-</script>
-
-<?php require_once __DIR__ . '/../../templates/footer.php'; ?>
+            .appliance-row { grid-template-columns:
