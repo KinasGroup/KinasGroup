@@ -293,66 +293,91 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
 // ============================================================
 // MOBILE MENU TOGGLE - FIXED
 // ============================================================
-document.addEventListener('DOMContentLoaded', function() {
-    var menuBtn = document.getElementById('mobileMenuBtn');
-    var drawer = document.getElementById('mobileNavDrawer');
-    var overlay = document.getElementById('menuOverlay');
-    var closeBtn = document.getElementById('closeMobileMenu');
+(function() {
+    'use strict';
+    
+    // Wait for DOM to be ready
+    function initMobileMenu() {
+        var menuBtn = document.getElementById('mobileMenuBtn');
+        var drawer = document.getElementById('mobileNavDrawer');
+        var overlay = document.getElementById('menuOverlay');
+        var closeBtn = document.getElementById('closeMobileMenu');
 
-    if (!menuBtn || !drawer) return;
-
-    function openMenu() {
-        drawer.classList.add('open');
-        overlay.classList.add('active');
-        menuBtn.classList.add('open');
-        menuBtn.setAttribute('aria-expanded', 'true');
-        document.body.style.overflow = 'hidden';
-        
-        // Show close icon, hide hamburger
-        var icon = menuBtn.querySelector('.menu-icon');
-        var closeIcon = menuBtn.querySelector('.menu-icon-close');
-        if (icon) icon.style.display = 'none';
-        if (closeIcon) closeIcon.style.display = 'block';
-    }
-
-    function closeMenu() {
-        drawer.classList.remove('open');
-        overlay.classList.remove('active');
-        menuBtn.classList.remove('open');
-        menuBtn.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
-        
-        // Show hamburger, hide close icon
-        var icon = menuBtn.querySelector('.menu-icon');
-        var closeIcon = menuBtn.querySelector('.menu-icon-close');
-        if (icon) icon.style.display = 'block';
-        if (closeIcon) closeIcon.style.display = 'none';
-    }
-
-    function toggleMenu(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (drawer.classList.contains('open')) {
-            closeMenu();
-        } else {
-            openMenu();
+        if (!menuBtn || !drawer) {
+            console.warn('Mobile menu elements not found');
+            return;
         }
-    }
 
-    menuBtn.addEventListener('click', toggleMenu);
-
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeMenu);
-    }
-
-    if (overlay) {
-        overlay.addEventListener('click', closeMenu);
-    }
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && drawer.classList.contains('open')) {
-            closeMenu();
+        function openMenu() {
+            drawer.classList.add('open');
+            overlay.classList.add('active');
+            menuBtn.classList.add('open');
+            menuBtn.setAttribute('aria-expanded', 'true');
+            document.body.style.overflow = 'hidden';
+            
+            // Show close icon, hide hamburger
+            var icon = menuBtn.querySelector('.menu-icon');
+            var closeIcon = menuBtn.querySelector('.menu-icon-close');
+            if (icon) icon.style.display = 'none';
+            if (closeIcon) closeIcon.style.display = 'block';
         }
-    });
-});
+
+        function closeMenu() {
+            drawer.classList.remove('open');
+            overlay.classList.remove('active');
+            menuBtn.classList.remove('open');
+            menuBtn.setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = '';
+            
+            // Show hamburger, hide close icon
+            var icon = menuBtn.querySelector('.menu-icon');
+            var closeIcon = menuBtn.querySelector('.menu-icon-close');
+            if (icon) icon.style.display = 'block';
+            if (closeIcon) closeIcon.style.display = 'none';
+        }
+
+        function toggleMenu(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (drawer.classList.contains('open')) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
+        }
+
+        // Remove any existing listeners to avoid duplicates
+        menuBtn.removeEventListener('click', toggleMenu);
+        menuBtn.addEventListener('click', toggleMenu);
+
+        if (closeBtn) {
+            closeBtn.removeEventListener('click', closeMenu);
+            closeBtn.addEventListener('click', closeMenu);
+        }
+
+        if (overlay) {
+            overlay.removeEventListener('click', closeMenu);
+            overlay.addEventListener('click', closeMenu);
+        }
+
+        // Close on escape key
+        document.removeEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && drawer.classList.contains('open')) {
+                closeMenu();
+            }
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && drawer.classList.contains('open')) {
+                closeMenu();
+            }
+        });
+    }
+
+    // Run on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMobileMenu);
+    } else {
+        initMobileMenu();
+    }
+})();
 </script>
