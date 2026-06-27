@@ -198,33 +198,6 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
                 display: none !important;
             }
         }
-
-        /* ============================================================
-           MINIMAL FIX: Mobile menu color on transparent header
-           ============================================================ */
-        /* Transparent header - white menu icon */
-        .je3-header.transparent .mobile-menu-btn .menu-icon,
-        .je3-header.transparent .mobile-menu-btn .menu-icon-close {
-            color: #ffffff !important;
-        }
-
-        /* Solid header - dark menu icon (already set above) */
-        .je3-header.solid .mobile-menu-btn .menu-icon,
-        .je3-header.solid .mobile-menu-btn .menu-icon-close {
-            color: #0A0A0A !important;
-        }
-
-        /* Force menu button to be visible on mobile */
-        @media (max-width: 1200px) {
-            .mobile-menu-btn {
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                min-width: 48px !important;
-                min-height: 48px !important;
-                font-size: 28px !important;
-            }
-        }
     </style>
 </head>
 <body>
