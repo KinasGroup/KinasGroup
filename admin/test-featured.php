@@ -23,25 +23,30 @@ $pageTitle = 'Test Featured Algorithm - Admin';
 include '../templates/header.php';
 ?>
 
+<!-- ============================================================
+     RESPONSIVE FIX - Added container wrapper
+     ============================================================ -->
+<div class="je-container" style="padding: 20px; max-width: 100%; overflow-x: hidden;">
+
 <div class="je-dash-shell">
     <?php include __DIR__ . '/../includes/partials/admin-sidebar.php'; ?>
 
-    <main class="je-dash-main">
-        <div class="je-dash-header">
+    <main class="je-dash-main" style="overflow-x: hidden; width: 100%;">
+        <div class="je-dash-header" style="flex-wrap: wrap;">
             <div>
                 <h1><i class="fas fa-chart-line" style="color: #C6A43F;"></i> Test Featured Algorithm</h1>
                 <p>Preview how listings are scored without updating the database</p>
             </div>
         </div>
 
-        <div class="je-panel">
+        <div class="je-panel" style="overflow-x: hidden;">
             <div class="je-panel-header">
                 <div class="je-panel-title">
                     <i class="fas fa-info-circle" style="color: #C6A43F;"></i> How Scoring Works
                 </div>
             </div>
-            <div class="je-panel-body">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px;">
+            <div class="je-panel-body" style="overflow-x: hidden;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px;">
                     <div style="background: #f8f8f8; padding: 12px; border-radius: 8px; text-align: center;">
                         <div style="font-weight: 700; color: #C6A43F;">30%</div>
                         <div style="font-size: 12px; color: #666;">Views</div>
@@ -69,13 +74,13 @@ include '../templates/header.php';
             </div>
         </div>
 
-        <div class="je-panel">
+        <div class="je-panel" style="overflow-x: hidden;">
             <div class="je-panel-header">
                 <div class="je-panel-title">
                     <i class="fas fa-list-ul" style="color: #C6A43F;"></i> Top 20 Listings by Score
                 </div>
             </div>
-            <div class="je-panel-body">
+            <div class="je-panel-body" style="overflow-x: hidden;">
                 <?php
                 $featured = $algorithm->getFeaturedListings(20);
                 if (empty($featured)):
@@ -85,8 +90,8 @@ include '../templates/header.php';
                         <p>No listings found to score.</p>
                     </div>
                 <?php else: ?>
-                    <div class="table-responsive">
-                    <table class="je-table">
+                    <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
+                    <table class="je-table" style="min-width: 500px; width: 100%;">
                         <thead>
                             <tr>
                                 <th>Rank</th>
@@ -125,5 +130,8 @@ include '../templates/header.php';
         </div>
     </main>
 </div>
+
+</div>
+<!-- ============================================================ -->
 
 <?php include '../templates/footer.php'; ?>
