@@ -1,6 +1,5 @@
 /* ============================================================
-   FORCE LIGHT MODE - PERMANENT FIX
-   This MUST be at the very top of james-edition.css
+   FORCE LIGHT MODE - JAMES EDITION (UPDATED)
    ============================================================ */
 
 /* Force light mode at the root level */
@@ -18,7 +17,7 @@ body {
     color: #0A0A0A !important;
 }
 
-/* Override system dark mode - CRITICAL */
+/* Override system dark mode - MORE TARGETED */
 @media (prefers-color-scheme: dark) {
     html, body, :root {
         color-scheme: light !important;
@@ -26,28 +25,21 @@ body {
         color: #0A0A0A !important;
     }
     
-    /* Force all JE components to light */
-    .je-auth-shell,
-    .je-auth-aside,
+    /* Target JE components - but NOT hero */
     .je-auth-main,
     .je-auth-form,
-    .je-container,
-    .je-search-body,
     .je-filter-panel,
     .je-results-panel,
-    .je-dash-shell,
     .je-dash-main,
-    .je-dash-sidebar,
     .je-panel,
     .je-stat-card,
     .je-card,
-    .je-card-body,
-    .je-footer {
+    .je-card-body {
         background-color: #ffffff !important;
         color: #0A0A0A !important;
     }
     
-    /* Keep dark sidebar dark */
+    /* Dark sidebar stays dark */
     .je-dash-sidebar,
     .je-auth-aside,
     .je-footer {
@@ -56,18 +48,18 @@ body {
     }
     
     /* Force text colors */
-    h1, h2, h3, h4, h5, h6,
-    p, span, a, li, label,
-    .je-auth-sub, .je-auth-sub-form,
-    .je-auth-headline,
+    .je-auth-main h1, .je-auth-main h2, .je-auth-main h3,
+    .je-auth-main p, .je-auth-main span,
+    .je-dash-main h1, .je-dash-main h2, .je-dash-main h3,
+    .je-dash-main p, .je-dash-main span,
     .je-card-title, .je-card-price,
     .je-spec-title, .je-spec-price,
     .je-dash-header h1, .je-panel-title,
-    .je-stat-value, .je-stat-label {
+    .je-stat-value {
         color: #0A0A0A !important;
     }
     
-    /* Keep gold accents */
+    /* Keep gold */
     .je-text-gold,
     .je-card-eyebrow,
     .je-dash-nav a i,
@@ -1078,17 +1070,13 @@ body {
     .je-dash-nav a.is-active { border-bottom-color: var(--je-gold); border-left: none; }
     .je-auth-shell { grid-template-columns: 1fr; }
     .je-auth-aside {
-        /* Mobile: stack the brand / headline / quote with explicit
-           gaps so they don't squeeze together when the explanation
-           paragraph is removed. Also keep a min-height so the dark
-           aside still has presence above the form on narrow screens. */
         padding: 36px 28px 44px;
         gap: 32px;
         min-height: 320px;
     }
     .je-auth-aside > div:not(.je-auth-brand) { margin: 0; }
     .je-auth-headline { font-size: 26px; margin-bottom: 0; }
-    .je-auth-sub:empty { display: none; }   /* hide the empty <p> from the markup */
+    .je-auth-sub:empty { display: none; }
     .je-auth-quote { padding-left: 16px; }
 }
 @media (max-width: 768px) {
