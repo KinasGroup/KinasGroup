@@ -291,26 +291,35 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
 
 <script>
 // ============================================================
-// MOBILE MENU TOGGLE - FIXED
+// MOBILE MENU TOGGLE - IMPROVED FIXED VERSION
 // ============================================================
 (function() {
     'use strict';
     
-    // Wait for DOM to be ready
+    // Function to initialize the menu
     function initMobileMenu() {
         var menuBtn = document.getElementById('mobileMenuBtn');
         var drawer = document.getElementById('mobileNavDrawer');
         var overlay = document.getElementById('menuOverlay');
         var closeBtn = document.getElementById('closeMobileMenu');
 
+        console.log('Mobile menu init - checking elements:', {
+            menuBtn: !!menuBtn,
+            drawer: !!drawer,
+            overlay: !!overlay,
+            closeBtn: !!closeBtn
+        });
+
         if (!menuBtn || !drawer) {
-            console.warn('Mobile menu elements not found');
+            console.warn('Mobile menu elements not found. Retrying in 500ms...');
+            setTimeout(initMobileMenu, 500);
             return;
         }
 
         function openMenu() {
+            console.log('Opening menu');
             drawer.classList.add('open');
-            overlay.classList.add('active');
+            if (overlay) overlay.classList.add('active');
             menuBtn.classList.add('open');
             menuBtn.setAttribute('aria-expanded', 'true');
             document.body.style.overflow = 'hidden';
@@ -323,8 +332,9 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
         }
 
         function closeMenu() {
+            console.log('Closing menu');
             drawer.classList.remove('open');
-            overlay.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
             menuBtn.classList.remove('open');
             menuBtn.setAttribute('aria-expanded', 'false');
             document.body.style.overflow = '';
@@ -339,6 +349,7 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
         function toggleMenu(e) {
             e.preventDefault();
             e.stopPropagation();
+            console.log('Toggle menu clicked - current state:', drawer.classList.contains('open') ? 'open' : 'closed');
             if (drawer.classList.contains('open')) {
                 closeMenu();
             } else {
@@ -346,31 +357,30 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
             }
         }
 
-        // Remove any existing listeners to avoid duplicates
-        menuBtn.removeEventListener('click', toggleMenu);
+        // Remove existing listeners to avoid duplicates
+        var newBtn = menuBtn.cloneNode(true);
+        menuBtn.parentNode.replaceChild(newBtn, menuBtn);
+        menuBtn = newBtn;
+
+        // Attach click event
         menuBtn.addEventListener('click', toggleMenu);
 
         if (closeBtn) {
-            closeBtn.removeEventListener('click', closeMenu);
             closeBtn.addEventListener('click', closeMenu);
         }
 
         if (overlay) {
-            overlay.removeEventListener('click', closeMenu);
             overlay.addEventListener('click', closeMenu);
         }
 
         // Close on escape key
-        document.removeEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && drawer.classList.contains('open')) {
-                closeMenu();
-            }
-        });
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && drawer.classList.contains('open')) {
                 closeMenu();
             }
         });
+
+        console.log('Mobile menu initialized successfully');
     }
 
     // Run on DOM ready
