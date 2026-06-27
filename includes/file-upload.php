@@ -11,7 +11,6 @@ class FileUpload {
     private int $maxSize;
     private bool $useR2;
     private ?R2Upload $r2Uploader;
-    private bool $r2FallbackToLocal;
 
     /** @var array Whitelist of allowed upload subdirectories - prevents path traversal */
     private const ALLOWED_SUBDIRS = [
@@ -46,22 +45,15 @@ class FileUpload {
     public function __construct(string $subDir = 'general') {
         // Check if R2 should be used (environment variable override)
         $this->useR2 = R2Upload::isConfigured() && (getenv('R2_ENABLED') !== 'false');
-        $this->r2FallbackToLocal = getenv('R2_FALLBACK_TO_LOCAL') !== 'false';
         
         if ($this->useR2) {
             try {
                 $this->r2Uploader = new R2Upload($subDir);
-                if ($this->r2Uploader->isEnabled()) {
-                    $this->uploadDir = ''; // Not used for R2
-                    error_log('FileUpload: Using R2 storage');
-                } else {
-                    $this->useR2 = false;
-                    error_log('FileUpload: R2 not enabled, using local storage');
-                }
+                $this->uploadDir = ''; // Not used for R2
             } catch (RuntimeException $e) {
                 // Fall back to local storage if R2 fails to initialize
                 $this->useR2 = false;
-                error_log('FileUpload: R2 initialization failed, using local storage: ' . $e->getMessage());
+                error_log('R2 initialization failed, falling back to local storage: ' . $e->getMessage());
             }
         }
         
@@ -70,7 +62,6 @@ class FileUpload {
             if (!file_exists($this->uploadDir)) {
                 mkdir($this->uploadDir, 0755, true);
             }
-            error_log('FileUpload: Using local storage at ' . $this->uploadDir);
         }
         
         $this->allowedTypes = self::MIME_TO_EXTENSION;
@@ -100,8 +91,7 @@ class FileUpload {
         if ($realPath === false) {
             // Directory doesn't exist yet, check parent exists
             if (!is_dir($realBase)) {
-                // Create uploads directory if it doesn't exist
-                mkdir($realBase, 0755, true);
+                throw new \RuntimeException('Uploads directory does not exist');
             }
             return $basePath;
         }
@@ -115,26 +105,9 @@ class FileUpload {
     }
 
     public function upload(array $file, array $options = []): array {
-        // Use R2 if configured and enabled
-        if ($this->useR2 && $this->r2Uploader && $this->r2Uploader->isEnabled()) {
-            error_log('FileUpload: Attempting R2 upload for ' . ($file['name'] ?? 'unknown'));
-            $result = $this->r2Uploader->upload($file, $options);
-            
-            if ($result['success']) {
-                error_log('FileUpload: R2 upload SUCCESS');
-                return $result;
-            }
-            
-            error_log('FileUpload: R2 upload FAILED: ' . ($result['error'] ?? 'unknown'));
-            
-            // If R2 fails and fallback is enabled, try local storage
-            if ($this->r2FallbackToLocal && !empty($result['fallback'])) {
-                error_log('FileUpload: Falling back to local storage');
-                return $this->uploadLocal($file, $options);
-            }
-            
-            // If no fallback, return the error
-            return $result;
+        // Use R2 if configured
+        if ($this->useR2 && $this->r2Uploader) {
+            return $this->r2Uploader->upload($file, $options);
         }
         
         // Fall back to local storage
@@ -203,7 +176,7 @@ class FileUpload {
         return [
             'success' => true,
             'filename' => $filename,
-            'filepath' => '/' . str_replace($_SERVER['DOCUMENT_ROOT'], '', $filepath),
+            'filepath' => $filepath,
             'thumbnail' => $thumbnail,
             'mime_type' => $normalizedMime,
             'size' => $file['size']
@@ -211,18 +184,8 @@ class FileUpload {
     }
 
     public function uploadMultiple(array $files, array $options = []): array {
-        if ($this->useR2 && $this->r2Uploader && $this->r2Uploader->isEnabled()) {
-            $result = $this->r2Uploader->uploadMultiple($files, $options);
-            // Check if any R2 uploads failed and fallback is enabled
-            if ($this->r2FallbackToLocal) {
-                foreach ($result as &$res) {
-                    if (!$res['success'] && !empty($res['fallback'])) {
-                        // Need to get the original file data to retry locally
-                        // This is simplified - in practice you'd want to track which file failed
-                    }
-                }
-            }
-            return $result;
+        if ($this->useR2 && $this->r2Uploader) {
+            return $this->r2Uploader->uploadMultiple($files, $options);
         }
         
         $results = [];
@@ -373,7 +336,7 @@ class FileUpload {
     }
 
     public function delete(string $filename): bool {
-        if ($this->useR2 && $this->r2Uploader && $this->r2Uploader->isEnabled()) {
+        if ($this->useR2 && $this->r2Uploader) {
             return $this->r2Uploader->delete($filename);
         }
         
@@ -400,4 +363,29 @@ class FileUpload {
 
     private function getUploadError(int $code): string {
         $errors = [
-            UPLOAD_ERR_INI_SIZE => '
+            UPLOAD_ERR_INI_SIZE => 'File exceeds server maximum size',
+            UPLOAD_ERR_FORM_SIZE => 'File exceeds form maximum size',
+            UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+            UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+            UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+            UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+            UPLOAD_ERR_EXTENSION => 'File upload stopped by extension'
+        ];
+
+        return $errors[$code] ?? 'Unknown upload error';
+    }
+
+    /**
+     * Get allowed subdirectories for validation
+     */
+    public static function getAllowedDirectories(): array {
+        return self::ALLOWED_SUBDIRS;
+    }
+    
+    /**
+     * Check if using R2 storage
+     */
+    public function isUsingR2(): bool {
+        return $this->useR2;
+    }
+}
