@@ -102,6 +102,16 @@ include '../../templates/header.php';
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     color: #fff;
 }
+@media (max-width: 600px) {
+    .solar-calculator-green-btn {
+        height: auto;
+        min-height: 48px;
+        padding: 12px 22px;
+        line-height: 1.3;
+        text-align: center;
+        white-space: normal;
+    }
+}
 
 /* Custom Dropdown Styles */
 .custom-dropdown {
