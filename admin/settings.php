@@ -83,19 +83,9 @@ try {
 }
 
 $headerDepth = '../';
+$pageTitle = 'Settings - KINAS GROUP';
 require_once __DIR__ . '/../templates/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings - KINAS GROUP Admin</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/james-edition.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
@@ -182,9 +172,6 @@ require_once __DIR__ . '/../templates/header.php';
             .form-row { grid-template-columns: 1fr; }
         }
     </style>
-</head>
-<body>
-<?php include __DIR__ . '/../includes/partials/header.php'; ?>
 <div class="je-dash-shell">
 <?php include __DIR__ . "/../includes/partials/admin-sidebar.php"; ?>
 <main class="je-dash-main">

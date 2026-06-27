@@ -56,18 +56,9 @@ $sSuspend = $db->query("SELECT COUNT(*) FROM users WHERE status='suspended'")->f
 
 $csrf = Security::generateCSRFToken();
 $headerDepth = '../';
+$pageTitle = 'User Management - KINAS GROUP';
 require_once __DIR__ . '/../templates/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>User Management - KINAS GROUP</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/james-edition.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;background:#F5F7FA}
         .admin-layout{display:flex;min-height:100vh}.admin-main{flex:1;padding:30px;background:#F5F7FA}
@@ -109,13 +100,8 @@ require_once __DIR__ . '/../templates/header.php';
         .page-btn:hover,.page-btn.active{background:#C6A43F;border-color:#C6A43F;color:#0A0A0A}
         @media(max-width:768px){.admin-main{padding:20px}.data-table th:nth-child(4),.data-table td:nth-child(4),.data-table th:nth-child(7),.data-table td:nth-child(7){display:none}}
     </style>
-
-</head>
-<body>
-<?php include __DIR__ . '/../includes/partials/header.php'; ?>
 <div class="je-dash-shell">
 <?php include __DIR__ . "/../includes/partials/admin-sidebar.php"; ?>
-<main class="je-dash-main">
 <main class="je-dash-main">
     <div class="page-header">
         <h1><i class="fas fa-users" style="color:#C6A43F;margin-right:10px"></i>User Management</h1>

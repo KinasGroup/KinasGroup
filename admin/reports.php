@@ -64,20 +64,9 @@ $recent->execute([$from . ' 00:00:00', $to . ' 23:59:59']);
 $recentRows = $recent->fetchAll(PDO::FETCH_ASSOC);
 
 $headerDepth = '../';
+$pageTitle = 'Reports - KINAS GROUP';
 require_once __DIR__ . '/../templates/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports - KINAS GROUP Admin</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/james-edition.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
@@ -117,10 +106,6 @@ require_once __DIR__ . '/../templates/header.php';
         @media (max-width: 992px) { .charts-grid { grid-template-columns: 1fr; } }
         @media (max-width: 768px) { .admin-main { padding: 20px; } }
     </style>
-
-</head>
-<body>
-<?php include __DIR__ . '/../includes/partials/header.php'; ?>
 <div class="je-dash-shell">
 <?php include __DIR__ . "/../includes/partials/admin-sidebar.php"; ?>
 <main class="je-dash-main">
