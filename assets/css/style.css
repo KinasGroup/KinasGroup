@@ -188,14 +188,6 @@ body {
    END FORCE LIGHT MODE
    ============================================================ */
 
-/* ============================================================
-   REST OF YOUR EXISTING style.css CONTENT GOES HERE
-   ============================================================ */
-/* 
-   PASTE THE REST OF YOUR style.css FILE BELOW THIS LINE
-   (Everything after the dark mode override)
-*/
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prata&display=swap');
 
 :root {
@@ -1177,4 +1169,187 @@ a { color:inherit; text-decoration:none; }
   .trust-row { grid-template-columns: 1fr; }
   .footer-columns { grid-template-columns: 1fr; }
   .cta-buttons { flex-direction: column; align-items: center; }
+}
+
+/* ============================================================
+   FIX: MOBILE MENU - FORCE VISIBILITY AND SIZE
+   ============================================================ */
+
+/* Force mobile menu button to be visible and properly sized */
+.mobile-menu-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+    padding: 8px 12px !important;
+    z-index: 1002 !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+    width: auto !important;
+    height: auto !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Force the hamburger icon size */
+.mobile-menu-btn .menu-icon,
+.mobile-menu-btn .menu-icon-close {
+    font-size: 28px !important;
+    line-height: 1 !important;
+    display: block !important;
+    color: inherit !important;
+}
+
+/* On transparent header - white icon */
+.je3-header.transparent .mobile-menu-btn .menu-icon,
+.je3-header.transparent .mobile-menu-btn .menu-icon-close {
+    color: #ffffff !important;
+}
+
+/* On solid header - dark icon */
+.je3-header.solid .mobile-menu-btn .menu-icon,
+.je3-header.solid .mobile-menu-btn .menu-icon-close {
+    color: #0A0A0A !important;
+}
+
+/* Override any dark mode interference */
+@media (prefers-color-scheme: dark) {
+    .mobile-menu-btn {
+        display: flex !important;
+        background: transparent !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+    
+    .mobile-menu-btn .menu-icon,
+    .mobile-menu-btn .menu-icon-close {
+        font-size: 28px !important;
+        display: block !important;
+    }
+    
+    .je3-header.transparent .mobile-menu-btn .menu-icon,
+    .je3-header.transparent .mobile-menu-btn .menu-icon-close {
+        color: #ffffff !important;
+    }
+    
+    .je3-header.solid .mobile-menu-btn .menu-icon,
+    .je3-header.solid .mobile-menu-btn .menu-icon-close {
+        color: #0A0A0A !important;
+    }
+}
+
+/* ============================================================
+   FIX: FOOTER SUBSCRIBE BUTTON
+   ============================================================ */
+
+/* Force subscribe button to show full yellow background */
+.je-footer-newsletter .je-btn-gold,
+.je-footer-newsletter button.je-btn-gold,
+.je-footer-newsletter .je-btn.je-btn-gold {
+    background: #C6A43F !important;
+    color: #0A0A0A !important;
+    border: none !important;
+    padding: 12px 30px !important;
+    border-radius: 4px !important;
+    font-weight: 600 !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 13px !important;
+    cursor: pointer !important;
+    display: inline-block !important;
+    width: auto !important;
+    min-width: 120px !important;
+    text-align: center !important;
+    transition: opacity 0.2s ease !important;
+}
+
+.je-footer-newsletter .je-btn-gold:hover,
+.je-footer-newsletter button.je-btn-gold:hover {
+    background: #A8882E !important;
+    opacity: 0.9 !important;
+}
+
+/* Override any dark mode interference on footer button */
+@media (prefers-color-scheme: dark) {
+    .je-footer-newsletter .je-btn-gold,
+    .je-footer-newsletter button.je-btn-gold,
+    .je-footer-newsletter .je-btn.je-btn-gold {
+        background: #C6A43F !important;
+        color: #0A0A0A !important;
+        border: none !important;
+    }
+}
+
+/* ============================================================
+   FIX: MOBILE MENU DRAWER - ENSURE PROPER STYLING
+   ============================================================ */
+
+.mobile-nav-drawer {
+    position: fixed !important;
+    top: 0 !important;
+    right: -100% !important;
+    width: 85% !important;
+    max-width: 320px !important;
+    height: 100% !important;
+    background: #0A0A0A !important;
+    z-index: 1002 !important;
+    transition: right 0.3s ease-in-out !important;
+    padding: 30px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+    overflow-y: auto !important;
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.3) !important;
+}
+
+.mobile-nav-drawer.open {
+    right: 0 !important;
+}
+
+.mobile-nav-drawer .close-menu {
+    background: none !important;
+    border: none !important;
+    color: #C6A43F !important;
+    font-size: 28px !important;
+    cursor: pointer !important;
+    align-self: flex-end !important;
+    margin-bottom: 20px !important;
+    padding: 5px !important;
+    line-height: 1 !important;
+}
+
+.mobile-nav-drawer a {
+    color: #e0e0e0 !important;
+    text-decoration: none !important;
+    font-family: 'Inter', sans-serif !important;
+    padding: 14px 0 !important;
+    border-bottom: 1px solid #2a2a2a !important;
+    font-size: 15px !important;
+    letter-spacing: 0.5px !important;
+    transition: color 0.3s !important;
+}
+
+.mobile-nav-drawer a:hover {
+    color: #C6A43F !important;
+}
+
+.mobile-nav-drawer hr {
+    border-color: #333 !important;
+    margin: 10px 0 !important;
+}
+
+.menu-overlay {
+    display: none !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.7) !important;
+    z-index: 1001 !important;
+}
+
+.menu-overlay.active {
+    display: block !important;
 }
