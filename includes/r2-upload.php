@@ -3,9 +3,6 @@
 // Professional integration with R2 object storage
 // Maintains backward compatibility with existing FileUpload class
 
-// NOTE: This file does not use the Database class, so no database.php
-// require is needed here.
-
 class R2Upload {
     private string $bucket;
     private string $accountId;
@@ -177,6 +174,7 @@ class R2Upload {
     
     /**
      * Upload file to Cloudflare R2 using S3-compatible API with cURL
+     * FIXED: Proper AWS Signature v4 for R2
      */
     private function uploadToR2(string $filePath, string $key, string $mimeType): array {
         $date = gmdate('Ymd');
@@ -186,41 +184,57 @@ class R2Upload {
         $host = "{$this->accountId}.r2.cloudflarestorage.com";
         $endpoint = "https://{$host}/{$this->bucket}/{$key}";
         
-        // Prepare request
+        // Read file content
         $fileContent = file_get_contents($filePath);
+        if ($fileContent === false) {
+            return ['success' => false, 'error' => 'Failed to read file'];
+        }
+        
         $contentHash = hash('sha256', $fileContent);
         $contentLength = strlen($fileContent);
         
         // ============================================================
-        // FIXED: canonicalUri should be just the key, NOT include bucket
+        // AWS Signature v4 - CORRECT IMPLEMENTATION FOR R2
         // ============================================================
-        $canonicalUri = '/' . $key;
         
+        // Step 1: Create canonical request
+        $canonicalMethod = 'PUT';
+        $canonicalUri = '/' . $key;  // Key only, NOT including bucket
         $canonicalQueryString = '';
         $canonicalHeaders = "host:{$host}\nx-amz-content-sha256:{$contentHash}\nx-amz-date:{$amzDate}\n";
         $signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
         
-        $canonicalRequest = "PUT\n{$canonicalUri}\n{$canonicalQueryString}\n{$canonicalHeaders}\n{$signedHeaders}\n{$contentHash}";
+        $canonicalRequest = implode("\n", [
+            $canonicalMethod,
+            $canonicalUri,
+            $canonicalQueryString,
+            $canonicalHeaders,
+            $signedHeaders,
+            $contentHash
+        ]);
         
-        // Build string to sign
+        // Step 2: Create string to sign
         $algorithm = 'AWS4-HMAC-SHA256';
         $credentialScope = "{$date}/{$region}/{$service}/aws4_request";
-        $stringToSign = "{$algorithm}\n{$amzDate}\n{$credentialScope}\n" . hash('sha256', $canonicalRequest);
+        $stringToSign = implode("\n", [
+            $algorithm,
+            $amzDate,
+            $credentialScope,
+            hash('sha256', $canonicalRequest)
+        ]);
         
-        // Generate signing key
+        // Step 3: Calculate signature
         $kSecret = 'AWS4' . $this->secretKey;
         $kDate = hash_hmac('sha256', $date, $kSecret, true);
         $kRegion = hash_hmac('sha256', $region, $kDate, true);
         $kService = hash_hmac('sha256', $service, $kRegion, true);
         $kSigning = hash_hmac('sha256', 'aws4_request', $kService, true);
-        
-        // Calculate signature
         $signature = hash_hmac('sha256', $stringToSign, $kSigning);
         
-        // Build Authorization header
+        // Step 4: Build Authorization header
         $authorization = "{$algorithm} Credential={$this->accessKey}/{$credentialScope}, SignedHeaders={$signedHeaders}, Signature={$signature}";
         
-        // Execute cURL request
+        // Execute cURL request with verbose error handling
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $endpoint,
@@ -235,18 +249,33 @@ class R2Upload {
             ],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_TIMEOUT => 30
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_FAILONERROR => false,
+            CURLOPT_HEADER => true
         ]);
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
+        $curlError = curl_error($ch);
+        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $body = substr($response, $headerSize);
         curl_close($ch);
         
+        // Log for debugging
+        error_log("R2 Upload - Key: {$key}, HTTP: {$httpCode}");
         if ($httpCode !== 200 && $httpCode !== 201 && $httpCode !== 204) {
+            error_log("R2 Upload Error - Response: " . substr($body, 0, 500));
             return [
                 'success' => false,
-                'error' => "R2 upload failed (HTTP {$httpCode}): " . substr($response, 0, 200)
+                'error' => "R2 upload failed (HTTP {$httpCode}): " . substr($body, 0, 200)
+            ];
+        }
+        
+        if ($curlError) {
+            error_log("R2 cURL Error: {$curlError}");
+            return [
+                'success' => false,
+                'error' => "Network error: {$curlError}"
             ];
         }
         
