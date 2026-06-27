@@ -31,19 +31,47 @@ $pageTitle = 'Hardware Inventory - Agent Dashboard';
 include '../templates/header.php';
 ?>
 
+<!-- ============================================================
+     RESPONSIVE FIX - Added container and responsive styles
+     ============================================================ -->
 <style>
-/* Table responsive fix */
+.je-dash-shell {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+.je-dash-main {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 15px !important;
+}
 .table-responsive {
-    overflow-x: auto;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+}
+.je-table {
+    min-width: 700px !important;
+    width: 100% !important;
+}
+@media (max-width: 768px) {
+    .je-dash-main { padding: 10px !important; }
+    .je-table th, .je-table td { padding: 8px 8px; font-size: 11px; }
+    .je-table th:nth-child(1), .je-table td:nth-child(1) { display: none; }
+    .je-table th:nth-child(4), .je-table td:nth-child(4) { display: none; }
+    .je-table th:nth-child(5), .je-table td:nth-child(5) { display: none; }
+}
+@media (max-width: 480px) {
+    .je-table th:nth-child(7), .je-table td:nth-child(7) { display: none; }
+    .je-table th:nth-child(6), .je-table td:nth-child(6) { display: none; }
 }
 </style>
 
-<div class="je-dash-shell">
+<div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
     <?php include __DIR__ . '/../includes/partials/agent-sidebar.php'; ?>
 
-    <!-- Main Content -->
-    <main class="je-dash-main">
-        <div class="je-dash-header">
+    <main class="je-dash-main" style="overflow-x:hidden;width:100%;max-width:100%;padding:15px;">
+        <div class="je-dash-header" style="flex-wrap: wrap;">
             <div>
                 <h1><i class="fas fa-microchip" style="color: #C6A43F;"></i> Hardware Inventory</h1>
                 <p>Manage your solar hardware inventory</p>
@@ -88,10 +116,10 @@ include '../templates/header.php';
                 </div>
             </div>
         <?php else: ?>
-            <div class="je-panel">
-                <div class="je-panel-body">
-                    <div class="table-responsive">
-                    <table class="je-table">
+            <div class="je-panel" style="overflow-x: hidden;">
+                <div class="je-panel-body" style="overflow-x: hidden;">
+                    <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
+                    <table class="je-table" style="min-width: 700px; width: 100%;">
                         <thead>
                             <tr>
                                 <th>#</th>
