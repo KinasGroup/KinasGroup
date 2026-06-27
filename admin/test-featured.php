@@ -26,12 +26,40 @@ include '../templates/header.php';
 <!-- ============================================================
      RESPONSIVE FIX - Added container wrapper
      ============================================================ -->
-<div class="je-container" style="padding: 20px; max-width: 100%; overflow-x: hidden;">
+<style>
+.je-dash-shell {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+.je-dash-main {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 15px !important;
+}
+.table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+}
+.je-table {
+    min-width: 500px !important;
+    width: 100% !important;
+}
+@media (max-width: 768px) {
+    .je-dash-main { padding: 10px !important; }
+    .je-table th, .je-table td { padding: 6px 8px; font-size: 11px; }
+    .je-table th:nth-child(1), .je-table td:nth-child(1) { display: none; }
+}
+@media (max-width: 480px) {
+    .je-table th:nth-child(3), .je-table td:nth-child(3) { display: none; }
+}
+</style>
 
-<div class="je-dash-shell">
+<div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
     <?php include __DIR__ . '/../includes/partials/admin-sidebar.php'; ?>
 
-    <main class="je-dash-main" style="overflow-x: hidden; width: 100%;">
+    <main class="je-dash-main" style="overflow-x:hidden;width:100%;max-width:100%;padding:15px;">
         <div class="je-dash-header" style="flex-wrap: wrap;">
             <div>
                 <h1><i class="fas fa-chart-line" style="color: #C6A43F;"></i> Test Featured Algorithm</h1>
@@ -46,26 +74,26 @@ include '../templates/header.php';
                 </div>
             </div>
             <div class="je-panel-body" style="overflow-x: hidden;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px;">
-                    <div style="background: #f8f8f8; padding: 12px; border-radius: 8px; text-align: center;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 16px;">
+                    <div style="background: #f8f8f8; padding: 10px; border-radius: 8px; text-align: center;">
                         <div style="font-weight: 700; color: #C6A43F;">30%</div>
-                        <div style="font-size: 12px; color: #666;">Views</div>
+                        <div style="font-size: 11px; color: #666;">Views</div>
                     </div>
-                    <div style="background: #f8f8f8; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="background: #f8f8f8; padding: 10px; border-radius: 8px; text-align: center;">
                         <div style="font-weight: 700; color: #C6A43F;">25%</div>
-                        <div style="font-size: 12px; color: #666;">Recency</div>
+                        <div style="font-size: 11px; color: #666;">Recency</div>
                     </div>
-                    <div style="background: #f8f8f8; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="background: #f8f8f8; padding: 10px; border-radius: 8px; text-align: center;">
                         <div style="font-weight: 700; color: #C6A43F;">20%</div>
-                        <div style="font-size: 12px; color: #666;">Price Value</div>
+                        <div style="font-size: 11px; color: #666;">Price Value</div>
                     </div>
-                    <div style="background: #f8f8f8; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="background: #f8f8f8; padding: 10px; border-radius: 8px; text-align: center;">
                         <div style="font-weight: 700; color: #C6A43F;">15%</div>
-                        <div style="font-size: 12px; color: #666;">Completeness</div>
+                        <div style="font-size: 11px; color: #666;">Completeness</div>
                     </div>
-                    <div style="background: #f8f8f8; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="background: #f8f8f8; padding: 10px; border-radius: 8px; text-align: center;">
                         <div style="font-weight: 700; color: #C6A43F;">10%</div>
-                        <div style="font-size: 12px; color: #666;">Engagement</div>
+                        <div style="font-size: 11px; color: #666;">Engagement</div>
                     </div>
                 </div>
                 <p style="font-size: 13px; color: #666; margin: 0;">
@@ -130,8 +158,5 @@ include '../templates/header.php';
         </div>
     </main>
 </div>
-
-</div>
-<!-- ============================================================ -->
 
 <?php include '../templates/footer.php'; ?>
