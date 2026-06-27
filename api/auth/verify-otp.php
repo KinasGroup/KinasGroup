@@ -5,8 +5,7 @@
  * POST /api/auth/verify-otp.php
  *   body: { csrf_token, phone?, code, purpose }
  *
- * Verifies locally against the bcrypt hash in phone_otps. The hash
- * means even if our DB is dumped, the codes can't be replayed.
+ * Verifies locally against the bcrypt hash in phone_otps.
  */
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -30,7 +29,7 @@ if (!Security::verifyCSRFToken($token)) {
 }
 
 $code = preg_replace('/\D+/', '', (string)($body['code'] ?? ''));
-if (strlen($code) < 4 || strlen($code) > 8) {
+if (strlen($code) !== 6) {
     http_response_code(422);
     echo json_encode(['error' => 'Please enter the 6-digit code we sent.']);
     exit;
@@ -84,10 +83,14 @@ $db->prepare("UPDATE phone_otps SET consumed_at = NOW() WHERE id = ?")->execute(
 
 // Mark phone verified on the user
 if ($userId) {
-    $db->prepare("UPDATE users SET phone_verified_at = COALESCE(phone_verified_at, NOW()) WHERE id = ?")
-        ->execute([$userId]);
+    if ($phone && $phone !== $otp['phone']) {
+        $db->prepare("UPDATE users SET phone = ?, phone_verified_at = NOW() WHERE id = ?")
+            ->execute([$phone, $userId]);
+    } else {
+        $db->prepare("UPDATE users SET phone_verified_at = COALESCE(phone_verified_at, NOW()) WHERE id = ?")
+            ->execute([$userId]);
+    }
 
-    // Bump the agent's verification_status to phone_verified if currently pending
     $db->prepare("UPDATE agent_profiles
                   SET verification_status = 'phone_verified'
                   WHERE user_id = ? AND verification_status = 'pending'")
