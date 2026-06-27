@@ -14,17 +14,149 @@ $errorMessage = SessionManager::getFlash('error');
 $successMessage = SessionManager::getFlash('success');
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="color-scheme: light;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- ============================================================
+         FORCE LIGHT MODE - PERMANENT FIX
+         ============================================================ -->
     <meta name="color-scheme" content="light only">
+    <meta name="theme-color" content="#ffffff">
+    <style>
+        html, body { 
+            color-scheme: light !important; 
+            background: #ffffff !important;
+        }
+        @media (prefers-color-scheme: dark) {
+            html, body {
+                color-scheme: light !important;
+                background: #ffffff !important;
+                color: #0A0A0A !important;
+            }
+            .je-auth-shell,
+            .je-auth-main,
+            .je-auth-form {
+                background-color: #ffffff !important;
+                color: #0A0A0A !important;
+            }
+            .je-auth-aside {
+                background-color: #0A0A0A !important;
+                color: rgba(255,255,255,0.7) !important;
+            }
+            .je-auth-aside * {
+                color: rgba(255,255,255,0.7) !important;
+            }
+            .je-auth-aside h1,
+            .je-auth-aside .je-auth-headline {
+                color: #ffffff !important;
+            }
+        }
+    </style>
+    <!-- ============================================================ -->
+    
     <title>Buyer Registration - KINAS GROUP | Luxury Marketplace</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- ============================================================
+         MOBILE RESPONSIVENESS FIXES
+         ============================================================ -->
+    <style>
+        .je-auth-shell {
+            min-height: 100vh;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        @media (max-width: 992px) {
+            .je-auth-shell {
+                grid-template-columns: 1fr !important;
+            }
+            .je-auth-aside {
+                padding: 30px 24px 36px !important;
+                min-height: 200px !important;
+            }
+            .je-auth-aside .je-auth-headline {
+                font-size: 24px !important;
+            }
+            .je-auth-aside blockquote {
+                display: none !important;
+            }
+            .je-auth-main {
+                padding: 30px 20px !important;
+            }
+            .je-auth-form {
+                max-width: 100% !important;
+                padding: 0 10px !important;
+            }
+            .je-auth-form h2 {
+                font-size: 24px !important;
+            }
+            .je-form-row {
+                grid-template-columns: 1fr !important;
+                gap: 0 !important;
+            }
+        }
+        @media (max-width: 480px) {
+            .je-auth-aside {
+                padding: 20px 16px 24px !important;
+                min-height: 150px !important;
+            }
+            .je-auth-aside .je-auth-headline {
+                font-size: 20px !important;
+            }
+            .je-auth-main {
+                padding: 20px 14px !important;
+            }
+            .je-auth-form h2 {
+                font-size: 20px !important;
+            }
+            .je-auth-form .je-auth-sub-form {
+                font-size: 13px !important;
+            }
+            .je-form-group input {
+                font-size: 14px !important;
+                padding: 10px 12px !important;
+            }
+            .je-btn-lg {
+                padding: 12px 20px !important;
+                font-size: 13px !important;
+            }
+            .je-auth-switch {
+                font-size: 12px !important;
+            }
+        }
+        .je-password-wrap {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .je-password-wrap input {
+            flex: 1;
+            padding-right: 44px !important;
+        }
+        .je-password-toggle {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #999;
+            padding: 8px;
+            font-size: 16px;
+        }
+        .je-password-toggle:hover {
+            color: #666;
+        }
+        #captcha-group {
+            min-height: 78px;
+        }
+    </style>
 </head>
 <body>
 
