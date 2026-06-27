@@ -106,12 +106,17 @@ try {
         if (!$result['success']) {
             throw new RuntimeException($result['message'] ?? 'Termii send failed');
         }
-        $termiiCode = $result['code'] ?? null;
         $pinId = $result['pin_id'] ?? null;
+        // IMPORTANT: TermiiService::sendOtp() generates its own random code
+        // internally and that's the code actually texted to the user.
+        // We must store/hash THAT code, not the separate $otpCode generated
+        // above, or the user will never be able to verify (codes won't match).
+        if (!empty($result['code'])) {
+            $otpCode = $result['code'];
+        }
     } else {
         // Termii not enabled - log the OTP for development
         error_log("OTP [dev] phone={$phone} code={$otpCode} purpose={$purpose}");
-        $termiiCode = $otpCode;
         $pinId = null;
     }
 
