@@ -30,18 +30,9 @@ $user = $stmt->fetch();
 
 $csrf = Security::generateCSRFToken();
 $headerDepth = '../';
+$pageTitle = 'Account Settings - KINAS GROUP';
 require_once __DIR__ . '/../templates/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Account Settings - KINAS GROUP</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/james-edition.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prata&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;background:#F5F7FA}
         .user-container{max-width:800px;margin:0 auto;padding:30px}
@@ -67,14 +58,9 @@ require_once __DIR__ . '/../templates/header.php';
         .btn-danger{background:#DC2626;color:white;border:none;padding:10px 22px;border-radius:40px;cursor:pointer;font-weight:600}
         @media(max-width:768px){.user-container{padding:20px}}
     </style>
-
 <div class="je-dash-shell">
 <?php include __DIR__ . '/../includes/partials/user-sidebar.php'; ?>
-
-</head>
-<body>
-<?php include __DIR__ . '/../includes/partials/header.php' ?>
-<main style="padding-top:80px">
+<main class="je-dash-main">
 <div class="user-container">
     <div class="page-header">
         <h1><i class="fas fa-cog" style="color:#C6A43F;margin-right:10px"></i>Account Settings</h1>
