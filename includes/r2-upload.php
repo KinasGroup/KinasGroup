@@ -11,6 +11,7 @@ class R2Upload {
     private string $publicUrl;
     private array $allowedTypes;
     private int $maxSize;
+    private bool $enabled;
     
     /** @var array Whitelist of allowed upload subdirectories */
     private const ALLOWED_SUBDIRS = [
@@ -58,19 +59,36 @@ class R2Upload {
             $this->publicUrl = "https://pub-{$this->accountId}.r2.dev/{$this->bucket}";
         }
         
+        // Check if R2 is properly configured
+        $this->enabled = !empty($this->bucket) && !empty($this->accountId) && 
+                         !empty($this->accessKey) && !empty($this->secretKey);
+        
         $this->allowedTypes = self::MIME_TO_EXTENSION;
         $this->maxSize = 10 * 1024 * 1024; // 10MB
         
-        // Validate configuration
-        if (empty($this->bucket) || empty($this->accountId) || empty($this->accessKey) || empty($this->secretKey)) {
-            throw new \RuntimeException('R2 configuration incomplete. Check environment variables.');
+        if (!$this->enabled) {
+            error_log('R2: Not configured - missing credentials');
+        } else {
+            error_log('R2: Configured successfully with bucket: ' . $this->bucket);
         }
     }
     
     /**
-     * Upload file to R2 using cURL (no AWS SDK required)
+     * Check if R2 is enabled and configured
+     */
+    public function isEnabled(): bool {
+        return $this->enabled;
+    }
+    
+    /**
+     * Upload file to R2 or fallback to local
      */
     public function upload(array $file, array $options = []): array {
+        if (!$this->enabled) {
+            error_log('R2: Upload skipped - not configured. Use local storage.');
+            return ['success' => false, 'error' => 'R2 not configured', 'fallback' => true];
+        }
+        
         // Validate file
         if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
             return ['success' => false, 'error' => 'No file uploaded'];
@@ -123,7 +141,12 @@ class R2Upload {
         $uploadResult = $this->uploadToR2($processedFile, $r2Key, $normalizedMime);
         
         if (!$uploadResult['success']) {
-            return $uploadResult;
+            error_log('R2: Upload failed - ' . ($uploadResult['error'] ?? 'unknown'));
+            return [
+                'success' => false, 
+                'error' => $uploadResult['error'] ?? 'R2 upload failed',
+                'fallback' => true
+            ];
         }
         
         // Generate thumbnail for images
@@ -153,6 +176,10 @@ class R2Upload {
      */
     public function uploadMultiple(array $files, array $options = []): array {
         $results = [];
+        
+        if (!$this->enabled) {
+            return $results;
+        }
         
         if (!isset($files['name']) || !is_array($files['name'])) {
             return $results;
@@ -190,6 +217,10 @@ class R2Upload {
         
         // Build canonical request for signature v4
         $fileContent = file_get_contents($filePath);
+        if ($fileContent === false) {
+            return ['success' => false, 'error' => 'Failed to read file content'];
+        }
+        
         $contentHash = hash('sha256', $fileContent);
         $contentLength = strlen($fileContent);
         
@@ -217,10 +248,8 @@ class R2Upload {
         // Build Authorization header
         $authorization = "{$algorithm} Credential={$this->accessKey}/{$credentialScope}, SignedHeaders={$signedHeaders}, Signature={$signature}";
         
-        // Build endpoint URL (bucket name is in the host header, not in the path)
+        // Build endpoint URL
         $endpoint = "https://{$host}/{$this->bucket}/{$key}";
-        
-        error_log("R2 Upload - Key: {$key}, Host: {$host}, Endpoint: {$endpoint}");
         
         // Execute cURL request
         $ch = curl_init();
@@ -238,27 +267,25 @@ class R2Upload {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_TIMEOUT => 30,
-            CURLOPT_VERBOSE => true
+            CURLOPT_FAILONERROR => false
         ]);
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
+        $curlError = curl_error($ch);
         curl_close($ch);
         
-        error_log("R2 Upload Response - HTTP: {$httpCode}, Response: " . substr($response, 0, 500));
-        
-        if ($error) {
+        if ($curlError) {
             return [
                 'success' => false,
-                'error' => "R2 upload cURL error: {$error}"
+                'error' => "R2 cURL error: {$curlError}"
             ];
         }
         
         if ($httpCode !== 200 && $httpCode !== 201 && $httpCode !== 204) {
             return [
                 'success' => false,
-                'error' => "R2 upload failed (HTTP {$httpCode}): " . substr($response, 0, 300)
+                'error' => "R2 upload failed (HTTP {$httpCode}): " . substr($response, 0, 200)
             ];
         }
         
@@ -426,7 +453,6 @@ class R2Upload {
      */
     public function delete(string $key): bool {
         // Implementation for delete if needed
-        // Similar signature generation as upload
         return true;
     }
     
