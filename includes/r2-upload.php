@@ -29,6 +29,7 @@ class R2Upload {
         'image/jpeg',
         'image/png',
         'image/webp',
+        'image/gif',
         'application/pdf'
     ];
     
@@ -37,6 +38,7 @@ class R2Upload {
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
         'image/webp' => 'webp',
+        'image/gif' => 'gif',
         'application/pdf' => 'pdf'
     ];
     
@@ -361,6 +363,8 @@ class R2Upload {
                 return imagecreatefrompng($filepath);
             case IMAGETYPE_WEBP:
                 return imagecreatefromwebp($filepath);
+            case IMAGETYPE_GIF:
+                return imagecreatefromgif($filepath);
             default:
                 throw new \RuntimeException('Unsupported image type');
         }
@@ -383,6 +387,9 @@ class R2Upload {
                 break;
             case 'webp':
                 imagewebp($image, $filepath, $quality);
+                break;
+            case 'gif':
+                imagegif($image, $filepath);
                 break;
             default:
                 throw new \RuntimeException('Unsupported image format');

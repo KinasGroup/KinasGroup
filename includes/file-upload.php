@@ -28,6 +28,7 @@ class FileUpload {
         'image/jpg',
         'image/png',
         'image/webp',
+        'image/gif',
         'application/pdf'
     ];
 
@@ -37,6 +38,7 @@ class FileUpload {
         'image/jpg' => 'jpg',
         'image/png' => 'png',
         'image/webp' => 'webp',
+        'image/gif' => 'gif',
         'application/pdf' => 'pdf'
     ];
 
@@ -302,6 +304,8 @@ class FileUpload {
                 return imagecreatefrompng($filepath);
             case IMAGETYPE_WEBP:
                 return imagecreatefromwebp($filepath);
+            case IMAGETYPE_GIF:
+                return imagecreatefromgif($filepath);
             default:
                 throw new \RuntimeException('Unsupported image type');
         }
@@ -321,6 +325,9 @@ class FileUpload {
                 break;
             case 'webp':
                 imagewebp($image, $filepath, $quality);
+                break;
+            case 'gif':
+                imagegif($image, $filepath);
                 break;
             default:
                 throw new \RuntimeException('Unsupported image format');
