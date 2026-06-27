@@ -1,6 +1,8 @@
 <?php
 /**
- * KINAS GROUP — Email Verification
+ * KINAS GROUP — Email Verification Page
+ * This page is accessed via the email verification link
+ * GET /auth/verify-email.php?code=XXXXX
  */
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/dotenv.php';
@@ -17,13 +19,6 @@ if (!empty($code)) {
     } else {
         try {
             $db = Database::getInstance()->getConnection();
-            // Match on the code itself — NOT on users.status. New
-            // registrations are inserted as 'active' (so they can log in
-            // immediately for buyers) which made the old
-            // "AND status='pending'" condition fail for every legitimate
-            // link. Email verification is now a soft signal: it sets
-            // email_verified_at and the user_verified flag, but does
-            // not gate login.
             $stmt = $db->prepare(
                 "SELECT id, name, role, verification_code_expires, email_verified_at
                  FROM users
@@ -32,10 +27,10 @@ if (!empty($code)) {
             );
             $stmt->execute([$code]);
             $user = $stmt->fetch();
+            
             if (!$user) {
                 $error = 'This verification link is invalid or has already been used.';
             } elseif (!empty($user['email_verified_at'])) {
-                // Already verified — treat as success and just direct to login.
                 $verified = true;
                 SessionManager::setFlash('success', 'Your email is already verified. You can sign in.');
             } elseif (!empty($user['verification_code_expires']) && strtotime((string)$user['verification_code_expires']) < time()) {
@@ -49,10 +44,10 @@ if (!empty($code)) {
                             email_verified_at=NOW()
                       WHERE id=?"
                 )->execute([$user['id']]);
+                
                 Security::logActivity($user['id'], 'email_verified', 'Email verified via link');
                 $verified = true;
-                // Agents should go through phone verification next, then MetaMap.
-                // Buyers/admins go straight to login.
+                
                 if ($user['role'] === 'agent') {
                     SessionManager::setUser([
                         'id'       => (int)$user['id'],
@@ -89,7 +84,6 @@ if (!empty($code)) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Per-page polish on top of the JE auth shell */
         .verify-icon-wrap {
             width: 96px; height: 96px; border-radius: 50%;
             margin: 0 auto 28px; display: flex; align-items: center; justify-content: center;
@@ -115,7 +109,6 @@ if (!empty($code)) {
 <body>
 
 <div class="je-auth-shell">
-    <!-- ── Left aside: trust / verification themed ── -->
     <aside class="je-auth-aside">
         <a href="../index.php" class="je-auth-brand">
             <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
@@ -137,7 +130,6 @@ if (!empty($code)) {
         </div>
     </aside>
 
-    <!-- ── Right form: status + next steps ── -->
     <main class="je-auth-main">
         <div class="je-auth-form" style="max-width: 520px; text-align: center;">
             <?php if ($verified): ?>
@@ -174,9 +166,6 @@ document.getElementById('resend-link')?.addEventListener('click', async function
     const original = this.innerHTML;
     this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
     try {
-        // Dedicated resend endpoint — the old /api/auth/forgot-password.php
-        // only handles password resets and silently no-ops for fresh
-        // registrations, which is why users got "no more email" before.
         const res = await fetch('/api/auth/resend-verification.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
