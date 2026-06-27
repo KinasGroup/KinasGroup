@@ -95,16 +95,15 @@ if ($registrationSuccess) {
         @media (max-width: 992px) {
             .je-auth-shell {
                 grid-template-columns: 1fr !important;
+                grid-template-rows: auto 1fr !important;
             }
             .je-auth-aside {
                 padding: 30px 24px 36px !important;
-                min-height: 240px !important;
+                min-height: auto !important;
+                overflow: visible !important;
             }
             .je-auth-aside .je-auth-headline {
                 font-size: 24px !important;
-            }
-            .je-auth-aside blockquote {
-                display: none !important;
             }
             .je-auth-main {
                 padding: 30px 20px !important;
@@ -125,7 +124,7 @@ if ($registrationSuccess) {
         @media (max-width: 480px) {
             .je-auth-aside {
                 padding: 20px 16px 24px !important;
-                min-height: 180px !important;
+                min-height: auto !important;
             }
             .je-auth-aside .je-auth-headline {
                 font-size: 20px !important;
