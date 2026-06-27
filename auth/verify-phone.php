@@ -8,6 +8,7 @@
  */
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
+require_once __DIR__ . '/../api/config/database.php';
 
 SessionManager::requireLogin();
 $userId = (int)$_SESSION['user_id'];
@@ -46,9 +47,26 @@ $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .je-otp-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; max-width: 360px; }
+        .je-otp-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; max-width: 360px; margin: 0 auto; }
         .je-otp-grid input { text-align: center; font-size: 22px; font-weight: 600; padding: 14px 0; border: 1px solid var(--je-line); border-radius: 4px; font-family: 'Inter', sans-serif; }
         .je-otp-grid input:focus { outline: none; border-color: var(--je-gold); box-shadow: 0 0 0 3px rgba(198,164,63,0.12); }
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            padding: 14px 28px; border-radius: 8px; background: #0A0A0A; color: #fff;
+            font-family: 'Inter', sans-serif; font-size: 14px; z-index: 9999;
+            opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .toast.show { opacity: 1; pointer-events: auto; }
+        .toast.success { background: #1B5E20; }
+        .toast.error { background: #B71C1C; }
+        .toast.info { background: #0047AB; }
+        .je-auth-switch { margin-top: 20px; text-align: center; }
+        .je-auth-switch a { color: #888; text-decoration: none; font-size: 13px; }
+        .je-auth-switch a:hover { color: #C6A43F; }
+        .hidden { display: none !important; }
+        .mt-16 { margin-top: 16px; }
+        .text-center { text-align: center; }
     </style>
 </head>
 <body>
@@ -78,13 +96,16 @@ $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
             <h2>Verify your phone</h2>
             <p class="je-auth-sub-form">We'll send a 6-digit code via SMS. Standard rates apply.</p>
 
-            <?php if ($success): ?><div class="je-form-success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($success) ?></div><?php endif; ?>
-            <?php if ($error):   ?><div class="je-form-error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($error) ?></div><?php endif; ?>
+            <div id="messageContainer">
+                <?php if ($success): ?><div class="je-form-success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($success) ?></div><?php endif; ?>
+                <?php if ($error):   ?><div class="je-form-error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($error) ?></div><?php endif; ?>
+            </div>
 
+            <!-- Step 1: Phone Number -->
             <form id="phoneForm">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
 
-                <div class="je-form-group" id="phoneStep">
+                <div class="je-form-group">
                     <label for="phone">Phone Number</label>
                     <input type="tel" id="phone" name="phone" placeholder="+234 800 000 0000" value="<?= htmlspecialchars($phone) ?>" required>
                     <p style="font-size:11px; color:#888; margin-top:4px;">Format: +234 800 000 0000 or local 080...</p>
@@ -94,7 +115,8 @@ $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
                 </button>
             </form>
 
-            <form id="otpForm" style="display:none;">
+            <!-- Step 2: OTP -->
+            <form id="otpForm" class="hidden">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                 <input type="hidden" name="phone" id="otpPhone">
 
@@ -108,122 +130,247 @@ $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
                         <input type="text" inputmode="numeric" maxlength="1" class="otp-cell" data-idx="4">
                         <input type="text" inputmode="numeric" maxlength="1" class="otp-cell" data-idx="5">
                     </div>
-                    <p style="font-size:11px; color:#888; margin-top:10px;">Code expires in 10 minutes. <a href="#" id="resendLink" style="color:#C6A43F; font-weight:600;">Resend code</a></p>
+                    <p style="font-size:11px; color:#888; margin-top:10px; text-align:center;">
+                        Code expires in 10 minutes. <a href="#" id="resendLink" style="color:#C6A43F; font-weight:600;">Resend code</a>
+                    </p>
                 </div>
                 <button type="submit" id="verifyBtn" class="je-btn je-btn-gold je-btn-block je-btn-lg">
-                    Verify Phone
+                    <i class="fas fa-check"></i> Verify Phone
                 </button>
             </form>
 
-            <?php if ($appEnv === 'development'): ?>
-                <p style="font-size:11px; color:#888; margin-top:16px; text-align:center;">Dev mode: Termii is mocked. Use code <strong>000000</strong>.</p>
+            <?php if ($appEnv === 'development' || $appEnv === 'local'): ?>
+                <div style="background: #f0f0f0; padding: 12px; border-radius: 4px; margin-top: 16px; text-align: center; font-size: 13px; color: #666;">
+                    <strong>Dev Mode:</strong> Check browser console or server logs for the OTP code.
+                </div>
             <?php endif; ?>
 
             <div class="je-auth-switch">
-                <a href="../auth/logout.php">Sign out</a>
+                <a href="../auth/logout.php"><i class="fas fa-sign-out-alt"></i> Sign out</a>
             </div>
         </div>
     </main>
 </div>
 
+<!-- Toast Container -->
+<div id="toast" class="toast"></div>
+
 <script>
-const csrfToken = '<?= htmlspecialchars($csrf, ENT_QUOTES) ?>';
-const phoneForm = document.getElementById('phoneForm');
-const otpForm = document.getElementById('otpForm');
-const sendBtn = document.getElementById('sendOtpBtn');
-const verifyBtn = document.getElementById('verifyBtn');
-const phoneInput = document.getElementById('phone');
-const otpPhone = document.getElementById('otpPhone');
-const otpPhoneDisplay = document.getElementById('otpPhoneDisplay');
-const otpCells = document.querySelectorAll('.otp-cell');
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = '<?= htmlspecialchars($csrf, ENT_QUOTES) ?>';
+    const phoneForm = document.getElementById('phoneForm');
+    const otpForm = document.getElementById('otpForm');
+    const sendBtn = document.getElementById('sendOtpBtn');
+    const verifyBtn = document.getElementById('verifyBtn');
+    const phoneInput = document.getElementById('phone');
+    const otpPhone = document.getElementById('otpPhone');
+    const otpPhoneDisplay = document.getElementById('otpPhoneDisplay');
+    const otpCells = document.querySelectorAll('.otp-cell');
+    const toast = document.getElementById('toast');
+    let toastTimeout = null;
 
-function showToast(msg, type) {
-    let t = document.getElementById('__toast');
-    if (!t) { t = document.createElement('div'); t.id='__toast'; t.className='toast'; document.body.appendChild(t); }
-    t.textContent = msg; t.className = 'toast ' + type + ' show';
-    setTimeout(() => t.classList.remove('show'), 4500);
-}
-
-sendBtn.addEventListener('click', async () => {
-    const phone = phoneInput.value.trim();
-    if (!phone) { showToast('Please enter your phone number', 'error'); return; }
-    sendBtn.disabled = true;
-    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
-    try {
-        const fd = new FormData();
-        fd.append('csrf_token', csrfToken);
-        fd.append('phone', phone);
-        fd.append('purpose', 'register');
-        const res = await fetch('/api/auth/send-otp.php', { method: 'POST', body: fd, credentials: 'same-origin' });
-        const data = await res.json();
-        if (res.ok && data.success) {
-            phoneForm.style.display = 'none';
-            otpForm.style.display = 'block';
-            otpPhone.value = phone;
-            otpPhoneDisplay.textContent = phone;
-            otpCells[0].focus();
-            if (data._dev_code) showToast('Dev code: ' + data._dev_code, 'success');
-        } else {
-            showToast(data.error || 'Could not send code', 'error');
-        }
-    } catch (e) { showToast('Network error', 'error'); }
-    finally {
-        sendBtn.disabled = false;
-        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Verification Code';
+    function showToast(msg, type = 'info') {
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toast.textContent = msg;
+        toast.className = 'toast ' + type + ' show';
+        toastTimeout = setTimeout(() => {
+            toast.classList.remove('show');
+        }, 5000);
     }
-});
 
-otpCells.forEach((cell, idx) => {
-    cell.addEventListener('input', (e) => {
-        const v = e.target.value.replace(/\D/g, '');
-        e.target.value = v.slice(0, 1);
-        if (v && idx < 5) otpCells[idx + 1].focus();
+    function showError(msg) {
+        showToast(msg, 'error');
+    }
+
+    function showSuccess(msg) {
+        showToast(msg, 'success');
+    }
+
+    function setButtonLoading(btn, loading, text) {
+        if (loading) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + text;
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = btn.getAttribute('data-original') || btn.innerHTML;
+        }
+    }
+
+    // Store original button text
+    sendBtn.setAttribute('data-original', sendBtn.innerHTML);
+    verifyBtn.setAttribute('data-original', verifyBtn.innerHTML);
+
+    // Send OTP
+    sendBtn.addEventListener('click', async function() {
+        const phone = phoneInput.value.trim();
+        if (!phone) {
+            showError('Please enter your phone number.');
+            return;
+        }
+
+        // Basic Nigerian phone validation
+        const phoneRegex = /^(0[789][01]\d{8}|234[789][01]\d{8}|\+234[789][01]\d{8})$/;
+        if (!phoneRegex.test(phone)) {
+            showError('Please enter a valid Nigerian phone number (e.g., 08012345678).');
+            return;
+        }
+
+        setButtonLoading(sendBtn, true, 'Sending...');
+
+        try {
+            // Send as JSON (matches your API expectations)
+            const response = await fetch('/api/auth/send-otp.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    csrf_token: csrfToken,
+                    phone: phone,
+                    purpose: 'register'
+                }),
+                credentials: 'same-origin'
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                // Hide phone form, show OTP form
+                phoneForm.classList.add('hidden');
+                otpForm.classList.remove('hidden');
+                otpPhone.value = phone;
+                otpPhoneDisplay.textContent = phone;
+                
+                showSuccess(data.message || 'Verification code sent!');
+                
+                // Focus first OTP input
+                setTimeout(() => otpCells[0].focus(), 300);
+                
+                // If dev code is returned, show it
+                if (data._dev_code) {
+                    console.log('Dev OTP Code:', data._dev_code);
+                    showToast('Dev Code: ' + data._dev_code, 'info');
+                }
+            } else {
+                showError(data.error || data.message || 'Failed to send verification code. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showError('Network error. Please check your connection and try again.');
+        } finally {
+            setButtonLoading(sendBtn, false, 'Send Verification Code');
+        }
     });
-    cell.addEventListener('keydown', (e) => {
-        if (e.key === 'Backspace' && !cell.value && idx > 0) otpCells[idx - 1].focus();
-        if (e.key === 'ArrowLeft' && idx > 0) otpCells[idx - 1].focus();
-        if (e.key === 'ArrowRight' && idx < 5) otpCells[idx + 1].focus();
+
+    // OTP input handling
+    otpCells.forEach((cell, idx) => {
+        cell.addEventListener('input', (e) => {
+            const v = e.target.value.replace(/\D/g, '');
+            e.target.value = v.slice(0, 1);
+            if (v && idx < 5) {
+                otpCells[idx + 1].focus();
+            }
+        });
+
+        cell.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !cell.value && idx > 0) {
+                otpCells[idx - 1].focus();
+            }
+            if (e.key === 'ArrowLeft' && idx > 0) {
+                otpCells[idx - 1].focus();
+            }
+            if (e.key === 'ArrowRight' && idx < 5) {
+                otpCells[idx + 1].focus();
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                verifyBtn.click();
+            }
+        });
+
+        cell.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+            text.split('').forEach((ch, i) => {
+                if (otpCells[i]) otpCells[i].value = ch;
+            });
+            const nextIdx = Math.min(text.length, 5);
+            if (otpCells[nextIdx]) {
+                otpCells[nextIdx].focus();
+            }
+            if (text.length === 6) {
+                setTimeout(() => verifyBtn.click(), 100);
+            }
+        });
     });
-    cell.addEventListener('paste', (e) => {
+
+    // Verify OTP
+    otpForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const text = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
-        text.split('').forEach((ch, i) => { if (otpCells[i]) otpCells[i].value = ch; });
-        otpCells[Math.min(text.length, 5)].focus();
-    });
-});
-
-otpForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const code = Array.from(otpCells).map(c => c.value).join('');
-    if (code.length !== 6) { showToast('Please enter all 6 digits', 'error'); return; }
-    verifyBtn.disabled = true;
-    verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying…';
-    try {
-        const fd = new FormData();
-        fd.append('csrf_token', csrfToken);
-        fd.append('phone', otpPhone.value);
-        fd.append('code', code);
-        fd.append('purpose', 'register');
-        const res = await fetch('/api/auth/verify-otp.php', { method: 'POST', body: fd, credentials: 'same-origin' });
-        const data = await res.json();
-        if (res.ok && data.success) {
-            showToast('Phone verified!', 'success');
-            setTimeout(() => { window.location.href = '/agent/verification.php'; }, 800);
-        } else {
-            showToast(data.error || 'Verification failed', 'error');
+        
+        const code = Array.from(otpCells).map(c => c.value).join('');
+        if (code.length !== 6) {
+            showError('Please enter all 6 digits.');
+            return;
         }
-    } catch (err) { showToast('Network error', 'error'); }
-    finally {
-        verifyBtn.disabled = false;
-        verifyBtn.innerHTML = 'Verify Phone';
-    }
-});
 
-document.getElementById('resendLink').addEventListener('click', (e) => {
-    e.preventDefault();
-    phoneForm.style.display = 'block';
-    otpForm.style.display = 'none';
-    sendBtn.click();
+        if (!/^\d{6}$/.test(code)) {
+            showError('Please enter a valid 6-digit numeric code.');
+            return;
+        }
+
+        setButtonLoading(verifyBtn, true, 'Verifying...');
+
+        try {
+            const response = await fetch('/api/auth/verify-otp.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    csrf_token: csrfToken,
+                    phone: otpPhone.value,
+                    code: code,
+                    purpose: 'register'
+                }),
+                credentials: 'same-origin'
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                showSuccess(data.message || 'Phone verified successfully!');
+                setTimeout(() => {
+                    window.location.href = '/agent/verification.php';
+                }, 1000);
+            } else {
+                showError(data.error || data.message || 'Invalid verification code. Please try again.');
+                // Clear OTP fields on error
+                otpCells.forEach(cell => cell.value = '');
+                otpCells[0].focus();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showError('Network error. Please check your connection and try again.');
+        } finally {
+            setButtonLoading(verifyBtn, false, 'Verify Phone');
+        }
+    });
+
+    // Resend OTP
+    document.getElementById('resendLink').addEventListener('click', async (e) => {
+        e.preventDefault();
+        
+        // Show phone form again
+        phoneForm.classList.remove('hidden');
+        otpForm.classList.add('hidden');
+        
+        // Clear OTP fields
+        otpCells.forEach(cell => cell.value = '');
+        
+        // Auto-click send button
+        sendBtn.click();
+    });
 });
 </script>
 </body>
