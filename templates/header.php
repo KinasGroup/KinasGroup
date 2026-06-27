@@ -212,7 +212,7 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
             color: #0A0A0A !important;
         }
 
-		@media (max-width: 1200px) {
+		@media (max-width: 768px) {
 			.mobile-menu-btn {
 				display: flex !important;
 				align-items: center !important;
