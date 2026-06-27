@@ -1299,3 +1299,59 @@ footer .je-footer-newsletter input {
         width: 100% !important;
     }
 }
+
+/* ============================================================
+   FIX: SOLAR CALCULATOR - PRESERVE ORIGINAL STYLING
+   ============================================================ */
+
+/* Exclude solar calculator from dark mode overrides */
+.solar-calculator,
+.solar-calculator *,
+.calculator-container,
+.calculator-container *,
+.result-grid,
+.result-grid *,
+.solar-calc-wrap,
+.solar-calc-wrap * {
+    background: none !important;
+    background-color: transparent !important;
+}
+
+/* Restore solar calculator specific styles */
+.solar-calculator .calculator-panel,
+.calculator-container .calculator-panel,
+.solar-calc-wrap .panel {
+    background: #ffffff !important;
+}
+
+.solar-calculator .result-panel,
+.calculator-container .result-panel,
+.solar-calc-wrap .result {
+    background: #f8f6f1 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    .solar-calculator,
+    .solar-calculator *,
+    .calculator-container,
+    .calculator-container *,
+    .result-grid,
+    .result-grid *,
+    .solar-calc-wrap,
+    .solar-calc-wrap * {
+        background: none !important;
+        background-color: transparent !important;
+    }
+    
+    .solar-calculator .calculator-panel,
+    .calculator-container .calculator-panel,
+    .solar-calc-wrap .panel {
+        background: #ffffff !important;
+    }
+    
+    .solar-calculator .result-panel,
+    .calculator-container .result-panel,
+    .solar-calc-wrap .result {
+        background: #f8f6f1 !important;
+    }
+}
