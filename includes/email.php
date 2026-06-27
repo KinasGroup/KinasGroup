@@ -1,24 +1,33 @@
 <?php
 /**
  * KINAS GROUP — Email Service
- * Handles sending branded emails using PHPMailer or native mail()
+ * Handles sending branded emails using Resend API
  */
 
 class EmailService
 {
-    private $mailer;
-    private $usePHPMailer = false;
+    private $apiKey;
     private $fromEmail;
     private $fromName;
     private $siteUrl;
+    private $useResend = false;
+    private $mailer;
+    private $usePHPMailer = false;
     
     public function __construct()
     {
         $this->fromEmail = getenv('MAIL_FROM_ADDRESS') ?: 'noreply@kinas-group.com';
-        $this->fromName = getenv('MAIL_FROM_NAME') ?: 'KINAS GROUP OF COMPANIES LIMITED';
+        $this->fromName = getenv('MAIL_FROM_NAME') ?: 'KINAS GROUP';
         $this->siteUrl = getenv('SITE_URL') ?: 'https://kinas-group.com';
         
-        // Check if PHPMailer is available
+        // Check for Resend API key first
+        $this->apiKey = getenv('RESEND_API_KEY') ?: '';
+        if (!empty($this->apiKey)) {
+            $this->useResend = true;
+            error_log('EmailService: Using Resend API');
+        }
+        
+        // Check if PHPMailer is available (fallback)
         if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
             $this->usePHPMailer = true;
             $this->mailer = new PHPMailer\PHPMailer\PHPMailer(true);
@@ -51,6 +60,96 @@ class EmailService
     }
     
     /**
+     * Send email using Resend API or fallback
+     */
+    public function send($to, $name, $subject, $htmlBody, $plainText = '')
+    {
+        // Try Resend first
+        if ($this->useResend) {
+            $result = $this->sendViaResend($to, $name, $subject, $htmlBody, $plainText);
+            if ($result) {
+                return true;
+            }
+            error_log('Resend failed, falling back to PHPMailer');
+        }
+        
+        // Fallback to PHPMailer
+        return $this->sendViaPHPMailer($to, $name, $subject, $htmlBody, $plainText);
+    }
+    
+    /**
+     * Send email via Resend API
+     */
+    private function sendViaResend($to, $name, $subject, $htmlBody, $plainText = '')
+    {
+        $payload = [
+            'from' => $this->fromName . ' <' . $this->fromEmail . '>',
+            'to' => [$to],
+            'subject' => $subject,
+            'html' => $htmlBody,
+            'text' => $plainText ?: strip_tags($htmlBody)
+        ];
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://api.resend.com/emails');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $this->apiKey,
+            'Content-Type: application/json'
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($error) {
+            error_log('Resend cURL error: ' . $error);
+            return false;
+        }
+        
+        if ($httpCode < 200 || $httpCode >= 300) {
+            error_log('Resend API error: ' . $response . ' (HTTP ' . $httpCode . ')');
+            return false;
+        }
+        
+        $decoded = json_decode($response, true);
+        if (isset($decoded['id'])) {
+            error_log('Resend email sent: ' . $decoded['id'] . ' to ' . $to);
+            return true;
+        }
+        
+        error_log('Resend email failed: ' . $response);
+        return false;
+    }
+    
+    /**
+     * Send email via PHPMailer (fallback)
+     */
+    private function sendViaPHPMailer($to, $name, $subject, $htmlBody, $plainText = '')
+    {
+        if (!$this->usePHPMailer) {
+            error_log('PHPMailer not available');
+            return false;
+        }
+        
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($to, $name);
+            $this->mailer->Subject = $subject;
+            $this->mailer->Body = $htmlBody;
+            $this->mailer->AltBody = $plainText ?: strip_tags($htmlBody);
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('PHPMailer error: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
      * Send branded verification email
      */
     public function sendVerificationEmail($email, $name, $verificationCode)
@@ -68,7 +167,6 @@ class EmailService
     
     /**
      * PUBLIC method to preview email - returns the HTML
-     * This is used by the preview script
      */
     public function getVerificationEmailHTML($name = 'John Doe', $verificationLink = null)
     {
@@ -389,34 +487,5 @@ Website: https://kinas-group.com
 Email: support@kinas-group.com
 Phone: +234 810 757 6042
 TEXT;
-    }
-    
-    /**
-     * Send email using PHPMailer or native mail()
-     */
-    public function send($to, $name, $subject, $htmlBody, $plainText = '')
-    {
-        if ($this->usePHPMailer) {
-            try {
-                $this->mailer->clearAddresses();
-                $this->mailer->addAddress($to, $name);
-                $this->mailer->Subject = $subject;
-                $this->mailer->Body = $htmlBody;
-                $this->mailer->AltBody = $plainText ?: strip_tags($htmlBody);
-                return $this->mailer->send();
-            } catch (Exception $e) {
-                error_log('PHPMailer error: ' . $e->getMessage());
-                return false;
-            }
-        }
-        
-        // Fallback to native mail()
-        $headers = "MIME-Version: 1.0\r\n";
-        $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-        $headers .= "From: {$this->fromName} <{$this->fromEmail}>\r\n";
-        $headers .= "Reply-To: support@kinas-group.com\r\n";
-        $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
-        
-        return mail($to, $subject, $htmlBody, $headers);
     }
 }
