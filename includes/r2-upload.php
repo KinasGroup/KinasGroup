@@ -3,12 +3,6 @@
 // Professional integration with R2 object storage
 // Maintains backward compatibility with existing FileUpload class
 
-// NOTE: This file does not use the Database class, so no database.php
-// require is needed here. (It previously had one pointing at a wrong
-// path — '../config/database.php' instead of '../api/config/database.php' —
-// which caused a fatal error the moment this file got pulled in via
-// includes/file-upload.php during listing edits.)
-
 class R2Upload {
     private string $bucket;
     private string $accountId;
@@ -96,14 +90,17 @@ class R2Upload {
         $mimeType = finfo_file($finfo, $file['tmp_name']);
         finfo_close($finfo);
         
-        if (!array_key_exists($mimeType, $this->allowedTypes)) {
+        // Normalize MIME type
+        $normalizedMime = $mimeType === 'image/jpg' ? 'image/jpeg' : $mimeType;
+        
+        if (!array_key_exists($normalizedMime, $this->allowedTypes)) {
             return ['success' => false, 'error' => 'Invalid file type'];
         }
         
-        $extension = $this->allowedTypes[$mimeType];
+        $extension = $this->allowedTypes[$normalizedMime];
         
         // Validate image if applicable
-        if (strpos($mimeType, 'image/') === 0) {
+        if (strpos($normalizedMime, 'image/') === 0) {
             $imageCheck = @getimagesize($file['tmp_name']);
             if ($imageCheck === false) {
                 return ['success' => false, 'error' => 'Invalid image file'];
@@ -123,7 +120,7 @@ class R2Upload {
         $processedFile = $this->processImageIfNeeded($file['tmp_name'], $options, $extension);
         
         // Upload to R2
-        $uploadResult = $this->uploadToR2($processedFile, $r2Key, $mimeType);
+        $uploadResult = $this->uploadToR2($processedFile, $r2Key, $normalizedMime);
         
         if (!$uploadResult['success']) {
             return $uploadResult;
@@ -131,7 +128,7 @@ class R2Upload {
         
         // Generate thumbnail for images
         $thumbnail = null;
-        if (strpos($mimeType, 'image/') === 0) {
+        if (strpos($normalizedMime, 'image/') === 0) {
             $thumbnail = $this->generateAndUploadThumbnail($file['tmp_name'], $subDir, $filename, $options);
         }
         
@@ -145,7 +142,7 @@ class R2Upload {
             'filename' => $filename,
             'filepath' => $uploadResult['url'],
             'thumbnail' => $thumbnail,
-            'mime_type' => $mimeType,
+            'mime_type' => $normalizedMime,
             'size' => $file['size'],
             'key' => $r2Key
         ];
@@ -187,15 +184,15 @@ class R2Upload {
         $service = 's3';
         $region = 'auto';
         $host = "{$this->accountId}.r2.cloudflarestorage.com";
-        $endpoint = "https://{$host}/{$this->bucket}/{$key}";
         
-        // Prepare request
+        // FIXED: Canonical URI should be just the key, not including bucket
+        $canonicalUri = '/' . $key;
+        
+        // Build canonical request for signature v4
         $fileContent = file_get_contents($filePath);
         $contentHash = hash('sha256', $fileContent);
         $contentLength = strlen($fileContent);
         
-        // Build canonical request for signature v4
-        $canonicalUri = '/' . $this->bucket . '/' . $key;
         $canonicalQueryString = '';
         $canonicalHeaders = "host:{$host}\nx-amz-content-sha256:{$contentHash}\nx-amz-date:{$amzDate}\n";
         $signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
@@ -220,6 +217,11 @@ class R2Upload {
         // Build Authorization header
         $authorization = "{$algorithm} Credential={$this->accessKey}/{$credentialScope}, SignedHeaders={$signedHeaders}, Signature={$signature}";
         
+        // Build endpoint URL (bucket name is in the host header, not in the path)
+        $endpoint = "https://{$host}/{$this->bucket}/{$key}";
+        
+        error_log("R2 Upload - Key: {$key}, Host: {$host}, Endpoint: {$endpoint}");
+        
         // Execute cURL request
         $ch = curl_init();
         curl_setopt_array($ch, [
@@ -235,7 +237,8 @@ class R2Upload {
             ],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_TIMEOUT => 30
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_VERBOSE => true
         ]);
         
         $response = curl_exec($ch);
@@ -243,10 +246,19 @@ class R2Upload {
         $error = curl_error($ch);
         curl_close($ch);
         
-        if ($httpCode !== 200) {
+        error_log("R2 Upload Response - HTTP: {$httpCode}, Response: " . substr($response, 0, 500));
+        
+        if ($error) {
             return [
                 'success' => false,
-                'error' => "R2 upload failed (HTTP {$httpCode}): " . substr($response, 0, 200)
+                'error' => "R2 upload cURL error: {$error}"
+            ];
+        }
+        
+        if ($httpCode !== 200 && $httpCode !== 201 && $httpCode !== 204) {
+            return [
+                'success' => false,
+                'error' => "R2 upload failed (HTTP {$httpCode}): " . substr($response, 0, 300)
             ];
         }
         
