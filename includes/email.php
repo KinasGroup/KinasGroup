@@ -59,7 +59,8 @@ class EmailService
     }
     
     /**
-     * Get the email header with company logo - MATCHES PDF HEADER
+     * Get the email header - EXACT MATCH TO PDF HEADER
+     * Using the same styling as solar-pdf.php
      */
     private function getEmailHeader()
     {
@@ -73,7 +74,7 @@ class EmailService
     }
     
     /**
-     * Get the email footer - MATCHES PDF FOOTER
+     * Get the email footer - EXACT MATCH TO PDF FOOTER
      */
     private function getEmailFooter()
     {
