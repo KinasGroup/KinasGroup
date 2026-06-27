@@ -43,13 +43,14 @@ class FileUpload {
     ];
 
     public function __construct(string $subDir = 'general') {
-        // Check if R2 should be used (environment variable override)
+        // Check if R2 should be used
         $this->useR2 = R2Upload::isConfigured() && (getenv('R2_ENABLED') !== 'false');
         
         if ($this->useR2) {
             try {
                 $this->r2Uploader = new R2Upload($subDir);
                 $this->uploadDir = ''; // Not used for R2
+                error_log('FileUpload: Using R2 storage');
             } catch (RuntimeException $e) {
                 // Fall back to local storage if R2 fails to initialize
                 $this->useR2 = false;
@@ -62,6 +63,7 @@ class FileUpload {
             if (!file_exists($this->uploadDir)) {
                 mkdir($this->uploadDir, 0755, true);
             }
+            error_log('FileUpload: Using local storage at ' . $this->uploadDir);
         }
         
         $this->allowedTypes = self::MIME_TO_EXTENSION;
@@ -107,7 +109,12 @@ class FileUpload {
     public function upload(array $file, array $options = []): array {
         // Use R2 if configured
         if ($this->useR2 && $this->r2Uploader) {
-            return $this->r2Uploader->upload($file, $options);
+            $result = $this->r2Uploader->upload($file, $options);
+            if ($result['success']) {
+                return $result;
+            }
+            // If R2 fails, fallback to local
+            error_log('R2 upload failed, falling back to local: ' . ($result['error'] ?? 'unknown'));
         }
         
         // Fall back to local storage
@@ -280,112 +287,4 @@ class FileUpload {
         $sourceImage = $this->createImageFromFile($filepath);
         $thumbImage = imagecreatetruecolor($thumbWidth, $thumbHeight);
 
-        if ((@getimagesize($filepath))[2] === IMAGETYPE_PNG) {
-            imagealphablending($thumbImage, false);
-            imagesavealpha($thumbImage, true);
-        }
-
-        imagecopyresampled($thumbImage, $sourceImage, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $width, $height);
-        $this->saveImage($thumbImage, $thumbPath, 80);
-
-        imagedestroy($sourceImage);
-        imagedestroy($thumbImage);
-
-        return 'thumb_' . $filename;
-    }
-
-    private function createImageFromFile(string $filepath) {
-        $imgInfo = @getimagesize($filepath);
-        $type = $imgInfo !== false ? $imgInfo[2] : false;
-
-        switch ($type) {
-            case IMAGETYPE_JPEG:
-                return imagecreatefromjpeg($filepath);
-            case IMAGETYPE_PNG:
-                return imagecreatefrompng($filepath);
-            case IMAGETYPE_WEBP:
-                return imagecreatefromwebp($filepath);
-            case IMAGETYPE_GIF:
-                return imagecreatefromgif($filepath);
-            default:
-                throw new \RuntimeException('Unsupported image type');
-        }
-    }
-
-    private function saveImage($image, string $filepath, int $quality): void {
-        $extension = strtolower(pathinfo($filepath, PATHINFO_EXTENSION));
-
-        switch ($extension) {
-            case 'jpg':
-            case 'jpeg':
-                imagejpeg($image, $filepath, $quality);
-                break;
-            case 'png':
-                $pngQuality = (int)round(($quality / 100) * 9);
-                imagepng($image, $filepath, $pngQuality);
-                break;
-            case 'webp':
-                imagewebp($image, $filepath, $quality);
-                break;
-            case 'gif':
-                imagegif($image, $filepath);
-                break;
-            default:
-                throw new \RuntimeException('Unsupported image format');
-        }
-    }
-
-    public function delete(string $filename): bool {
-        if ($this->useR2 && $this->r2Uploader) {
-            return $this->r2Uploader->delete($filename);
-        }
-        
-        // Sanitize filename to prevent directory traversal
-        $filename = basename($filename);
-
-        $filepath = $this->uploadDir . '/' . $filename;
-        $thumbPath = $this->uploadDir . '/thumbnails/thumb_' . $filename;
-
-        $deleted = false;
-
-        if (file_exists($filepath)) {
-            unlink($filepath);
-            $deleted = true;
-        }
-
-        if (file_exists($thumbPath)) {
-            unlink($thumbPath);
-            $deleted = true;
-        }
-
-        return $deleted;
-    }
-
-    private function getUploadError(int $code): string {
-        $errors = [
-            UPLOAD_ERR_INI_SIZE => 'File exceeds server maximum size',
-            UPLOAD_ERR_FORM_SIZE => 'File exceeds form maximum size',
-            UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
-            UPLOAD_ERR_NO_FILE => 'No file was uploaded',
-            UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
-            UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
-            UPLOAD_ERR_EXTENSION => 'File upload stopped by extension'
-        ];
-
-        return $errors[$code] ?? 'Unknown upload error';
-    }
-
-    /**
-     * Get allowed subdirectories for validation
-     */
-    public static function getAllowedDirectories(): array {
-        return self::ALLOWED_SUBDIRS;
-    }
-    
-    /**
-     * Check if using R2 storage
-     */
-    public function isUsingR2(): bool {
-        return $this->useR2;
-    }
-}
+        if ((@getimagesize($filepath))[2] === IMAGETYPE_PNG)
