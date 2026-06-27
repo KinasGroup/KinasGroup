@@ -32,9 +32,9 @@ body {
        This preserves hero backgrounds, gradient backgrounds, etc.
     */
     
-    /* Core page containers */
+    /* Core page containers - ONLY these specific classes */
     .je-container,
-    .container,
+    .container:not(.header-inner),
     .je-auth-main,
     .je-auth-form,
     .je-results-panel,
@@ -45,7 +45,19 @@ body {
     .featured-item-card,
     .je-card,
     .je-card-body,
-    .item-body {
+    .item-body,
+    .je-filter-panel,
+    .je-results-panel,
+    .je-detail-wrap,
+    .je-section,
+    .je-panel-body,
+    .je-dash-header,
+    .je-auth-form,
+    .je-form-group,
+    .table-responsive,
+    .je-table,
+    .je-table th,
+    .je-table td {
         background-color: #ffffff !important;
         color: #0A0A0A !important;
     }
@@ -94,6 +106,35 @@ body {
     .listing-card, .featured-item-card,
     .je-line, .je-line-2, .je-line-3 {
         border-color: #e0e0e0 !important;
+    }
+    
+    /* DO NOT touch hero section backgrounds */
+    .hero-section,
+    .hero-section *,
+    #heroSection,
+    #heroSection *,
+    .hero-slide,
+    .hero-slide *,
+    .hero-slides-wrapper,
+    .hero-slides-wrapper *,
+    .je-hero-bar,
+    .je-hero-bar *,
+    .je3-header.transparent,
+    .je3-header.transparent * {
+        background: none !important;
+        background-color: transparent !important;
+    }
+    
+    /* Keep hero text white */
+    .hero-text,
+    .hero-text * {
+        color: #ffffff !important;
+    }
+    
+    /* Keep the overlay */
+    .hero-overlay,
+    .hero-overlay * {
+        background: linear-gradient(135deg, rgba(10,10,10,0.4), rgba(0,0,0,0.7)) !important;
     }
 }
 
