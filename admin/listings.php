@@ -113,11 +113,71 @@ $pageTitle = 'Listings Management - Admin';
 include '../templates/header.php';
 ?>
 
-<div class="je-dash-shell">
+<!-- ============================================================
+     RESPONSIVE FIX - Added container and responsive styles
+     ============================================================ -->
+<style>
+.je-dash-shell {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+.je-dash-main {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 15px !important;
+}
+.table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+}
+.je-table {
+    min-width: 700px !important;
+    width: 100% !important;
+}
+.action-btn {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    margin: 2px;
+    white-space: nowrap;
+}
+.action-btn-view { background: #1565C0; color: white; }
+.action-btn-delete { background: #C62828; color: white; }
+.status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+}
+.status-badge-active { background: #E8F5E9; color: #1B5E20; }
+.status-badge-inactive { background: #FFF3E0; color: #E65100; }
+.status-badge-pending { background: #FFF8E1; color: #F57F17; }
+.status-badge-flagged { background: #FFEBEE; color: #C62828; }
+.status-badge-removed { background: #FFEBEE; color: #C62828; }
+
+@media (max-width: 768px) {
+    .je-dash-main { padding: 10px !important; }
+    .je-table th, .je-table td { padding: 8px 8px; font-size: 11px; }
+    .action-btn { font-size: 9px; padding: 3px 6px; }
+    .je-table th:nth-child(1), .je-table td:nth-child(1) { display: none; }
+}
+@media (max-width: 480px) {
+    .je-table th:nth-child(5), .je-table td:nth-child(5) { display: none; }
+    .je-table th:nth-child(7), .je-table td:nth-child(7) { display: none; }
+}
+</style>
+
+<div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
     <?php include __DIR__ . '/../includes/partials/admin-sidebar.php'; ?>
 
-    <main class="je-dash-main">
-        <div class="je-dash-header">
+    <main class="je-dash-main" style="overflow-x:hidden;width:100%;max-width:100%;padding:15px;">
+        <div class="je-dash-header" style="flex-wrap: wrap;">
             <div>
                 <h1><i class="fas fa-list-ul" style="color: #C6A43F;"></i> Listings Management</h1>
                 <p>Manage all listings across all divisions</p>
@@ -144,8 +204,8 @@ include '../templates/header.php';
         <?php endif; ?>
 
         <!-- Division Stats & Filter -->
-        <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; align-items: center;">
-            <a href="?division=all" style="padding: 8px 16px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 13px; 
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center;">
+            <a href="?division=all" style="padding: 6px 14px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 12px; 
                 background: <?php echo $filterDivision === 'all' ? '#C6A43F' : '#f0f0f0'; ?>; 
                 color: <?php echo $filterDivision === 'all' ? '#0A0A0A' : '#333'; ?>;">
                 📊 All (<?php echo count($allListings); ?>)
@@ -153,7 +213,7 @@ include '../templates/header.php';
             <?php foreach ($divisionCounts as $div => $count): 
                 $config = $divConfig[$div] ?? ['label' => ucfirst($div), 'color' => '#f0f0f0', 'text' => '#333'];
             ?>
-                <a href="?division=<?php echo $div; ?>" style="padding: 8px 16px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 13px;
+                <a href="?division=<?php echo $div; ?>" style="padding: 6px 14px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 12px;
                     background: <?php echo $filterDivision === $div ? $config['color'] : '#f0f0f0'; ?>; 
                     color: <?php echo $filterDivision === $div ? $config['text'] : '#333'; ?>;
                     border: <?php echo $filterDivision === $div ? '2px solid ' . $config['text'] : '1px solid #e0e0e0'; ?>;">
@@ -162,16 +222,16 @@ include '../templates/header.php';
             <?php endforeach; ?>
         </div>
 
-        <div class="je-panel">
-            <div class="je-panel-body">
+        <div class="je-panel" style="overflow-x: hidden;">
+            <div class="je-panel-body" style="overflow-x: hidden;">
                 <?php if (empty($allListings)): ?>
                     <div class="je-panel-empty">
                         <i class="fas fa-list-ul"></i>
                         <p>No listings found in this division.</p>
                     </div>
                 <?php else: ?>
-                    <div class="table-responsive">
-                    <table class="je-table">
+                    <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
+                    <table class="je-table" style="min-width: 700px; width: 100%;">
                         <thead>
                             <tr>
                                 <th>#</th>
@@ -243,32 +303,5 @@ include '../templates/header.php';
         </div>
     </main>
 </div>
-
-<style>
-.action-btn {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    text-decoration: none;
-    margin: 2px;
-    white-space: nowrap;
-}
-.action-btn-view { background: #1565C0; color: white; }
-.action-btn-delete { background: #C62828; color: white; }
-.status-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 600;
-}
-.status-badge-active { background: #E8F5E9; color: #1B5E20; }
-.status-badge-inactive { background: #FFF3E0; color: #E65100; }
-.status-badge-pending { background: #FFF8E1; color: #F57F17; }
-.status-badge-flagged { background: #FFEBEE; color: #C62828; }
-.status-badge-removed { background: #FFEBEE; color: #C62828; }
-</style>
 
 <?php include '../templates/footer.php'; ?>
