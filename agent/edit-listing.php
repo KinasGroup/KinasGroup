@@ -92,6 +92,9 @@ $pageTitle = 'Edit Listing - Agent Dashboard';
 require_once __DIR__ . '/../templates/header.php';
 ?>
 
+<!-- ============================================================
+     RESPONSIVE FIX - COMPLETE OVERHAUL FOR MOBILE
+     ============================================================ -->
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
@@ -101,52 +104,232 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .agent-header h1 i { color: #C6A43F; margin-right: 12px; }
 .btn-secondary { background: #F5F5F5; color: #666; padding: 10px 20px; border-radius: 40px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s; border: 1px solid #E0E0E0; }
 .btn-secondary:hover { background: #E0E0E0; }
-.listing-form { background: white; border-radius: 24px; border: 1px solid #E0E0E0; overflow: hidden; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.listing-form { background: white; border-radius: 24px; border: 1px solid #E0E0E0; overflow: hidden; width: 100%; }
+
+/* ============================================================
+   FIX: REORDER GRID ON MOBILE - IMAGES BELOW FORM
+   ============================================================ */
+.form-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 0; 
+}
 .form-section { padding: 32px; }
 .form-section:first-child { border-right: 1px solid #E0E0E0; }
 .form-section h3 { font-size: 18px; font-weight: 600; color: #C6A43F; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #C6A43F; display: inline-block; }
 .form-group { margin-bottom: 24px; }
 .form-group label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #333; }
 .form-group label i { color: #C6A43F; margin-right: 6px; }
-.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid #E0E0E0; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 14px; transition: all 0.3s; background: #fff; }
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #C6A43F; box-shadow: 0 0 0 3px rgba(198,164,63,0.1); }
-.form-group select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
+.form-group input, .form-group select, .form-group textarea { 
+    width: 100%; 
+    padding: 12px 16px; 
+    border: 1px solid #E0E0E0; 
+    border-radius: 12px; 
+    font-family: 'Inter', sans-serif; 
+    font-size: 14px; 
+    transition: all 0.3s; 
+    background: #fff; 
+    box-sizing: border-box;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { 
+    outline: none; 
+    border-color: #C6A43F; 
+    box-shadow: 0 0 0 3px rgba(198,164,63,0.1); 
+}
+.form-group select { 
+    appearance: none; 
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); 
+    background-repeat: no-repeat; 
+    background-position: right 16px center; 
+    padding-right: 40px; 
+}
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 .input-prefix { position: relative; display: flex; align-items: center; }
 .prefix { position: absolute; left: 16px; color: #C6A43F; font-weight: 600; }
 .input-prefix input { padding-left: 32px; }
-.image-upload-area { border: 2px dashed #E0E0E0; border-radius: 16px; padding: 20px; text-align: center; transition: all 0.3s; }
+.image-upload-area { 
+    border: 2px dashed #E0E0E0; 
+    border-radius: 16px; 
+    padding: 20px; 
+    text-align: center; 
+    transition: all 0.3s; 
+    width: 100%;
+}
 .image-upload-area:hover { border-color: #C6A43F; background: rgba(198,164,63,0.02); }
 .upload-placeholder { cursor: pointer; }
 .upload-placeholder i { font-size: 48px; color: #C6A43F; margin-bottom: 12px; }
 .upload-placeholder p { margin-bottom: 8px; color: #666; }
 .upload-placeholder span { font-size: 12px; color: #999; }
-.image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 20px; }
-.preview-item { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 1; background: #F5F5F5; border: 2px solid #E0E0E0; }
+.image-preview-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
+    gap: 12px; 
+    margin-top: 20px; 
+}
+.preview-item { 
+    position: relative; 
+    border-radius: 12px; 
+    overflow: hidden; 
+    aspect-ratio: 1; 
+    background: #F5F5F5; 
+    border: 2px solid #E0E0E0; 
+}
 .preview-item img { width: 100%; height: 100%; object-fit: cover; }
 .preview-item.existing { border-color: #2E7D32; }
-.preview-item.existing .preview-badge { position: absolute; top: 4px; left: 4px; background: #2E7D32; color: white; font-size: 9px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
-.preview-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-size: 14px; border: none; transition: all 0.3s; }
+.preview-item.existing .preview-badge { 
+    position: absolute; 
+    top: 4px; 
+    left: 4px; 
+    background: #2E7D32; 
+    color: white; 
+    font-size: 9px; 
+    padding: 2px 8px; 
+    border-radius: 4px; 
+    font-weight: 600; 
+}
+.preview-remove { 
+    position: absolute; 
+    top: 4px; 
+    right: 4px; 
+    width: 24px; 
+    height: 24px; 
+    background: rgba(0,0,0,0.7); 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    color: white; 
+    cursor: pointer; 
+    font-size: 14px; 
+    border: none; 
+    transition: all 0.3s; 
+}
 .preview-remove:hover { background: #C62828; }
 .preview-remove.loading { opacity: 0.5; pointer-events: none; }
 .checkbox-group { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .checkbox-label input { width: auto; accent-color: #C6A43F; }
-.form-actions { display: flex; justify-content: flex-end; gap: 16px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #E0E0E0; }
-.btn-cancel { padding: 12px 28px; background: #F5F5F5; border: none; border-radius: 40px; color: #666; cursor: pointer; font-weight: 600; }
-.btn-submit { padding: 12px 32px; background: #C6A43F; border: none; border-radius: 40px; font-weight: 600; color: #0A0A0A; cursor: pointer; transition: all 0.3s; }
+.form-actions { 
+    display: flex; 
+    justify-content: flex-end; 
+    gap: 16px; 
+    margin-top: 32px; 
+    padding-top: 24px; 
+    border-top: 1px solid #E0E0E0; 
+    flex-wrap: wrap;
+}
+.btn-cancel { 
+    padding: 12px 28px; 
+    background: #F5F5F5; 
+    border: none; 
+    border-radius: 40px; 
+    color: #666; 
+    cursor: pointer; 
+    font-weight: 600; 
+}
+.btn-submit { 
+    padding: 12px 32px; 
+    background: #C6A43F; 
+    border: none; 
+    border-radius: 40px; 
+    font-weight: 600; 
+    color: #0A0A0A; 
+    cursor: pointer; 
+    transition: all 0.3s; 
+}
 .btn-submit:hover { background: #A8882E; transform: translateY(-2px); }
 .automobile-fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .automobile-fields-grid .form-group { margin-bottom: 0; }
 .full-width { grid-column: 1 / -1; }
-@media (max-width: 968px) { .form-grid { grid-template-columns: 1fr; } .form-section:first-child { border-right: none; border-bottom: 1px solid #E0E0E0; } .form-row { grid-template-columns: 1fr; gap: 0; } .automobile-fields-grid { grid-template-columns: 1fr; } }
-@media (max-width: 768px) { .agent-container { padding: 20px; } .form-section { padding: 24px; } }
+
+/* ============================================================
+   RESPONSIVE BREAKPOINTS - FIXED
+   ============================================================ */
+
+/* Tablet and below */
+@media (max-width: 968px) { 
+    .form-grid { 
+        grid-template-columns: 1fr; 
+    } 
+    .form-section:first-child { 
+        border-right: none; 
+        border-bottom: 1px solid #E0E0E0; 
+    } 
+    .form-row { 
+        grid-template-columns: 1fr; 
+        gap: 0; 
+    } 
+    .automobile-fields-grid { 
+        grid-template-columns: 1fr; 
+    } 
+}
+
+/* Mobile */
+@media (max-width: 768px) { 
+    .agent-container { 
+        padding: 15px !important; 
+    } 
+    .form-section { 
+        padding: 16px !important; 
+    }
+    .agent-header h1 { 
+        font-size: 22px !important; 
+    }
+    .form-section h3 { 
+        font-size: 16px !important; 
+    }
+    .form-group input, 
+    .form-group select, 
+    .form-group textarea { 
+        font-size: 14px !important; 
+        padding: 10px 14px !important; 
+    }
+    .btn-submit, 
+    .btn-cancel { 
+        width: 100% !important; 
+        justify-content: center !important; 
+        text-align: center !important;
+    }
+    .form-actions { 
+        flex-direction: column !important; 
+        gap: 10px !important; 
+    }
+    .image-preview-grid { 
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)) !important; 
+        gap: 8px !important; 
+    }
+    .preview-item { 
+        aspect-ratio: 1 !important; 
+    }
+}
+
+/* Small phones */
+@media (max-width: 480px) { 
+    .agent-container { 
+        padding: 10px !important; 
+    }
+    .form-section { 
+        padding: 12px !important; 
+    }
+    .agent-header { 
+        flex-direction: column !important; 
+        align-items: flex-start !important; 
+        gap: 10px !important; 
+    }
+    .btn-secondary { 
+        width: 100% !important; 
+        justify-content: center !important; 
+    }
+    .image-preview-grid { 
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)) !important; 
+        gap: 6px !important; 
+    }
+}
 </style>
 
-<div class="je-dash-shell">
+<div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
 <?php include __DIR__ . '/../includes/partials/agent-sidebar.php'; ?>
-<main class="je-dash-main">
+<main class="je-dash-main" style="overflow-x:hidden;width:100%;max-width:100%;padding:15px;">
 
 <div class="agent-container">
     <div class="agent-header"><div><h1><i class="fas fa-edit"></i> Edit Listing</h1><p>Update your listing details</p></div><a href="/agent/listings.php" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back to Listings</a></div>
@@ -176,7 +359,9 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
         <input type="hidden" name="redirect" value="/agent/listings.php">
         
         <div class="form-grid">
-            <div class="form-section"><h3>Basic Information</h3>
+            <!-- LEFT COLUMN - Form Fields (Now first on mobile) -->
+            <div class="form-section">
+                <h3>Basic Information</h3>
                 <div class="form-group"><label><i class="fas fa-layer-group"></i> Division</label>
                     <?php 
                     $divisionLabel = '';
@@ -219,25 +404,11 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 <div class="form-group"><label><i class="fas fa-globe"></i> Country</label>
                     <input type="text" name="country" value="<?php echo htmlspecialchars($listing['country'] ?? 'Nigeria'); ?>" placeholder="e.g., United States">
                 </div>
-            </div>
-            <div class="form-section"><h3>Images</h3>
-                <div class="image-upload-area">
-                    <input type="file" name="images[]" id="imageUpload" multiple accept="image/*" style="display: none;">
-                    <div class="upload-placeholder" onclick="document.getElementById('imageUpload').click()">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>Click or drag images here</p>
-                        <span>Upload up to 10 images (Max 5MB each)</span>
-                    </div>
-                    <div class="image-preview-grid" id="imagePreviewGrid">
-                        <!-- Existing images will be loaded here via JavaScript -->
-                    </div>
-                </div>
 
                 <!-- AUTOMOBILE DETAILS SECTION -->
                 <div id="automobileFields" style="display:<?php echo $divisionParam === 'car' ? 'block' : 'none'; ?>; margin-top:24px;">
                     <h3 style="margin-bottom:16px;"><i class="fas fa-car"></i> Automobile Details</h3>
                     <div class="automobile-fields-grid">
-                        <!-- Make (Brand) -->
                         <div class="form-group"><label><i class="fas fa-tag"></i> Make *</label>
                             <select name="brand" required>
                                 <option value="">Select Make</option>
@@ -286,7 +457,6 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                                 <option value="Other" <?php echo ($listing['brand'] ?? '') === 'Other' ? 'selected' : ''; ?>>Other</option>
                             </select>
                         </div>
-                        <!-- Model -->
                         <div class="form-group"><label><i class="fas fa-car"></i> Model *</label>
                             <input type="text" name="model" value="<?php echo htmlspecialchars($listing['model'] ?? ''); ?>" placeholder="e.g., S-Class" required>
                         </div>
@@ -388,7 +558,6 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                         </div>
                         <div class="form-group full-width"><label><i class="fas fa-check-circle"></i> Features (comma separated)</label>
                             <?php
-                            // Convert features from JSON to comma-separated string for display
                             $featuresDisplay = '';
                             if (!empty($listing['features'])) {
                                 if (is_array($listing['features'])) {
@@ -455,6 +624,22 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
                 <div class="checkbox-group"><label class="checkbox-label"><input type="checkbox" name="featured" value="1" <?php echo (!empty($listing['featured'])) ? 'checked' : ''; ?>><span>Feature this listing for premium visibility</span></label></div>
                 <div class="form-actions"><button type="button" class="btn-cancel" onclick="window.location.href='/agent/listings.php'">Cancel</button><button type="submit" class="btn-submit" id="updateBtn">Update Listing</button></div>
+            </div>
+
+            <!-- RIGHT COLUMN - Images (Now second on mobile) -->
+            <div class="form-section">
+                <h3>Images</h3>
+                <div class="image-upload-area">
+                    <input type="file" name="images[]" id="imageUpload" multiple accept="image/*" style="display: none;">
+                    <div class="upload-placeholder" onclick="document.getElementById('imageUpload').click()">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Click or drag images here</p>
+                        <span>Upload up to 10 images (Max 5MB each)</span>
+                    </div>
+                    <div class="image-preview-grid" id="imagePreviewGrid">
+                        <!-- Existing images will be loaded here via JavaScript -->
+                    </div>
+                </div>
             </div>
         </div>
     </form>
