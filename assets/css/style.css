@@ -1,6 +1,6 @@
 /* ============================================================
-   FORCE LIGHT MODE - PERMANENT FIX
-   This MUST be at the very top of style.css
+   FORCE LIGHT MODE - PERMANENT FIX (UPDATED)
+   This overrides system dark mode WITHOUT breaking hero images
    ============================================================ */
 
 /* Force light mode at the root level */
@@ -18,7 +18,7 @@ body {
     color: #0A0A0A !important;
 }
 
-/* Override system dark mode - CRITICAL */
+/* Override system dark mode - MORE TARGETED */
 @media (prefers-color-scheme: dark) {
     html, body, :root {
         color-scheme: light !important;
@@ -26,20 +26,31 @@ body {
         color: #0A0A0A !important;
     }
     
-    /* Force all block elements to light */
-    div, section, main, article, aside, 
-    header, footer, nav, form, fieldset,
-    .container, .je-container, .je-auth-shell,
-    .je-auth-aside, .je-auth-main, .je-auth-form,
-    .je-filter-panel, .je-results-panel, .je-dash-main,
-    .je-dash-sidebar, .je-panel, .je-stat-card,
-    .listing-card, .featured-item-card, .je-card,
-    .je-card-body, .item-body, .division-card .card-content {
+    /* 
+       IMPORTANT: Do NOT force all div/section/header to white!
+       Only target specific layout containers that should be white.
+       This preserves hero backgrounds, gradient backgrounds, etc.
+    */
+    
+    /* Core page containers */
+    .je-container,
+    .container,
+    .je-auth-main,
+    .je-auth-form,
+    .je-results-panel,
+    .je-dash-main,
+    .je-panel,
+    .je-stat-card,
+    .listing-card,
+    .featured-item-card,
+    .je-card,
+    .je-card-body,
+    .item-body {
         background-color: #ffffff !important;
         color: #0A0A0A !important;
     }
     
-    /* Force dark sidebar to stay dark */
+    /* Dark sidebar stays dark */
     .je-dash-sidebar,
     .je-auth-aside,
     .mobile-nav-drawer,
@@ -48,16 +59,15 @@ body {
         color: rgba(255,255,255,0.7) !important;
     }
     
-    /* Force text colors */
-    h1, h2, h3, h4, h5, h6,
-    p, span, a, li, label, blockquote,
-    .je-auth-sub, .je-auth-sub-form,
-    .je-auth-headline, .je-auth-brand span,
+    /* Force text colors on light backgrounds */
+    .je-auth-main h1, .je-auth-main h2, .je-auth-main h3,
+    .je-auth-main p, .je-auth-main span, .je-auth-main a,
+    .je-dash-main h1, .je-dash-main h2, .je-dash-main h3,
+    .je-dash-main p, .je-dash-main span, .je-dash-main a,
     .je-card-title, .je-card-price,
     .je-spec-title, .je-spec-price,
     .je-dash-header h1, .je-panel-title,
     .je-stat-value, .je-stat-label,
-    .je-results-count strong,
     .section-heading, .listing-title, .listing-price {
         color: #0A0A0A !important;
     }
@@ -65,17 +75,7 @@ body {
     /* Keep gold accents */
     .je-text-gold, .je-gold, .je-card-eyebrow,
     .je-dash-nav a i, .je-panel-title i,
-    .je-stat-icon, .je-gold-text,
-    .je-gold-border {
-        color: #C6A43F !important;
-    }
-    
-    /* Force links */
-    a:not(.je-btn):not(.je-btn-gold):not(.je-admin-portal-btn) {
-        color: #0A0A0A !important;
-    }
-    
-    a:not(.je-btn):not(.je-btn-gold):not(.je-admin-portal-btn):hover {
+    .je-stat-icon {
         color: #C6A43F !important;
     }
     
@@ -89,21 +89,10 @@ body {
         border-color: #e0e0e0 !important;
     }
     
-    /* Force card backgrounds */
-    .je-card, .je-card-body, .je-panel,
-    .je-stat-card, .listing-card,
-    .featured-item-card, .item-body,
-    .division-card .card-content,
-    .je-filter-panel, .je-results-panel {
-        background-color: #ffffff !important;
-        color: #0A0A0A !important;
-    }
-    
-    /* Force borders to stay visible */
+    /* Force borders */
     .je-card, .je-panel, .je-stat-card,
     .listing-card, .featured-item-card,
-    .je-filter-panel, .je-line,
-    .je-line-2, .je-line-3 {
+    .je-line, .je-line-2, .je-line-3 {
         border-color: #e0e0e0 !important;
     }
 }
