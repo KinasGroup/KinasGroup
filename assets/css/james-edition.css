@@ -1,8 +1,8 @@
 /* ============================================================
-   FORCE LIGHT MODE - JAMES EDITION (UPDATED)
+   FORCE LIGHT MODE - JAMES EDITION (SAFE VERSION)
    ============================================================ */
 
-/* Force light mode at the root level */
+/* Force light mode at the root level ONLY */
 :root {
     color-scheme: light !important;
 }
@@ -17,15 +17,16 @@ body {
     color: #0A0A0A !important;
 }
 
-/* Override system dark mode - MORE TARGETED */
+/* Minimal dark mode override */
 @media (prefers-color-scheme: dark) {
+    /* Force body and html to light */
     html, body, :root {
         color-scheme: light !important;
         background: #ffffff !important;
         color: #0A0A0A !important;
     }
     
-    /* Target JE components - but NOT hero */
+    /* ONLY target specific JE components */
     .je-auth-main,
     .je-auth-form,
     .je-filter-panel,
@@ -34,16 +35,12 @@ body {
     .je-panel,
     .je-stat-card,
     .je-card,
-    .je-card-body,
-    .je-detail-wrap,
-    .je-section,
-    .je-breadcrumb-bar,
-    .je-banner {
+    .je-card-body {
         background-color: #ffffff !important;
         color: #0A0A0A !important;
     }
     
-    /* Dark sidebar stays dark */
+    /* Keep sidebar dark */
     .je-dash-sidebar,
     .je-auth-aside,
     .je-footer {
@@ -63,7 +60,7 @@ body {
         color: #0A0A0A !important;
     }
     
-    /* Keep gold */
+    /* Keep gold accents */
     .je-text-gold,
     .je-card-eyebrow,
     .je-dash-nav a i,
@@ -88,31 +85,6 @@ body {
     .je-card, .je-panel, .je-stat-card,
     .je-filter-panel, .je-line, .je-line-2 {
         border-color: #e0e0e0 !important;
-    }
-    
-    /* DO NOT touch hero or transparent header */
-    .je-hero-bar,
-    .je-hero-bar *,
-    .je-hero-title,
-    .je-hero-form,
-    .je-hero-input,
-    .je-hero-btn,
-    .je3-header.transparent,
-    .je3-header.transparent * {
-        background: none !important;
-        background-color: transparent !important;
-    }
-    
-    /* Keep hero search background dark */
-    .je-hero-bar {
-        background: #0A0A0A !important;
-    }
-    
-    /* Keep hero text white */
-    .je-hero-title,
-    .je-hero-input,
-    .je-hero-input::placeholder {
-        color: #fff !important;
     }
 }
 
