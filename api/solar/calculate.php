@@ -125,23 +125,14 @@ try {
 
     // Generate PDF
     $pdfPath = generateSolarRecommendationPDF($pdfData, $reference);
-
-    if (!$pdfPath || !file_exists($pdfPath)) {
-        throw new Exception('Failed to generate PDF. Please try again.');
-    }
-
     $pdfUrl = 'https://' . $_SERVER['HTTP_HOST'] . '/uploads/solar-reports/' . $reference . '.pdf';
 
     // ============================================================
-    // SEND EMAILS WITH PROFESSIONAL HEADER
+    // SEND EMAILS - BOTH CUSTOMER AND ADMIN
     // ============================================================
     $emailService = new EmailService();
 
-    // Get the professional header and footer
-    $emailHeader = getSolarEmailHeader();
-    $emailFooter = getSolarEmailFooter();
-
-    // Customer email
+    // ----- CUSTOMER EMAIL -----
     $customerSubject = 'Your Solar Proposal from KINAS VOLT - ' . $reference;
     $customerBody = '
     <!DOCTYPE html>
@@ -156,7 +147,10 @@ try {
         </style>
     </head>
     <body>
-        ' . $emailHeader . '
+        <div style="background: #0A0A0A; padding: 20px; text-align: center;">
+            <h1 style="color: #C6A43F; font-family: Prata, serif; margin: 0;">KINAS GROUP</h1>
+            <p style="color: rgba(255,255,255,0.5); margin: 4px 0 0;">KINAS VOLT - Solar Division</p>
+        </div>
         <div class="content">
             <h2 style="color: #0A0A0A; font-family: Prata, serif;">Your Solar Proposal is Ready!</h2>
             <p>Dear ' . htmlspecialchars($fullName) . ',</p>
@@ -182,14 +176,36 @@ try {
                 <li>Receive your final quotation</li>
             </ol>
             
-            <p>If you have any questions, feel free to reply to this email.</p>
+            <p>If you have any questions, feel free to reply to this email or call us at <strong>+234 810 757 6042</strong>.</p>
+            
+            <hr style="border: none; border-top: 2px solid #C6A43F; margin: 20px 0;">
+            
+            <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td align="center" style="font-size: 12px; color: #666; line-height: 1.6;">
+                        <strong>KINAS GROUP OF COMPANIES LIMITED</strong><br>
+                        RC Number: 7997266<br>
+                        Gwarinpa, 900108, Federal Capital Territory, Nigeria<br>
+                        Phone: <a href="tel:+2348107576042" style="color: #C6A43F; text-decoration: none;">+234 810 757 6042</a><br>
+                        Email: <a href="mailto:support@kinas-group.com" style="color: #C6A43F; text-decoration: none;">support@kinas-group.com</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" style="padding-top: 10px; font-size: 10px; color: #999;">
+                        &copy; ' . date('Y') . ' KINAS GROUP OF COMPANIES LIMITED. All rights reserved.
+                    </td>
+                </tr>
+            </table>
         </div>
-        ' . $emailFooter . '
     </body>
     </html>';
 
-    // Admin email
-    $adminSubject = 'New Solar Enquiry - ' . $reference . ' - ' . $fullName;
+    // Send to CUSTOMER
+    $customerSent = $emailService->send($email, $fullName, $customerSubject, $customerBody, strip_tags($customerBody));
+
+    // ----- ADMIN EMAIL -----
+    $adminEmail = 'admin@kinas-group.com';
+    $adminSubject = '🔔 NEW Solar Enquiry - ' . $reference . ' - ' . $fullName;
     $adminBody = '
     <!DOCTYPE html>
     <html>
@@ -197,15 +213,18 @@ try {
         <style>
             body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #2C2C2C; }
             .content { background: #FFFFFF; padding: 30px; }
-            .btn { display: inline-block; padding: 12px 30px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0; }
             .info-box { background: #F8F6F1; padding: 15px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #C6A43F; }
+            .highlight { color: #C6A43F; font-weight: bold; }
         </style>
     </head>
     <body>
-        ' . $emailHeader . '
+        <div style="background: #0A0A0A; padding: 20px; text-align: center;">
+            <h1 style="color: #C6A43F; font-family: Prata, serif; margin: 0;">KINAS GROUP</h1>
+            <p style="color: rgba(255,255,255,0.5); margin: 4px 0 0;">KINAS VOLT - Solar Division</p>
+        </div>
         <div class="content">
-            <h2 style="color: #0A0A0A; font-family: Prata, serif;">New Solar Enquiry Received</h2>
-            <p>A new solar enquiry has been submitted.</p>
+            <h2 style="color: #0A0A0A; font-family: Prata, serif;">🔔 New Solar Enquiry Received</h2>
+            <p>A new solar enquiry has been submitted through the calculator.</p>
             
             <div class="info-box">
                 <strong>👤 Customer Details:</strong><br>
@@ -222,27 +241,64 @@ try {
                 <strong>System Size:</strong> ' . $systemSize . ' kWp<br>
                 <strong>Daily Consumption:</strong> ' . number_format($dailyKwh, 2) . ' kWh<br>
                 <strong>Backup Hours:</strong> ' . $backupHours . ' hours<br>
-                <strong>Estimated Cost:</strong> ₦' . number_format($estimatedCost) . '
+                <strong>Estimated Cost:</strong> ₦' . number_format($estimatedCost) . '<br>
+                <strong>Monthly Savings:</strong> ₦' . number_format($monthlySavings) . '
             </div>
             
             <p style="text-align: center; margin: 20px 0;">
-                <a href="' . $pdfUrl . '" class="btn">📄 View Proposal PDF</a>
+                <a href="' . $pdfUrl . '" style="display: inline-block; padding: 12px 30px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: bold;">📄 View PDF Proposal</a>
             </p>
+            
+            <hr style="border: none; border-top: 2px solid #C6A43F; margin: 20px 0;">
+            
+            <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td align="center" style="font-size: 12px; color: #666; line-height: 1.6;">
+                        <strong>KINAS GROUP OF COMPANIES LIMITED</strong><br>
+                        RC Number: 7997266<br>
+                        Gwarinpa, 900108, Federal Capital Territory, Nigeria<br>
+                        Phone: <a href="tel:+2348107576042" style="color: #C6A43F; text-decoration: none;">+234 810 757 6042</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" style="padding-top: 10px; font-size: 10px; color: #999;">
+                        &copy; ' . date('Y') . ' KINAS GROUP OF COMPANIES LIMITED. All rights reserved.
+                    </td>
+                </tr>
+            </table>
         </div>
-        ' . $emailFooter . '
     </body>
     </html>';
 
-    // Send email to customer
-    $emailService->sendEmail($email, $customerSubject, $customerBody, 'listings@kinas-group.com', 'KINAS VOLT Solar Division');
-
-    // Send email to admin
-    $emailService->sendEmail('admin@kinas-group.com', $adminSubject, $adminBody, 'listings@kinas-group.com', 'KINAS VOLT Solar Division');
+    // Send to ADMIN
+    $adminSent = $emailService->send($adminEmail, 'Admin', $adminSubject, $adminBody, strip_tags($adminBody));
 
     // ============================================================
     // SAVE TO DATABASE
     // ============================================================
     $db = Database::getInstance()->getConnection();
+    
+    // Check if table exists, create if not
+    try {
+        $db->query("SELECT 1 FROM solar_enquiries LIMIT 1");
+    } catch (PDOException $e) {
+        // Table doesn't exist, create it
+        $db->exec("
+            CREATE TABLE IF NOT EXISTS solar_enquiries (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                full_name VARCHAR(100) NOT NULL,
+                email VARCHAR(100) NOT NULL,
+                phone VARCHAR(20) NOT NULL,
+                monthly_bill DECIMAL(15,2),
+                system_size DECIMAL(5,2),
+                annual_savings DECIMAL(15,2),
+                payback_years DECIMAL(5,2),
+                status VARCHAR(20) DEFAULT 'new',
+                created_at DATETIME,
+                INDEX idx_email (email)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+    }
     
     $stmt = $db->prepare("
         INSERT INTO solar_enquiries 
@@ -260,7 +316,7 @@ try {
         $paybackYears
     ]);
 
-    // Return success with 3 decimal places for CO₂, Payback, and ROI
+    // Return success
     echo json_encode([
         'success' => true,
         'message' => 'Proposal generated successfully! Check your email for the PDF.',
@@ -272,15 +328,20 @@ try {
             'battery_capacity' => $batteryCapacity,
             'estimated_cost' => $estimatedCost,
             'monthly_savings' => $monthlySavings,
-            'payback_years' => number_format($paybackYears, 3),
-            'roi' => number_format((($monthlySavings * 12 * 20) / $estimatedCost) * 100, 3),
-            'co2_saved' => number_format($co2Saved, 3)
+            'payback_years' => number_format($paybackYears, 2),
+            'roi' => number_format((($monthlySavings * 12 * 20) / $estimatedCost) * 100, 2),
+            'co2_saved' => number_format($co2Saved, 2)
+        ],
+        'emails_sent' => [
+            'customer' => $customerSent ? 'sent' : 'failed',
+            'admin' => $adminSent ? 'sent' : 'failed'
         ]
     ]);
 
 } catch (Exception $e) {
     error_log('Solar Calculator Error: ' . $e->getMessage());
     error_log('Stack trace: ' . $e->getTraceAsString());
+    http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
