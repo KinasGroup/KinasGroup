@@ -1,6 +1,6 @@
 <?php
 /**
- * KINAS GROUP — Password Visibility Toggle (FINAL FIX)
+ * KINAS GROUP — Password Visibility Toggle
  */
 ?>
 <style>
@@ -10,38 +10,32 @@
 }
 
 .je-password-wrap input {
-    padding-right: 58px !important;
+    padding-right: 38px !important;
 }
 
 .je-password-toggle {
     position: absolute !important;
     top: 50% !important;
-    right: 12px !important;
+    right: 10px !important;
     transform: translateY(-50%) !important;
-    width: 42px !important;
-    height: 42px !important;
+    width: auto !important;
+    height: auto !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    background: #fff !important;
-    border: 1px solid #ddd !important;
-    border-radius: 50% !important;
+    background: none !important;
+    border: none !important;
+    border-radius: 0 !important;
     cursor: pointer !important;
-    color: #333 !important;
+    color: #888 !important;
     z-index: 100 !important;
-    font-size: 20px !important;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
+    font-size: 15px !important;
+    box-shadow: none !important;
+    padding: 4px !important;
 }
 
 .je-password-toggle:hover {
     color: #C6A43F !important;
-    border-color: #C6A43F !important;
-}
-
-/* Fallback text if icon fails */
-.je-password-toggle::after {
-    content: "👁" !important;
-    font-size: 18px !important;
 }
 </style>
 
@@ -61,25 +55,20 @@
 
             btn.type = 'button';
 
+            if (!btn.querySelector('i')) {
+                btn.innerHTML = '<i class="fas fa-eye"></i>';
+            }
+
             btn.addEventListener('click', () => {
                 const isPassword = input.type === 'password';
                 input.type = isPassword ? 'text' : 'password';
-                
-                // Try Font Awesome first
+
                 const icon = btn.querySelector('i');
                 if (icon) {
                     icon.classList.toggle('fa-eye', isPassword);
                     icon.classList.toggle('fa-eye-slash', !isPassword);
-                } else {
-                    // Emoji fallback
-                    btn.style.fontSize = isPassword ? '22px' : '18px';
                 }
             });
-
-            // Initial icon (try FA or emoji)
-            if (!btn.querySelector('i')) {
-                btn.innerHTML = '<i class="fas fa-eye"></i>';
-            }
         });
     }
 
