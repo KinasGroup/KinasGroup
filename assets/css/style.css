@@ -1762,3 +1762,34 @@ body:has(.calculator-hero) .btn-secondary:hover {
         color: #0A0A0A !important;
     }
 }
+
+/* ============================================================
+   LISTING IMAGE FILL — DEFENSIVE OVERRIDE
+   ------------------------------------------------------------
+   Every listing image container in this codebase already uses
+   width:100%/height:100%/object-fit:cover, which should fill the
+   box and crop overflow rather than letterboxing. This rule is a
+   safety net so no future CSS addition or load-order change can
+   ever accidentally weaken that behavior again.
+
+   NOTE: If a photo still looks tiny/off-center/broken-icon inside
+   its box even with this rule in place, the image itself is not
+   loading (404) — check the actual image URL in devtools Network
+   tab. That's a missing-file problem, not a CSS sizing problem,
+   and re-uploading the photo (now that storage is fixed) is the
+   real fix in that case.
+   ============================================================ */
+.listing-img img,
+.je-card-img img,
+.je-gallery-main img,
+.je-gallery-thumb img,
+.detail-gallery .main-image img,
+.detail-gallery .thumbnails img,
+.search-result-image img,
+.preview-item img,
+.image-preview-grid img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
