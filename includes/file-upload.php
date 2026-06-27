@@ -246,7 +246,7 @@ class FileUpload {
         $destinationImage = imagecreatetruecolor($newWidth, $newHeight);
 
         // Preserve transparency for PNG
-        if (exif_imagetype($sourcePath) === IMAGETYPE_PNG) {
+        if ((@getimagesize($sourcePath))[2] === IMAGETYPE_PNG) {
             imagealphablending($destinationImage, false);
             imagesavealpha($destinationImage, true);
         }
@@ -280,7 +280,7 @@ class FileUpload {
         $sourceImage = $this->createImageFromFile($filepath);
         $thumbImage = imagecreatetruecolor($thumbWidth, $thumbHeight);
 
-        if (exif_imagetype($filepath) === IMAGETYPE_PNG) {
+        if ((@getimagesize($filepath))[2] === IMAGETYPE_PNG) {
             imagealphablending($thumbImage, false);
             imagesavealpha($thumbImage, true);
         }
@@ -295,7 +295,8 @@ class FileUpload {
     }
 
     private function createImageFromFile(string $filepath) {
-        $type = exif_imagetype($filepath);
+        $imgInfo = @getimagesize($filepath);
+        $type = $imgInfo !== false ? $imgInfo[2] : false;
 
         switch ($type) {
             case IMAGETYPE_JPEG:
