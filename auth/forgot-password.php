@@ -10,18 +10,65 @@ $error   = SessionManager::getFlash('error') ?? '';
 $csrf_token = Security::generateCSRFToken();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="color-scheme: light;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- ============================================================
+         FORCE LIGHT MODE - PERMANENT FIX
+         ============================================================ -->
     <meta name="color-scheme" content="light only">
+    <meta name="theme-color" content="#ffffff">
+    <style>
+        html, body { 
+            color-scheme: light !important; 
+            background: #ffffff !important;
+        }
+        @media (prefers-color-scheme: dark) {
+            html, body {
+                color-scheme: light !important;
+                background: #ffffff !important;
+                color: #0A0A0A !important;
+            }
+            .je-auth-shell,
+            .je-auth-main,
+            .je-auth-form {
+                background-color: #ffffff !important;
+                color: #0A0A0A !important;
+            }
+            .je-auth-aside {
+                background-color: #0A0A0A !important;
+                color: rgba(255,255,255,0.7) !important;
+            }
+            .je-auth-aside * {
+                color: rgba(255,255,255,0.7) !important;
+            }
+            .je-auth-aside h1,
+            .je-auth-aside .je-auth-headline {
+                color: #ffffff !important;
+            }
+        }
+    </style>
+    <!-- ============================================================ -->
+    
     <title>Forgot Password - KINAS GROUP</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- ============================================================
+         MOBILE RESPONSIVENESS FIXES
+         ============================================================ -->
     <style>
+        .je-auth-shell {
+            min-height: 100vh;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
         .forgot-icon-wrap {
             width: 96px; height: 96px; border-radius: 50%;
             margin: 0 auto 28px; display: flex; align-items: center; justify-content: center;
@@ -39,6 +86,68 @@ $csrf_token = Security::generateCSRFToken();
         }
         .security-list ul { list-style: none; padding: 0; margin: 0; color: rgba(255,255,255,0.75); font-size: 14px; line-height: 2; }
         .security-list i { color: #C6A43F; width: 22px; text-align: center; margin-right: 8px; }
+        
+        @media (max-width: 992px) {
+            .je-auth-shell {
+                grid-template-columns: 1fr !important;
+            }
+            .je-auth-aside {
+                padding: 30px 24px 36px !important;
+                min-height: 200px !important;
+            }
+            .je-auth-aside .je-auth-headline {
+                font-size: 24px !important;
+            }
+            .je-auth-aside .security-list {
+                display: none !important;
+            }
+            .je-auth-main {
+                padding: 30px 20px !important;
+            }
+            .je-auth-form {
+                max-width: 100% !important;
+                padding: 0 10px !important;
+            }
+            .je-auth-form h2 {
+                font-size: 24px !important;
+            }
+        }
+        @media (max-width: 480px) {
+            .je-auth-aside {
+                padding: 20px 16px 24px !important;
+                min-height: 150px !important;
+            }
+            .je-auth-aside .je-auth-headline {
+                font-size: 20px !important;
+            }
+            .je-auth-main {
+                padding: 20px 14px !important;
+            }
+            .je-auth-form h2 {
+                font-size: 20px !important;
+            }
+            .je-auth-form .je-auth-sub-form {
+                font-size: 13px !important;
+            }
+            .je-form-group input {
+                font-size: 14px !important;
+                padding: 10px 12px !important;
+            }
+            .je-btn-lg {
+                padding: 12px 20px !important;
+                font-size: 13px !important;
+            }
+            .je-auth-switch {
+                font-size: 12px !important;
+            }
+            .forgot-icon-wrap {
+                width: 72px;
+                height: 72px;
+            }
+            .forgot-icon-wrap i {
+                font-size: 1.8rem;
+            }
+        }
     </style>
 </head>
 <body>
