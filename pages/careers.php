@@ -11,13 +11,29 @@ $pageDescription = 'Build your future with KINAS GROUP OF COMPANIES LIMITED — 
 include dirname(__DIR__) . '/templates/header.php';
 ?>
 
+<style>
+@media (max-width: 700px) {
+    .careers-divisions-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .careers-roles-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+@media (min-width: 701px) and (max-width: 900px) {
+    .careers-roles-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+}
+</style>
+
 <div class="je-page-header" style="background-image: linear-gradient(135deg, rgba(10,10,10,0.85), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=2000&q=80'); background-size:cover; background-position:center;">
     <h1>Build Your Future with KINAS GROUP</h1>
     <p>A Corporate Ecosystem Built on Trust, Innovation &amp; Excellence</p>
 </div>
 
-<section style="max-width: 1000px; margin: 0 auto; padding: 60px 30px;">
-    <div style="background: #fff; border: 1px solid #e8e8e8; border-radius: 4px; padding: 50px;">
+<section style="max-width: 1000px; margin: 0 auto; padding: clamp(32px, 8vw, 60px) clamp(16px, 5vw, 30px);">
+    <div style="background: #fff; border: 1px solid #e8e8e8; border-radius: 4px; padding: clamp(20px, 6vw, 50px);">
         
         <div style="text-align: center; margin-bottom: 40px;">
             <p style="color:#666; font-size:18px; line-height:1.8;">At KINAS GROUP OF COMPANIES LIMITED, we believe that exceptional businesses are built by exceptional people.</p>
@@ -33,7 +49,7 @@ include dirname(__DIR__) . '/templates/header.php';
 
         <h3 style="font-family:'Prata',serif; font-size:22px; color:#0A0A0A; margin-top:40px;">Our Business Divisions</h3>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+        <div class="careers-divisions-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
             <div style="background:#f9f9f9; padding:20px; border-radius:4px; border-left: 3px solid #C6A43F;">
                 <h4 style="font-size:16px; color:#0A0A0A; margin-bottom:8px;">KINAS Automobile</h4>
                 <p style="color:#444; font-size:14px; line-height:1.6;">Delivering premium automotive solutions through vehicle sales, sourcing, rentals, and customer-focused mobility services.</p>
@@ -68,7 +84,7 @@ include dirname(__DIR__) . '/templates/header.php';
         <h3 style="font-family:'Prata',serif; font-size:22px; color:#0A0A0A; margin-top:40px;">Career Opportunities</h3>
         <p style="color:#444; line-height:1.8; font-size:15px;">As our business continues to grow, opportunities may become available across our various business divisions and corporate departments.</p>
         <p style="color:#444; line-height:1.8; font-size:15px;">Potential opportunities may include:</p>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 15px 0;">
+        <div class="careers-roles-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 15px 0;">
             <ul style="color:#444; line-height:2; font-size:14px; padding-left:20px;">
                 <li>Sales &amp; Marketing</li>
                 <li>Customer Relationship Management</li>

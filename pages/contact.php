@@ -41,13 +41,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 include dirname(__DIR__) . '/templates/header.php';
 ?>
 
+<style>
+@media (max-width: 800px) {
+    .contact-layout {
+        grid-template-columns: 1fr !important;
+        gap: 36px !important;
+    }
+    .contact-form-row {
+        grid-template-columns: 1fr !important;
+    }
+}
+</style>
+
 <div class="je-page-header" style="background-image: linear-gradient(135deg, rgba(10,10,10,0.85), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1423666639041-f56000c27a37?w=2000&q=80'); background-size:cover; background-position:center;">
     <h1>Contact Us</h1>
     <p>We're here to help — 24 hours a day, 7 days a week.</p>
 </div>
 
-<section style="max-width: 1200px; margin: 0 auto; padding: 80px 30px;">
-    <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 60px;">
+<section style="max-width: 1200px; margin: 0 auto; padding: clamp(32px, 8vw, 80px) clamp(16px, 5vw, 30px);">
+    <div class="contact-layout" style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 60px;">
 
         <div>
             <h2 style="font-family:'Prata',serif; font-size:24px; color:#0A0A0A; margin-bottom:30px;">Get in touch</h2>
@@ -95,7 +107,7 @@ include dirname(__DIR__) . '/templates/header.php';
             </div>
         </div>
 
-        <div style="background: #fff; border: 1px solid #e8e8e8; border-radius: 4px; padding: 40px;">
+        <div style="background: #fff; border: 1px solid #e8e8e8; border-radius: 4px; padding: clamp(22px, 5vw, 40px);">
             <h2 style="font-family:'Prata',serif; font-size:24px; color:#0A0A0A; margin-bottom:24px;">Send us a message</h2>
 
             <?php if ($success): ?>
@@ -110,7 +122,7 @@ include dirname(__DIR__) . '/templates/header.php';
                 <?php endif; ?>
 
                 <form method="POST" action="contact.php">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div class="contact-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                         <div>
                             <label style="display:block; font-size: 12px; font-weight: 600; color: #333; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Name *</label>
                             <input type="text" name="name" required value="<?= htmlspecialchars($_POST['name'] ?? '') ?>" style="width: 100%; padding: 12px 14px; border: 1px solid #e0e0e0; border-radius: 3px; font-family: Inter, sans-serif; font-size: 14px;">

@@ -16,8 +16,8 @@ include dirname(__DIR__) . '/templates/header.php';
     <p>Quick answers to the most common questions about KINAS GROUP</p>
 </div>
 
-<section style="max-width: 900px; margin: 0 auto; padding: 60px 30px;">
-    <div style="background: #fff; border: 1px solid #e8e8e8; border-radius: 4px; padding: 50px;">
+<section style="max-width: 900px; margin: 0 auto; padding: clamp(32px, 8vw, 60px) clamp(16px, 5vw, 30px);">
+    <div style="background: #fff; border: 1px solid #e8e8e8; border-radius: 4px; padding: clamp(20px, 6vw, 50px);">
         
         <h2 style="font-family:'Prata',serif; font-size:24px; color:#0A0A0A; margin-bottom:30px; text-align:center;">General Questions</h2>
 

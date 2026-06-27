@@ -101,6 +101,9 @@ include __DIR__ . '/../templates/header.php';
     }
 }
 @media (max-width: 768px) {
+    .about-hero {
+        padding: 80px 0 44px;
+    }
     .about-hero h1 {
         font-size: 32px;
     }
@@ -133,7 +136,7 @@ include __DIR__ . '/../templates/header.php';
     </div>
 </div>
 
-<section style="max-width: 1200px; margin: 0 auto; padding: 80px 30px;">
+<section style="max-width: 1200px; margin: 0 auto; padding: clamp(40px, 8vw, 80px) clamp(16px, 5vw, 30px);">
     <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A; margin-bottom:20px;">A marketplace built on trust</h2>
     <p style="font-size:15px; color:#555; line-height:1.9; margin-bottom:24px;">
         KINAS GROUP was founded with a simple belief: luxury transactions should be transparent, secure, and dignified. Whether you are acquiring a penthouse in Lagos, sourcing a 1960s grand tourer from Milan, commissioning a residential solar system, or finding an authenticated Rolex, the standard should be the same — verified counterparties, frictionless process, and concierge support.
