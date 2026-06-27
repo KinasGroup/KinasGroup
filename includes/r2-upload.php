@@ -1,7 +1,24 @@
 <?php
 // KINAS GROUP - Cloudflare R2 Upload Handler
-// Professional integration with R2 object storage
-// Maintains backward compatibility with existing FileUpload class
+// Using AWS SDK for reliable S3-compatible uploads
+
+// Check if AWS SDK is available
+$awsSdkLoaded = false;
+$vendorPaths = [
+    __DIR__ . '/../vendor/autoload.php',
+    '/var/www/html/vendor/autoload.php',
+    '/app/vendor/autoload.php',
+];
+
+foreach ($vendorPaths as $vendorPath) {
+    if (file_exists($vendorPath)) {
+        require_once $vendorPath;
+        if (class_exists('Aws\S3\S3Client')) {
+            $awsSdkLoaded = true;
+        }
+        break;
+    }
+}
 
 class R2Upload {
     private string $bucket;
@@ -11,6 +28,8 @@ class R2Upload {
     private string $publicUrl;
     private array $allowedTypes;
     private int $maxSize;
+    private $s3Client;
+    private bool $useAwsSdk;
     
     /** @var array Whitelist of allowed upload subdirectories */
     private const ALLOWED_SUBDIRS = [
@@ -41,6 +60,8 @@ class R2Upload {
     ];
     
     public function __construct(string $subDir = 'general') {
+        global $awsSdkLoaded;
+        
         // Validate subdirectory
         if (!in_array($subDir, self::ALLOWED_SUBDIRS, true)) {
             $subDir = 'general';
@@ -60,6 +81,29 @@ class R2Upload {
         
         $this->allowedTypes = self::MIME_TO_EXTENSION;
         $this->maxSize = 10 * 1024 * 1024; // 10MB
+        $this->useAwsSdk = $awsSdkLoaded && class_exists('Aws\S3\S3Client');
+        
+        // Initialize AWS SDK if available
+        if ($this->useAwsSdk) {
+            try {
+                $this->s3Client = new Aws\S3\S3Client([
+                    'version' => 'latest',
+                    'region' => 'auto',
+                    'endpoint' => "https://{$this->accountId}.r2.cloudflarestorage.com",
+                    'credentials' => [
+                        'key' => $this->accessKey,
+                        'secret' => $this->secretKey,
+                    ],
+                    'use_path_style_endpoint' => false,
+                ]);
+                error_log('R2: AWS SDK initialized successfully');
+            } catch (Exception $e) {
+                $this->useAwsSdk = false;
+                error_log('R2: AWS SDK init failed - ' . $e->getMessage());
+            }
+        } else {
+            error_log('R2: AWS SDK not available, falling back to cURL');
+        }
         
         // Validate configuration
         if (empty($this->bucket) || empty($this->accountId) || empty($this->accessKey) || empty($this->secretKey)) {
@@ -68,7 +112,7 @@ class R2Upload {
     }
     
     /**
-     * Upload file to R2 using cURL (no AWS SDK required)
+     * Upload file to R2
      */
     public function upload(array $file, array $options = []): array {
         // Validate file
@@ -116,8 +160,12 @@ class R2Upload {
         // Process image (resize/create thumbnail before upload)
         $processedFile = $this->processImageIfNeeded($file['tmp_name'], $options, $extension);
         
-        // Upload to R2
-        $uploadResult = $this->uploadToR2($processedFile, $r2Key, $mimeType);
+        // Upload to R2 using AWS SDK or cURL fallback
+        if ($this->useAwsSdk) {
+            $uploadResult = $this->uploadWithSdk($processedFile, $r2Key, $mimeType);
+        } else {
+            $uploadResult = $this->uploadWithCurl($processedFile, $r2Key, $mimeType);
+        }
         
         if (!$uploadResult['success']) {
             return $uploadResult;
@@ -146,60 +194,120 @@ class R2Upload {
     }
     
     /**
-     * Upload multiple files to R2
+     * Upload using AWS SDK (most reliable)
      */
-    public function uploadMultiple(array $files, array $options = []): array {
-        $results = [];
-        
-        if (!isset($files['name']) || !is_array($files['name'])) {
-            return $results;
-        }
-        
-        $fileCount = count($files['name']);
-        for ($i = 0; $i < $fileCount; $i++) {
-            if ($files['error'][$i] === UPLOAD_ERR_OK) {
-                $file = [
-                    'name' => $files['name'][$i],
-                    'type' => $files['type'][$i],
-                    'tmp_name' => $files['tmp_name'][$i],
-                    'error' => $files['error'][$i],
-                    'size' => $files['size'][$i]
-                ];
-                $results[] = $this->upload($file, $options);
+    private function uploadWithSdk(string $filePath, string $key, string $mimeType): array {
+        try {
+            $result = $this->s3Client->putObject([
+                'Bucket' => $this->bucket,
+                'Key' => $key,
+                'Body' => fopen($filePath, 'r'),
+                'ContentType' => $mimeType,
+                'ACL' => 'public-read',
+            ]);
+            
+            // Get the URL
+            $url = $result->get('ObjectURL');
+            
+            // If ObjectURL isn't available, construct it
+            if (empty($url)) {
+                $url = rtrim($this->publicUrl, '/') . '/' . $key;
             }
+            
+            return [
+                'success' => true,
+                'url' => $url,
+                'key' => $key
+            ];
+        } catch (Exception $e) {
+            error_log('R2 SDK Error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => 'R2 upload failed: ' . $e->getMessage()
+            ];
         }
-        
-        return $results;
     }
     
     /**
-     * Upload file to Cloudflare R2 using S3-compatible API with cURL
-     * FIXED: Proper AWS Signature v4 for R2
+     * Upload using cURL (fallback)
      */
-    private function uploadToR2(string $filePath, string $key, string $mimeType): array {
-        $date = gmdate('Ymd');
-        $amzDate = gmdate('Ymd\THis\Z');
-        $service = 's3';
-        $region = 'auto';
-        $host = "{$this->accountId}.r2.cloudflarestorage.com";
-        $endpoint = "https://{$host}/{$this->bucket}/{$key}";
-        
+    private function uploadWithCurl(string $filePath, string $key, string $mimeType): array {
         // Read file content
         $fileContent = file_get_contents($filePath);
         if ($fileContent === false) {
             return ['success' => false, 'error' => 'Failed to read file'];
         }
         
-        $contentHash = hash('sha256', $fileContent);
         $contentLength = strlen($fileContent);
+        $host = "{$this->accountId}.r2.cloudflarestorage.com";
+        $endpoint = "https://{$host}/{$this->bucket}/{$key}";
         
-        // ============================================================
-        // AWS Signature v4 - CORRECT IMPLEMENTATION FOR R2
-        // ============================================================
+        // Use simpler presigned URL approach - generate a presigned URL and use PUT
+        // This avoids signature calculation issues
+        try {
+            // Use the SDK to generate a presigned URL if available
+            if ($this->useAwsSdk) {
+                $command = $this->s3Client->getCommand('PutObject', [
+                    'Bucket' => $this->bucket,
+                    'Key' => $key,
+                    'ContentType' => $mimeType,
+                ]);
+                
+                $presignedUrl = $this->s3Client->createPresignedRequest($command, '+5 minutes');
+                $url = (string) $presignedUrl->getUri();
+                
+                // Upload using presigned URL
+                $ch = curl_init();
+                curl_setopt_array($ch, [
+                    CURLOPT_URL => $url,
+                    CURLOPT_CUSTOMREQUEST => 'PUT',
+                    CURLOPT_POSTFIELDS => $fileContent,
+                    CURLOPT_HTTPHEADER => [
+                        "Content-Type: {$mimeType}",
+                        "Content-Length: {$contentLength}"
+                    ],
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_TIMEOUT => 60,
+                    CURLOPT_FAILONERROR => false,
+                ]);
+                
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curlError = curl_error($ch);
+                curl_close($ch);
+                
+                if ($curlError || ($httpCode < 200 || $httpCode >= 300)) {
+                    return [
+                        'success' => false,
+                        'error' => "Presigned upload failed: " . ($curlError ?: "HTTP {$httpCode}")
+                    ];
+                }
+                
+                $publicUrlBase = rtrim($this->publicUrl, '/');
+                $finalUrl = "{$publicUrlBase}/{$key}";
+                
+                return [
+                    'success' => true,
+                    'url' => $finalUrl,
+                    'key' => $key
+                ];
+            }
+        } catch (Exception $e) {
+            error_log('Presigned URL error: ' . $e->getMessage());
+        }
         
-        // Step 1: Create canonical request
+        // Fallback to direct cURL with signature (last resort)
+        $date = gmdate('Ymd');
+        $amzDate = gmdate('Ymd\THis\Z');
+        $service = 's3';
+        $region = 'auto';
+        
+        $contentHash = hash('sha256', $fileContent);
+        
+        // Canonical request
         $canonicalMethod = 'PUT';
-        $canonicalUri = '/' . $key;  // Key only, NOT including bucket
+        $canonicalUri = '/' . $key;
         $canonicalQueryString = '';
         $canonicalHeaders = "host:{$host}\nx-amz-content-sha256:{$contentHash}\nx-amz-date:{$amzDate}\n";
         $signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
@@ -213,7 +321,7 @@ class R2Upload {
             $contentHash
         ]);
         
-        // Step 2: Create string to sign
+        // String to sign
         $algorithm = 'AWS4-HMAC-SHA256';
         $credentialScope = "{$date}/{$region}/{$service}/aws4_request";
         $stringToSign = implode("\n", [
@@ -223,7 +331,7 @@ class R2Upload {
             hash('sha256', $canonicalRequest)
         ]);
         
-        // Step 3: Calculate signature
+        // Signature
         $kSecret = 'AWS4' . $this->secretKey;
         $kDate = hash_hmac('sha256', $date, $kSecret, true);
         $kRegion = hash_hmac('sha256', $region, $kDate, true);
@@ -231,10 +339,8 @@ class R2Upload {
         $kSigning = hash_hmac('sha256', 'aws4_request', $kService, true);
         $signature = hash_hmac('sha256', $stringToSign, $kSigning);
         
-        // Step 4: Build Authorization header
         $authorization = "{$algorithm} Credential={$this->accessKey}/{$credentialScope}, SignedHeaders={$signedHeaders}, Signature={$signature}";
         
-        // Execute cURL request with verbose error handling
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $endpoint,
@@ -261,25 +367,14 @@ class R2Upload {
         $body = substr($response, $headerSize);
         curl_close($ch);
         
-        // Log for debugging
-        error_log("R2 Upload - Key: {$key}, HTTP: {$httpCode}");
-        if ($httpCode !== 200 && $httpCode !== 201 && $httpCode !== 204) {
-            error_log("R2 Upload Error - Response: " . substr($body, 0, 500));
-            return [
-                'success' => false,
-                'error' => "R2 upload failed (HTTP {$httpCode}): " . substr($body, 0, 200)
-            ];
-        }
-        
         if ($curlError) {
-            error_log("R2 cURL Error: {$curlError}");
-            return [
-                'success' => false,
-                'error' => "Network error: {$curlError}"
-            ];
+            return ['success' => false, 'error' => "cURL error: {$curlError}"];
         }
         
-        // Generate public URL
+        if ($httpCode !== 200 && $httpCode !== 201 && $httpCode !== 204) {
+            return ['success' => false, 'error' => "R2 upload failed (HTTP {$httpCode}): " . substr($body, 0, 200)];
+        }
+        
         $publicUrlBase = rtrim($this->publicUrl, '/');
         $url = "{$publicUrlBase}/{$key}";
         
@@ -288,6 +383,33 @@ class R2Upload {
             'url' => $url,
             'key' => $key
         ];
+    }
+    
+    /**
+     * Upload multiple files to R2
+     */
+    public function uploadMultiple(array $files, array $options = []): array {
+        $results = [];
+        
+        if (!isset($files['name']) || !is_array($files['name'])) {
+            return $results;
+        }
+        
+        $fileCount = count($files['name']);
+        for ($i = 0; $i < $fileCount; $i++) {
+            if ($files['error'][$i] === UPLOAD_ERR_OK) {
+                $file = [
+                    'name' => $files['name'][$i],
+                    'type' => $files['type'][$i],
+                    'tmp_name' => $files['tmp_name'][$i],
+                    'error' => $files['error'][$i],
+                    'size' => $files['size'][$i]
+                ];
+                $results[] = $this->upload($file, $options);
+            }
+        }
+        
+        return $results;
     }
     
     /**
@@ -370,7 +492,12 @@ class R2Upload {
         $this->saveImage($thumbImage, $tempFile, 80);
         
         $thumbKey = $subDir . '/thumbnails/thumb_' . $filename;
-        $uploadResult = $this->uploadToR2($tempFile, $thumbKey, $imageInfo['mime']);
+        
+        if ($this->useAwsSdk) {
+            $uploadResult = $this->uploadWithSdk($tempFile, $thumbKey, $imageInfo['mime']);
+        } else {
+            $uploadResult = $this->uploadWithCurl($tempFile, $thumbKey, $imageInfo['mime']);
+        }
         
         imagedestroy($sourceImage);
         imagedestroy($thumbImage);
@@ -442,7 +569,18 @@ class R2Upload {
      * Delete file from R2
      */
     public function delete(string $key): bool {
-        // Implementation for delete if needed
+        if ($this->useAwsSdk) {
+            try {
+                $this->s3Client->deleteObject([
+                    'Bucket' => $this->bucket,
+                    'Key' => $key,
+                ]);
+                return true;
+            } catch (Exception $e) {
+                error_log('R2 delete error: ' . $e->getMessage());
+                return false;
+            }
+        }
         return true;
     }
     
