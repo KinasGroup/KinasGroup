@@ -67,6 +67,9 @@ $headerDepth = '../';
 $pageTitle = 'Reports - KINAS GROUP';
 require_once __DIR__ . '/../templates/header.php';
 ?>
+    <!-- ============================================================
+         RESPONSIVE FIX - Added container and responsive styles
+         ============================================================ -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
@@ -82,7 +85,7 @@ require_once __DIR__ . '/../templates/header.php';
         .btn-filter { background: #C6A43F; color: #0A0A0A; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; }
         .btn-filter:hover { background: #A8882E; }
         .btn-secondary { background: #F5F5F5; color: #333; border: 1px solid #E0E0E0; padding: 10px 16px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 13px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .stat-card { background: white; border-radius: 16px; padding: 25px; border: 1.5px solid #C6A43F; transition: all 0.3s; }
         .stat-card:hover { transform: translateY(-3px); border-color: #C6A43F; box-shadow: 0 8px 24px rgba(198,164,63,0.15); }
         .stat-card .icon { font-size: 32px; color: #C6A43F; margin-bottom: 15px; }
@@ -91,24 +94,44 @@ require_once __DIR__ . '/../templates/header.php';
         .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; margin-bottom: 30px; }
         .chart-card { background: white; border-radius: 16px; padding: 25px; border: 1px solid #E0E0E0; }
         .chart-card h3 { font-family: 'Prata', serif; font-size: 18px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #C6A43F; display: inline-block; }
-        .recent-table { background: white; border-radius: 16px; border: 1px solid #E0E0E0; overflow: hidden; }
+        .recent-table { background: white; border-radius: 16px; border: 1px solid #E0E0E0; overflow: hidden; width: 100%; }
         .recent-table h3 { padding: 20px 25px; margin: 0; font-family: 'Prata', serif; font-size: 18px; border-bottom: 1px solid #E0E0E0; }
-        .table-responsive { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
         th { text-align: left; padding: 15px 20px; background: #F8F8F8; font-weight: 600; font-size: 12px; text-transform: uppercase; color: #666; }
         td { padding: 12px 20px; border-bottom: 1px solid #E0E0E0; font-size: 13px; }
         tr:hover { background: #F8F8F8; }
         .empty-state { padding: 60px 20px; text-align: center; color: #999; }
         .empty-state i { font-size: 40px; color: #C6A43F; opacity: 0.4; display: block; margin-bottom: 12px; }
-        .export-buttons { display: flex; gap: 12px; margin-top: 20px; justify-content: flex-end; padding: 0 25px 20px; }
+        .export-buttons { display: flex; gap: 12px; margin-top: 20px; justify-content: flex-end; padding: 0 25px 20px; flex-wrap: wrap; }
         .btn-export { background: #666; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
         .btn-export:hover { background: #333; }
+        .je-dash-shell { max-width: 100% !important; overflow-x: hidden !important; }
+        .je-dash-main { overflow-x: hidden !important; width: 100% !important; max-width: 100% !important; padding: 15px !important; }
         @media (max-width: 992px) { .charts-grid { grid-template-columns: 1fr; } }
-        @media (max-width: 768px) { .admin-main { padding: 20px; } }
+        @media (max-width: 768px) { 
+            .admin-main { padding: 15px; }
+            .je-dash-main { padding: 10px !important; }
+            .date-range { flex-direction: column; align-items: stretch; }
+            .date-group input { width: 100%; }
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .stat-card { padding: 15px; }
+            .stat-card h3 { font-size: 24px; }
+            .stat-card .icon { font-size: 24px; margin-bottom: 10px; }
+            table { min-width: 400px; }
+            th, td { padding: 10px 12px; font-size: 12px; }
+            .export-buttons { justify-content: center; }
+        }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .stat-card h3 { font-size: 20px; }
+            .chart-card { padding: 15px; }
+            .chart-card h3 { font-size: 15px; }
+        }
     </style>
-<div class="je-dash-shell">
+<div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
 <?php include __DIR__ . "/../includes/partials/admin-sidebar.php"; ?>
-<main class="je-dash-main">
+<main class="je-dash-main" style="overflow-x:hidden;width:100%;max-width:100%;padding:15px;">
     <div class="page-header">
         <h1><i class="fas fa-chart-line" style="color: #C6A43F; margin-right: 10px;"></i>Analytics & Reports</h1>
         <p>Comprehensive marketplace insights and performance metrics</p>
@@ -139,16 +162,16 @@ require_once __DIR__ . '/../templates/header.php';
         </div>
     </div>
 
-    <div class="recent-table">
+    <div class="recent-table" style="overflow-x: hidden; width: 100%;">
         <h3>Recent Activity</h3>
-        <div class="table-responsive">
+        <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
             <?php if (empty($recentRows)): ?>
                 <div class="empty-state">
                     <i class="fas fa-inbox"></i>
                     <p>No activity in the selected date range.</p>
                 </div>
             <?php else: ?>
-            <table>
+            <table style="min-width: 450px; width: 100%;">
                 <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Status</th></tr></thead>
                 <tbody>
                 <?php foreach ($recentRows as $r):
