@@ -206,11 +206,7 @@ require_once __DIR__ . '/../../templates/header.php';
             color: var(--primary-gold);
         }
 
-        /* ============================================================
-           FIX: DROPDOWN SELECT VISIBILITY
-           ============================================================ */
-
-        /* Fix select dropdown - ensure options are visible */
+        /* FIX: DROPDOWN SELECT VISIBILITY */
         select,
         .form-group select,
         #solarCalculatorForm select {
@@ -227,7 +223,6 @@ require_once __DIR__ . '/../../templates/header.php';
             cursor: pointer !important;
         }
 
-        /* FIX: Make dropdown options visible */
         select option,
         .form-group select option,
         #solarCalculatorForm select option {
@@ -238,7 +233,6 @@ require_once __DIR__ . '/../../templates/header.php';
             border-bottom: 1px solid rgba(255,255,255,0.05) !important;
         }
 
-        /* Fix the dropdown arrow */
         select,
         .form-group select,
         #solarCalculatorForm select {
@@ -246,24 +240,6 @@ require_once __DIR__ . '/../../templates/header.php';
             background-repeat: no-repeat !important;
             background-position: right 16px center !important;
             padding-right: 40px !important;
-        }
-
-        /* Override dark mode for selects */
-        @media (prefers-color-scheme: dark) {
-            select,
-            .form-group select,
-            #solarCalculatorForm select {
-                background: rgba(255,255,255,0.08) !important;
-                color: #FFFFFF !important;
-                border-color: rgba(255,255,255,0.15) !important;
-            }
-            
-            select option,
-            .form-group select option,
-            #solarCalculatorForm select option {
-                background: #1a1a2e !important;
-                color: #FFFFFF !important;
-            }
         }
 
         .form-group input,
@@ -473,18 +449,26 @@ require_once __DIR__ . '/../../templates/header.php';
         }
 
         /* ============================================================
-           FIX: RESULTS DISPLAY - FORCE VISIBILITY
+           RESULTS DISPLAY FIX - FORCE VISIBILITY
            ============================================================ */
 
-        .results-section {
+        /* Force results section to display */
+        #results {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            min-height: 100px !important;
+        }
+
+        #results .results-section {
             display: none !important;
             margin-top: 40px !important;
         }
-        .results-section.active {
+        #results .results-section.active {
             display: block !important;
         }
 
-        .results-card {
+        #results .results-card {
             background: linear-gradient(135deg, #C6A43F 0%, #A8882E 100%) !important;
             border-radius: 12px !important;
             padding: 40px !important;
@@ -492,12 +476,12 @@ require_once __DIR__ . '/../../templates/header.php';
             display: block !important;
         }
 
-        .results-header {
+        #results .results-header {
             text-align: center !important;
             margin-bottom: 32px !important;
         }
 
-        .results-header .check-icon {
+        #results .results-header .check-icon {
             width: 64px !important;
             height: 64px !important;
             background: rgba(0,0,0,0.1) !important;
@@ -509,25 +493,25 @@ require_once __DIR__ . '/../../templates/header.php';
             margin-bottom: 16px !important;
         }
 
-        .results-header h2 {
+        #results .results-header h2 {
             font-family: 'Prata', serif !important;
             font-size: 32px !important;
             color: #0A0A0A !important;
             margin-bottom: 8px !important;
         }
 
-        .results-header p {
+        #results .results-header p {
             color: rgba(0,0,0,0.7) !important;
         }
 
-        .results-grid {
+        #results .results-grid {
             display: grid !important;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
             gap: 16px !important;
             margin-bottom: 32px !important;
         }
 
-        .result-item {
+        #results .result-item {
             background: rgba(0,0,0,0.08) !important;
             border-radius: 12px !important;
             padding: 20px !important;
@@ -536,14 +520,14 @@ require_once __DIR__ . '/../../templates/header.php';
             display: block !important;
         }
 
-        .result-item i {
+        #results .result-item i {
             font-size: 28px !important;
             color: #0A0A0A !important;
             display: inline-block !important;
             margin-bottom: 8px !important;
         }
 
-        .result-value {
+        #results .result-value {
             font-size: 24px !important;
             font-weight: 800 !important;
             color: #0A0A0A !important;
@@ -551,21 +535,21 @@ require_once __DIR__ . '/../../templates/header.php';
             margin: 4px 0 !important;
         }
 
-        .result-label {
+        #results .result-label {
             font-size: 12px !important;
             opacity: 0.7 !important;
             color: #0A0A0A !important;
             display: block !important;
         }
 
-        .proposal-buttons {
+        #results .proposal-buttons {
             display: flex !important;
             gap: 16px !important;
             justify-content: center !important;
             flex-wrap: wrap !important;
         }
 
-        .proposal-buttons .btn-dark {
+        #results .proposal-buttons .btn-dark {
             background: #0A0A0A !important;
             color: #FFFFFF !important;
             padding: 14px 32px !important;
@@ -579,7 +563,7 @@ require_once __DIR__ . '/../../templates/header.php';
             cursor: pointer !important;
         }
 
-        .proposal-buttons .btn-outline-dark {
+        #results .proposal-buttons .btn-outline-dark {
             background: transparent !important;
             border: 2px solid #0A0A0A !important;
             color: #0A0A0A !important;
@@ -590,7 +574,7 @@ require_once __DIR__ . '/../../templates/header.php';
         }
 
         /* Force visibility for all result elements */
-        .results-card * {
+        #results .results-card * {
             visibility: visible !important;
             opacity: 1 !important;
         }
@@ -608,7 +592,7 @@ require_once __DIR__ . '/../../templates/header.php';
             display: block;
         }
 
-        /* Footer Social Icons Fix - Force visibility */
+        /* Footer Social Icons Fix */
         .je-footer-social {
             display: flex !important;
             gap: 12px !important;
@@ -642,6 +626,24 @@ require_once __DIR__ . '/../../templates/header.php';
             color: inherit !important;
         }
 
+        /* Override dark mode for selects */
+        @media (prefers-color-scheme: dark) {
+            select,
+            .form-group select,
+            #solarCalculatorForm select {
+                background: rgba(255,255,255,0.08) !important;
+                color: #FFFFFF !important;
+                border-color: rgba(255,255,255,0.15) !important;
+            }
+            
+            select option,
+            .form-group select option,
+            #solarCalculatorForm select option {
+                background: #1a1a2e !important;
+                color: #FFFFFF !important;
+            }
+        }
+
         @media (max-width: 768px) {
             .calculator-hero h1 { font-size: 32px; }
             .progress-steps { gap: 30px; }
@@ -651,10 +653,10 @@ require_once __DIR__ . '/../../templates/header.php';
             .appliance-row { grid-template-columns: 1fr; gap: 10px; }
             .btn-group { flex-direction: column; }
             .btn { justify-content: center; }
-            .results-card { padding: 24px; }
-            .results-header h2 { font-size: 24px; }
-            .result-value { font-size: 20px; }
-            .results-grid {
+            #results .results-card { padding: 24px; }
+            #results .results-header h2 { font-size: 24px; }
+            #results .result-value { font-size: 20px; }
+            #results .results-grid {
                 grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
             }
             select,
@@ -668,7 +670,7 @@ require_once __DIR__ . '/../../templates/header.php';
         @media (max-width: 480px) {
             .calc-wrapper { padding: 20px 16px 60px; }
             .preset-grid { grid-template-columns: repeat(2, 1fr); }
-            .results-grid {
+            #results .results-grid {
                 grid-template-columns: 1fr 1fr !important;
             }
             select option,
