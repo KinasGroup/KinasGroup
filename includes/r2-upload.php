@@ -3,7 +3,11 @@
 // Professional integration with R2 object storage
 // Maintains backward compatibility with existing FileUpload class
 
-require_once __DIR__ . '/../config/database.php';
+// NOTE: This file does not use the Database class, so no database.php
+// require is needed here. (It previously had one pointing at a wrong
+// path — '../config/database.php' instead of '../api/config/database.php' —
+// which caused a fatal error the moment this file got pulled in via
+// includes/file-upload.php during listing edits.)
 
 class R2Upload {
     private string $bucket;
