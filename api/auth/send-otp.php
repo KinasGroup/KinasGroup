@@ -60,33 +60,16 @@ if (!$phone) {
 $digits = preg_replace('/\D+/', '', $phone);
 if (strlen($digits) < 10 || strlen($digits) > 15) {
     http_response_code(422);
-    echo json_encode(['error' => 'Please enter a valid phone number (e.g., 08012345678).']);
+    echo json_encode(['error' => 'Please enter a valid phone number (e.g. +234 800 000 0000).']);
     exit;
 }
 
-// Format phone for display
-$displayPhone = $digits;
-if (strlen($displayPhone) === 11) {
-    $displayPhone = substr($displayPhone, 0, 4) . '***' . substr($displayPhone, -4);
-} else {
-    $displayPhone = substr($displayPhone, 0, 3) . '***' . substr($displayPhone, -4);
-}
-
 // Rate limit: 1 per 30s, 5 per hour
-$bucket = 'otp_' . $digits;
+$bucket = 'otp_' . preg_replace('/\D+/', '', $phone);
 $rate30 = Security::rateLimitDB($bucket . '_30s', 1, 30);
 $rate1h = Security::rateLimitDB($bucket . '_1h', 5, 3600);
-
-if (!$rate30) { 
-    http_response_code(429); 
-    echo json_encode(['error' => 'Please wait 30 seconds before requesting a new code.']); 
-    exit; 
-}
-if (!$rate1h) { 
-    http_response_code(429); 
-    echo json_encode(['error' => 'Too many requests. Please try again in an hour.']); 
-    exit; 
-}
+if (!$rate30) { http_response_code(429); echo json_encode(['error' => 'Please wait 30 seconds before requesting a new code.']); exit; }
+if (!$rate1h) { http_response_code(429); echo json_encode(['error' => 'Too many requests. Please try again in an hour.']); exit; }
 
 // Invalidate any unconsumed OTPs for this phone
 if ($userId) {
@@ -95,27 +78,21 @@ if ($userId) {
 }
 
 $termii = new TermiiService();
-
-// Generate a random OTP
-$otpCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+if (!$termii->isEnabled()) {
+    // Dev / staging fallback: log to server and accept a hardcoded "000000" code
+    error_log("OTP [dev] phone={$phone} code=000000 purpose={$purpose}");
+    http_response_code(503);
+    echo json_encode(['error' => 'SMS service not configured. Use code 000000 for testing.']);
+    exit;
+}
 
 try {
-    // Try to send via Termii if enabled
-    if ($termii->isEnabled()) {
-        $result = $termii->sendOtp($phone, 6, 10);
-        if (!$result['success']) {
-            throw new RuntimeException($result['message'] ?? 'Termii send failed');
-        }
-        $termiiCode = $result['code'] ?? null;
-        $pinId = $result['pin_id'] ?? null;
-    } else {
-        // Termii not enabled - log the OTP for development
-        error_log("OTP [dev] phone={$phone} code={$otpCode} purpose={$purpose}");
-        $termiiCode = $otpCode;
-        $pinId = null;
+    $result = $termii->sendOtp($phone, 6, 10);
+    if (!$result['success']) {
+        throw new RuntimeException($result['message'] ?? 'Termii send failed');
     }
 
-    $codeHash = password_hash($otpCode, PASSWORD_BCRYPT);
+    $codeHash = password_hash($result['code'], PASSWORD_BCRYPT);
 
     $insert = $db->prepare("
         INSERT INTO phone_otps
@@ -127,52 +104,20 @@ try {
         $phone,
         $codeHash,
         $purpose,
-        $pinId,
+        $result['pin_id'] ?? null,
         $_SERVER['REMOTE_ADDR'] ?? null,
     ]);
 
-    Security::logActivity((int)($userId ?? 0), 'otp_sent', "OTP sent to phone ending {$displayPhone}");
+    Security::logActivity((int)($userId ?? 0), 'otp_sent', "OTP sent to phone ending " . substr($digits, -4));
 
-    $response = [
+    echo json_encode([
         'success' => true,
         'message' => 'Verification code sent to your phone.',
-    ];
-
-    // Include the OTP in development mode for testing
-    $appEnv = getenv('APP_ENV') ?: 'production';
-    if ($appEnv === 'development' || $appEnv === 'local') {
-        $response['_dev_code'] = $otpCode;
-    }
-
-    echo json_encode($response);
-
+        // Dev convenience: include the code if Termii was in dry-run
+        '_dev_code' => getenv('APP_ENV') === 'development' ? $result['code'] : null,
+    ]);
 } catch (Exception $e) {
     error_log('send-otp error: ' . $e->getMessage());
-    
-    // Even if SMS fails, store the OTP for testing purposes
-    $codeHash = password_hash($otpCode, PASSWORD_BCRYPT);
-    $insert = $db->prepare("
-        INSERT INTO phone_otps
-            (user_id, phone, code_hash, purpose, max_attempts, expires_at, ip_address, created_at)
-        VALUES (?, ?, ?, ?, 5, DATE_ADD(NOW(), INTERVAL 10 MINUTE), ?, NOW())
-    ");
-    $insert->execute([
-        $userId,
-        $phone,
-        $codeHash,
-        $purpose,
-        $_SERVER['REMOTE_ADDR'] ?? null,
-    ]);
-
-    $appEnv = getenv('APP_ENV') ?: 'production';
-    if ($appEnv === 'development' || $appEnv === 'local') {
-        echo json_encode([
-            'success' => true,
-            'message' => 'SMS service not available. Use code: ' . $otpCode,
-            '_dev_code' => $otpCode
-        ]);
-    } else {
-        http_response_code(500);
-        echo json_encode(['error' => 'Could not send verification code. Please try again.']);
-    }
+    http_response_code(500);
+    echo json_encode(['error' => 'Could not send verification code. Please try again.']);
 }
