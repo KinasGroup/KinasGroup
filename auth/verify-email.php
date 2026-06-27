@@ -26,7 +26,7 @@ if (!empty($code)) {
                  LIMIT 1"
             );
             $stmt->execute([$code]);
-            $user = $stmt->fetch();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if (!$user) {
                 $error = 'This verification link is invalid or has already been used.';
