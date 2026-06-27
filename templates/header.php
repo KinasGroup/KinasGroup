@@ -291,103 +291,100 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
 
 <script>
 // ============================================================
-// MOBILE MENU TOGGLE - IMPROVED FIXED VERSION
+// MOBILE MENU TOGGLE - SIMPLIFIED AND FIXED
 // ============================================================
 (function() {
     'use strict';
     
-    // Function to initialize the menu
-    function initMobileMenu() {
-        var menuBtn = document.getElementById('mobileMenuBtn');
-        var drawer = document.getElementById('mobileNavDrawer');
-        var overlay = document.getElementById('menuOverlay');
-        var closeBtn = document.getElementById('closeMobileMenu');
+    // Get elements
+    var menuBtn = document.getElementById('mobileMenuBtn');
+    var drawer = document.getElementById('mobileNavDrawer');
+    var overlay = document.getElementById('menuOverlay');
+    var closeBtn = document.getElementById('closeMobileMenu');
+    var body = document.body;
 
-        console.log('Mobile menu init - checking elements:', {
-            menuBtn: !!menuBtn,
-            drawer: !!drawer,
-            overlay: !!overlay,
-            closeBtn: !!closeBtn
-        });
+    // If any elements are missing, exit
+    if (!menuBtn || !drawer) {
+        console.warn('Mobile menu elements not found');
+        return;
+    }
 
-        if (!menuBtn || !drawer) {
-            console.warn('Mobile menu elements not found. Retrying in 500ms...');
-            setTimeout(initMobileMenu, 500);
-            return;
+    // Get the icon elements
+    var menuIcon = menuBtn.querySelector('.menu-icon');
+    var closeIcon = menuBtn.querySelector('.menu-icon-close');
+
+    function openMenu() {
+        drawer.classList.add('open');
+        if (overlay) overlay.classList.add('active');
+        menuBtn.setAttribute('aria-expanded', 'true');
+        body.style.overflow = 'hidden';
+        
+        // Swap icons
+        if (menuIcon) menuIcon.style.display = 'none';
+        if (closeIcon) closeIcon.style.display = 'block';
+    }
+
+    function closeMenu() {
+        drawer.classList.remove('open');
+        if (overlay) overlay.classList.remove('active');
+        menuBtn.setAttribute('aria-expanded', 'false');
+        body.style.overflow = '';
+        
+        // Swap icons back
+        if (menuIcon) menuIcon.style.display = 'block';
+        if (closeIcon) closeIcon.style.display = 'none';
+    }
+
+    function toggleMenu(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (drawer.classList.contains('open')) {
+            closeMenu();
+        } else {
+            openMenu();
         }
+    }
 
-        function openMenu() {
-            console.log('Opening menu');
-            drawer.classList.add('open');
-            if (overlay) overlay.classList.add('active');
-            menuBtn.classList.add('open');
-            menuBtn.setAttribute('aria-expanded', 'true');
-            document.body.style.overflow = 'hidden';
-            
-            // Show close icon, hide hamburger
-            var icon = menuBtn.querySelector('.menu-icon');
-            var closeIcon = menuBtn.querySelector('.menu-icon-close');
-            if (icon) icon.style.display = 'none';
-            if (closeIcon) closeIcon.style.display = 'block';
-        }
+    // Remove any existing event listeners (by cloning and replacing)
+    var newBtn = menuBtn.cloneNode(true);
+    menuBtn.parentNode.replaceChild(newBtn, menuBtn);
+    menuBtn = newBtn;
 
-        function closeMenu() {
-            console.log('Closing menu');
-            drawer.classList.remove('open');
-            if (overlay) overlay.classList.remove('active');
-            menuBtn.classList.remove('open');
-            menuBtn.setAttribute('aria-expanded', 'false');
-            document.body.style.overflow = '';
-            
-            // Show hamburger, hide close icon
-            var icon = menuBtn.querySelector('.menu-icon');
-            var closeIcon = menuBtn.querySelector('.menu-icon-close');
-            if (icon) icon.style.display = 'block';
-            if (closeIcon) closeIcon.style.display = 'none';
-        }
+    // Re-get elements after clone
+    menuIcon = menuBtn.querySelector('.menu-icon');
+    closeIcon = menuBtn.querySelector('.menu-icon-close');
 
-        function toggleMenu(e) {
+    // Add click event to the button
+    menuBtn.addEventListener('click', toggleMenu);
+
+    // Close button inside drawer
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation();
-            console.log('Toggle menu clicked - current state:', drawer.classList.contains('open') ? 'open' : 'closed');
-            if (drawer.classList.contains('open')) {
-                closeMenu();
-            } else {
-                openMenu();
-            }
-        }
-
-        // Remove existing listeners to avoid duplicates
-        var newBtn = menuBtn.cloneNode(true);
-        menuBtn.parentNode.replaceChild(newBtn, menuBtn);
-        menuBtn = newBtn;
-
-        // Attach click event
-        menuBtn.addEventListener('click', toggleMenu);
-
-        if (closeBtn) {
-            closeBtn.addEventListener('click', closeMenu);
-        }
-
-        if (overlay) {
-            overlay.addEventListener('click', closeMenu);
-        }
-
-        // Close on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && drawer.classList.contains('open')) {
-                closeMenu();
-            }
+            closeMenu();
         });
-
-        console.log('Mobile menu initialized successfully');
     }
 
-    // Run on DOM ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initMobileMenu);
-    } else {
-        initMobileMenu();
+    // Overlay click to close
+    if (overlay) {
+        overlay.addEventListener('click', function(e) {
+            e.preventDefault();
+            closeMenu();
+        });
     }
+
+    // Escape key to close
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && drawer.classList.contains('open')) {
+            closeMenu();
+        }
+    });
+
+    // Ensure close icon is hidden initially
+    if (closeIcon) closeIcon.style.display = 'none';
+    if (menuIcon) menuIcon.style.display = 'block';
+
+    console.log('Mobile menu initialized successfully');
 })();
 </script>
