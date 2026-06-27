@@ -1105,6 +1105,8 @@ a { color:inherit; text-decoration:none; }
    ============================================================ */
 
 /* Target with maximum specificity - using IDs and multiple classes */
+/* Scoped to mobile widths only - must NOT apply on desktop */
+@media (max-width: 768px) {
 #mobileMenuBtn.mobile-menu-btn,
 header#header .mobile-menu-btn,
 .je3-header .header-inner .mobile-menu-btn,
@@ -1132,6 +1134,18 @@ header#header .mobile-menu-btn,
     margin: 0 !important;
     font-size: 0 !important;
     line-height: 0 !important;
+}
+}
+
+/* Explicitly hide on desktop to beat any !important specificity wars */
+@media (min-width: 769px) {
+#mobileMenuBtn.mobile-menu-btn,
+header#header .mobile-menu-btn,
+.je3-header .header-inner .mobile-menu-btn,
+.je3-header .mobile-menu-btn,
+.mobile-menu-btn {
+    display: none !important;
+}
 }
 
 /* Force the hamburger icon (☰) */
