@@ -54,6 +54,9 @@ $headerDepth = '../';
 $pageTitle = 'Activity Logs - KINAS GROUP';
 require_once __DIR__ . '/../templates/header.php';
 ?>
+    <!-- ============================================================
+         RESPONSIVE FIX - Added container and responsive styles
+         ============================================================ -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
@@ -69,18 +72,18 @@ require_once __DIR__ . '/../templates/header.php';
         .btn-filter { background: #C6A43F; color: #0A0A0A; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
         .btn-filter:hover { background: #A8882E; }
         .btn-secondary { background: #F5F5F5; color: #333; border: 1px solid #E0E0E0; padding: 10px 16px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 13px; }
-        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .stat-card { background: white; border-radius: 12px; padding: 15px 20px; border: 1.5px solid #C6A43F; transition: all 0.3s; }
         .stat-card:hover { border-color: #C6A43F; box-shadow: 0 8px 24px rgba(198,164,63,0.15); transform: translateY(-3px); }
         .stat-card .number { font-size: 24px; font-weight: 700; color: #C6A43F; font-family: 'Prata', serif; }
         .stat-card .label { font-size: 12px; color: #666; margin-top: 4px; }
-        .logs-card { background: white; border-radius: 20px; border: 1px solid #E0E0E0; overflow: hidden; }
+        .logs-card { background: white; border-radius: 20px; border: 1px solid #E0E0E0; overflow: hidden; width: 100%; }
         .logs-header { padding: 20px 25px; background: #F8F8F8; border-bottom: 1px solid #E0E0E0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         .logs-header h2 { font-family: 'Prata', serif; font-size: 18px; color: #0A0A0A; }
         .export-btn { background: #666; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; cursor: pointer; }
         .export-btn:hover { background: #333; }
-        .table-responsive { overflow-x: auto; }
-        .logs-table { width: 100%; border-collapse: collapse; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+        .logs-table { width: 100%; border-collapse: collapse; min-width: 600px; }
         .logs-table th { text-align: left; padding: 15px 20px; background: #F8F8F8; font-weight: 600; font-size: 12px; text-transform: uppercase; color: #666; letter-spacing: 0.5px; border-bottom: 1px solid #E0E0E0; }
         .logs-table td { padding: 14px 20px; border-bottom: 1px solid #E0E0E0; font-size: 13px; color: #333; }
         .logs-table tr:hover { background: #F8F8F8; }
@@ -99,11 +102,28 @@ require_once __DIR__ . '/../templates/header.php';
         .pagination a, .pagination span { padding: 8px 14px; background: white; border: 1px solid #E0E0E0; border-radius: 8px; text-decoration: none; color: #333; transition: all 0.3s; font-size: 13px; }
         .pagination a:hover, .pagination .active { background: #C6A43F; border-color: #C6A43F; color: #0A0A0A; }
         .pagination .disabled { color: #CCC; cursor: not-allowed; }
-        @media (max-width: 768px) { .admin-main { padding: 20px; } .filters-bar { flex-direction: column; align-items: stretch; } .filter-group select, .filter-group input { width: 100%; } }
+        .je-dash-shell { max-width: 100% !important; overflow-x: hidden !important; }
+        .je-dash-main { overflow-x: hidden !important; width: 100% !important; max-width: 100% !important; padding: 15px !important; }
+        @media (max-width: 768px) { 
+            .admin-main { padding: 15px; }
+            .je-dash-main { padding: 10px !important; }
+            .filters-bar { flex-direction: column; align-items: stretch; }
+            .filter-group select, .filter-group input { width: 100%; }
+            .stats-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .stat-card { padding: 12px 15px; }
+            .stat-card .number { font-size: 20px; }
+            .logs-table { min-width: 450px; }
+            .logs-table th, .logs-table td { padding: 10px 12px; font-size: 12px; }
+            .logs-header { flex-direction: column; align-items: flex-start; }
+        }
+        @media (max-width: 480px) {
+            .stats-row { grid-template-columns: 1fr; }
+            .logs-table th:nth-child(3), .logs-table td:nth-child(3) { display: none; }
+        }
     </style>
-<div class="je-dash-shell">
+<div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
 <?php include __DIR__ . "/../includes/partials/admin-sidebar.php"; ?>
-<main class="je-dash-main">
+<main class="je-dash-main" style="overflow-x:hidden;width:100%;max-width:100%;padding:15px;">
     <div class="page-header">
         <h1><i class="fas fa-history" style="color: #C6A43F; margin-right: 10px;"></i>Activity Logs</h1>
         <p>Monitor all user actions and system events</p>
@@ -147,7 +167,7 @@ require_once __DIR__ . '/../templates/header.php';
                 <button type="submit" class="export-btn"><i class="fas fa-download"></i> Export CSV</button>
             </form>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
             <?php if (empty($logs)): ?>
                 <div class="empty-state">
                     <i class="fas fa-inbox"></i>
@@ -157,7 +177,7 @@ require_once __DIR__ . '/../templates/header.php';
                     <?php endif; ?>
                 </div>
             <?php else: ?>
-            <table class="logs-table">
+            <table class="logs-table" style="min-width: 450px; width: 100%;">
                 <thead>
                     <tr><th>Time</th><th>User</th><th>Action</th><th>Details</th><th>IP</th></tr>
                 </thead>
