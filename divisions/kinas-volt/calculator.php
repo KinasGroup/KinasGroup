@@ -602,7 +602,7 @@ require_once __DIR__ . '/../../templates/header.php';
         }
     </style>
 </head>
-<body>
+<body class="solar-calculator-page">
 
 <div class="calculator-hero">
     <div class="container" style="max-width:1400px; margin:0 auto; padding:0 24px;">
