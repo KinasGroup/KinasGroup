@@ -1,53 +1,11 @@
 <?php
-// calculator.php - Footer social icons fixed
+// calculator.php - Solar Savings Calculator
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/security.php';
 require_once __DIR__ . '/../../api/config/database.php';
 
 $page_title = 'Solar Savings Calculator - Kinas Volt';
 $headerDepth = '../../';
-
-// Add footer social icon CSS fix
-$footerSocialCSS = '
-<style>
-/* Force social icons to display properly */
-.je-footer-social {
-    display: flex !important;
-    gap: 12px !important;
-    margin-top: 16px !important;
-    flex-wrap: wrap !important;
-}
-.je-footer-social a {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 40px !important;
-    height: 40px !important;
-    border-radius: 50% !important;
-    border: 1px solid rgba(255,255,255,0.2) !important;
-    color: #fff !important;
-    text-decoration: none !important;
-    transition: all 0.3s ease !important;
-    font-size: 18px !important;
-    background: rgba(255,255,255,0.05) !important;
-}
-.je-footer-social a:hover {
-    background: #C6A43F !important;
-    border-color: #C6A43F !important;
-    color: #0A0A0A !important;
-    transform: translateY(-3px) !important;
-}
-.je-footer-social a i {
-    font-size: 18px !important;
-    line-height: 1 !important;
-    display: inline-block !important;
-    color: inherit !important;
-}
-</style>
-';
-
-// Prepend the CSS fix to the page
-$footerSocialCSS = '';
 
 require_once __DIR__ . '/../../templates/header.php';
 ?>
@@ -247,6 +205,67 @@ require_once __DIR__ . '/../../templates/header.php';
             margin-right: 8px;
             color: var(--primary-gold);
         }
+
+        /* ============================================================
+           FIX: DROPDOWN SELECT VISIBILITY
+           ============================================================ */
+
+        /* Fix select dropdown - ensure options are visible */
+        select,
+        .form-group select,
+        #solarCalculatorForm select {
+            background: rgba(255,255,255,0.08) !important;
+            color: #FFFFFF !important;
+            border: 1px solid rgba(255,255,255,0.15) !important;
+            padding: 14px 16px !important;
+            border-radius: 8px !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 16px !important;
+            width: 100% !important;
+            appearance: auto !important;
+            -webkit-appearance: auto !important;
+            cursor: pointer !important;
+        }
+
+        /* FIX: Make dropdown options visible */
+        select option,
+        .form-group select option,
+        #solarCalculatorForm select option {
+            background: #1a1a2e !important;
+            color: #FFFFFF !important;
+            padding: 12px 16px !important;
+            font-size: 15px !important;
+            border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+        }
+
+        /* Fix the dropdown arrow */
+        select,
+        .form-group select,
+        #solarCalculatorForm select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23C6A43F' d='M6 8L1 3h10z'/%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 16px center !important;
+            padding-right: 40px !important;
+        }
+
+        /* Override dark mode for selects */
+        @media (prefers-color-scheme: dark) {
+            select,
+            .form-group select,
+            #solarCalculatorForm select {
+                background: rgba(255,255,255,0.08) !important;
+                color: #FFFFFF !important;
+                border-color: rgba(255,255,255,0.15) !important;
+            }
+            
+            select option,
+            .form-group select option,
+            #solarCalculatorForm select option {
+                background: #1a1a2e !important;
+                color: #FFFFFF !important;
+            }
+        }
+
         .form-group input,
         .form-group select {
             padding: 14px 16px;
@@ -453,87 +472,127 @@ require_once __DIR__ . '/../../templates/header.php';
             to { transform: rotate(360deg); }
         }
 
+        /* ============================================================
+           FIX: RESULTS DISPLAY - FORCE VISIBILITY
+           ============================================================ */
+
         .results-section {
-            display: none;
-            margin-top: 40px;
-            animation: fadeIn 0.5s ease;
+            display: none !important;
+            margin-top: 40px !important;
         }
         .results-section.active {
-            display: block;
+            display: block !important;
         }
+
         .results-card {
-            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-gold-dark) 100%);
-            border-radius: var(--border-radius);
-            padding: 40px;
-            color: var(--dark-bg);
+            background: linear-gradient(135deg, #C6A43F 0%, #A8882E 100%) !important;
+            border-radius: 12px !important;
+            padding: 40px !important;
+            color: #0A0A0A !important;
+            display: block !important;
         }
+
         .results-header {
-            text-align: center;
-            margin-bottom: 32px;
+            text-align: center !important;
+            margin-bottom: 32px !important;
         }
+
         .results-header .check-icon {
-            width: 64px;
-            height: 64px;
-            background: rgba(0,0,0,0.1);
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            margin-bottom: 16px;
+            width: 64px !important;
+            height: 64px !important;
+            background: rgba(0,0,0,0.1) !important;
+            border-radius: 50% !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 32px !important;
+            margin-bottom: 16px !important;
         }
+
         .results-header h2 {
-            font-family: 'Prata', serif;
-            font-size: 32px;
-            margin-bottom: 8px;
+            font-family: 'Prata', serif !important;
+            font-size: 32px !important;
+            color: #0A0A0A !important;
+            margin-bottom: 8px !important;
         }
+
+        .results-header p {
+            color: rgba(0,0,0,0.7) !important;
+        }
+
         .results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 32px;
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+            gap: 16px !important;
+            margin-bottom: 32px !important;
         }
+
         .result-item {
-            background: rgba(0,0,0,0.08);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
+            background: rgba(0,0,0,0.08) !important;
+            border-radius: 12px !important;
+            padding: 20px !important;
+            text-align: center !important;
+            color: #0A0A0A !important;
+            display: block !important;
         }
+
         .result-item i {
-            font-size: 28px;
-            margin-bottom: 8px;
+            font-size: 28px !important;
+            color: #0A0A0A !important;
+            display: inline-block !important;
+            margin-bottom: 8px !important;
         }
+
         .result-value {
-            font-size: 24px;
-            font-weight: 800;
-            margin: 4px 0;
+            font-size: 24px !important;
+            font-weight: 800 !important;
+            color: #0A0A0A !important;
+            display: block !important;
+            margin: 4px 0 !important;
         }
+
         .result-label {
-            font-size: 12px;
-            opacity: 0.7;
+            font-size: 12px !important;
+            opacity: 0.7 !important;
+            color: #0A0A0A !important;
+            display: block !important;
         }
+
         .proposal-buttons {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
+            display: flex !important;
+            gap: 16px !important;
+            justify-content: center !important;
+            flex-wrap: wrap !important;
         }
-        .btn-dark {
-            background: var(--dark-bg);
-            color: white;
+
+        .proposal-buttons .btn-dark {
+            background: #0A0A0A !important;
+            color: #FFFFFF !important;
+            padding: 14px 32px !important;
+            border-radius: 40px !important;
+            font-weight: 600 !important;
+            text-decoration: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            border: none !important;
+            cursor: pointer !important;
         }
-        .btn-dark:hover {
-            background: #1A1A1A;
-            transform: translateY(-2px);
+
+        .proposal-buttons .btn-outline-dark {
+            background: transparent !important;
+            border: 2px solid #0A0A0A !important;
+            color: #0A0A0A !important;
+            padding: 12px 32px !important;
+            border-radius: 40px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
         }
-        .btn-outline-dark {
-            background: transparent;
-            border: 2px solid var(--dark-bg);
-            color: var(--dark-bg);
-        }
-        .btn-outline-dark:hover {
-            background: var(--dark-bg);
-            color: white;
+
+        /* Force visibility for all result elements */
+        .results-card * {
+            visibility: visible !important;
+            opacity: 1 !important;
         }
 
         .error-message {
@@ -595,10 +654,29 @@ require_once __DIR__ . '/../../templates/header.php';
             .results-card { padding: 24px; }
             .results-header h2 { font-size: 24px; }
             .result-value { font-size: 20px; }
+            .results-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+            }
+            select,
+            .form-group select,
+            #solarCalculatorForm select {
+                font-size: 15px !important;
+                padding: 12px 14px !important;
+                min-height: 50px !important;
+            }
         }
         @media (max-width: 480px) {
             .calc-wrapper { padding: 20px 16px 60px; }
             .preset-grid { grid-template-columns: repeat(2, 1fr); }
+            .results-grid {
+                grid-template-columns: 1fr 1fr !important;
+            }
+            select option,
+            .form-group select option,
+            #solarCalculatorForm select option {
+                font-size: 14px !important;
+                padding: 10px 12px !important;
+            }
         }
     </style>
 </head>
