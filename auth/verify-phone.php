@@ -35,39 +35,213 @@ $phone = $user['phone'] ?? '';
 $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="color-scheme: light;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- ============================================================
+         FORCE LIGHT MODE - PERMANENT FIX
+         ============================================================ -->
     <meta name="color-scheme" content="light only">
+    <meta name="theme-color" content="#ffffff">
+    <style>
+        /* Force light mode immediately */
+        html, body { 
+            color-scheme: light !important; 
+            background: #ffffff !important;
+        }
+        @media (prefers-color-scheme: dark) {
+            html, body {
+                color-scheme: light !important;
+                background: #ffffff !important;
+                color: #0A0A0A !important;
+            }
+            .je-auth-shell,
+            .je-auth-main,
+            .je-auth-form {
+                background-color: #ffffff !important;
+                color: #0A0A0A !important;
+            }
+            .je-auth-aside {
+                background-color: #0A0A0A !important;
+                color: rgba(255,255,255,0.7) !important;
+            }
+            .je-auth-aside * {
+                color: rgba(255,255,255,0.7) !important;
+            }
+            .je-auth-aside h1,
+            .je-auth-aside .je-auth-headline {
+                color: #ffffff !important;
+            }
+        }
+        
+        /* ============================================================
+           MOBILE RESPONSIVENESS FIXES
+           ============================================================ */
+        .je-auth-shell {
+            min-height: 100vh;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        .je-otp-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            max-width: 340px;
+            margin: 0 auto;
+        }
+        .je-otp-grid input {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+            padding: 12px 0;
+            border: 1px solid var(--je-line);
+            border-radius: 4px;
+            font-family: 'Inter', sans-serif;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .je-otp-grid input:focus {
+            outline: none;
+            border-color: var(--je-gold);
+            box-shadow: 0 0 0 3px rgba(198,164,63,0.12);
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 14px 28px;
+            border-radius: 8px;
+            background: #0A0A0A;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show { opacity: 1; pointer-events: auto; }
+        .toast.success { background: #1B5E20; }
+        .toast.error { background: #B71C1C; }
+        .toast.info { background: #0047AB; }
+        
+        .je-auth-switch { 
+            margin-top: 20px; 
+            text-align: center; 
+        }
+        .je-auth-switch a { 
+            color: #888; 
+            text-decoration: none; 
+            font-size: 13px; 
+        }
+        .je-auth-switch a:hover { 
+            color: #C6A43F; 
+        }
+        .hidden { 
+            display: none !important; 
+        }
+        
+        /* ============================================================
+           RESPONSIVE BREAKPOINTS
+           ============================================================ */
+        @media (max-width: 992px) {
+            .je-auth-shell {
+                grid-template-columns: 1fr !important;
+            }
+            .je-auth-aside {
+                padding: 30px 24px 36px !important;
+                min-height: 200px !important;
+            }
+            .je-auth-aside .je-auth-headline {
+                font-size: 24px !important;
+            }
+            .je-auth-aside div:last-child {
+                display: none !important;
+            }
+            .je-auth-main {
+                padding: 30px 20px !important;
+            }
+            .je-auth-form {
+                max-width: 100% !important;
+                padding: 0 10px !important;
+            }
+            .je-auth-form h2 {
+                font-size: 24px !important;
+            }
+            .je-otp-grid {
+                max-width: 280px;
+                gap: 6px;
+            }
+            .je-otp-grid input {
+                font-size: 18px;
+                padding: 10px 0;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .je-auth-aside {
+                padding: 20px 16px 24px !important;
+                min-height: 150px !important;
+            }
+            .je-auth-aside .je-auth-headline {
+                font-size: 20px !important;
+            }
+            .je-auth-main {
+                padding: 20px 14px !important;
+            }
+            .je-auth-form h2 {
+                font-size: 20px !important;
+            }
+            .je-auth-form .je-auth-sub-form {
+                font-size: 13px !important;
+            }
+            .je-form-group input,
+            .je-form-group select {
+                font-size: 14px !important;
+                padding: 10px 12px !important;
+            }
+            .je-btn-lg {
+                padding: 12px 20px !important;
+                font-size: 13px !important;
+            }
+            .je-auth-switch {
+                font-size: 12px !important;
+            }
+            .je-otp-grid {
+                max-width: 220px;
+                gap: 4px;
+            }
+            .je-otp-grid input {
+                font-size: 16px;
+                padding: 8px 0;
+            }
+            .otp-input-group {
+                flex-direction: column !important;
+                align-items: center !important;
+            }
+            .otp-input-group .btn-verify-otp {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+        }
+    </style>
+    <!-- ============================================================ -->
+    
     <title>Verify Your Phone - KINAS GROUP</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .je-otp-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; max-width: 360px; margin: 0 auto; }
-        .je-otp-grid input { text-align: center; font-size: 22px; font-weight: 600; padding: 14px 0; border: 1px solid var(--je-line); border-radius: 4px; font-family: 'Inter', sans-serif; }
-        .je-otp-grid input:focus { outline: none; border-color: var(--je-gold); box-shadow: 0 0 0 3px rgba(198,164,63,0.12); }
-        .toast {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            padding: 14px 28px; border-radius: 8px; background: #0A0A0A; color: #fff;
-            font-family: 'Inter', sans-serif; font-size: 14px; z-index: 9999;
-            opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-        }
-        .toast.show { opacity: 1; pointer-events: auto; }
-        .toast.success { background: #1B5E20; }
-        .toast.error { background: #B71C1C; }
-        .toast.info { background: #0047AB; }
-        .je-auth-switch { margin-top: 20px; text-align: center; }
-        .je-auth-switch a { color: #888; text-decoration: none; font-size: 13px; }
-        .je-auth-switch a:hover { color: #C6A43F; }
-        .hidden { display: none !important; }
-        .mt-16 { margin-top: 16px; }
-        .text-center { text-align: center; }
-    </style>
 </head>
 <body>
 
