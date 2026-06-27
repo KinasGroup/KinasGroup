@@ -352,7 +352,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     <?php endif; ?>
 
     <form class="listing-form" method="POST" action="/api/listings/update.php" enctype="multipart/form-data" id="editForm">
-        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+        <input type="hidden" name="csrf_token" id="csrfTokenInput" value="<?php echo htmlspecialchars($csrf_token); ?>">
         <input type="hidden" name="listing_id" value="<?php echo $listingId; ?>">
         <input type="hidden" name="division" value="<?php echo $divisionParam; ?>">
         <input type="hidden" name="listing_type" id="listing_type" value="<?php echo $divisionParam; ?>">
@@ -647,6 +647,23 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
 <script>
 // ============================================
+// CSRF TOKEN MANAGEMENT - FIX FOR MULTIPLE DELETES
+// ============================================
+let currentCsrfToken = document.getElementById('csrfTokenInput')?.value || '<?php echo $csrf_token; ?>';
+
+function refreshCsrfToken() {
+    // Update the hidden input with the current token
+    const tokenInput = document.getElementById('csrfTokenInput');
+    if (tokenInput) {
+        tokenInput.value = currentCsrfToken;
+    }
+    // Also update any other CSRF inputs on the page
+    document.querySelectorAll('input[name="csrf_token"]').forEach(input => {
+        input.value = currentCsrfToken;
+    });
+}
+
+// ============================================
 // FIX: DIRECT FORM SUBMISSION HANDLER
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
@@ -734,22 +751,34 @@ function renderImages() {
     });
 }
 
-// Remove an existing image from the database
+// ============================================
+// FIX: Remove an existing image with CSRF refresh
+// ============================================
 function removeExistingImage(imageId, button) {
     if (!confirm('Remove this image from the listing?')) return;
     
     button.classList.add('loading');
     button.innerHTML = '⏳';
     
+    // Use the current CSRF token
+    const csrfToken = document.getElementById('csrfTokenInput')?.value || currentCsrfToken;
+    
     fetch('/api/listings/delete-image.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             image_id: imageId,
-            csrf_token: '<?php echo $csrf_token; ?>'
+            csrf_token: csrfToken
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Server error: ' + response.status);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             const index = existingImages.findIndex(img => img.id === imageId);
@@ -757,14 +786,42 @@ function removeExistingImage(imageId, button) {
                 existingImages.splice(index, 1);
                 renderImages();
             }
+            
+            // ============================================
+            // FIX: Generate a NEW CSRF token for next delete
+            // ============================================
+            fetch('/api/auth/csrf-token.php')
+                .then(r => r.json())
+                .then(tokenData => {
+                    if (tokenData.csrf_token) {
+                        currentCsrfToken = tokenData.csrf_token;
+                        document.getElementById('csrfTokenInput').value = currentCsrfToken;
+                        document.querySelectorAll('input[name="csrf_token"]').forEach(input => {
+                            input.value = currentCsrfToken;
+                        });
+                        console.log('CSRF token refreshed for next delete');
+                    }
+                })
+                .catch(e => console.warn('Could not refresh CSRF token:', e));
+            
+            // Show success message (optional)
+            // You can uncomment this if you want a toast notification
+            // showToast('Image removed successfully', 'success');
+            
         } else {
             alert(data.error || 'Failed to remove image');
             button.classList.remove('loading');
             button.innerHTML = '&times;';
+            
+            // If CSRF error, reload to get fresh token
+            if (data.error && data.error.toLowerCase().includes('security token')) {
+                setTimeout(() => window.location.reload(), 1000);
+            }
         }
     })
     .catch(error => {
-        alert('Network error. Please try again.');
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
         button.classList.remove('loading');
         button.innerHTML = '&times;';
     });
@@ -797,6 +854,7 @@ if (imageUpload) {
 // Initial render
 document.addEventListener('DOMContentLoaded', function() {
     renderImages();
+    refreshCsrfToken();
 });
 
 // Also render images after any DOM changes
@@ -808,6 +866,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 100);
 });
+
+// ============================================
+// SIMPLE TOAST NOTIFICATION (Optional)
+// ============================================
+function showToast(message, type) {
+    const existing = document.querySelector('.custom-toast');
+    if (existing) existing.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = 'custom-toast';
+    toast.style.cssText = `
+        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+        padding: 14px 28px; border-radius: 8px; color: #fff;
+        font-family: 'Inter', sans-serif; font-size: 14px; z-index: 9999;
+        opacity: 0; transition: opacity 0.3s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        max-width: 90%; text-align: center;
+    `;
+    toast.textContent = message;
+    if (type === 'success') toast.style.background = '#1B5E20';
+    else if (type === 'error') toast.style.background = '#B71C1C';
+    else toast.style.background = '#0047AB';
+    
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '1'; }, 100);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
 </script>
 
 </main>
