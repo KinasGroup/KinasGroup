@@ -50,6 +50,7 @@ class FileUpload {
             try {
                 $this->r2Uploader = new R2Upload($subDir);
                 $this->uploadDir = ''; // Not used for R2
+                error_log('FileUpload: Using R2 storage');
             } catch (RuntimeException $e) {
                 // Fall back to local storage if R2 fails to initialize
                 $this->useR2 = false;
@@ -62,6 +63,7 @@ class FileUpload {
             if (!file_exists($this->uploadDir)) {
                 mkdir($this->uploadDir, 0755, true);
             }
+            error_log('FileUpload: Using local storage at ' . $this->uploadDir);
         }
         
         $this->allowedTypes = self::MIME_TO_EXTENSION;
@@ -107,10 +109,14 @@ class FileUpload {
     public function upload(array $file, array $options = []): array {
         // Use R2 if configured
         if ($this->useR2 && $this->r2Uploader) {
-            return $this->r2Uploader->upload($file, $options);
+            error_log('FileUpload: Using R2 upload for ' . ($file['name'] ?? 'unknown'));
+            $result = $this->r2Uploader->upload($file, $options);
+            error_log('FileUpload: R2 upload result - ' . ($result['success'] ? 'SUCCESS' : 'FAILED: ' . ($result['error'] ?? 'unknown')));
+            return $result;
         }
         
         // Fall back to local storage
+        error_log('FileUpload: Using local upload for ' . ($file['name'] ?? 'unknown'));
         return $this->uploadLocal($file, $options);
     }
     
