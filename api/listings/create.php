@@ -15,6 +15,7 @@ require_once '../config/database.php';
 require_once '../../includes/session.php';
 require_once '../../includes/security.php';
 require_once '../../includes/validation.php';
+require_once '../../includes/file-upload.php';
 
 // Check if this is a form submission (multipart/form-data) or JSON
 $isFormSubmit = !empty($_POST) || !empty($_FILES);
@@ -315,61 +316,77 @@ try {
     $listingId = (int)$db->lastInsertId();
 
     // ── FIXED: Image uploads ───────────────────────────────────────────────────
+    // IMPORTANT: This now goes through the FileUpload class (includes/file-upload.php)
+    // instead of writing directly to local disk via move_uploaded_file(). The old
+    // code saved files to <project>/uploads/listings/... on the server's local
+    // filesystem. On Railway (and most modern hosts) the filesystem is EPHEMERAL —
+    // it gets rebuilt from git on every deploy, so any file written there at
+    // runtime is silently wiped the next time you push code. That's why listing
+    // photos kept "breaking"/disappearing after every code change: the images
+    // were never actually persisted anywhere durable.
+    //
+    // FileUpload automatically uses Cloudflare R2 (persistent, survives deploys)
+    // when R2_* env vars are configured, and only falls back to local disk if
+    // R2 isn't set up. Make sure R2_BUCKET / R2_ACCOUNT_ID / R2_ACCESS_KEY_ID /
+    // R2_SECRET_ACCESS_KEY / R2_PUBLIC_URL are set in your environment so this
+    // fallback is never actually used in production.
     $imagesAttempted = 0;
     $imagesSaved = 0;
     $imageErrors = [];
-    
+
     // Check if any images were uploaded
     if (!empty($_FILES['images']['name'][0]) && $_FILES['images']['name'][0] !== '') {
-        // Create the upload directory
-        $uploadDir = __DIR__ . '/../../uploads/listings/' . $listingType . '/' . $listingId . '/';
-        
-        if (!is_dir($uploadDir)) {
-            if (!@mkdir($uploadDir, 0755, true)) {
-                $imageErrors[] = 'Failed to create upload directory.';
+        $subDirMap = [
+            'car'         => 'cars',
+            'property'    => 'properties',
+            'solar'       => 'products',
+            'marketplace' => 'products',
+        ];
+        $subDir = $subDirMap[$listingType] ?? 'general';
+        $uploader = new FileUpload($subDir);
+
+        $imageCount = count($_FILES['images']['name']);
+        $imagesAttempted = $imageCount;
+
+        $imgStmt = $db->prepare(
+            "INSERT INTO listing_images (listing_id, listing_type, url, sort_order, created_at) VALUES (?, ?, ?, ?, NOW())"
+        );
+
+        $sortOrder = 0;
+        for ($i = 0; $i < $imageCount; $i++) {
+            if ($_FILES['images']['error'][$i] !== UPLOAD_ERR_OK) {
+                continue;
             }
-        }
-        
-        if (empty($imageErrors)) {
-            $imageCount = count($_FILES['images']['name']);
-            $imagesAttempted = $imageCount;
-            
-            // Prepare the insert statement
-            $imgStmt = $db->prepare(
-                "INSERT INTO listing_images (listing_id, listing_type, url, sort_order, created_at) VALUES (?, ?, ?, ?, NOW())"
-            );
-            
-            // Process each image
-            $sortOrder = 0;
-            for ($i = 0; $i < $imageCount; $i++) {
-                if ($_FILES['images']['error'][$i] !== UPLOAD_ERR_OK) {
-                    continue;
-                }
-                
-                $tmpName = $_FILES['images']['tmp_name'][$i];
-                $origName = basename($_FILES['images']['name'][$i]);
-                $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-                
-                if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) {
-                    continue;
-                }
-                
-                if ($_FILES['images']['size'][$i] > 10 * 1024 * 1024) {
-                    continue;
-                }
-                
-                $newName = uniqid('img_', true) . '.' . $ext;
-                $target = $uploadDir . $newName;
-                
-                if (!@move_uploaded_file($tmpName, $target)) {
-                    continue;
-                }
-                
-                $publicUrl = '/uploads/listings/' . $listingType . '/' . $listingId . '/' . $newName;
-                if ($imgStmt->execute([$listingId, $listingType, $publicUrl, $sortOrder])) {
-                    $imagesSaved++;
-                    $sortOrder++;
-                }
+
+            $fileArr = [
+                'name'     => $_FILES['images']['name'][$i],
+                'type'     => $_FILES['images']['type'][$i],
+                'tmp_name' => $_FILES['images']['tmp_name'][$i],
+                'error'    => $_FILES['images']['error'][$i],
+                'size'     => $_FILES['images']['size'][$i],
+            ];
+
+            $result = $uploader->upload($fileArr, [
+                'prefix'    => "listing_{$listingId}_",
+                'maxWidth'  => 1920,
+                'maxHeight' => 1080,
+                'quality'   => 85,
+            ]);
+
+            if (!$result['success']) {
+                $imageErrors[] = $result['error'] ?? 'Unknown upload error';
+                continue;
+            }
+
+            // R2Upload returns a full public URL in 'filepath'; local FileUpload
+            // returns a filesystem path, so build the public URL ourselves.
+            $publicUrl = $uploader->isUsingR2()
+                ? $result['filepath']
+                : '/uploads/' . $subDir . '/' . $result['filename'];
+
+            if ($imgStmt->execute([$listingId, $listingType, $publicUrl, $sortOrder])) {
+                $imagesSaved++;
+                $sortOrder++;
             }
         }
     }

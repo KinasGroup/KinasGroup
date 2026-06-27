@@ -6,6 +6,7 @@
 require_once '../config/database.php';
 require_once '../../includes/session.php';
 require_once '../../includes/security.php';
+require_once '../../includes/file-upload.php';
 
 if (!in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'PATCH'], true)) {
     http_response_code(405);
@@ -221,28 +222,47 @@ try {
     $stmt->execute($params);
 
     // Handle new image uploads (best-effort)
+    // FIXED: routed through FileUpload (includes/file-upload.php) instead of
+    // move_uploaded_file() straight to local disk — see the detailed note in
+    // api/listings/create.php for why that broke images on every deploy.
     if (!empty($_FILES['images']) && is_array($_FILES['images']['name'])) {
         try {
-            $uploadDir = __DIR__ . '/../../uploads/listings/' . $listingType . '/' . $listingId . '/';
-            if (!is_dir($uploadDir)) {
-                @mkdir($uploadDir, 0755, true);
-            }
+            $subDirMap = [
+                'car'         => 'cars',
+                'property'    => 'properties',
+                'solar'       => 'products',
+                'marketplace' => 'products',
+            ];
+            $subDir = $subDirMap[$listingType] ?? 'general';
+            $uploader = new FileUpload($subDir);
+
             $baseSort = (int)$db->query("SELECT IFNULL(MAX(sort_order),0) FROM listing_images WHERE listing_id = $listingId AND listing_type = '$listingType'")->fetchColumn();
 
             $imageCount = count($_FILES['images']['name']);
             for ($i = 0; $i < $imageCount; $i++) {
                 if ($_FILES['images']['error'][$i] !== UPLOAD_ERR_OK) continue;
-                $tmpName = $_FILES['images']['tmp_name'][$i];
-                $origName = basename($_FILES['images']['name'][$i]);
-                $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-                if (!in_array($ext, ['jpg','jpeg','png','webp','gif'], true)) continue;
-                if ($_FILES['images']['size'][$i] > 10 * 1024 * 1024) continue;
 
-                $newName = uniqid('img_', true) . '.' . $ext;
-                $target = $uploadDir . $newName;
-                if (!@move_uploaded_file($tmpName, $target)) continue;
+                $fileArr = [
+                    'name'     => $_FILES['images']['name'][$i],
+                    'type'     => $_FILES['images']['type'][$i],
+                    'tmp_name' => $_FILES['images']['tmp_name'][$i],
+                    'error'    => $_FILES['images']['error'][$i],
+                    'size'     => $_FILES['images']['size'][$i],
+                ];
 
-                $publicUrl = '/uploads/listings/' . $listingType . '/' . $listingId . '/' . $newName;
+                $result = $uploader->upload($fileArr, [
+                    'prefix'    => "listing_{$listingId}_",
+                    'maxWidth'  => 1920,
+                    'maxHeight' => 1080,
+                    'quality'   => 85,
+                ]);
+
+                if (!$result['success']) continue;
+
+                $publicUrl = $uploader->isUsingR2()
+                    ? $result['filepath']
+                    : '/uploads/' . $subDir . '/' . $result['filename'];
+
                 $db->prepare("INSERT INTO listing_images (listing_id, listing_type, url, sort_order) VALUES (?, ?, ?, ?)")
                    ->execute([$listingId, $listingType, $publicUrl, $baseSort + $i + 1]);
             }
