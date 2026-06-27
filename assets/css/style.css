@@ -1,3 +1,117 @@
+/* ============================================================
+   FORCE LIGHT MODE - PERMANENT FIX
+   This MUST be at the very top of style.css
+   ============================================================ */
+
+/* Force light mode at the root level */
+:root {
+    color-scheme: light !important;
+}
+
+html {
+    color-scheme: light !important;
+    background: #ffffff !important;
+}
+
+body {
+    background: #ffffff !important;
+    color: #0A0A0A !important;
+}
+
+/* Override system dark mode - CRITICAL */
+@media (prefers-color-scheme: dark) {
+    html, body, :root {
+        color-scheme: light !important;
+        background: #ffffff !important;
+        color: #0A0A0A !important;
+    }
+    
+    /* Force all block elements to light */
+    div, section, main, article, aside, 
+    header, footer, nav, form, fieldset,
+    .container, .je-container, .je-auth-shell,
+    .je-auth-aside, .je-auth-main, .je-auth-form,
+    .je-filter-panel, .je-results-panel, .je-dash-main,
+    .je-dash-sidebar, .je-panel, .je-stat-card,
+    .listing-card, .featured-item-card, .je-card,
+    .je-card-body, .item-body, .division-card .card-content {
+        background-color: #ffffff !important;
+        color: #0A0A0A !important;
+    }
+    
+    /* Force dark sidebar to stay dark */
+    .je-dash-sidebar,
+    .je-auth-aside,
+    .mobile-nav-drawer,
+    .je-footer {
+        background-color: #0A0A0A !important;
+        color: rgba(255,255,255,0.7) !important;
+    }
+    
+    /* Force text colors */
+    h1, h2, h3, h4, h5, h6,
+    p, span, a, li, label, blockquote,
+    .je-auth-sub, .je-auth-sub-form,
+    .je-auth-headline, .je-auth-brand span,
+    .je-card-title, .je-card-price,
+    .je-spec-title, .je-spec-price,
+    .je-dash-header h1, .je-panel-title,
+    .je-stat-value, .je-stat-label,
+    .je-results-count strong,
+    .section-heading, .listing-title, .listing-price {
+        color: #0A0A0A !important;
+    }
+    
+    /* Keep gold accents */
+    .je-text-gold, .je-gold, .je-card-eyebrow,
+    .je-dash-nav a i, .je-panel-title i,
+    .je-stat-icon, .je-gold-text,
+    .je-gold-border {
+        color: #C6A43F !important;
+    }
+    
+    /* Force links */
+    a:not(.je-btn):not(.je-btn-gold):not(.je-admin-portal-btn) {
+        color: #0A0A0A !important;
+    }
+    
+    a:not(.je-btn):not(.je-btn-gold):not(.je-admin-portal-btn):hover {
+        color: #C6A43F !important;
+    }
+    
+    /* Force form elements */
+    input, textarea, select, button,
+    .je-filter-select, .je-filter-input,
+    .je-sort-select, .je-form-group input,
+    .je-form-group select, .je-form-group textarea {
+        background-color: #ffffff !important;
+        color: #0A0A0A !important;
+        border-color: #e0e0e0 !important;
+    }
+    
+    /* Force card backgrounds */
+    .je-card, .je-card-body, .je-panel,
+    .je-stat-card, .listing-card,
+    .featured-item-card, .item-body,
+    .division-card .card-content,
+    .je-filter-panel, .je-results-panel {
+        background-color: #ffffff !important;
+        color: #0A0A0A !important;
+    }
+    
+    /* Force borders to stay visible */
+    .je-card, .je-panel, .je-stat-card,
+    .listing-card, .featured-item-card,
+    .je-filter-panel, .je-line,
+    .je-line-2, .je-line-3 {
+        border-color: #e0e0e0 !important;
+    }
+}
+
+/* ============================================================
+   END FORCE LIGHT MODE
+   ============================================================ */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prata&display=swap');
 
 :root {
