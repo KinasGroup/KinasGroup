@@ -1581,3 +1581,184 @@ body:has(.calculator-hero) .result-label {
         border-color: rgba(255,255,255,0.1) !important;
     }
 }
+
+/* ============================================================
+   FIX: SOLAR CALCULATOR - DROPDOWN & BUTTON FIXES
+   ============================================================ */
+
+/* Fix dropdown (select) visibility in solar calculator */
+.solar-calculator-page select,
+.calculator-page select,
+body:has(.calculator-hero) select,
+.solar-calc-wrap select,
+.calculator-container select,
+#solarCalculatorForm select,
+.solar-calculator-page .form-group select,
+.calculator-page .form-group select {
+    background: rgba(255,255,255,0.08) !important;
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    padding: 14px 16px !important;
+    border-radius: 8px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 16px !important;
+    width: 100% !important;
+    appearance: auto !important;
+    -webkit-appearance: auto !important;
+    cursor: pointer !important;
+}
+
+/* Fix dropdown options - make them visible */
+.solar-calculator-page select option,
+.calculator-page select option,
+body:has(.calculator-hero) select option,
+.solar-calc-wrap select option,
+.calculator-container select option,
+#solarCalculatorForm select option {
+    background: #1a1a2e !important;
+    color: #FFFFFF !important;
+    padding: 10px !important;
+}
+
+/* Fix dropdown arrow visibility */
+.solar-calculator-page select,
+.calculator-page select,
+body:has(.calculator-hero) select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23C6A43F' d='M6 8L1 3h10z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 16px center !important;
+    padding-right: 40px !important;
+}
+
+/* ============================================================
+   FIX: SOLAR CALCULATOR - BUTTONS STAY GOLD ON MOBILE
+   ============================================================ */
+
+/* Fix primary buttons in solar calculator - force gold color on all devices */
+.solar-calculator-page .btn-primary,
+.calculator-page .btn-primary,
+body:has(.calculator-hero) .btn-primary,
+.solar-calc-wrap .btn-primary,
+.calculator-container .btn-primary,
+#solarCalculatorForm .btn-primary {
+    background: #C6A43F !important;
+    background-color: #C6A43F !important;
+    color: #0A0A0A !important;
+    border: none !important;
+    padding: 14px 32px !important;
+    border-radius: 40px !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    font-family: 'Inter', sans-serif !important;
+    width: auto !important;
+    min-width: 120px !important;
+}
+
+.solar-calculator-page .btn-primary:hover,
+.calculator-page .btn-primary:hover,
+body:has(.calculator-hero) .btn-primary:hover,
+.solar-calc-wrap .btn-primary:hover {
+    background: #A8882E !important;
+    background-color: #A8882E !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 15px rgba(198,164,63,0.3) !important;
+}
+
+/* Fix secondary buttons */
+.solar-calculator-page .btn-secondary,
+.calculator-page .btn-secondary,
+body:has(.calculator-hero) .btn-secondary,
+.solar-calc-wrap .btn-secondary {
+    background: rgba(255,255,255,0.1) !important;
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    padding: 14px 32px !important;
+    border-radius: 40px !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    font-family: 'Inter', sans-serif !important;
+    width: auto !important;
+}
+
+.solar-calculator-page .btn-secondary:hover,
+.calculator-page .btn-secondary:hover,
+body:has(.calculator-hero) .btn-secondary:hover {
+    background: rgba(255,255,255,0.2) !important;
+}
+
+/* Force button styling on mobile */
+@media (max-width: 768px) {
+    .solar-calculator-page .btn-primary,
+    .calculator-page .btn-primary,
+    body:has(.calculator-hero) .btn-primary,
+    .solar-calc-wrap .btn-primary,
+    .calculator-container .btn-primary,
+    #solarCalculatorForm .btn-primary {
+        background: #C6A43F !important;
+        background-color: #C6A43F !important;
+        color: #0A0A0A !important;
+        border: none !important;
+        padding: 14px 24px !important;
+        border-radius: 40px !important;
+        font-weight: 600 !important;
+        font-size: 15px !important;
+        width: 100% !important;
+        justify-content: center !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+    
+    .solar-calculator-page .btn-secondary,
+    .calculator-page .btn-secondary,
+    body:has(.calculator-hero) .btn-secondary,
+    .solar-calc-wrap .btn-secondary {
+        width: 100% !important;
+        justify-content: center !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+    
+    /* Fix select dropdowns on mobile */
+    .solar-calculator-page select,
+    .calculator-page select,
+    body:has(.calculator-hero) select {
+        font-size: 15px !important;
+        padding: 12px 14px !important;
+        min-height: 50px !important;
+    }
+}
+
+/* ============================================================
+   FIX: SOLAR CALCULATOR - DARK MODE OVERRIDE
+   ============================================================ */
+
+@media (prefers-color-scheme: dark) {
+    .solar-calculator-page select,
+    .calculator-page select,
+    body:has(.calculator-hero) select,
+    .solar-calc-wrap select {
+        background: rgba(255,255,255,0.08) !important;
+        color: #FFFFFF !important;
+        border-color: rgba(255,255,255,0.15) !important;
+    }
+    
+    .solar-calculator-page select option,
+    .calculator-page select option {
+        background: #1a1a2e !important;
+        color: #FFFFFF !important;
+    }
+    
+    .solar-calculator-page .btn-primary,
+    .calculator-page .btn-primary,
+    body:has(.calculator-hero) .btn-primary {
+        background: #C6A43F !important;
+        background-color: #C6A43F !important;
+        color: #0A0A0A !important;
+    }
+}
