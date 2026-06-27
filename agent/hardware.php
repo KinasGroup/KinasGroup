@@ -31,9 +31,6 @@ $pageTitle = 'Hardware Inventory - Agent Dashboard';
 include '../templates/header.php';
 ?>
 
-<!-- ============================================================
-     RESPONSIVE FIX - Added container and responsive styles
-     ============================================================ -->
 <style>
 .je-dash-shell {
     max-width: 100% !important;
@@ -65,6 +62,31 @@ include '../templates/header.php';
     .je-table th:nth-child(7), .je-table td:nth-child(7) { display: none; }
     .je-table th:nth-child(6), .je-table td:nth-child(6) { display: none; }
 }
+/* Action buttons */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s ease;
+    line-height: 1.4;
+    min-height: 28px;
+    margin: 2px;
+}
+.action-btn i { font-size: 11px; }
+.action-btn-view { background: #1565C0; color: #FFFFFF !important; }
+.action-btn-view:hover { background: #0D47A1; color: #FFFFFF !important; transform: translateY(-1px); }
+.action-btn-edit { background: #F57C00; color: #FFFFFF !important; }
+.action-btn-edit:hover { background: #E65100; color: #FFFFFF !important; transform: translateY(-1px); }
+.action-btn-delete { background: #C62828; color: #FFFFFF !important; }
+.action-btn-delete:hover { background: #B71C1C; color: #FFFFFF !important; transform: translateY(-1px); }
 </style>
 
 <div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
@@ -145,12 +167,17 @@ include '../templates/header.php';
                                 <td><?php echo $item['warranty_years']; ?> years</td>
                                 <td><span class="je-status is-active">Active</span></td>
                                 <td>
-                                    <a href="edit-listing.php?id=<?php echo $item['id']; ?>" style="color: #C6A43F; margin-right: 8px;">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="#" onclick="if(confirm('Delete this item?')){window.location='delete-hardware.php?id=<?php echo $item['id']; ?>';}" style="color: #C62828;">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
+                                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                        <a href="edit-listing.php?id=<?php echo $item['id']; ?>&division=solar" 
+                                           class="action-btn action-btn-edit">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <a href="delete-listing.php?id=<?php echo $item['id']; ?>&division=solar&csrf_token=<?php echo Security::generateCSRFToken(); ?>" 
+                                           class="action-btn action-btn-delete" 
+                                           onclick="return confirm('Delete this hardware item? This cannot be undone.');">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
