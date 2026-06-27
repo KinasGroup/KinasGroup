@@ -99,62 +99,19 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     
     <style>
-        /* ============================================================
-           MOBILE MENU STYLES - RESTORED + FIXED
-           ============================================================ */
-        
-        /* Mobile menu button - base styles */
+        /* CRITICAL MOBILE MENU STYLES - DO NOT REMOVE */
         .mobile-menu-btn {
             display: none;
-            background: none !important;
-            background-color: transparent !important;
-            border: none !important;
+            background: none;
+            border: none;
             font-size: 28px;
             cursor: pointer;
-            padding: 8px 12px;
+            color: #0A0A0A;
+            padding: 10px;
             z-index: 1003;
             position: relative;
-            min-width: 48px;
-            min-height: 48px;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-            color: #0A0A0A !important;
         }
 
-        /* Force hamburger icon */
-        .mobile-menu-btn .menu-icon {
-            display: block !important;
-            font-size: 28px !important;
-            line-height: 1 !important;
-        }
-
-        /* Force close icon - hidden by default */
-        .mobile-menu-btn .menu-icon-close {
-            display: none !important;
-            font-size: 28px !important;
-            line-height: 1 !important;
-        }
-
-        /* Transparent header - white icons */
-        .je3-header.transparent .mobile-menu-btn {
-            color: #ffffff !important;
-        }
-        .je3-header.transparent .mobile-menu-btn .menu-icon,
-        .je3-header.transparent .mobile-menu-btn .menu-icon-close {
-            color: #ffffff !important;
-        }
-
-        /* Solid header - dark icons */
-        .je3-header.solid .mobile-menu-btn {
-            color: #0A0A0A !important;
-        }
-        .je3-header.solid .mobile-menu-btn .menu-icon,
-        .je3-header.solid .mobile-menu-btn .menu-icon-close {
-            color: #0A0A0A !important;
-        }
-
-        /* Mobile navigation drawer */
         .mobile-nav-drawer {
             position: fixed;
             top: 0;
@@ -224,17 +181,16 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
             display: block;
         }
 
-        /* Show hamburger on mobile */
-        @media (max-width: 1200px) {
+        @media (max-width: 768px) {
             .mobile-menu-btn {
-                display: flex !important;
+                display: block !important;
             }
             .header-nav {
                 display: none !important;
             }
         }
 
-        @media (min-width: 1201px) {
+        @media (min-width: 769px) {
             .mobile-nav-drawer {
                 display: none !important;
             }
@@ -243,27 +199,27 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
             }
         }
 
-        /* Dark mode override - keep menu visible and transparent */
-        @media (prefers-color-scheme: dark) {
+        /* ============================================================
+           FIX: Mobile menu color on transparent header
+           ============================================================ */
+        .je3-header.transparent .mobile-menu-btn .menu-icon,
+        .je3-header.transparent .mobile-menu-btn .menu-icon-close {
+            color: #ffffff !important;
+        }
+
+        .je3-header.solid .mobile-menu-btn .menu-icon,
+        .je3-header.solid .mobile-menu-btn .menu-icon-close {
+            color: #0A0A0A !important;
+        }
+
+        @media (max-width: 1200px) {
             .mobile-menu-btn {
                 display: flex !important;
-                background: transparent !important;
-                background-color: transparent !important;
-                color: #0A0A0A !important;
-            }
-            .je3-header.transparent .mobile-menu-btn {
-                color: #ffffff !important;
-            }
-            .je3-header.transparent .mobile-menu-btn .menu-icon,
-            .je3-header.transparent .mobile-menu-btn .menu-icon-close {
-                color: #ffffff !important;
-            }
-            .je3-header.solid .mobile-menu-btn {
-                color: #0A0A0A !important;
-            }
-            .je3-header.solid .mobile-menu-btn .menu-icon,
-            .je3-header.solid .mobile-menu-btn .menu-icon-close {
-                color: #0A0A0A !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-width: 48px !important;
+                min-height: 48px !important;
+                font-size: 28px !important;
             }
         }
     </style>
@@ -332,3 +288,71 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
 </header>
 
 <main>
+
+<script>
+// ============================================================
+// MOBILE MENU TOGGLE - FIXED
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    var menuBtn = document.getElementById('mobileMenuBtn');
+    var drawer = document.getElementById('mobileNavDrawer');
+    var overlay = document.getElementById('menuOverlay');
+    var closeBtn = document.getElementById('closeMobileMenu');
+
+    if (!menuBtn || !drawer) return;
+
+    function openMenu() {
+        drawer.classList.add('open');
+        overlay.classList.add('active');
+        menuBtn.classList.add('open');
+        menuBtn.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+        
+        // Show close icon, hide hamburger
+        var icon = menuBtn.querySelector('.menu-icon');
+        var closeIcon = menuBtn.querySelector('.menu-icon-close');
+        if (icon) icon.style.display = 'none';
+        if (closeIcon) closeIcon.style.display = 'block';
+    }
+
+    function closeMenu() {
+        drawer.classList.remove('open');
+        overlay.classList.remove('active');
+        menuBtn.classList.remove('open');
+        menuBtn.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+        
+        // Show hamburger, hide close icon
+        var icon = menuBtn.querySelector('.menu-icon');
+        var closeIcon = menuBtn.querySelector('.menu-icon-close');
+        if (icon) icon.style.display = 'block';
+        if (closeIcon) closeIcon.style.display = 'none';
+    }
+
+    function toggleMenu(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (drawer.classList.contains('open')) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
+    }
+
+    menuBtn.addEventListener('click', toggleMenu);
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeMenu);
+    }
+
+    if (overlay) {
+        overlay.addEventListener('click', closeMenu);
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && drawer.classList.contains('open')) {
+            closeMenu();
+        }
+    });
+});
+</script>
