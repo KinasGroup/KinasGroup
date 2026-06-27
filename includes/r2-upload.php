@@ -74,7 +74,7 @@ class R2Upload {
         $this->secretKey = getenv('R2_SECRET_ACCESS_KEY') ?: $_ENV['R2_SECRET_ACCESS_KEY'] ?? '';
         $this->publicUrl = getenv('R2_PUBLIC_URL') ?: $_ENV['R2_PUBLIC_URL'] ?? '';
         
-        // Fallback to Cloudflare's public URL format
+        // If no public URL is set, construct it from account ID and bucket
         if (empty($this->publicUrl) && !empty($this->accountId) && !empty($this->bucket)) {
             $this->publicUrl = "https://pub-{$this->accountId}.r2.dev/{$this->bucket}";
         }
@@ -206,13 +206,19 @@ class R2Upload {
                 'ACL' => 'public-read',
             ]);
             
-            // Get the URL
-            $url = $result->get('ObjectURL');
+            // ============================================================
+            // FIX: Use CDN URL (https://cdn.kinas-group.com) instead of R2 internal URL
+            // ============================================================
+            $publicUrlBase = rtrim($this->publicUrl, '/');
             
-            // If ObjectURL isn't available, construct it
-            if (empty($url)) {
-                $url = rtrim($this->publicUrl, '/') . '/' . $key;
+            // If publicUrl is empty or still the internal R2 URL, construct it
+            if (empty($publicUrlBase) || strpos($publicUrlBase, 'r2.cloudflarestorage.com') !== false) {
+                $publicUrlBase = "https://pub-{$this->accountId}.r2.dev/{$this->bucket}";
             }
+            
+            $url = "{$publicUrlBase}/{$key}";
+            
+            error_log("R2 Upload: URL = {$url}");
             
             return [
                 'success' => true,
@@ -242,10 +248,8 @@ class R2Upload {
         $host = "{$this->accountId}.r2.cloudflarestorage.com";
         $endpoint = "https://{$host}/{$this->bucket}/{$key}";
         
-        // Use simpler presigned URL approach - generate a presigned URL and use PUT
-        // This avoids signature calculation issues
+        // Try presigned URL first
         try {
-            // Use the SDK to generate a presigned URL if available
             if ($this->useAwsSdk) {
                 $command = $this->s3Client->getCommand('PutObject', [
                     'Bucket' => $this->bucket,
@@ -256,7 +260,6 @@ class R2Upload {
                 $presignedUrl = $this->s3Client->createPresignedRequest($command, '+5 minutes');
                 $url = (string) $presignedUrl->getUri();
                 
-                // Upload using presigned URL
                 $ch = curl_init();
                 curl_setopt_array($ch, [
                     CURLOPT_URL => $url,
@@ -284,7 +287,13 @@ class R2Upload {
                     ];
                 }
                 
+                // ============================================================
+                // FIX: Use CDN URL (https://cdn.kinas-group.com)
+                // ============================================================
                 $publicUrlBase = rtrim($this->publicUrl, '/');
+                if (empty($publicUrlBase) || strpos($publicUrlBase, 'r2.cloudflarestorage.com') !== false) {
+                    $publicUrlBase = "https://pub-{$this->accountId}.r2.dev/{$this->bucket}";
+                }
                 $finalUrl = "{$publicUrlBase}/{$key}";
                 
                 return [
@@ -297,7 +306,7 @@ class R2Upload {
             error_log('Presigned URL error: ' . $e->getMessage());
         }
         
-        // Fallback to direct cURL with signature (last resort)
+        // Fallback to direct cURL with signature
         $date = gmdate('Ymd');
         $amzDate = gmdate('Ymd\THis\Z');
         $service = 's3';
@@ -305,7 +314,6 @@ class R2Upload {
         
         $contentHash = hash('sha256', $fileContent);
         
-        // Canonical request
         $canonicalMethod = 'PUT';
         $canonicalUri = '/' . $key;
         $canonicalQueryString = '';
@@ -321,7 +329,6 @@ class R2Upload {
             $contentHash
         ]);
         
-        // String to sign
         $algorithm = 'AWS4-HMAC-SHA256';
         $credentialScope = "{$date}/{$region}/{$service}/aws4_request";
         $stringToSign = implode("\n", [
@@ -331,7 +338,6 @@ class R2Upload {
             hash('sha256', $canonicalRequest)
         ]);
         
-        // Signature
         $kSecret = 'AWS4' . $this->secretKey;
         $kDate = hash_hmac('sha256', $date, $kSecret, true);
         $kRegion = hash_hmac('sha256', $region, $kDate, true);
@@ -376,6 +382,9 @@ class R2Upload {
         }
         
         $publicUrlBase = rtrim($this->publicUrl, '/');
+        if (empty($publicUrlBase) || strpos($publicUrlBase, 'r2.cloudflarestorage.com') !== false) {
+            $publicUrlBase = "https://pub-{$this->accountId}.r2.dev/{$this->bucket}";
+        }
         $url = "{$publicUrlBase}/{$key}";
         
         return [
