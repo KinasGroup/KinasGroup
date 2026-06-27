@@ -59,50 +59,100 @@ $headerDepth = '../';
 $pageTitle = 'User Management - KINAS GROUP';
 require_once __DIR__ . '/../templates/header.php';
 ?>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;background:#F5F7FA}
-        .admin-layout{display:flex;min-height:100vh}.admin-main{flex:1;padding:30px;background:#F5F7FA}
-        .page-header{margin-bottom:24px}.page-header h1{font-family:'Prata',serif;font-size:28px;color:#0A0A0A}
-        .page-header p{color:#666;font-size:14px;margin-top:4px}
-        .flash{padding:14px 20px;border-radius:10px;margin-bottom:18px;font-size:14px;font-weight:500}
-        .flash.success{background:#E8F5E9;color:#2E7D32}.flash.error{background:#FEF2F2;color:#DC2626}
-        .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
-        .stat-card{background:white;border-radius:14px;padding:20px;text-align:center;border:1.5px solid #C6A43F;transition:all .3s}
-        .stat-card:hover{border-color:#C6A43F;box-shadow:0 8px 24px rgba(198,164,63,0.15);transform:translateY(-3px)}
-        .stat-number{font-size:28px;font-weight:700;color:#C6A43F;font-family:'Prata',serif}.stat-label{color:#666;font-size:12px;margin-top:4px}
-        .filters-bar{background:white;border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;border:1px solid #E0E0E0}
-        .filters-bar input,.filters-bar select{padding:9px 14px;border:1px solid #E0E0E0;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px}
-        .filters-bar input{flex:1;min-width:200px}.btn-filter{padding:9px 18px;background:#C6A43F;border:none;border-radius:8px;font-weight:600;color:#0A0A0A;cursor:pointer}
-        .table-container{background:white;border-radius:16px;border:1px solid #E0E0E0;overflow:hidden}
-        .table-responsive{overflow-x:auto}
-        .data-table{width:100%;border-collapse:collapse}
-        .data-table th{text-align:left;padding:14px 16px;background:#F8F8F8;font-size:11px;text-transform:uppercase;color:#666;font-weight:600;border-bottom:1px solid #E0E0E0}
-        .data-table td{padding:14px 16px;border-bottom:1px solid #E0E0E0;font-size:13px;color:#333;vertical-align:middle}
-        .data-table tr:hover{background:#FAFAFA}
-        .user-cell{display:flex;align-items:center;gap:10px}
-        .user-avatar{width:36px;height:36px;border-radius:50%;background:#C6A43F;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#0A0A0A;flex-shrink:0}
-        .role-badge,.status-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
-        .role-badge.admin{background:#F3E5F5;color:#7B1FA2}.role-badge.agent{background:#E3F2FD;color:#1565C0}.role-badge.user{background:#E8F5E9;color:#2E7D32}
-        .status-badge.active{background:#E8F5E9;color:#2E7D32}.status-badge.pending{background:#FFF3E0;color:#F57C00}.status-badge.suspended,.status-badge.banned{background:#FEF2F2;color:#DC2626}.status-badge.deleted{background:#1A1A1A;color:#fff}
-        .email-verified-badge,.email-unverified-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
-        .email-verified-badge{background:#E8F5E9;color:#2E7D32}
-        .email-unverified-badge{background:#FFF3E0;color:#F57C00}
-        .action-btns{display:flex;gap:6px;flex-wrap:wrap}
-        .act-btn{height:30px;min-width:30px;padding:0 12px;border-radius:7px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;font-family:inherit;transition:all .2s;line-height:1}
-        .act-btn.activate{background:#E8F5E9;color:#2E7D32}.act-btn.suspend{background:#FFF3E0;color:#F57C00}.act-btn.ban{background:#FEF2F2;color:#DC2626}.act-btn.delete{background:#FEE2E2;color:#B91C1C}
-        .act-btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,0.08)}
-        .act-btn-label{display:inline-block}
-        /* If the FA CDN is blocked the <i> shows up empty — the
-           button still works because the label is there. */
-        .act-btn i{font-style:normal;min-width:14px;text-align:center}
-        .pagination{display:flex;justify-content:center;gap:6px;padding:18px;border-top:1px solid #E0E0E0}
-        .page-btn{padding:7px 12px;border:1px solid #E0E0E0;border-radius:7px;background:white;color:#333;text-decoration:none;font-size:13px;transition:all .2s}
-        .page-btn:hover,.page-btn.active{background:#C6A43F;border-color:#C6A43F;color:#0A0A0A}
-        @media(max-width:768px){.admin-main{padding:20px}.data-table th:nth-child(4),.data-table td:nth-child(4),.data-table th:nth-child(7),.data-table td:nth-child(7){display:none}}
-    </style>
-<div class="je-dash-shell">
+
+<!-- ============================================================
+     RESPONSIVE FIX - Added container and viewport styles
+     ============================================================ -->
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;background:#F5F7FA}
+    .admin-layout{display:flex;min-height:100vh}.admin-main{flex:1;padding:30px;background:#F5F7FA}
+    .page-header{margin-bottom:24px}.page-header h1{font-family:'Prata',serif;font-size:28px;color:#0A0A0A}
+    .page-header p{color:#666;font-size:14px;margin-top:4px}
+    .flash{padding:14px 20px;border-radius:10px;margin-bottom:18px;font-size:14px;font-weight:500}
+    .flash.success{background:#E8F5E9;color:#2E7D32}.flash.error{background:#FEF2F2;color:#DC2626}
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+    .stat-card{background:white;border-radius:14px;padding:20px;text-align:center;border:1.5px solid #C6A43F;transition:all .3s}
+    .stat-card:hover{border-color:#C6A43F;box-shadow:0 8px 24px rgba(198,164,63,0.15);transform:translateY(-3px)}
+    .stat-number{font-size:28px;font-weight:700;color:#C6A43F;font-family:'Prata',serif}.stat-label{color:#666;font-size:12px;margin-top:4px}
+    .filters-bar{background:white;border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;border:1px solid #E0E0E0}
+    .filters-bar input,.filters-bar select{padding:9px 14px;border:1px solid #E0E0E0;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px}
+    .filters-bar input{flex:1;min-width:200px}.btn-filter{padding:9px 18px;background:#C6A43F;border:none;border-radius:8px;font-weight:600;color:#0A0A0A;cursor:pointer}
+    .table-container{background:white;border-radius:16px;border:1px solid #E0E0E0;overflow:hidden;width:100%}
+    .table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%}
+    .data-table{width:100%;border-collapse:collapse;min-width:700px}
+    .data-table th{text-align:left;padding:14px 16px;background:#F8F8F8;font-size:11px;text-transform:uppercase;color:#666;font-weight:600;border-bottom:1px solid #E0E0E0}
+    .data-table td{padding:14px 16px;border-bottom:1px solid #E0E0E0;font-size:13px;color:#333;vertical-align:middle}
+    .data-table tr:hover{background:#FAFAFA}
+    .user-cell{display:flex;align-items:center;gap:10px}
+    .user-avatar{width:36px;height:36px;border-radius:50%;background:#C6A43F;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#0A0A0A;flex-shrink:0}
+    .role-badge,.status-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+    .role-badge.admin{background:#F3E5F5;color:#7B1FA2}.role-badge.agent{background:#E3F2FD;color:#1565C0}.role-badge.user{background:#E8F5E9;color:#2E7D32}
+    .status-badge.active{background:#E8F5E9;color:#2E7D32}.status-badge.pending{background:#FFF3E0;color:#F57C00}.status-badge.suspended,.status-badge.banned{background:#FEF2F2;color:#DC2626}.status-badge.deleted{background:#1A1A1A;color:#fff}
+    .email-verified-badge,.email-unverified-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+    .email-verified-badge{background:#E8F5E9;color:#2E7D32}
+    .email-unverified-badge{background:#FFF3E0;color:#F57C00}
+    .action-btns{display:flex;gap:6px;flex-wrap:wrap}
+    .act-btn{height:30px;min-width:30px;padding:0 12px;border-radius:7px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;font-family:inherit;transition:all .2s;line-height:1}
+    .act-btn.activate{background:#E8F5E9;color:#2E7D32}.act-btn.suspend{background:#FFF3E0;color:#F57C00}.act-btn.ban{background:#FEF2F2;color:#DC2626}.act-btn.delete{background:#FEE2E2;color:#B91C1C}
+    .act-btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+    .act-btn-label{display:inline-block}
+    .act-btn i{font-style:normal;min-width:14px;text-align:center}
+    .pagination{display:flex;justify-content:center;gap:6px;padding:18px;border-top:1px solid #E0E0E0;flex-wrap:wrap}
+    .page-btn{padding:7px 12px;border:1px solid #E0E0E0;border-radius:7px;background:white;color:#333;text-decoration:none;font-size:13px;transition:all .2s}
+    .page-btn:hover,.page-btn.active{background:#C6A43F;border-color:#C6A43F;color:#0A0A0A}
+
+    /* ============================================================
+       RESPONSIVE FIXES - Added
+       ============================================================ */
+    .je-dash-shell {
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    .je-dash-main {
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 15px !important;
+    }
+    .je-container {
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+        padding: 0 10px !important;
+    }
+
+    @media(max-width:768px){
+        .admin-main{padding:15px}
+        .data-table th:nth-child(4),.data-table td:nth-child(4),
+        .data-table th:nth-child(7),.data-table td:nth-child(7){display:none}
+        .filters-bar{flex-direction:column;align-items:stretch}
+        .filters-bar input{min-width:auto;width:100%}
+        .filters-bar select{width:100%}
+        .stats-row{grid-template-columns:1fr 1fr;gap:10px}
+        .stat-card{padding:14px}
+        .stat-number{font-size:22px}
+        .page-header h1{font-size:22px}
+        .act-btn-label{display:none}
+        .act-btn{padding:0 10px;min-width:36px}
+        .data-table td{padding:10px 8px;font-size:12px}
+        .data-table th{padding:10px 8px;font-size:10px}
+        .user-avatar{width:28px;height:28px;font-size:10px}
+        .action-btns{flex-wrap:nowrap}
+    }
+
+    @media(max-width:480px){
+        .admin-main{padding:10px}
+        .stats-row{grid-template-columns:1fr 1fr;gap:8px}
+        .stat-card{padding:10px}
+        .stat-number{font-size:18px}
+        .data-table th:nth-child(3),.data-table td:nth-child(3){display:none}
+        .data-table th:nth-child(5),.data-table td:nth-child(5){display:none}
+        .pagination .page-btn{padding:5px 8px;font-size:11px}
+    }
+</style>
+
+<div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
 <?php include __DIR__ . "/../includes/partials/admin-sidebar.php"; ?>
-<main class="je-dash-main">
+<main class="je-dash-main" style="overflow-x:hidden;width:100%;max-width:100%;padding:15px;">
     <div class="page-header">
         <h1><i class="fas fa-users" style="color:#C6A43F;margin-right:10px"></i>User Management</h1>
         <p>Manage all platform users, roles, and account status</p>
@@ -200,9 +250,6 @@ require_once __DIR__ . '/../templates/header.php';
         </div>
         <?php endif; ?>
     </div>
-
-</main>
-</div>
 
 </main>
 </div>
