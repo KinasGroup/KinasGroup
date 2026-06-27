@@ -294,7 +294,7 @@ class R2Upload {
         $destinationImage = imagecreatetruecolor($newWidth, $newHeight);
         
         // Preserve transparency for PNG
-        if (exif_imagetype($sourcePath) === IMAGETYPE_PNG) {
+        if ((@getimagesize($sourcePath))[2] === IMAGETYPE_PNG) {
             imagealphablending($destinationImage, false);
             imagesavealpha($destinationImage, true);
         }
@@ -328,7 +328,7 @@ class R2Upload {
         $sourceImage = $this->createImageFromFile($sourcePath);
         $thumbImage = imagecreatetruecolor($thumbWidth, $thumbHeight);
         
-        if (exif_imagetype($sourcePath) === IMAGETYPE_PNG) {
+        if ((@getimagesize($sourcePath))[2] === IMAGETYPE_PNG) {
             imagealphablending($thumbImage, false);
             imagesavealpha($thumbImage, true);
         }
@@ -358,7 +358,8 @@ class R2Upload {
      * Create GD image from file
      */
     private function createImageFromFile(string $filepath) {
-        $type = exif_imagetype($filepath);
+        $imgInfo = @getimagesize($filepath);
+        $type = $imgInfo !== false ? $imgInfo[2] : false;
         
         switch ($type) {
             case IMAGETYPE_JPEG:
