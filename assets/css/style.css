@@ -1355,3 +1355,229 @@ footer .je-footer-newsletter input {
         background: #f8f6f1 !important;
     }
 }
+
+/* ============================================================
+   FIX: SOLAR CALCULATOR - RESTORE DARK THEME
+   ============================================================ */
+
+/* Exclude solar calculator pages from dark mode overrides */
+body.solar-calculator-page,
+.solar-calculator-page body,
+.calculator-page body,
+body:has(.calculator-hero),
+body:has(.solar-calc-wrap) {
+    background: linear-gradient(135deg, #0A0A0A 0%, #1a1a2e 100%) !important;
+    color: #FFFFFF !important;
+}
+
+/* Restore all solar calculator elements */
+.calculator-hero,
+.calc-wrapper,
+.form-card,
+.results-card,
+.loading-overlay,
+.solar-calculator-page .calc-wrapper *,
+.calculator-page .calc-wrapper *,
+body:has(.calculator-hero) .calc-wrapper * {
+    background: none !important;
+    background-color: transparent !important;
+    color: inherit !important;
+}
+
+/* Restore form card background */
+.calculator-page .form-card,
+.solar-calculator-page .form-card,
+body:has(.calculator-hero) .form-card {
+    background: #141414 !important;
+    border-color: rgba(255,255,255,0.05) !important;
+}
+
+/* Restore form inputs */
+.calculator-page .form-group input,
+.calculator-page .form-group select,
+.solar-calculator-page .form-group input,
+.solar-calculator-page .form-group select,
+body:has(.calculator-hero) .form-group input,
+body:has(.calculator-hero) .form-group select {
+    background: rgba(255,255,255,0.05) !important;
+    color: #FFFFFF !important;
+    border-color: rgba(255,255,255,0.1) !important;
+}
+
+.calculator-page .form-group input::placeholder,
+.solar-calculator-page .form-group input::placeholder,
+body:has(.calculator-hero) .form-group input::placeholder {
+    color: rgba(255,255,255,0.3) !important;
+}
+
+/* Restore appliance rows */
+.calculator-page .appliance-row,
+.solar-calculator-page .appliance-row,
+body:has(.calculator-hero) .appliance-row {
+    background: rgba(255,255,255,0.03) !important;
+}
+
+.calculator-page .appliance-row input,
+.calculator-page .appliance-row select,
+.solar-calculator-page .appliance-row input,
+.solar-calculator-page .appliance-row select,
+body:has(.calculator-hero) .appliance-row input,
+body:has(.calculator-hero) .appliance-row select {
+    background: rgba(255,255,255,0.05) !important;
+    color: #FFFFFF !important;
+    border-color: rgba(255,255,255,0.1) !important;
+}
+
+/* Restore preset chips */
+.calculator-page .preset-chip,
+.solar-calculator-page .preset-chip,
+body:has(.calculator-hero) .preset-chip {
+    background: #1A1A1A !important;
+    color: rgba(255,255,255,0.7) !important;
+    border-color: rgba(255,255,255,0.1) !important;
+}
+
+.calculator-page .preset-chip:hover,
+.solar-calculator-page .preset-chip:hover,
+body:has(.calculator-hero) .preset-chip:hover {
+    border-color: #C6A43F !important;
+    color: #C6A43F !important;
+}
+
+/* Restore buttons */
+.calculator-page .btn-primary,
+.solar-calculator-page .btn-primary,
+body:has(.calculator-hero) .btn-primary {
+    background: #C6A43F !important;
+    color: #0A0A0A !important;
+}
+
+.calculator-page .btn-secondary,
+.solar-calculator-page .btn-secondary,
+body:has(.calculator-hero) .btn-secondary {
+    background: rgba(255,255,255,0.1) !important;
+    color: #FFFFFF !important;
+}
+
+.calculator-page .btn-dark,
+.solar-calculator-page .btn-dark,
+body:has(.calculator-hero) .btn-dark {
+    background: #0A0A0A !important;
+    color: #FFFFFF !important;
+}
+
+.calculator-page .btn-outline-dark,
+.solar-calculator-page .btn-outline-dark,
+body:has(.calculator-hero) .btn-outline-dark {
+    background: transparent !important;
+    border-color: #0A0A0A !important;
+    color: #0A0A0A !important;
+}
+
+/* Restore progress steps */
+.calculator-page .step-number,
+.solar-calculator-page .step-number,
+body:has(.calculator-hero) .step-number {
+    background: rgba(255,255,255,0.1) !important;
+    border-color: rgba(255,255,255,0.2) !important;
+    color: #FFFFFF !important;
+}
+
+.calculator-page .step-indicator.active .step-number,
+.solar-calculator-page .step-indicator.active .step-number,
+body:has(.calculator-hero) .step-indicator.active .step-number {
+    background: #C6A43F !important;
+    border-color: #C6A43F !important;
+    color: #0A0A0A !important;
+}
+
+.calculator-page .step-label,
+.solar-calculator-page .step-label,
+body:has(.calculator-hero) .step-label {
+    color: rgba(255,255,255,0.7) !important;
+}
+
+.calculator-page .step-indicator.active .step-label,
+.solar-calculator-page .step-indicator.active .step-label,
+body:has(.calculator-hero) .step-indicator.active .step-label {
+    color: #C6A43F !important;
+}
+
+/* Restore headings */
+.calculator-page .form-card h2,
+.calculator-page .form-card h3,
+.solar-calculator-page .form-card h2,
+.solar-calculator-page .form-card h3,
+body:has(.calculator-hero) .form-card h2,
+body:has(.calculator-hero) .form-card h3 {
+    color: #FFFFFF !important;
+}
+
+.calculator-page .form-card h2,
+.solar-calculator-page .form-card h2,
+body:has(.calculator-hero) .form-card h2 {
+    color: #C6A43F !important;
+}
+
+/* Restore labels */
+.calculator-page .form-group label,
+.solar-calculator-page .form-group label,
+body:has(.calculator-hero) .form-group label {
+    color: rgba(255,255,255,0.7) !important;
+}
+
+/* Restore appliance header */
+.calculator-page .appliances-header,
+.solar-calculator-page .appliances-header,
+body:has(.calculator-hero) .appliances-header {
+    color: #C6A43F !important;
+}
+
+/* Restore result items */
+.calculator-page .result-item,
+.solar-calculator-page .result-item,
+body:has(.calculator-hero) .result-item {
+    background: rgba(0,0,0,0.08) !important;
+}
+
+.calculator-page .result-value,
+.solar-calculator-page .result-value,
+body:has(.calculator-hero) .result-value {
+    color: #0A0A0A !important;
+}
+
+.calculator-page .result-label,
+.solar-calculator-page .result-label,
+body:has(.calculator-hero) .result-label {
+    color: rgba(0,0,0,0.7) !important;
+}
+
+/* Override dark mode for solar calculator */
+@media (prefers-color-scheme: dark) {
+    body.solar-calculator-page,
+    .solar-calculator-page body,
+    .calculator-page body,
+    body:has(.calculator-hero),
+    body:has(.solar-calc-wrap) {
+        background: linear-gradient(135deg, #0A0A0A 0%, #1a1a2e 100%) !important;
+        color: #FFFFFF !important;
+    }
+    
+    .calculator-page .form-card,
+    .solar-calculator-page .form-card,
+    body:has(.calculator-hero) .form-card {
+        background: #141414 !important;
+        border-color: rgba(255,255,255,0.05) !important;
+    }
+    
+    .calculator-page .form-group input,
+    .calculator-page .form-group select,
+    .solar-calculator-page .form-group input,
+    .solar-calculator-page .form-group select,
+    body:has(.calculator-hero) .form-group input,
+    body:has(.calculator-hero) .form-group select {
+        background: rgba(255,255,255,0.05) !important;
+        color: #FFFFFF !important;
+        border-color: rgba(255,255,255,0.1) !important;
+    }
+}
