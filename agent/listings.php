@@ -79,14 +79,34 @@ $pageTitle = 'My Listings - Agent Dashboard';
 include '../templates/header.php';
 ?>
 
+<!-- ============================================================
+     RESPONSIVE FIX - Added container and responsive styles
+     ============================================================ -->
 <style>
-/* Action buttons */
+.je-dash-shell {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+.je-dash-main {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 15px !important;
+}
+.table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+}
+.je-table {
+    min-width: 700px !important;
+    width: 100% !important;
+}
 .action-btn-group {
     display: flex;
     gap: 4px;
     flex-wrap: wrap;
 }
-
 .action-btn {
     display: inline-flex;
     align-items: center;
@@ -103,51 +123,15 @@ include '../templates/header.php';
     line-height: 1.4;
     min-height: 28px;
 }
-
-.action-btn i {
-    font-size: 11px;
-}
-
-.action-btn-view {
-    background: #1565C0;
-    color: #FFFFFF !important;
-}
-.action-btn-view:hover {
-    background: #0D47A1;
-    color: #FFFFFF !important;
-    transform: translateY(-1px);
-}
-
-.action-btn-edit {
-    background: #F57C00;
-    color: #FFFFFF !important;
-}
-.action-btn-edit:hover {
-    background: #E65100;
-    color: #FFFFFF !important;
-    transform: translateY(-1px);
-}
-
-.action-btn-delete {
-    background: #C62828;
-    color: #FFFFFF !important;
-}
-.action-btn-delete:hover {
-    background: #B71C1C;
-    color: #FFFFFF !important;
-    transform: translateY(-1px);
-}
-
-.action-btn-restore {
-    background: #2E7D32;
-    color: #FFFFFF !important;
-}
-.action-btn-restore:hover {
-    background: #1B5E20;
-    color: #FFFFFF !important;
-    transform: translateY(-1px);
-}
-
+.action-btn i { font-size: 11px; }
+.action-btn-view { background: #1565C0; color: #FFFFFF !important; }
+.action-btn-view:hover { background: #0D47A1; color: #FFFFFF !important; transform: translateY(-1px); }
+.action-btn-edit { background: #F57C00; color: #FFFFFF !important; }
+.action-btn-edit:hover { background: #E65100; color: #FFFFFF !important; transform: translateY(-1px); }
+.action-btn-delete { background: #C62828; color: #FFFFFF !important; }
+.action-btn-delete:hover { background: #B71C1C; color: #FFFFFF !important; transform: translateY(-1px); }
+.action-btn-restore { background: #2E7D32; color: #FFFFFF !important; }
+.action-btn-restore:hover { background: #1B5E20; color: #FFFFFF !important; transform: translateY(-1px); }
 .division-badge {
     display: inline-block;
     padding: 2px 10px;
@@ -159,7 +143,6 @@ include '../templates/header.php';
 .division-badge-car { background: #E3F2FD; color: #0D47A1; }
 .division-badge-property { background: #E8F5E9; color: #1B5E20; }
 .division-badge-marketplace { background: #F3E5F5; color: #4A148C; }
-
 .status-badge {
     display: inline-block;
     padding: 2px 10px;
@@ -170,38 +153,12 @@ include '../templates/header.php';
 .status-badge-active { background: #E8F5E9; color: #1B5E20; }
 .status-badge-inactive { background: #FFF3E0; color: #E65100; }
 .status-badge-pending { background: #FFF8E1; color: #F57F17; }
-
-/* Fix for table cell padding */
-.je-table td {
-    vertical-align: middle;
-    padding: 10px 12px;
-}
-
-/* Empty state */
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #666;
-}
-.empty-state i {
-    font-size: 48px;
-    color: #C6A43F;
-    margin-bottom: 16px;
-    display: block;
-}
-.empty-state p {
-    margin: 8px 0;
-}
-.empty-state a {
-    color: #C6A43F;
-    text-decoration: none;
-    font-weight: 600;
-}
-.empty-state a:hover {
-    text-decoration: underline;
-}
-
-/* Filter bar */
+.je-table td { vertical-align: middle; padding: 10px 12px; }
+.empty-state { text-align: center; padding: 60px 20px; color: #666; }
+.empty-state i { font-size: 48px; color: #C6A43F; margin-bottom: 16px; display: block; }
+.empty-state p { margin: 8px 0; }
+.empty-state a { color: #C6A43F; text-decoration: none; font-weight: 600; }
+.empty-state a:hover { text-decoration: underline; }
 .filter-bar {
     background: #fff;
     padding: 16px 20px;
@@ -225,25 +182,32 @@ include '../templates/header.php';
     font-size: 13px;
     transition: all 0.2s;
 }
-.filter-bar .filter-link.active {
-    background: #C6A43F;
-    color: #0A0A0A;
+.filter-bar .filter-link.active { background: #C6A43F; color: #0A0A0A; }
+.filter-bar .filter-link.inactive { background: #f0f0f0; color: #333; }
+.filter-bar .filter-link.inactive:hover { background: #e0e0e0; }
+
+@media (max-width: 768px) {
+    .je-dash-main { padding: 10px !important; }
+    .je-table th, .je-table td { padding: 8px 8px; font-size: 11px; }
+    .action-btn { font-size: 9px; padding: 3px 6px; min-height: 24px; }
+    .action-btn i { font-size: 9px; }
+    .filter-bar { flex-wrap: wrap; gap: 6px; padding: 12px 14px; }
+    .filter-bar .filter-link { font-size: 11px; padding: 4px 10px; }
+    .je-table th:nth-child(1), .je-table td:nth-child(1) { display: none; }
+    .je-table th:nth-child(4), .je-table td:nth-child(4) { display: none; }
 }
-.filter-bar .filter-link.inactive {
-    background: #f0f0f0;
-    color: #333;
-}
-.filter-bar .filter-link.inactive:hover {
-    background: #e0e0e0;
+@media (max-width: 480px) {
+    .je-table th:nth-child(5), .je-table td:nth-child(5) { display: none; }
+    .je-table th:nth-child(7), .je-table td:nth-child(7) { display: none; }
+    .action-btn-group { flex-wrap: nowrap; }
 }
 </style>
 
-<div class="je-dash-shell">
+<div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
     <?php include __DIR__ . '/../includes/partials/agent-sidebar.php'; ?>
 
-    <!-- Main Content -->
-    <main class="je-dash-main">
-        <div class="je-dash-header">
+    <main class="je-dash-main" style="overflow-x:hidden;width:100%;max-width:100%;padding:15px;">
+        <div class="je-dash-header" style="flex-wrap: wrap;">
             <div>
                 <h1><i class="fas fa-list-ul" style="color: #C6A43F;"></i> My Listings</h1>
                 <p>Manage all your listings across all divisions</p>
@@ -285,8 +249,8 @@ include '../templates/header.php';
         </div>
 
         <!-- Listings Table -->
-        <div class="je-panel">
-            <div class="je-panel-body">
+        <div class="je-panel" style="overflow-x: hidden;">
+            <div class="je-panel-body" style="overflow-x: hidden;">
                 <?php if (empty($listings)): ?>
                     <div class="empty-state">
                         <i class="fas fa-list-ul"></i>
@@ -295,7 +259,8 @@ include '../templates/header.php';
                         <p><a href="add-listing.php">Add your first listing →</a></p>
                     </div>
                 <?php else: ?>
-                    <table class="je-table">
+                    <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
+                    <table class="je-table" style="min-width: 700px; width: 100%;">
                         <thead>
                             <tr>
                                 <th>#</th>
@@ -329,7 +294,6 @@ include '../templates/header.php';
                                 <td>
                                     <div class="action-btn-group">
                                         <?php 
-                                        // Get the correct folder for this division
                                         $folder = $folderMap[$item['division']] ?? $item['division'];
                                         ?>
                                         <a href="/divisions/<?php echo $folder; ?>/detail.php?id=<?php echo $item['id']; ?>" 
@@ -340,7 +304,6 @@ include '../templates/header.php';
                                            class="action-btn action-btn-edit">
                                             <i class="fas fa-edit"></i> Edit
                                         </a>
-                                        <!-- Delete button with CSRF token -->
                                         <a href="delete-listing.php?id=<?php echo $item['id']; ?>&division=<?php echo $item['division']; ?>&csrf_token=<?php echo Security::generateCSRFToken(); ?>" 
                                            class="action-btn action-btn-delete" 
                                            onclick="return confirm('Are you sure you want to delete this listing?');">
@@ -352,6 +315,7 @@ include '../templates/header.php';
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
