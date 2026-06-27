@@ -14,7 +14,7 @@ $verificationLink = 'https://kinas-group.com/auth/verify-email.php?code=abc123xy
 // Create EmailService instance
 $emailService = new EmailService();
 
-// Use the PUBLIC methods to get email content
+// Get email content using the public methods
 $emailHtml = $emailService->getVerificationEmailHTML($name, $verificationLink);
 $plainText = $emailService->getVerificationEmailPlain($name, $verificationLink);
 
@@ -100,6 +100,7 @@ $plainText = $emailService->getVerificationEmailPlain($name, $verificationLink);
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            justify-content: center;
         }
         .btn-group button {
             padding: 8px 20px;
