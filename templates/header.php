@@ -31,11 +31,35 @@ if ($scriptName === 'about.php'
 $transparentClass = $isHeroPage ? 'transparent' : 'solid';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="color-scheme: light;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    
+    <!-- ============================================================
+         FORCE LIGHT MODE - PERMANENT FIX
+         ============================================================ -->
     <meta name="color-scheme" content="light only">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <style>
+        /* Force light mode immediately - prevents flash of dark */
+        html, body { 
+            color-scheme: light !important; 
+            background: #ffffff !important;
+        }
+        /* Override any dark mode preferences */
+        @media (prefers-color-scheme: dark) {
+            html, body {
+                color-scheme: light !important;
+                background: #ffffff !important;
+                color: #0A0A0A !important;
+            }
+        }
+    </style>
+    <!-- ============================================================ -->
+    
     <meta name="description" content="<?php echo $pageDescription ?? 'KINAS GROUP - The World\'s Luxury Marketplace: Homes, Cars, Solar & Products for Sale'; ?>">
     <title><?php echo $pageTitle ?? 'KINAS GROUP | The World\'s Luxury Marketplace'; ?></title>
 
@@ -66,11 +90,6 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
 
     <!-- ============================================================ -->
     <!-- FONT AWESOME -->
-    <!-- Loaded synchronously (no media=print/onload trick) from -->
-    <!-- cdnjs.cloudflare.com, which is explicitly allow-listed in the -->
-    <!-- Content-Security-Policy (style-src/font-src) in security.php. -->
-    <!-- The previous 3-source fallback setup didn't actually fix -->
-    <!-- anything because none of those domains were CSP-allowed. -->
     <!-- ============================================================ -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
