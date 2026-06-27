@@ -99,19 +99,62 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     
     <style>
-        /* CRITICAL MOBILE MENU STYLES - DO NOT REMOVE */
+        /* ============================================================
+           MOBILE MENU STYLES - RESTORED + FIXED
+           ============================================================ */
+        
+        /* Mobile menu button - base styles */
         .mobile-menu-btn {
             display: none;
-            background: none;
-            border: none;
+            background: none !important;
+            background-color: transparent !important;
+            border: none !important;
             font-size: 28px;
             cursor: pointer;
-            color: #0A0A0A;
-            padding: 10px;
+            padding: 8px 12px;
             z-index: 1003;
             position: relative;
+            min-width: 48px;
+            min-height: 48px;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            color: #0A0A0A !important;
         }
 
+        /* Force hamburger icon */
+        .mobile-menu-btn .menu-icon {
+            display: block !important;
+            font-size: 28px !important;
+            line-height: 1 !important;
+        }
+
+        /* Force close icon - hidden by default */
+        .mobile-menu-btn .menu-icon-close {
+            display: none !important;
+            font-size: 28px !important;
+            line-height: 1 !important;
+        }
+
+        /* Transparent header - white icons */
+        .je3-header.transparent .mobile-menu-btn {
+            color: #ffffff !important;
+        }
+        .je3-header.transparent .mobile-menu-btn .menu-icon,
+        .je3-header.transparent .mobile-menu-btn .menu-icon-close {
+            color: #ffffff !important;
+        }
+
+        /* Solid header - dark icons */
+        .je3-header.solid .mobile-menu-btn {
+            color: #0A0A0A !important;
+        }
+        .je3-header.solid .mobile-menu-btn .menu-icon,
+        .je3-header.solid .mobile-menu-btn .menu-icon-close {
+            color: #0A0A0A !important;
+        }
+
+        /* Mobile navigation drawer */
         .mobile-nav-drawer {
             position: fixed;
             top: 0;
@@ -181,21 +224,46 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
             display: block;
         }
 
-        @media (max-width: 768px) {
+        /* Show hamburger on mobile */
+        @media (max-width: 1200px) {
             .mobile-menu-btn {
-                display: block !important;
+                display: flex !important;
             }
             .header-nav {
                 display: none !important;
             }
         }
 
-        @media (min-width: 769px) {
+        @media (min-width: 1201px) {
             .mobile-nav-drawer {
                 display: none !important;
             }
             .menu-overlay {
                 display: none !important;
+            }
+        }
+
+        /* Dark mode override - keep menu visible and transparent */
+        @media (prefers-color-scheme: dark) {
+            .mobile-menu-btn {
+                display: flex !important;
+                background: transparent !important;
+                background-color: transparent !important;
+                color: #0A0A0A !important;
+            }
+            .je3-header.transparent .mobile-menu-btn {
+                color: #ffffff !important;
+            }
+            .je3-header.transparent .mobile-menu-btn .menu-icon,
+            .je3-header.transparent .mobile-menu-btn .menu-icon-close {
+                color: #ffffff !important;
+            }
+            .je3-header.solid .mobile-menu-btn {
+                color: #0A0A0A !important;
+            }
+            .je3-header.solid .mobile-menu-btn .menu-icon,
+            .je3-header.solid .mobile-menu-btn .menu-icon-close {
+                color: #0A0A0A !important;
             }
         }
     </style>
