@@ -10,6 +10,7 @@ $pageTitle = 'Email Verification Preview - KINAS GROUP';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
     <title>Email Verification Preview - KINAS GROUP</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
