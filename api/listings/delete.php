@@ -98,6 +98,19 @@ try {
     $db->prepare("DELETE FROM $table WHERE id = ? AND agent_id = ?")
        ->execute([$listingId, $_SESSION['user_id']]);
 
+    // 🔧 FIX: Clear featured flag for this listing
+    try {
+        // Reset featured flag in the listing table
+        $resetFeatured = $db->prepare("UPDATE $table SET featured = 0 WHERE id = ?");
+        $resetFeatured->execute([$listingId]);
+        
+        // Clear from featured cache table if it exists
+        $clearCache = $db->prepare("DELETE FROM featured_cache WHERE listing_id = ?");
+        $clearCache->execute([$listingId]);
+    } catch (Exception $e) {
+        // Tables might not exist, continue
+    }
+
     Security::logActivity($_SESSION['user_id'], 'listing_deleted', "Deleted $listingType listing $listingId");
 
     if (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false) {
@@ -120,3 +133,4 @@ try {
         exit;
     }
 }
+?>
