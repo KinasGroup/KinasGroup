@@ -73,10 +73,21 @@ class TermiiService
 
         $res = $this->request('POST', '/api/sms/otp/send', $payload);
 
+        // IMPORTANT: Termii's OTP-send endpoint does NOT return a `success`
+        // field. A successful call returns something like:
+        //   { "pinId": "...", "to": "...", "smsStatus": "Message Sent" }
+        // Checking $res['success'] (which never exists) made every send
+        // look like a failure even when Termii actually delivered the SMS.
+        // We treat it as successful when a pinId was issued, and (if Termii
+        // included a status string) that status doesn't explicitly say it
+        // failed.
+        $status = $res['smsStatus'] ?? '';
+        $success = !empty($res['pinId']) && stripos($status, 'fail') === false;
+
         return [
-            'success' => $res['success'] ?? false,
+            'success' => $success,
             'pin_id'  => $res['pinId']    ?? null,
-            'message' => $res['message']  ?? null,
+            'message' => $status ?: ($res['message'] ?? null),
             'code'    => $code, // returned for dev/staging only; production never stores or returns this
         ];
     }
