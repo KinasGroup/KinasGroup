@@ -263,6 +263,6 @@ class TermiiService
                 }
             }
         }
-        return $val !== null ? (string)$val : $default;
+        return ($val === null || $val === '') ? $default : (string)$val;
     }
 }
