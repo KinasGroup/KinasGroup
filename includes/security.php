@@ -146,7 +146,7 @@ class Security {
      * Throws HTTP 429 if $key has exceeded $maxAttempts within $windowSeconds.
      * Uses the rate_limits table. Falls back to session if DB unavailable.
      */
-    public static function rateLimitDB(string $key, int $maxAttempts = 5, int $windowSeconds = 300): void {
+    public static function rateLimitDB(string $key, int $maxAttempts = 5, int $windowSeconds = 300): bool {
         try {
             $db = Database::getInstance()->getConnection();
 
@@ -171,18 +171,20 @@ class Security {
                 $db->prepare("INSERT INTO rate_limits (rate_key, attempts, window_start) VALUES (?, 1, NOW())")
                    ->execute([$key]);
             }
+
+            return true;
         } catch (\Exception $e) {
             // Fallback to session-based limiting if DB fails
-            self::rateLimitSession($key, $maxAttempts, $windowSeconds);
+            return self::rateLimitSession($key, $maxAttempts, $windowSeconds);
         }
     }
 
     /** Legacy session-based rate limit — kept as fallback only */
-    public static function rateLimit(string $key, int $maxAttempts = 5, int $decaySeconds = 300): void {
-        self::rateLimitSession($key, $maxAttempts, $decaySeconds);
+    public static function rateLimit(string $key, int $maxAttempts = 5, int $decaySeconds = 300): bool {
+        return self::rateLimitSession($key, $maxAttempts, $decaySeconds);
     }
 
-    private static function rateLimitSession(string $key, int $maxAttempts, int $windowSeconds): void {
+    private static function rateLimitSession(string $key, int $maxAttempts, int $windowSeconds): bool {
         $attempts = $_SESSION['rate_limit'][$key] ?? ['count' => 0, 'time' => time()];
         if (time() - $attempts['time'] > $windowSeconds) {
             $attempts = ['count' => 0, 'time' => time()];
@@ -195,6 +197,7 @@ class Security {
             echo json_encode(['error' => 'Too many attempts. Please try again later.']);
             exit;
         }
+        return true;
     }
 
     // ── Bearer token validation ─────────────────────────────────────────────
