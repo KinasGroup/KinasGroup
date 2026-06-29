@@ -74,6 +74,19 @@ try {
         // Table might not exist, continue
     }
 
+    // 🔧 FIX: Clear featured flag for this listing
+    try {
+        // Reset featured flag in the listing table
+        $resetFeatured = $db->prepare("UPDATE $table SET featured = 0 WHERE id = ?");
+        $resetFeatured->execute([$listingId]);
+        
+        // Clear from featured cache table if it exists
+        $clearCache = $db->prepare("DELETE FROM featured_cache WHERE listing_id = ?");
+        $clearCache->execute([$listingId]);
+    } catch (Exception $e) {
+        // Tables might not exist, continue
+    }
+
     Security::logActivity($agentId, 'listing_deleted', "Deleted $division listing #$listingId");
 
     $_SESSION['flash_success'] = 'Listing deleted successfully.';
