@@ -107,13 +107,13 @@ try {
             throw new RuntimeException($result['message'] ?? 'Termii send failed');
         }
         $pinId = $result['pin_id'] ?? null;
-        // IMPORTANT: TermiiService::sendOtp() generates its own random code
-        // internally and that's the code actually texted to the user.
-        // We must store/hash THAT code, not the separate $otpCode generated
-        // above, or the user will never be able to verify (codes won't match).
-        if (!empty($result['code'])) {
-            $otpCode = $result['code'];
-        }
+        // IMPORTANT: Termii generates and texts its own PIN internally — it
+        // does not use our local $otpCode at all. The code below still
+        // hashes $otpCode and stores it (so the NOT NULL code_hash column
+        // is satisfied and the dev/local fallback path below still works),
+        // but the authoritative check for this OTP happens in
+        // verify-otp.php via Termii's own /api/sms/otp/verify using
+        // $pinId, not by comparing against $otpCode.
     } else {
         // Termii not enabled - log the OTP for development
         error_log("OTP [dev] phone={$phone} code={$otpCode} purpose={$purpose}");
