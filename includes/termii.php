@@ -55,8 +55,18 @@ class TermiiService
      */
     public function sendOtp(string $phone, int $length = 6, int $ttlMinutes = 10, string $type = 'NUMERIC'): array
     {
-        $code = $this->generateCode($length);
-        $body = $this->buildOtpBody($code, $ttlMinutes);
+        // IMPORTANT: Termii generates and tracks the actual PIN internally.
+        // `pin_placeholder` is just a template marker — whatever literal
+        // string we put there must also appear in `message_text`, and
+        // Termii substitutes ITS OWN generated pin in that spot before
+        // sending. The value is never something we choose, so we must not
+        // embed our own random code in the message (that's why every send
+        // was failing with "No message available" — the placeholder never
+        // actually appeared in the message text). Verification later must
+        // go through Termii's /api/sms/otp/verify using the returned
+        // pin_id, not by comparing against a code we made up ourselves.
+        $placeholder = '<' . str_repeat('#', $length) . '>';
+        $body = $this->buildOtpBody($ttlMinutes, $placeholder);
 
         $payload = [
             'api_key'      => $this->apiKey,
@@ -67,8 +77,9 @@ class TermiiService
             'pin_attempts' => 5,
             'pin_time_to_live' => $ttlMinutes,
             'pin_length'   => $length,
-            'pin_placeholder' => '<####>',
+            'pin_placeholder' => $placeholder,
             'message_text' => $body,
+            'pin_type'     => $type,
         ];
 
         $res = $this->request('POST', '/api/sms/otp/send', $payload);
@@ -86,9 +97,8 @@ class TermiiService
 
         return [
             'success' => $success,
-            'pin_id'  => $res['pinId']    ?? null,
+            'pin_id'  => $res['pinId'] ?? null,
             'message' => $status ?: ($res['message'] ?? null),
-            'code'    => $code, // returned for dev/staging only; production never stores or returns this
         ];
     }
 
@@ -217,9 +227,9 @@ class TermiiService
         return $p;
     }
 
-    private function buildOtpBody(string $code, int $ttlMinutes): string
+    private function buildOtpBody(int $ttlMinutes, string $placeholder): string
     {
-        return "Your KINAS GROUP verification code is: {$code}. "
+        return "Your KINAS GROUP verification code is {$placeholder}. "
              . "Valid for {$ttlMinutes} minutes. Do not share this code with anyone.";
     }
 
