@@ -8,7 +8,6 @@ require_once __DIR__ . '/../includes/security.php';
 // Redirect already-logged-in users away from auth pages
 if (SessionManager::isLoggedIn()) {
     $role = SessionManager::getUserRole();
-    // FIXED: Use correct paths for all roles
     if ($role === 'admin') {
         header('Location: /admin/dashboard.php');
     } elseif ($role === 'agent') {
@@ -34,13 +33,9 @@ if ($registrationSuccess) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- ============================================================
-         FORCE LIGHT MODE - PERMANENT FIX
-         ============================================================ -->
     <meta name="color-scheme" content="light only">
     <meta name="theme-color" content="#ffffff">
     <style>
-        /* Force light mode immediately */
         html, body { 
             color-scheme: light !important; 
             background: #ffffff !important;
@@ -71,7 +66,6 @@ if ($registrationSuccess) {
             }
         }
     </style>
-    <!-- ============================================================ -->
     
     <title>Sign In - KINAS GROUP | Luxury Marketplace</title>
     <link rel="stylesheet" href="../assets/css/style.css">
@@ -80,11 +74,7 @@ if ($registrationSuccess) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- ============================================================
-         MOBILE RESPONSIVENESS FIXES
-         ============================================================ -->
     <style>
-        /* Ensure auth shell is responsive */
         .je-auth-shell {
             min-height: 100vh;
             width: 100%;
@@ -152,7 +142,6 @@ if ($registrationSuccess) {
             }
         }
         
-        /* Fix password toggle on mobile */
         .je-password-wrap {
             display: flex;
             align-items: center;
@@ -180,9 +169,9 @@ if ($registrationSuccess) {
 <body>
 
 <!-- ============================================================
-     CUSTOM NOTIFICATION SYSTEM
+     CUSTOM NOTIFICATION SYSTEM - HIDDEN BY DEFAULT
      ============================================================ -->
-<div id="jeNotification" class="je-notification" role="alert" aria-live="polite">
+<div id="jeNotification" class="je-notification" role="alert" aria-live="polite" style="display: none;">
     <div class="je-notification-content">
         <span class="je-notification-icon">
             <i class="fas fa-exclamation-circle" id="jeNotificationIcon"></i>
@@ -309,7 +298,6 @@ if (window.location.search.includes('registered=1')) {
 (function() {
     'use strict';
 
-    // Get elements
     var notification = document.getElementById('jeNotification');
     var messageEl = document.getElementById('jeNotificationMessage');
     var titleEl = document.getElementById('jeNotificationTitle');
@@ -318,7 +306,6 @@ if (window.location.search.includes('registered=1')) {
     var progressBar = document.getElementById('jeNotificationProgress');
     var timeoutId = null;
 
-    // Icon mappings
     var icons = {
         error: 'fa-exclamation-circle',
         success: 'fa-check-circle',
@@ -326,7 +313,6 @@ if (window.location.search.includes('registered=1')) {
         info: 'fa-info-circle'
     };
 
-    // Title mappings
     var titles = {
         error: 'Error',
         success: 'Success',
@@ -334,41 +320,32 @@ if (window.location.search.includes('registered=1')) {
         info: 'Information'
     };
 
-    // Show notification
     window.showNotification = function(message, type, title) {
-        // Clear any existing timeout
         if (timeoutId) {
             clearTimeout(timeoutId);
             timeoutId = null;
         }
 
-        // Set type (error, success, warning, info)
         type = type || 'error';
         
-        // Set content
         messageEl.textContent = message || 'An error occurred. Please try again.';
         titleEl.textContent = title || titles[type] || 'Attention';
         
-        // Set icon
         var iconClass = icons[type] || icons.error;
         iconEl.className = 'fas ' + iconClass;
         
-        // Set notification class
         notification.className = 'je-notification ' + type + ' is-visible';
+        notification.style.display = 'block';
         
-        // Reset progress bar
         progressBar.style.animation = 'none';
-        // Force reflow
         void progressBar.offsetWidth;
         progressBar.style.animation = 'jeNotificationProgress 5s linear forwards';
         
-        // Auto-hide after 5 seconds
         timeoutId = setTimeout(function() {
             hideNotification();
         }, 5000);
     };
 
-    // Hide notification
     window.hideNotification = function() {
         if (timeoutId) {
             clearTimeout(timeoutId);
@@ -376,9 +353,9 @@ if (window.location.search.includes('registered=1')) {
         }
         notification.classList.remove('is-visible');
         notification.className = 'je-notification';
+        notification.style.display = 'none';
     };
 
-    // Close button handler
     if (closeBtn) {
         closeBtn.addEventListener('click', function(e) {
             e.preventDefault();
@@ -386,18 +363,16 @@ if (window.location.search.includes('registered=1')) {
         });
     }
 
-    // Click outside to close
     document.addEventListener('click', function(e) {
-        if (notification.classList.contains('is-visible')) {
+        if (notification.style.display === 'block') {
             if (!notification.contains(e.target)) {
                 hideNotification();
             }
         }
     });
 
-    // Escape key to close
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && notification.classList.contains('is-visible')) {
+        if (e.key === 'Escape' && notification.style.display === 'block') {
             hideNotification();
         }
     });
@@ -406,7 +381,7 @@ if (window.location.search.includes('registered=1')) {
 })();
 
 // ============================================================
-// LOGIN FORM HANDLER
+// LOGIN FORM HANDLER - NO ALERT POPUPS
 // ============================================================
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -445,7 +420,6 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         
         if (data.success) {
             localStorage.setItem('kinas_token', data.token);
-            // FIXED: Use absolute paths for redirects
             if (data.user.role === 'admin') {
                 window.location.href = '/admin/dashboard.php';
             } else if (data.user.role === 'agent') {
@@ -454,16 +428,13 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
                 window.location.href = '/user/dashboard.php';
             }
         } else {
-            // Special case: the account exists but the email hasn't been
-            // verified. Show a clear message and offer a "resend the
-            // verification link" action. The API tells us the user's email
-            // so we can re-issue the code without them re-typing it.
+            // Special case: email not verified
             if (data.error_code === 'email_not_verified') {
-                const wantResend = confirm(
+                // Use confirm() - this is a user decision, not an error alert
+                if (confirm(
                     (data.error || 'Please verify your email.') +
                     '\n\nWould you like us to send a new verification link to ' + (data.email || email) + '?'
-                );
-                if (wantResend) {
+                )) {
                     try {
                         const r = await fetch('/api/auth/resend-verification.php', {
                             method: 'POST',
@@ -471,13 +442,13 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
                             body: JSON.stringify({ email: data.email || email })
                         });
                         const rd = await r.json();
-                        showNotification(rd.message || 'If that email is registered and unverified, a new link has been sent.', 'success');
+                        showNotification(rd.message || 'A new verification link has been sent.', 'success');
                     } catch (err) {
-                        showNotification('Could not resend the verification email. Please try again later.', 'error');
+                        showNotification('Could not resend verification email. Please try again later.', 'error');
                     }
                 }
             } else {
-                // REPLACED BROWSER ALERT WITH CUSTOM NOTIFICATION
+                // REPLACED ALERT WITH CUSTOM NOTIFICATION
                 showNotification(data.error || 'Login failed. Please check your credentials.', 'error');
             }
             submitBtn.disabled = false;
