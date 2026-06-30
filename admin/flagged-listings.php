@@ -120,6 +120,7 @@ require_once __DIR__ . '/../templates/header.php';
         .btn-remove:hover { background: #B91C1C; }
         .btn-ignore { background: #666; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-right: 6px; }
         .btn-ignore:hover { background: #555; }
+        .btn-ignore:disabled, .btn-remove:disabled { opacity: 0.5; cursor: not-allowed; }
         .empty-state { padding: 80px 20px; text-align: center; color: #999; }
         .empty-state i { font-size: 48px; color: #2E7D32; margin-bottom: 16px; display: block; opacity: 0.7; }
         .empty-state p { font-size: 14px; }
@@ -212,14 +213,14 @@ require_once __DIR__ . '/../templates/header.php';
                     <td>
                         <div class="flag-actions">
                             <a href="<?= $detailUrl ?>" target="_blank" class="btn-review"><i class="fas fa-eye"></i> Review</a>
-                            <form method="POST" action="/api/admin/review-listing.php" style="display:inline" onsubmit="return confirm('Approve this listing? It will be set back to active.');">
+                            <form method="POST" action="/api/admin/review-listing.php" style="display:inline" onsubmit="return handleApprove(event, this);">
                                 <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                                 <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
                                 <input type="hidden" name="listing_type" value="<?= htmlspecialchars($r['type']) ?>">
                                 <input type="hidden" name="action" value="approve">
                                 <button type="submit" class="btn-ignore" title="Approve and un-flag"><i class="fas fa-check"></i> Approve</button>
                             </form>
-                            <form method="POST" action="/api/admin/remove-listing.php" style="display:inline" onsubmit="return confirm('Remove this listing? It will be hidden from public view.');">
+                            <form method="POST" action="/api/admin/remove-listing.php" style="display:inline" onsubmit="return handleRemove(event, this);">
                                 <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                                 <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
                                 <input type="hidden" name="listing_type" value="<?= htmlspecialchars($r['type']) ?>">
@@ -235,5 +236,49 @@ require_once __DIR__ . '/../templates/header.php';
     </div>
 </main>
 </div>
+
+<script>
+// ============================================================
+// HANDLE APPROVE WITH CUSTOM CONFIRMATION
+// ============================================================
+function handleApprove(event, form) {
+    event.preventDefault();
+    
+    jeConfirm(
+        'Approve this listing? It will be set back to active and visible to the public.',
+        'Approve Listing',
+        'warning'
+    ).then(function(confirmed) {
+        if (confirmed) {
+            form.submit();
+        }
+    }).catch(function(error) {
+        console.error('Confirmation error:', error);
+    });
+    
+    return false;
+}
+
+// ============================================================
+// HANDLE REMOVE WITH CUSTOM CONFIRMATION
+// ============================================================
+function handleRemove(event, form) {
+    event.preventDefault();
+    
+    jeConfirm(
+        'Remove this listing? It will be hidden from public view. This action can be reversed.',
+        'Remove Listing',
+        'danger'
+    ).then(function(confirmed) {
+        if (confirmed) {
+            form.submit();
+        }
+    }).catch(function(error) {
+        console.error('Confirmation error:', error);
+    });
+    
+    return false;
+}
+</script>
 
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
