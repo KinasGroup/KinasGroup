@@ -14,43 +14,131 @@ $errorMessage = SessionManager::getFlash('error');
 $successMessage = SessionManager::getFlash('success');
 ?>
 <!DOCTYPE html>
-<html lang="en" style="color-scheme: light;">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
     <!-- ============================================================
-         FORCE LIGHT MODE - PERMANENT FIX
+         SUPPORT BOTH LIGHT & DARK THEME
+         - Light theme: white form, dark aside, gold accents.
+         - Dark  theme: dark form, dark aside, bright gold accents.
+         Gold characters are preserved in both themes via the dedicated
+         `prefers-color-scheme` block below (uses brighter gold on dark
+         backgrounds and forces inline gold styles to follow theme).
          ============================================================ -->
-    <meta name="color-scheme" content="light only">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0A0A0A" media="(prefers-color-scheme: dark)">
     <style>
-        html, body { 
-            color-scheme: light !important; 
-            background: #ffffff !important;
+        html, body {
+            color-scheme: light dark;
+            background: #ffffff;
+            color: #0A0A0A;
+            transition: background-color 0.25s ease, color 0.25s ease;
         }
+
+        /* ── DARK THEME ────────────────────────────────────────── */
         @media (prefers-color-scheme: dark) {
             html, body {
-                color-scheme: light !important;
-                background: #ffffff !important;
-                color: #0A0A0A !important;
+                background: #0A0A0A;
+                color: rgba(255,255,255,0.92);
             }
-            .je-auth-shell,
-            .je-auth-main,
-            .je-auth-form {
-                background-color: #ffffff !important;
-                color: #0A0A0A !important;
+            .je-auth-shell {
+                background-color: #0A0A0A;
             }
             .je-auth-aside {
-                background-color: #0A0A0A !important;
-                color: rgba(255,255,255,0.7) !important;
-            }
-            .je-auth-aside * {
-                color: rgba(255,255,255,0.7) !important;
+                background-color: #050505;
+                color: rgba(255,255,255,0.72);
             }
             .je-auth-aside h1,
             .je-auth-aside .je-auth-headline {
-                color: #ffffff !important;
+                color: #ffffff;
+            }
+            .je-auth-aside .je-auth-quote p {
+                color: rgba(255,255,255,0.78);
+            }
+            .je-auth-aside .je-auth-quote cite {
+                color: rgba(255,255,255,0.5);
+            }
+            .je-auth-main,
+            .je-auth-form {
+                background-color: #0A0A0A;
+                color: rgba(255,255,255,0.92);
+            }
+            .je-auth-form h2 {
+                color: #ffffff;
+            }
+            .je-auth-form .je-auth-sub-form {
+                color: rgba(255,255,255,0.6);
+            }
+            .je-form-group label {
+                color: rgba(255,255,255,0.7) !important;
+            }
+            .je-form-group input,
+            .je-form-group select,
+            .je-form-group textarea {
+                background-color: #141414 !important;
+                color: rgba(255,255,255,0.92) !important;
+                border-color: rgba(255,255,255,0.15) !important;
+            }
+            .je-form-group input::placeholder {
+                color: rgba(255,255,255,0.38);
+            }
+            .je-form-group input:focus,
+            .je-form-group select:focus,
+            .je-form-group textarea:focus {
+                border-color: var(--je-gold) !important;
+                box-shadow: 0 0 0 3px rgba(212,185,106,0.22) !important;
+            }
+            .je-password-toggle {
+                color: rgba(255,255,255,0.5);
+            }
+            .je-password-toggle:hover {
+                color: var(--je-gold-soft);
+            }
+            /* Gold submit button — flip so gold fills the button on dark */
+            .je-btn-gold {
+                background: var(--je-gold) !important;
+                color: var(--je-ink) !important;
+                border-color: var(--je-gold) !important;
+            }
+            .je-btn-gold:hover {
+                background: var(--je-gold-soft) !important;
+                border-color: var(--je-gold-soft) !important;
+            }
+            /* All inline gold links/icons — brighten so they read on dark */
+            a[style*="color: #C6A43F"],
+            a[style*="color:#C6A43F"],
+            i[style*="color: #C6A43F"],
+            i[style*="color:#C6A43F"] {
+                color: #D4B96A !important;
+            }
+            /* Switch links */
+            .je-auth-switch a {
+                color: var(--je-gold-soft);
+            }
+            /* Helper paragraphs (e.g. password rules, captcha notice) */
+            .je-form-group p,
+            .je-auth-form > p,
+            #captcha-group p {
+                color: rgba(255,255,255,0.55) !important;
+            }
+            /* Terms/Privacy inline paragraphs (color:#666) */
+            p[style*="color:#666"],
+            p[style*="color: #666"] {
+                color: rgba(255,255,255,0.7) !important;
+            }
+        }
+
+        /* ── LIGHT THEME — gold characters tuned for white bg ──── */
+        @media (prefers-color-scheme: light) {
+            /* Subtle tweaks so gold text on white has AA contrast */
+            a[style*="color: #C6A43F"],
+            a[style*="color:#C6A43F"],
+            i[style*="color: #C6A43F"],
+            i[style*="color:#C6A43F"] {
+                color: #A8882E !important; /* var(--je-gold-deep) */
             }
         }
     </style>
