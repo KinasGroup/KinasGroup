@@ -179,6 +179,26 @@ if ($registrationSuccess) {
 </head>
 <body>
 
+<!-- ============================================================
+     CUSTOM NOTIFICATION SYSTEM
+     ============================================================ -->
+<div id="jeNotification" class="je-notification" role="alert" aria-live="polite">
+    <div class="je-notification-content">
+        <span class="je-notification-icon">
+            <i class="fas fa-exclamation-circle" id="jeNotificationIcon"></i>
+        </span>
+        <div class="je-notification-body">
+            <div class="je-notification-title" id="jeNotificationTitle">Attention</div>
+            <div class="je-notification-message" id="jeNotificationMessage">Your message here</div>
+        </div>
+        <button class="je-notification-close" id="jeNotificationClose" aria-label="Close notification">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="je-notification-progress" id="jeNotificationProgress"></div>
+</div>
+<!-- ============================================================ -->
+
 <div class="je-auth-shell">
     <!-- ── Left aside ── -->
     <aside class="je-auth-aside">
@@ -283,15 +303,128 @@ if (window.location.search.includes('registered=1')) {
     window.history.replaceState({}, document.title, url.pathname);
 }
 
+// ============================================================
+// CUSTOM NOTIFICATION SYSTEM
+// ============================================================
+(function() {
+    'use strict';
+
+    // Get elements
+    var notification = document.getElementById('jeNotification');
+    var messageEl = document.getElementById('jeNotificationMessage');
+    var titleEl = document.getElementById('jeNotificationTitle');
+    var iconEl = document.getElementById('jeNotificationIcon');
+    var closeBtn = document.getElementById('jeNotificationClose');
+    var progressBar = document.getElementById('jeNotificationProgress');
+    var timeoutId = null;
+
+    // Icon mappings
+    var icons = {
+        error: 'fa-exclamation-circle',
+        success: 'fa-check-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+
+    // Title mappings
+    var titles = {
+        error: 'Error',
+        success: 'Success',
+        warning: 'Warning',
+        info: 'Information'
+    };
+
+    // Show notification
+    window.showNotification = function(message, type, title) {
+        // Clear any existing timeout
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+        }
+
+        // Set type (error, success, warning, info)
+        type = type || 'error';
+        
+        // Set content
+        messageEl.textContent = message || 'An error occurred. Please try again.';
+        titleEl.textContent = title || titles[type] || 'Attention';
+        
+        // Set icon
+        var iconClass = icons[type] || icons.error;
+        iconEl.className = 'fas ' + iconClass;
+        
+        // Set notification class
+        notification.className = 'je-notification ' + type + ' is-visible';
+        
+        // Reset progress bar
+        progressBar.style.animation = 'none';
+        // Force reflow
+        void progressBar.offsetWidth;
+        progressBar.style.animation = 'jeNotificationProgress 5s linear forwards';
+        
+        // Auto-hide after 5 seconds
+        timeoutId = setTimeout(function() {
+            hideNotification();
+        }, 5000);
+    };
+
+    // Hide notification
+    window.hideNotification = function() {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+        }
+        notification.classList.remove('is-visible');
+        notification.className = 'je-notification';
+    };
+
+    // Close button handler
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            hideNotification();
+        });
+    }
+
+    // Click outside to close
+    document.addEventListener('click', function(e) {
+        if (notification.classList.contains('is-visible')) {
+            if (!notification.contains(e.target)) {
+                hideNotification();
+            }
+        }
+    });
+
+    // Escape key to close
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && notification.classList.contains('is-visible')) {
+            hideNotification();
+        }
+    });
+
+    console.log('Notification system initialized');
+})();
+
+// ============================================================
+// LOGIN FORM HANDLER
+// ============================================================
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const form = this;
     const submitBtn = document.getElementById('submitBtn');
     const email = form.email.value.trim();
     const password = form.password.value;
-    if (!email || !password) { alert('Please enter both email and password'); return; }
+    
+    if (!email || !password) {
+        showNotification('Please enter both email and password.', 'warning');
+        return;
+    }
+    
     const captchaToken = document.getElementById('login-captcha-token')?.value || '';
-    if (isLoginCaptchaConfigured && !captchaToken) { alert('Please complete the CAPTCHA verification.'); return; }
+    if (isLoginCaptchaConfigured && !captchaToken) {
+        showNotification('Please complete the CAPTCHA verification.', 'warning');
+        return;
+    }
 
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
@@ -301,9 +434,15 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password, csrf_token: form.csrf_token.value, captcha_token: captchaToken })
+            body: JSON.stringify({ 
+                email, 
+                password, 
+                csrf_token: form.csrf_token.value, 
+                captcha_token: captchaToken 
+            })
         });
         const data = await res.json();
+        
         if (data.success) {
             localStorage.setItem('kinas_token', data.token);
             // FIXED: Use absolute paths for redirects
@@ -332,20 +471,21 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
                             body: JSON.stringify({ email: data.email || email })
                         });
                         const rd = await r.json();
-                        alert(rd.message || 'If that email is registered and unverified, a new link has been sent.');
+                        showNotification(rd.message || 'If that email is registered and unverified, a new link has been sent.', 'success');
                     } catch (err) {
-                        alert('Could not resend the verification email. Please try again later.');
+                        showNotification('Could not resend the verification email. Please try again later.', 'error');
                     }
                 }
             } else {
-                alert(data.error || 'Login failed');
+                // REPLACED BROWSER ALERT WITH CUSTOM NOTIFICATION
+                showNotification(data.error || 'Login failed. Please check your credentials.', 'error');
             }
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Sign In';
         }
     } catch (err) {
         console.error(err);
-        alert('Network error. Please try again.');
+        showNotification('Network error. Please check your internet connection and try again.', 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = 'Sign In';
     }
