@@ -681,15 +681,27 @@ document.addEventListener('DOMContentLoaded', function() {
             const description = form.querySelector('textarea[name="description"]')?.value?.trim() || '';
             
             if (!title) {
-                alert('Please enter a listing title.');
+                if (typeof showNotification === 'function') {
+                    showNotification('Please enter a listing title.', 'warning');
+                } else {
+                    alert('Please enter a listing title.');
+                }
                 return;
             }
             if (!price || parseFloat(price) <= 0) {
-                alert('Please enter a valid price greater than zero.');
+                if (typeof showNotification === 'function') {
+                    showNotification('Please enter a valid price greater than zero.', 'warning');
+                } else {
+                    alert('Please enter a valid price greater than zero.');
+                }
                 return;
             }
             if (!description) {
-                alert('Please enter a description.');
+                if (typeof showNotification === 'function') {
+                    showNotification('Please enter a description.', 'warning');
+                } else {
+                    alert('Please enter a description.');
+                }
                 return;
             }
             
@@ -752,10 +764,17 @@ function renderImages() {
 }
 
 // ============================================
-// FIX: Remove an existing image with CSRF refresh
+// FIX: Remove an existing image with custom confirmation modal
 // ============================================
-function removeExistingImage(imageId, button) {
-    if (!confirm('Remove this image from the listing?')) return;
+async function removeExistingImage(imageId, button) {
+    // Show custom confirmation modal instead of browser confirm()
+    const confirmed = await jeConfirm(
+        'Are you sure you want to remove this image from the listing? This action cannot be undone.',
+        'Remove Image',
+        'danger'
+    );
+    
+    if (!confirmed) return;
     
     button.classList.add('loading');
     button.innerHTML = '⏳';
@@ -787,9 +806,7 @@ function removeExistingImage(imageId, button) {
                 renderImages();
             }
             
-            // ============================================
-            // FIX: Generate a NEW CSRF token for next delete
-            // ============================================
+            // Generate a NEW CSRF token for next delete
             fetch('/api/auth/csrf-token.php')
                 .then(r => r.json())
                 .then(tokenData => {
@@ -804,12 +821,17 @@ function removeExistingImage(imageId, button) {
                 })
                 .catch(e => console.warn('Could not refresh CSRF token:', e));
             
-            // Show success message (optional)
-            // You can uncomment this if you want a toast notification
-            // showToast('Image removed successfully', 'success');
+            // Show success notification
+            if (typeof showNotification === 'function') {
+                showNotification('Image removed successfully.', 'success');
+            }
             
         } else {
-            alert(data.error || 'Failed to remove image');
+            if (typeof showNotification === 'function') {
+                showNotification(data.error || 'Failed to remove image', 'error');
+            } else {
+                alert(data.error || 'Failed to remove image');
+            }
             button.classList.remove('loading');
             button.innerHTML = '&times;';
             
@@ -821,7 +843,11 @@ function removeExistingImage(imageId, button) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error: ' + error.message);
+        if (typeof showNotification === 'function') {
+            showNotification('Error: ' + error.message, 'error');
+        } else {
+            alert('Error: ' + error.message);
+        }
         button.classList.remove('loading');
         button.innerHTML = '&times;';
     });
