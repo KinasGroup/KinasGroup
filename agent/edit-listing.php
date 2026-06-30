@@ -764,92 +764,106 @@ function renderImages() {
 }
 
 // ============================================
-// FIX: Remove an existing image with custom confirmation modal
+// FIXED: Remove an existing image with custom confirmation modal
 // ============================================
-async function removeExistingImage(imageId, button) {
-    // Show custom confirmation modal instead of browser confirm()
-    const confirmed = await jeConfirm(
+function removeExistingImage(imageId, button) {
+    // Show custom confirmation modal - using .then() to handle the promise
+    jeConfirm(
         'Are you sure you want to remove this image from the listing? This action cannot be undone.',
         'Remove Image',
         'danger'
-    );
-    
-    if (!confirmed) return;
-    
-    button.classList.add('loading');
-    button.innerHTML = '⏳';
-    
-    // Use the current CSRF token
-    const csrfToken = document.getElementById('csrfTokenInput')?.value || currentCsrfToken;
-    
-    fetch('/api/listings/delete-image.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            image_id: imageId,
-            csrf_token: csrfToken
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(data => {
-                throw new Error(data.error || 'Server error: ' + response.status);
-            });
+    ).then(function(confirmed) {
+        if (!confirmed) {
+            // User cancelled - do nothing
+            return;
         }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            const index = existingImages.findIndex(img => img.id === imageId);
-            if (index !== -1) {
-                existingImages.splice(index, 1);
-                renderImages();
+        
+        // User confirmed - proceed with deletion
+        button.classList.add('loading');
+        button.innerHTML = '⏳';
+        
+        // Use the current CSRF token
+        const csrfToken = document.getElementById('csrfTokenInput')?.value || currentCsrfToken;
+        
+        fetch('/api/listings/delete-image.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                image_id: imageId,
+                csrf_token: csrfToken
+            })
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                return response.json().then(function(data) {
+                    throw new Error(data.error || 'Server error: ' + response.status);
+                });
             }
-            
-            // Generate a NEW CSRF token for next delete
-            fetch('/api/auth/csrf-token.php')
-                .then(r => r.json())
-                .then(tokenData => {
-                    if (tokenData.csrf_token) {
-                        currentCsrfToken = tokenData.csrf_token;
-                        document.getElementById('csrfTokenInput').value = currentCsrfToken;
-                        document.querySelectorAll('input[name="csrf_token"]').forEach(input => {
-                            input.value = currentCsrfToken;
-                        });
-                        console.log('CSRF token refreshed for next delete');
-                    }
-                })
-                .catch(e => console.warn('Could not refresh CSRF token:', e));
-            
-            // Show success notification
-            if (typeof showNotification === 'function') {
-                showNotification('Image removed successfully.', 'success');
-            }
-            
-        } else {
-            if (typeof showNotification === 'function') {
-                showNotification(data.error || 'Failed to remove image', 'error');
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                // Remove image from the array
+                const index = existingImages.findIndex(function(img) {
+                    return img.id === imageId;
+                });
+                if (index !== -1) {
+                    existingImages.splice(index, 1);
+                    renderImages();
+                }
+                
+                // Generate a NEW CSRF token for next delete
+                fetch('/api/auth/csrf-token.php')
+                    .then(function(r) { return r.json(); })
+                    .then(function(tokenData) {
+                        if (tokenData.csrf_token) {
+                            currentCsrfToken = tokenData.csrf_token;
+                            document.getElementById('csrfTokenInput').value = currentCsrfToken;
+                            document.querySelectorAll('input[name="csrf_token"]').forEach(function(input) {
+                                input.value = currentCsrfToken;
+                            });
+                        }
+                    })
+                    .catch(function(e) {
+                        console.warn('Could not refresh CSRF token:', e);
+                    });
+                
+                // Show success notification
+                if (typeof showNotification === 'function') {
+                    showNotification('Image removed successfully.', 'success');
+                }
+                
             } else {
-                alert(data.error || 'Failed to remove image');
+                // Show error notification
+                if (typeof showNotification === 'function') {
+                    showNotification(data.error || 'Failed to remove image', 'error');
+                } else {
+                    alert(data.error || 'Failed to remove image');
+                }
+                button.classList.remove('loading');
+                button.innerHTML = '&times;';
+                
+                // If CSRF error, reload to get fresh token
+                if (data.error && data.error.toLowerCase().includes('security token')) {
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 1000);
+                }
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            if (typeof showNotification === 'function') {
+                showNotification('Error: ' + error.message, 'error');
+            } else {
+                alert('Error: ' + error.message);
             }
             button.classList.remove('loading');
             button.innerHTML = '&times;';
-            
-            // If CSRF error, reload to get fresh token
-            if (data.error && data.error.toLowerCase().includes('security token')) {
-                setTimeout(() => window.location.reload(), 1000);
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        if (typeof showNotification === 'function') {
-            showNotification('Error: ' + error.message, 'error');
-        } else {
-            alert('Error: ' + error.message);
-        }
-        button.classList.remove('loading');
-        button.innerHTML = '&times;';
+        });
+    }).catch(function(error) {
+        // Handle any errors from the confirmation modal
+        console.error('Confirmation error:', error);
     });
 }
 
