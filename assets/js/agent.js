@@ -1,263 +1,180 @@
-// KINAS GROUP - Agent Dashboard Functionality
-class AgentDashboard {
-    constructor() {
-        this.charts = {};
-        this.init();
+/* ============================================================
+   CUSTOM CONFIRMATION MODAL
+   ============================================================ */
+.je-confirm-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    animation: jeConfirmFadeIn 0.2s ease;
+}
+
+.je-confirm-modal.is-visible {
+    display: flex;
+}
+
+.je-confirm-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.je-confirm-content {
+    position: relative;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 40px 48px 32px;
+    max-width: 440px;
+    width: calc(100% - 32px);
+    text-align: center;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+    animation: jeConfirmSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 1;
+}
+
+.je-confirm-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 28px;
+}
+
+.je-confirm-icon.warning {
+    background: #FFF3E0;
+    color: #E65100;
+}
+
+.je-confirm-icon.danger {
+    background: #FFEBEE;
+    color: #C62828;
+}
+
+.je-confirm-icon.success {
+    background: #E8F5E9;
+    color: #2E7D32;
+}
+
+.je-confirm-icon.info {
+    background: #E3F2FD;
+    color: #0D47A1;
+}
+
+.je-confirm-title {
+    font-family: 'Prata', serif;
+    font-size: 20px;
+    color: #0A0A0A;
+    margin-bottom: 8px;
+}
+
+.je-confirm-message {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.je-confirm-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.je-confirm-btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 100px;
+}
+
+.je-confirm-btn-cancel {
+    background: #f5f5f5;
+    color: #555;
+}
+
+.je-confirm-btn-cancel:hover {
+    background: #e8e8e8;
+}
+
+.je-confirm-btn-confirm {
+    background: #C6A43F;
+    color: #0A0A0A;
+}
+
+.je-confirm-btn-confirm:hover {
+    background: #A8882E;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(198, 164, 63, 0.3);
+}
+
+.je-confirm-btn-confirm.danger {
+    background: #C62828;
+    color: #ffffff;
+}
+
+.je-confirm-btn-confirm.danger:hover {
+    background: #B71C1C;
+    box-shadow: 0 4px 16px rgba(198, 40, 40, 0.3);
+}
+
+@keyframes jeConfirmFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes jeConfirmSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .je-confirm-content {
+        padding: 28px 20px 24px;
     }
     
-    async init() {
-        await this.loadDashboardData();
-        this.initializeCharts();
-        this.setupListingManager();
-        this.setupMessageSystem();
-        this.setupAnalytics();
+    .je-confirm-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
     }
     
-    async loadDashboardData() {
-        try {
-            const data = await api.request('agent/dashboard-stats.php');
-            this.updateStats(data.stats);
-            this.updateRecentActivity(data.recentActivity);
-            this.updateListings(data.listings);
-        } catch (error) {
-            console.error('Failed to load dashboard:', error);
-        }
+    .je-confirm-title {
+        font-size: 18px;
     }
     
-    updateStats(stats) {
-        const elements = {
-            totalListings: document.getElementById('total-listings'),
-            activeListings: document.getElementById('active-listings'),
-            totalViews: document.getElementById('total-views'),
-            inquiries: document.getElementById('total-inquiries'),
-            salesThisMonth: document.getElementById('sales-month'),
-            revenue: document.getElementById('monthly-revenue')
-        };
-        
-        for (const [key, element] of Object.entries(elements)) {
-            if (element && stats[key] !== undefined) {
-                element.textContent = stats[key];
-            }
-        }
+    .je-confirm-message {
+        font-size: 13px;
     }
     
-    updateRecentActivity(activities) {
-        const container = document.getElementById('recent-activity');
-        if (!container) return;
-        
-        container.innerHTML = activities.map(activity => `
-            <div class="activity-item">
-                <span class="activity-icon">${this.getActivityIcon(activity.type)}</span>
-                <div class="activity-content">
-                    <p>${activity.description}</p>
-                    <span class="activity-time">${timeAgo(activity.created_at)}</span>
-                </div>
-            </div>
-        `).join('');
+    .je-confirm-btn {
+        padding: 10px 20px;
+        font-size: 13px;
+        min-width: 80px;
     }
-    
-    updateListings(listings) {
-        const container = document.getElementById('my-listings');
-        if (!container) return;
-        
-        container.innerHTML = listings.map(listing => `
-            <div class="listing-card manage-card">
-                <div class="listing-card-image">
-                    <img src="${listing.thumbnail}" alt="${listing.title}">
-                    <span class="listing-status status-${listing.status}">${listing.status}</span>
-                </div>
-                <div class="listing-card-content">
-                    <p class="listing-card-title">${listing.title}</p>
-                    <p class="listing-card-price">${formatPrice(listing.price)}</p>
-                    <div class="listing-stats">
-                        <span>👁 ${listing.views} views</span>
-                        <span>💬 ${listing.inquiries} inquiries</span>
-                    </div>
-                    <div class="listing-actions">
-                        <button onclick="editListing(${listing.id})" class="je2-button">Edit</button>
-                        <button onclick="toggleListingStatus(${listing.id})" class="je2-button">
-                            ${listing.status === 'active' ? 'Pause' : 'Activate'}
-                        </button>
-                        <button onclick="deleteListing(${listing.id})" class="je2-button delete">Delete</button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    initializeCharts() {
-        // Views over time chart
-        const viewsCanvas = document.getElementById('views-chart');
-        if (viewsCanvas) {
-            this.createViewsChart(viewsCanvas);
-        }
-        
-        // Inquiries by division chart
-        const inquiriesCanvas = document.getElementById('inquiries-chart');
-        if (inquiriesCanvas) {
-            this.createInquiriesChart(inquiriesCanvas);
-        }
-    }
-    
-    createViewsChart(canvas) {
-        // Using Chart.js if available, otherwise simple SVG chart
-        if (typeof Chart !== 'undefined') {
-            this.charts.views = new Chart(canvas, {
-                type: 'line',
-                data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                    datasets: [{
-                        label: 'Listing Views',
-                        data: [65, 59, 80, 81, 56, 55, 40],
-                        borderColor: '#006c75',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-        }
-    }
-    
-    createInquiriesChart(canvas) {
-        if (typeof Chart !== 'undefined') {
-            this.charts.inquiries = new Chart(canvas, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Automobile', 'Real Estate', 'Solar', 'Marketplace'],
-                    datasets: [{
-                        data: [30, 25, 20, 25],
-                        backgroundColor: ['#006c75', '#27AE60', '#8E44AD', '#ceb687']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-        }
-    }
-    
-    setupListingManager() {
-        // Add listing form
-        const addForm = document.getElementById('add-listing-form');
-        if (addForm) {
-            addForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(addForm);
-                
-                try {
-                    const response = await api.createListing(formData);
-                    if (typeof showNotification === 'function') {
-                        showNotification('Listing created successfully!', 'success');
-                    } else {
-                        alert('Listing created successfully!');
-                    }
-                    setTimeout(() => window.location.reload(), 1500);
-                } catch (error) {
-                    if (typeof showNotification === 'function') {
-                        showNotification('Failed to create listing: ' + error.message, 'error');
-                    } else {
-                        alert('Failed to create listing: ' + error.message);
-                    }
-                }
-            });
-        }
-        
-        // Image upload preview
-        const imageInput = document.getElementById('listing-images');
-        if (imageInput) {
-            imageInput.addEventListener('change', this.previewImages);
-        }
-    }
-    
-    previewImages(event) {
-        const files = event.target.files;
-        const previewContainer = document.getElementById('image-previews');
-        if (!previewContainer) return;
-        
-        previewContainer.innerHTML = '';
-        
-        Array.from(files).forEach((file, index) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const preview = document.createElement('div');
-                preview.className = 'image-preview';
-                preview.innerHTML = `
-                    <img src="${e.target.result}" alt="Preview ${index + 1}">
-                    <button type="button" onclick="this.parentElement.remove()" class="remove-image">×</button>
-                `;
-                previewContainer.appendChild(preview);
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-    
-    setupMessageSystem() {
-        const messageContainer = document.getElementById('messages');
-        if (!messageContainer) return;
-        
-        // Load conversations
-        this.loadConversations();
-        
-        // Send message form
-        const sendForm = document.getElementById('send-message-form');
-        if (sendForm) {
-            sendForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const message = sendForm.querySelector('textarea').value;
-                const recipientId = sendForm.dataset.recipientId;
-                
-                try {
-                    await api.sendMessage(recipientId, message);
-                    sendForm.reset();
-                    this.loadConversation(recipientId);
-                    if (typeof showNotification === 'function') {
-                        showNotification('Message sent successfully.', 'success');
-                    }
-                } catch (error) {
-                    if (typeof showNotification === 'function') {
-                        showNotification('Failed to send message: ' + error.message, 'error');
-                    } else {
-                        alert('Failed to send message');
-                    }
-                }
-            });
-        }
-    }
-    
-    async loadConversations() {
-        try {
-            const conversations = await api.getInbox();
-            this.renderConversations(conversations);
-        } catch (error) {
-            console.error('Failed to load messages:', error);
-        }
-    }
-    
-    renderConversations(conversations) {
-        const container = document.getElementById('conversation-list');
-        if (!container) return;
-        
-        container.innerHTML = conversations.map(conv => `
-            <div class="conversation-item ${conv.unread ? 'unread' : ''}" 
-                 onclick="loadConversation(${conv.id})">
-                <div class="conv-avatar">${conv.name[0]}</div>
-                <div class="conv-content">
-                    <div class="conv-header">
-                        <strong>${conv.name}</strong>
-                        <span class="conv-time">${timeAgo(conv.last_message_time)}</span>
-                    </div>
-                    <p class="conv-preview">${conv.last_message}</p>
-                    ${conv.unread ? '<span class="unread-badge">New</span>' : ''}
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    setupAnalytics() {
-        const dateRange = document.getElementById('analytics-date-range');
-        if (dateRange) {
-            dateRange.addEventListener
+}
