@@ -75,10 +75,13 @@ include '../templates/header.php';
     font-weight: 600;
     text-decoration: none;
     margin: 2px;
+    border: none;
+    cursor: pointer;
 }
 .action-btn-suspend { background: #F57C00; color: white; }
 .action-btn-activate { background: #2E7D32; color: white; }
 .action-btn-delete { background: #C62828; color: white; }
+.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .status-badge {
     display: inline-block;
     padding: 2px 10px;
@@ -181,24 +184,23 @@ include '../templates/header.php';
                                     <?php if ($agent['email'] === $superAgentEmail): ?>
                                         <span style="color: #999; font-size: 11px;">(Super Agent)</span>
                                     <?php else: ?>
-                                        <?php if ($agent['status'] === 'active'): ?>
-                                            <a href="suspend-agent.php?id=<?php echo $agent['id']; ?>" 
-                                               class="action-btn action-btn-suspend" 
-                                               onclick="return confirm('Suspend this agent? They will not be able to list or manage listings.')">
-                                                Suspend
-                                            </a>
-                                        <?php elseif ($agent['status'] === 'suspended'): ?>
-                                            <a href="activate-agent.php?id=<?php echo $agent['id']; ?>" 
-                                               class="action-btn action-btn-activate" 
-                                               onclick="return confirm('Activate this agent? They will be able to list again.')">
-                                                Activate
-                                            </a>
-                                        <?php endif; ?>
-                                        <a href="delete-agent.php?id=<?php echo $agent['id']; ?>" 
-                                           class="action-btn action-btn-delete" 
-                                           onclick="return confirm('Delete this agent? This will permanently remove all their listings.')">
-                                            Delete
-                                        </a>
+                                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                            <?php if ($agent['status'] === 'active'): ?>
+                                                <button onclick="suspendAgent(<?php echo $agent['id']; ?>, this)" 
+                                                        class="action-btn action-btn-suspend">
+                                                    Suspend
+                                                </button>
+                                            <?php elseif ($agent['status'] === 'suspended'): ?>
+                                                <button onclick="activateAgent(<?php echo $agent['id']; ?>, this)" 
+                                                        class="action-btn action-btn-activate">
+                                                    Activate
+                                                </button>
+                                            <?php endif; ?>
+                                            <button onclick="deleteAgent(<?php echo $agent['id']; ?>, this)" 
+                                                    class="action-btn action-btn-delete">
+                                                Delete
+                                            </button>
+                                        </div>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -211,5 +213,70 @@ include '../templates/header.php';
         </div>
     </main>
 </div>
+
+<script>
+// ============================================================
+// SUSPEND AGENT WITH CUSTOM CONFIRMATION
+// ============================================================
+function suspendAgent(agentId, button) {
+    jeConfirm(
+        'Suspend this agent? They will not be able to list or manage listings. This can be reversed.',
+        'Suspend Agent',
+        'warning'
+    ).then(function(confirmed) {
+        if (!confirmed) return;
+        
+        button.disabled = true;
+        button.innerHTML = '⏳';
+        window.location.href = 'suspend-agent.php?id=' + agentId;
+    }).catch(function(error) {
+        console.error('Confirmation error:', error);
+        button.disabled = false;
+        button.innerHTML = 'Suspend';
+    });
+}
+
+// ============================================================
+// ACTIVATE AGENT WITH CUSTOM CONFIRMATION
+// ============================================================
+function activateAgent(agentId, button) {
+    jeConfirm(
+        'Activate this agent? They will be able to list and manage listings again.',
+        'Activate Agent',
+        'warning'
+    ).then(function(confirmed) {
+        if (!confirmed) return;
+        
+        button.disabled = true;
+        button.innerHTML = '⏳';
+        window.location.href = 'activate-agent.php?id=' + agentId;
+    }).catch(function(error) {
+        console.error('Confirmation error:', error);
+        button.disabled = false;
+        button.innerHTML = 'Activate';
+    });
+}
+
+// ============================================================
+// DELETE AGENT WITH CUSTOM CONFIRMATION
+// ============================================================
+function deleteAgent(agentId, button) {
+    jeConfirm(
+        'Delete this agent? This will permanently remove their account and all their listings. This cannot be undone.',
+        'Delete Agent',
+        'danger'
+    ).then(function(confirmed) {
+        if (!confirmed) return;
+        
+        button.disabled = true;
+        button.innerHTML = '⏳';
+        window.location.href = 'delete-agent.php?id=' + agentId;
+    }).catch(function(error) {
+        console.error('Confirmation error:', error);
+        button.disabled = false;
+        button.innerHTML = 'Delete';
+    });
+}
+</script>
 
 <?php include '../templates/footer.php'; ?>
