@@ -595,7 +595,7 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
 
     // Show confirmation modal
     window.jeConfirm = function(message, title, type) {
-        return new Promise(function(resolve) {
+        return new Promise(function(resolve, reject) {
             // Set content
             titleEl.textContent = title || 'Confirm Action';
             messageEl.textContent = message || 'Are you sure you want to proceed?';
