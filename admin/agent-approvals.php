@@ -14,7 +14,7 @@ $msg = '';
 // ── Handle approve / reject POST ─────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::verifyCSRFToken($_POST['csrf_token'] ?? '')) {
-        $msg = ['type'=>'error','text'=>'Invalid security token.'];
+        $msg = ['type'=>'error','text'=>'Kindly refresh the page and try again.'];
     } else {
         $uid    = (int)($_POST['user_id'] ?? 0);
         $action = $_POST['action'] ?? '';
@@ -144,6 +144,7 @@ require_once __DIR__ . '/../templates/header.php';
         .card-actions{padding:18px 24px;background:#F8F8F8;border-top:1px solid #E0E0E0;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
         .btn-approve{background:#2E7D32;color:white;border:none;padding:10px 22px;border-radius:8px;font-weight:600;cursor:pointer;transition:all .3s}
         .btn-approve:hover{background:#1B5E20;transform:translateY(-2px)}
+        .btn-approve:disabled{opacity:0.5;cursor:not-allowed}
         .btn-reject{background:#DC2626;color:white;border:none;padding:10px 22px;border-radius:8px;font-weight:600;cursor:pointer;transition:all .3s}
         .btn-reject:hover{background:#B91C1C;transform:translateY(-2px)}
         .btn-info{background:#555;color:white;border:none;padding:10px 22px;border-radius:8px;font-weight:600;cursor:pointer;transition:all .3s}
@@ -295,7 +296,7 @@ require_once __DIR__ . '/../templates/header.php';
                                 <input type="hidden" name="action" value="approve">
                                 <button type="submit" class="btn-approve" style="padding:5px 10px; font-size:11px;"><i class="fas fa-check"></i> Approve</button>
                             </form>
-                            <form method="POST" action="api/admin/review-business-doc.php" style="display:inline;" onsubmit="return confirm('Reject this document?');">
+                            <form method="POST" action="api/admin/review-business-doc.php" style="display:inline;" onsubmit="return handleRejectDoc(event, this);">
                                 <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
                                 <input type="hidden" name="document_id" value="<?= (int)$doc['id'] ?>">
                                 <input type="hidden" name="action" value="reject">
@@ -324,5 +325,28 @@ require_once __DIR__ . '/../templates/header.php';
 
 </main>
 </div>
+
+<script>
+// ============================================================
+// REJECT DOCUMENT WITH CUSTOM CONFIRMATION
+// ============================================================
+function handleRejectDoc(event, form) {
+    event.preventDefault();
+    
+    jeConfirm(
+        'Reject this document? The agent will be notified and may need to re-upload.',
+        'Reject Document',
+        'danger'
+    ).then(function(confirmed) {
+        if (confirmed) {
+            form.submit();
+        }
+    }).catch(function(error) {
+        console.error('Confirmation error:', error);
+    });
+    
+    return false;
+}
+</script>
 
 <?php require_once __DIR__ . "/../templates/footer.php"; ?>
