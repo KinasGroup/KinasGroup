@@ -42,13 +42,13 @@ $csrfToken = $data['csrf_token'] ?? '';
 // Validate CSRF token — require it to be present and correct
 if (empty($csrfToken)) {
     http_response_code(403);
-    echo json_encode(['error' => 'Invalid security token. Please refresh the page and try again.']);
+    echo json_encode(['error' => 'Please refresh the page and try again.']);
     exit;
 }
 
 if (!isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrfToken)) {
     http_response_code(403);
-    echo json_encode(['error' => 'Invalid security token. Please refresh the page and try again.']);
+    echo json_encode(['error' => 'Please refresh the page and try again.']);
     exit;
 }
 
@@ -81,7 +81,7 @@ if ($captchaEnabled) {
         $verifyData = json_decode($verifyResponse, true);
         if (!$verifyData || !$verifyData['success']) {
             http_response_code(422);
-            echo json_encode(['error' => 'CAPTCHA verification failed. Please try again.']);
+            echo json_encode(['error' => 'CAPTCHA verification failed. Kindly refresh the page and try again.']);
             exit;
         }
     }
@@ -89,13 +89,13 @@ if ($captchaEnabled) {
 
 if (!$email || !$password) {
     http_response_code(400);
-    echo json_encode(['error' => 'Email and password required']);
+    echo json_encode(['error' => 'Please enter both email and password.']);
     exit;
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     http_response_code(422);
-    echo json_encode(['error' => 'Invalid email format']);
+    echo json_encode(['error' => 'Please enter a valid email address.']);
     exit;
 }
 
@@ -121,24 +121,27 @@ try {
     if (!$user || !password_verify($password, $user['password'])) {
         Security::logActivity($user['id'] ?? null, 'login_failed', "Failed login attempt for: $email from $ip");
         http_response_code(401);
-        echo json_encode(['error' => 'Invalid credentials']);
+        echo json_encode(['error' => 'Invalid email address or password. Please try again.']);
         exit;
     }
 
     // Check user status
     if ($user['status'] !== 'active') {
+        $statusMessages = [
+            'suspended' => 'Your account has been suspended. Please contact support.',
+            'inactive' => 'Your account is inactive. Please contact support.',
+            'deleted' => 'Your account has been deleted. Please contact support.'
+        ];
+        $statusMessage = $statusMessages[$user['status']] ?? 'Your account is ' . $user['status'] . '. Please contact support.';
         http_response_code(403);
-        echo json_encode(['error' => 'Account is ' . $user['status']]);
+        echo json_encode(['error' => $statusMessage]);
         exit;
     }
 
     // Block login if the email has not been verified. Admins are
     // seeded with email_verified_at already set, so they are never
     // affected. Everyone else (buyers, agents) must click the link in
-    // the verification email before they can sign in. This is the
-    // enforcement that makes the "Account Verification email should
-    // deliver" requirement from product actually mean something —
-    // without this gate, the verification flow was decorative.
+    // the verification email before they can sign in.
     if (($user['role'] ?? '') !== 'admin' && empty($user['email_verified_at'])) {
         Security::logActivity($user['id'], 'login_blocked_unverified', "Login blocked — email not verified. email=$email from $ip");
         http_response_code(403);
@@ -203,5 +206,5 @@ try {
 } catch (\Throwable $e) {
     error_log('Login error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Login failed']);
+    echo json_encode(['error' => 'Unable to sign in. Please try again later.']);
 }
