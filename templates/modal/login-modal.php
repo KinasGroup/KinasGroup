@@ -129,7 +129,7 @@ document.getElementById('modal-login-form')?.addEventListener('submit', async fu
             localStorage.setItem('kinas_token', data.token);
             localStorage.setItem('kinas_user', JSON.stringify(data.user));
             
-            // Redirect based on role
+            // Close modal and redirect based on role
             closeLoginModal();
             
             if (data.user.role === 'admin') {
@@ -140,12 +140,28 @@ document.getElementById('modal-login-form')?.addEventListener('submit', async fu
                 window.location.reload();
             }
         } else {
-            errorDiv.textContent = data.error || 'Login failed. Please check your credentials.';
-            errorDiv.style.display = 'block';
+            // REPLACED ALERT WITH CUSTOM NOTIFICATION
+            // Close modal and show notification
+            closeLoginModal();
+            
+            // Use the global notification system if available
+            if (typeof showNotification === 'function') {
+                showNotification(data.error || 'Login failed. Please check your credentials.', 'error');
+            } else {
+                // Fallback if notification system not loaded
+                errorDiv.textContent = data.error || 'Login failed. Please check your credentials.';
+                errorDiv.style.display = 'block';
+            }
         }
     } catch (error) {
-        errorDiv.textContent = 'Network error. Please try again.';
-        errorDiv.style.display = 'block';
+        // Close modal and show notification
+        closeLoginModal();
+        if (typeof showNotification === 'function') {
+            showNotification('Network error. Please try again.', 'error');
+        } else {
+            errorDiv.textContent = 'Network error. Please try again.';
+            errorDiv.style.display = 'block';
+        }
     } finally {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
