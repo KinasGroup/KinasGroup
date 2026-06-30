@@ -150,10 +150,18 @@ class AgentDashboard {
                 
                 try {
                     const response = await api.createListing(formData);
-                    alert('Listing created successfully!');
-                    window.location.reload();
+                    if (typeof showNotification === 'function') {
+                        showNotification('Listing created successfully!', 'success');
+                    } else {
+                        alert('Listing created successfully!');
+                    }
+                    setTimeout(() => window.location.reload(), 1500);
                 } catch (error) {
-                    alert('Failed to create listing: ' + error.message);
+                    if (typeof showNotification === 'function') {
+                        showNotification('Failed to create listing: ' + error.message, 'error');
+                    } else {
+                        alert('Failed to create listing: ' + error.message);
+                    }
                 }
             });
         }
@@ -206,8 +214,15 @@ class AgentDashboard {
                     await api.sendMessage(recipientId, message);
                     sendForm.reset();
                     this.loadConversation(recipientId);
+                    if (typeof showNotification === 'function') {
+                        showNotification('Message sent successfully.', 'success');
+                    }
                 } catch (error) {
-                    alert('Failed to send message');
+                    if (typeof showNotification === 'function') {
+                        showNotification('Failed to send message: ' + error.message, 'error');
+                    } else {
+                        alert('Failed to send message');
+                    }
                 }
             });
         }
@@ -299,18 +314,39 @@ async function editListing(id) {
 async function toggleListingStatus(id) {
     try {
         await api.updateListing(id, { toggle_status: true });
-        window.location.reload();
+        if (typeof showNotification === 'function') {
+            showNotification('Listing status updated successfully.', 'success');
+        }
+        setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
-        alert('Failed to update listing status');
+        if (typeof showNotification === 'function') {
+            showNotification('Failed to update listing status: ' + error.message, 'error');
+        } else {
+            alert('Failed to update listing status');
+        }
     }
 }
 
 async function deleteListing(id) {
-    if (confirm('Are you sure you want to delete this listing? This cannot be undone.')) {
-        try {
-            await api.deleteListing(id);
-            window.location.reload();
-        } catch (error) {
+    // Show custom confirmation modal instead of browser confirm()
+    const confirmed = await jeConfirm(
+        'Are you sure you want to delete this listing? This action cannot be undone.',
+        'Delete Listing',
+        'danger'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+        await api.deleteListing(id);
+        if (typeof showNotification === 'function') {
+            showNotification('Listing deleted successfully.', 'success');
+        }
+        setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+        if (typeof showNotification === 'function') {
+            showNotification('Failed to delete listing: ' + error.message, 'error');
+        } else {
             alert('Failed to delete listing');
         }
     }
