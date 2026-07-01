@@ -15,7 +15,7 @@ $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::verifyCSRFToken($_POST['csrf_token'] ?? '')) {
-        $errors[] = 'Invalid security token.';
+        $errors[] = 'Please refresh the page and try again.';
     } else {
         $name    = trim($_POST['name'] ?? '');
         $phone   = trim($_POST['phone'] ?? '');
@@ -614,11 +614,17 @@ document.getElementById('new-pw-input')?.addEventListener('input', function() {
 });
 
 function confirmDelete() {
-    if (confirm('Are you absolutely sure you want to delete your account?\n\nThis action cannot be undone.')) {
-        if (confirm('Last chance — this will permanently erase all your data. Continue?')) {
-            window.location.href = '/user/delete-account.php';
-        }
-    }
+    kinasConfirm(
+        'Are you absolutely sure you want to delete your account? All your data will be permanently erased.',
+        function() {
+            kinasConfirm(
+                'Last chance — this will permanently erase all your data and cannot be undone. Continue?',
+                function() { window.location.href = '/user/delete-account.php'; },
+                { title: 'Final Confirmation', confirm: 'Yes, Delete Everything', warning: 'There is no recovery after this step.' }
+            );
+        },
+        { title: 'Delete Account', warning: 'This action cannot be undone.' }
+    );
 }
 </script>
 

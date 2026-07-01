@@ -92,7 +92,7 @@ require_once __DIR__ . '/../templates/header.php';
     <div class="danger-zone">
         <h3><i class="fas fa-exclamation-triangle"></i> Danger Zone</h3>
         <p>Once you delete your account, all your data will be permanently removed. This action cannot be undone.</p>
-        <button class="btn-danger" onclick="return confirm('Delete your account permanently? This cannot be undone.')">Delete My Account</button>
+        <button class="btn-danger" onclick="kinasConfirm('Delete your account permanently? All your data will be permanently removed.', function(){ window.location.href='/user/delete-account.php'; }, { title:'Delete Account', warning:'This is permanent and cannot be undone.' }); return false;">Delete My Account</button>
     </div>
 </div>
 

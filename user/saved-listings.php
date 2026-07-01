@@ -161,11 +161,16 @@ include __DIR__ . '/../templates/header.php';
                     <a class="btn-view" href="<?= $detailUrl ?>">
                         <i class="fas fa-eye"></i> View
                     </a>
-                    <form method="POST" style="display:inline">
+                    <form method="POST" style="display:inline"
+                          data-kinas-confirm="Remove this listing from your saved properties?"
+                          data-kinas-title="Remove from Saved"
+                          data-kinas-label="Remove"
+                          data-kinas-variant="warning"
+                          data-kinas-icon="fa-heart-broken">
                         <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
                         <input type="hidden" name="listing_id" value="<?= $item['listing_id'] ?>">
                         <input type="hidden" name="listing_type" value="<?= $item['listing_type'] ?>">
-                        <button class="btn-unsave" onclick="return confirm('Remove from saved?')"><i class="fas fa-heart-broken"></i> Unsave</button>
+                        <button class="btn-unsave" type="submit"><i class="fas fa-heart-broken"></i> Unsave</button>
                     </form>
                 </div>
             </div>
