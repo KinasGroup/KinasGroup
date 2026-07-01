@@ -141,10 +141,10 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     const email = form.email.value.trim();
     const password = form.password.value;
 
-    if (!email || !password) { alert('Please enter both email and password'); return; }
+    if (!email || !password) { kinasToast('Please enter both email and password', 'error'); return; }
 
     const captchaToken = document.getElementById('login-captcha-token')?.value || '';
-    if (isLoginCaptchaConfigured && !captchaToken) { alert('Please complete the CAPTCHA verification.'); return; }
+    if (isLoginCaptchaConfigured && !captchaToken) { kinasToast('Please complete the CAPTCHA verification', 'warning'); return; }
 
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
@@ -159,7 +159,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         const data = await res.json();
         if (data.success) {
             if (data.user.role !== 'admin') {
-                alert('This account does not have admin privileges. Use the Agent/Buyer login instead.');
+                kinasToast('This account does not have admin privileges. Use the Agent/Buyer login instead.', 'warning');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to Admin';
                 return;
@@ -167,18 +167,19 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             localStorage.setItem('kinas_token', data.token);
             window.location.href = 'dashboard.php';
         } else {
-            alert(data.error || 'Login failed. Admin access only.');
+            kinasToast(data.error || 'Login failed. Admin access only.', 'error');
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to Admin';
         }
     } catch (err) {
         console.error(err);
-        alert('Network error. Please try again.');
+        kinasToast('Network error. Please try again.', 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to Admin';
     }
 });
 </script>
+<?php require_once __DIR__ . '/../includes/kinas-ui.php'; ?>
 <?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
 </body>
 </html>

@@ -22,7 +22,7 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 // Handle social media update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_socials'])) {
     if (!Security::verifyCSRFToken($_POST['csrf_token'] ?? '')) {
-        $flashError = 'Invalid security token.';
+        $flashError = 'Please refresh the page and try again.';
     } else {
         try {
             // Check if settings table exists, create if not

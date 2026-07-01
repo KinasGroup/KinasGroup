@@ -13,7 +13,7 @@ $msg = '';
 // ── Handle status change ──────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::verifyCSRFToken($_POST['csrf_token'] ?? '')) {
-        $msg = ['type'=>'error','text'=>'Invalid security token.'];
+        $msg = ['type'=>'error','text'=>'Please refresh the page and try again.'];
     } else {
         $uid    = (int)($_POST['user_id'] ?? 0);
         $action = $_POST['action'] ?? '';
@@ -228,7 +228,7 @@ require_once __DIR__ . '/../templates/header.php';
                                 <?php endif; ?>
                             </form>
                             <?php if ($u['status'] !== 'deleted' && $u['id'] !== (int)$_SESSION['user_id']): ?>
-                            <form method="POST" action="/api/admin/delete-user.php" style="display:inline" onsubmit="return confirm('Delete this user? Their account will be deactivated. This cannot be undone from the admin UI.');">
+                            <form method="POST" action="/api/admin/delete-user.php" style="display:inline" data-kinas-confirm="Delete this user? Their account will be deactivated." data-kinas-title="Delete User" data-kinas-warning="This cannot be undone from the admin UI.">
                                 <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
                                 <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
                                 <button type="submit" class="act-btn delete" title="Delete user"><i class="fas fa-trash-alt" aria-hidden="true"></i><span class="act-btn-label">Delete</span></button>

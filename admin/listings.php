@@ -288,7 +288,7 @@ include '../templates/header.php';
                                         <!-- Delete button with CSRF token -->
                                         <a href="delete-listing.php?id=<?php echo $listing['id']; ?>&division=<?php echo $listing['division']; ?>&csrf_token=<?php echo Security::generateCSRFToken(); ?>" 
                                            class="action-btn action-btn-delete" 
-                                           onclick="return confirm('Delete this listing?')">
+                                           data-kinas-confirm="Delete this listing? This will permanently remove it." data-kinas-title="Delete Listing" data-kinas-warning="This is a permanent, irreversible action.">
                                             Delete
                                         </a>
                                     </div>

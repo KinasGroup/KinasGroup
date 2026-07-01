@@ -14,7 +14,7 @@ $msg = '';
 // ── Handle approve / reject POST ─────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::verifyCSRFToken($_POST['csrf_token'] ?? '')) {
-        $msg = ['type'=>'error','text'=>'Invalid security token.'];
+        $msg = ['type'=>'error','text'=>'Please refresh the page and try again.'];
     } else {
         $uid    = (int)($_POST['user_id'] ?? 0);
         $action = $_POST['action'] ?? '';
@@ -295,7 +295,7 @@ require_once __DIR__ . '/../templates/header.php';
                                 <input type="hidden" name="action" value="approve">
                                 <button type="submit" class="btn-approve" style="padding:5px 10px; font-size:11px;"><i class="fas fa-check"></i> Approve</button>
                             </form>
-                            <form method="POST" action="api/admin/review-business-doc.php" style="display:inline;" onsubmit="return confirm('Reject this document?');">
+                            <form method="POST" action="api/admin/review-business-doc.php" style="display:inline;" data-kinas-confirm="Reject this document? This action will be logged." data-kinas-title="Reject Document" data-kinas-label="Reject" data-kinas-variant="warning" data-kinas-icon="fa-times-circle">
                                 <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
                                 <input type="hidden" name="document_id" value="<?= (int)$doc['id'] ?>">
                                 <input type="hidden" name="action" value="reject">

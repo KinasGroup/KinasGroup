@@ -212,14 +212,14 @@ require_once __DIR__ . '/../templates/header.php';
                     <td>
                         <div class="flag-actions">
                             <a href="<?= $detailUrl ?>" target="_blank" class="btn-review"><i class="fas fa-eye"></i> Review</a>
-                            <form method="POST" action="/api/admin/review-listing.php" style="display:inline" onsubmit="return confirm('Approve this listing? It will be set back to active.');">
+                            <form method="POST" action="/api/admin/review-listing.php" style="display:inline" data-kinas-confirm="Approve this listing? It will be set back to active status." data-kinas-title="Approve Listing" data-kinas-label="Approve" data-kinas-variant="gold" data-kinas-icon="fa-check">
                                 <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                                 <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
                                 <input type="hidden" name="listing_type" value="<?= htmlspecialchars($r['type']) ?>">
                                 <input type="hidden" name="action" value="approve">
                                 <button type="submit" class="btn-ignore" title="Approve and un-flag"><i class="fas fa-check"></i> Approve</button>
                             </form>
-                            <form method="POST" action="/api/admin/remove-listing.php" style="display:inline" onsubmit="return confirm('Remove this listing? It will be hidden from public view.');">
+                            <form method="POST" action="/api/admin/remove-listing.php" style="display:inline" data-kinas-confirm="Remove this listing? It will be hidden from public view." data-kinas-title="Remove Listing" data-kinas-label="Remove" data-kinas-variant="danger" data-kinas-icon="fa-eye-slash">
                                 <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                                 <input type="hidden" name="listing_id" value="<?= (int)$r['id'] ?>">
                                 <input type="hidden" name="listing_type" value="<?= htmlspecialchars($r['type']) ?>">

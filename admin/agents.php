@@ -184,19 +184,30 @@ include '../templates/header.php';
                                         <?php if ($agent['status'] === 'active'): ?>
                                             <a href="suspend-agent.php?id=<?php echo $agent['id']; ?>" 
                                                class="action-btn action-btn-suspend" 
-                                               onclick="return confirm('Suspend this agent? They will not be able to list or manage listings.')">
+                                               data-kinas-confirm="Suspend this agent? They will not be able to list or manage listings."
+                                               data-kinas-title="Suspend Agent"
+                                               data-kinas-label="Suspend"
+                                               data-kinas-variant="warning"
+                                               data-kinas-icon="fa-user-slash">
                                                 Suspend
                                             </a>
                                         <?php elseif ($agent['status'] === 'suspended'): ?>
                                             <a href="activate-agent.php?id=<?php echo $agent['id']; ?>" 
                                                class="action-btn action-btn-activate" 
-                                               onclick="return confirm('Activate this agent? They will be able to list again.')">
+                                               data-kinas-confirm="Activate this agent? They will be able to list again."
+                                               data-kinas-title="Activate Agent"
+                                               data-kinas-label="Activate"
+                                               data-kinas-variant="gold"
+                                               data-kinas-icon="fa-user-check">
                                                 Activate
                                             </a>
                                         <?php endif; ?>
                                         <a href="delete-agent.php?id=<?php echo $agent['id']; ?>" 
                                            class="action-btn action-btn-delete" 
-                                           onclick="return confirm('Delete this agent? This will permanently remove all their listings.')">
+                                           data-kinas-confirm="Delete this agent? This will permanently remove all their listings."
+                                           data-kinas-title="Delete Agent"
+                                           data-kinas-warning="This is a permanent, irreversible action."
+                                           data-kinas-icon="fa-user-times">
                                             Delete
                                         </a>
                                     <?php endif; ?>
