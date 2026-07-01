@@ -30,7 +30,7 @@ $token = $data['csrf_token'] ?? '';
 if ($token !== '' && !Security::verifyCSRFToken($token)) {
     $isJson = strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false;
     if ($isJson) { header('Content-Type: application/json'); http_response_code(403); echo json_encode(['error' => 'Invalid CSRF token']); }
-    else { $_SESSION['flash_error'] = 'Invalid security token. Please reload the page.'; header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/agent/listings.php')); }
+    else { $_SESSION['flash_error'] = 'Please refresh the page and try again.'; header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/agent/listings.php')); }
     exit;
 }
 

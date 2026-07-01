@@ -31,9 +31,9 @@ if ($method === 'POST') {
         if (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false) {
             header('Content-Type: application/json');
             http_response_code(403);
-            echo json_encode(['error' => 'Invalid security token. Please reload the page and try again.']);
+            echo json_encode(['error' => 'Please refresh the page and try again.']);
         } else {
-            $_SESSION['flash_error'] = 'Invalid security token. Please reload the page and try again.';
+            $_SESSION['flash_error'] = 'Please refresh the page and try again.';
             header('Location: /agent/listings.php');
         }
         exit;
