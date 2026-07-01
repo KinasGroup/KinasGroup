@@ -13,7 +13,7 @@ $msg = '';
 // ── Handle status change ──────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::verifyCSRFToken($_POST['csrf_token'] ?? '')) {
-        $msg = ['type'=>'error','text'=>'Kindly refresh the page and try again.'];
+        $msg = ['type'=>'error','text'=>'Invalid security token.'];
     } else {
         $uid    = (int)($_POST['user_id'] ?? 0);
         $action = $_POST['action'] ?? '';
@@ -97,7 +97,6 @@ require_once __DIR__ . '/../templates/header.php';
     .act-btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,0.08)}
     .act-btn-label{display:inline-block}
     .act-btn i{font-style:normal;min-width:14px;text-align:center}
-    .act-btn:disabled{opacity:0.5;cursor:not-allowed}
     .pagination{display:flex;justify-content:center;gap:6px;padding:18px;border-top:1px solid #E0E0E0;flex-wrap:wrap}
     .page-btn{padding:7px 12px;border:1px solid #E0E0E0;border-radius:7px;background:white;color:#333;text-decoration:none;font-size:13px;transition:all .2s}
     .page-btn:hover,.page-btn.active{background:#C6A43F;border-color:#C6A43F;color:#0A0A0A}
@@ -229,7 +228,7 @@ require_once __DIR__ . '/../templates/header.php';
                                 <?php endif; ?>
                             </form>
                             <?php if ($u['status'] !== 'deleted' && $u['id'] !== (int)$_SESSION['user_id']): ?>
-                            <form method="POST" action="/api/admin/delete-user.php" style="display:inline" onsubmit="return handleDeleteUser(event, this, <?= (int)$u['id'] ?>);">
+                            <form method="POST" action="/api/admin/delete-user.php" style="display:inline" onsubmit="return confirm('Delete this user? Their account will be deactivated. This cannot be undone from the admin UI.');">
                                 <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
                                 <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
                                 <button type="submit" class="act-btn delete" title="Delete user"><i class="fas fa-trash-alt" aria-hidden="true"></i><span class="act-btn-label">Delete</span></button>
@@ -254,28 +253,5 @@ require_once __DIR__ . '/../templates/header.php';
 
 </main>
 </div>
-
-<script>
-// ============================================================
-// DELETE USER WITH CUSTOM CONFIRMATION
-// ============================================================
-function handleDeleteUser(event, form, userId) {
-    event.preventDefault();
-    
-    jeConfirm(
-        'Delete this user? Their account will be deactivated and all associated data will be removed. This cannot be undone.',
-        'Delete User',
-        'danger'
-    ).then(function(confirmed) {
-        if (confirmed) {
-            form.submit();
-        }
-    }).catch(function(error) {
-        console.error('Confirmation error:', error);
-    });
-    
-    return false;
-}
-</script>
 
 <?php require_once __DIR__ . "/../templates/footer.php"; ?>

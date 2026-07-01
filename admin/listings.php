@@ -145,12 +145,9 @@ include '../templates/header.php';
     text-decoration: none;
     margin: 2px;
     white-space: nowrap;
-    border: none;
-    cursor: pointer;
 }
 .action-btn-view { background: #1565C0; color: white; }
 .action-btn-delete { background: #C62828; color: white; }
-.action-btn-delete:disabled { opacity: 0.5; cursor: not-allowed; }
 .status-badge {
     display: inline-block;
     padding: 2px 10px;
@@ -250,8 +247,6 @@ include '../templates/header.php';
                         <tbody>
                             <?php $counter = 1; foreach ($allListings as $listing): 
                                 $config = $divConfig[$listing['division']] ?? ['folder' => $listing['division']];
-                                // Generate CSRF token for each listing
-                                $csrfToken = Security::generateCSRFToken();
                             ?>
                             <tr>
                                 <td><?php echo $counter++; ?></td>
@@ -290,11 +285,12 @@ include '../templates/header.php';
                                            class="action-btn action-btn-view" target="_blank">
                                             View
                                         </a>
-                                        <!-- Delete button with custom confirmation -->
-                                        <button onclick="deleteListing(<?php echo $listing['id']; ?>, '<?php echo $listing['division']; ?>', this)" 
-                                                class="action-btn action-btn-delete">
+                                        <!-- Delete button with CSRF token -->
+                                        <a href="delete-listing.php?id=<?php echo $listing['id']; ?>&division=<?php echo $listing['division']; ?>&csrf_token=<?php echo Security::generateCSRFToken(); ?>" 
+                                           class="action-btn action-btn-delete" 
+                                           onclick="return confirm('Delete this listing?')">
                                             Delete
-                                        </button>
+                                        </a>
                                     </div>
                                 </td>
                             </tr>
@@ -307,68 +303,5 @@ include '../templates/header.php';
         </div>
     </main>
 </div>
-
-<script>
-// ============================================================
-// DELETE LISTING WITH CUSTOM CONFIRMATION MODAL
-// ============================================================
-function deleteListing(listingId, division, button) {
-    jeConfirm(
-        'Are you sure you want to delete this listing? This action cannot be undone and will remove all associated data.',
-        'Delete Listing',
-        'danger'
-    ).then(function(confirmed) {
-        if (!confirmed) return;
-        
-        // Show loading state
-        button.disabled = true;
-        button.innerHTML = '⏳';
-        
-        // Get CSRF token from the page
-        var csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
-        
-        fetch('/admin/delete-listing.php', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                listing_id: listingId,
-                division: division,
-                csrf_token: csrfToken
-            })
-        })
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
-            if (data.success) {
-                if (typeof showNotification === 'function') {
-                    showNotification('Listing deleted successfully.', 'success');
-                }
-                setTimeout(function() { window.location.reload(); }, 1500);
-            } else {
-                if (typeof showNotification === 'function') {
-                    showNotification(data.error || 'Failed to delete listing.', 'error');
-                } else {
-                    alert(data.error || 'Failed to delete listing.');
-                }
-                button.disabled = false;
-                button.innerHTML = 'Delete';
-            }
-        })
-        .catch(function(error) {
-            console.error('Error:', error);
-            if (typeof showNotification === 'function') {
-                showNotification('Error: ' + error.message, 'error');
-            } else {
-                alert('Error: ' + error.message);
-            }
-            button.disabled = false;
-            button.innerHTML = 'Delete';
-        });
-    }).catch(function(error) {
-        console.error('Confirmation error:', error);
-    });
-}
-</script>
 
 <?php include '../templates/footer.php'; ?>
