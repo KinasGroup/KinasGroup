@@ -52,7 +52,6 @@ if ($registrationSuccess) {
                 color: #0A0A0A !important;
             }
             .je-auth-shell,
-            .je-auth-aside,
             .je-auth-main,
             .je-auth-form {
                 background-color: #ffffff !important;
@@ -175,6 +174,16 @@ if ($registrationSuccess) {
         .je-password-toggle:hover {
             color: #666;
         }
+
+        /* Restore gold accents - the site-wide dark-mode override
+           (assets/css/style.css) blackens all text inside .je-auth-form,
+           which was silently killing the gold CTA button and links here. */
+        @media (prefers-color-scheme: dark) {
+            #submitBtn.je-btn-gold,
+            .je-auth-form .je-text-gold {
+                color: #C6A43F !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -250,7 +259,7 @@ if ($registrationSuccess) {
                     <label style="display:flex; align-items:center; gap:6px; color:#666; cursor:pointer;">
                         <input type="checkbox" name="remember" value="1" style="accent-color:#C6A43F;"> Remember me
                     </label>
-                    <a href="forgot-password.php" style="color:#C6A43F; text-decoration:none; font-weight:500;">Forgot password?</a>
+                    <a href="forgot-password.php" class="je-text-gold" style="color:#C6A43F; text-decoration:none; font-weight:500;">Forgot password?</a>
                 </div>
 
                 <div class="je-form-group" id="captcha-group">
@@ -459,23 +468,24 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             // verification link" action. The API tells us the user's email
             // so we can re-issue the code without them re-typing it.
             if (data.error_code === 'email_not_verified') {
-                const wantResend = confirm(
+                kinasConfirm(
                     (data.error || 'Please verify your email.') +
-                    '\n\nWould you like us to send a new verification link to ' + (data.email || email) + '?'
+                    ' Would you like us to send a new verification link to ' + (data.email || email) + '?',
+                    async function() {
+                        try {
+                            const r = await fetch('/api/auth/resend-verification.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ email: data.email || email })
+                            });
+                            const rd = await r.json();
+                            showNotification(rd.message || 'If that email is registered and unverified, a new link has been sent.', 'success');
+                        } catch (err) {
+                            showNotification('Could not resend the verification email. Please try again later.', 'error');
+                        }
+                    },
+                    { title: 'Resend Verification', confirm: 'Send Link', variant: 'gold', icon: 'fa-envelope', subtitle: 'We\'ll send a new verification link to your email.' }
                 );
-                if (wantResend) {
-                    try {
-                        const r = await fetch('/api/auth/resend-verification.php', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email: data.email || email })
-                        });
-                        const rd = await r.json();
-                        showNotification(rd.message || 'If that email is registered and unverified, a new link has been sent.', 'success');
-                    } catch (err) {
-                        showNotification('Could not resend the verification email. Please try again later.', 'error');
-                    }
-                }
             } else {
                 // REPLACED BROWSER ALERT WITH CUSTOM NOTIFICATION
                 showNotification(data.error || 'Login failed. Please check your credentials.', 'error');
@@ -491,6 +501,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     }
 });
 </script>
+<?php require_once __DIR__ . '/../includes/kinas-ui.php'; ?>
 <?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
 </body>
 </html>

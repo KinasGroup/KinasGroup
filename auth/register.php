@@ -162,6 +162,16 @@ $divisions = [
         #captcha-group {
             min-height: 78px;
         }
+
+        /* Restore gold accents - the site-wide dark-mode override
+           (assets/css/style.css) blackens all text inside .je-auth-form,
+           which was silently killing the gold CTA button and links here. */
+        @media (prefers-color-scheme: dark) {
+            #submitBtn.je-btn-gold,
+            .je-auth-form .je-text-gold {
+                color: #C6A43F !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -245,14 +255,14 @@ $divisions = [
                     <div id="captcha-container"></div>
                     <input type="hidden" id="captcha-token" name="captcha_token">
                     <p style="font-size:11px; color:#888; margin-top:6px;">
-                        <i class="fas fa-shield-alt"></i> Protected by reCAPTCHA. <a href="https://policies.google.com/privacy" target="_blank" style="color:#C6A43F;">Privacy</a> · <a href="https://policies.google.com/terms" target="_blank" style="color:#C6A43F;">Terms</a>
+                        <i class="fas fa-shield-alt"></i> Protected by reCAPTCHA. <a href="https://policies.google.com/privacy" target="_blank" class="je-text-gold" style="color:#C6A43F;">Privacy</a> · <a href="https://policies.google.com/terms" target="_blank" class="je-text-gold" style="color:#C6A43F;">Terms</a>
                     </p>
                 </div>
 
                 <p style="font-size:12px; color:#666; margin-bottom:20px; line-height:1.5;">
-                    <i class="fas fa-shield-alt" style="color:#C6A43F;"></i> By registering, you agree to our
-                    <a href="../pages/terms-of-use.php" style="color:#C6A43F;">Terms</a> and
-                    <a href="../pages/privacy-policy.php" style="color:#C6A43F;">Privacy Policy</a>.
+                    <i class="fas fa-shield-alt je-text-gold" style="color:#C6A43F;"></i> By registering, you agree to our
+                    <a href="../pages/terms-of-use.php" class="je-text-gold" style="color:#C6A43F;">Terms</a> and
+                    <a href="../pages/privacy-policy.php" class="je-text-gold" style="color:#C6A43F;">Privacy Policy</a>.
                     KYC verification is required before listing.
                 </p>
 
@@ -295,10 +305,10 @@ document.getElementById('registerForm').addEventListener('submit', async functio
     const form = this, submitBtn = document.getElementById('submitBtn');
     const name = form.name.value.trim(), email = form.email.value.trim(), phone = form.phone.value.trim();
     const division = form.division.value, password = form.password.value, passwordConfirmation = form.password_confirmation.value;
-    if (!name || !email || !phone || !division || !password || !passwordConfirmation) { alert('Please fill in all required fields'); return; }
-    if (password !== passwordConfirmation) { alert('Passwords do not match'); return; }
-    if (password.length < 8) { alert('Password must be at least 8 characters'); return; }
-    if (isCaptchaConfigured && !document.getElementById('captcha-token').value) { alert('Please complete the CAPTCHA verification'); return; }
+    if (!name || !email || !phone || !division || !password || !passwordConfirmation) { kinasToast('Please fill in all required fields', 'error'); return; }
+    if (password !== passwordConfirmation) { kinasToast('Passwords do not match', 'error'); return; }
+    if (password.length < 8) { kinasToast('Password must be at least 8 characters', 'error'); return; }
+    if (isCaptchaConfigured && !document.getElementById('captcha-token').value) { kinasToast('Please complete the CAPTCHA verification', 'warning'); return; }
 
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account…';
@@ -320,18 +330,19 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         } else {
             let errorMsg = data.error || 'Registration failed';
             if (data.errors) errorMsg = Object.values(data.errors).join(', ');
-            alert(errorMsg);
+            kinasToast(errorMsg, 'error');
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Create Account &amp; Continue';
         }
     } catch (err) {
         console.error(err);
-        alert('Network error. Please try again.');
+        kinasToast('Network error. Please try again.', 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = 'Create Account &amp; Continue';
     }
 });
 </script>
+<?php require_once __DIR__ . '/../includes/kinas-ui.php'; ?>
 <?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
 </body>
 </html>

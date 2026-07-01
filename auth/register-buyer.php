@@ -155,6 +155,16 @@ $successMessage = SessionManager::getFlash('success');
         #captcha-group {
             min-height: 78px;
         }
+
+        /* Restore gold accents - the site-wide dark-mode override
+           (assets/css/style.css) blackens all text inside .je-auth-form,
+           which was silently killing the gold CTA button and links here. */
+        @media (prefers-color-scheme: dark) {
+            #submitBtn.je-btn-gold,
+            .je-auth-form .je-text-gold {
+                color: #C6A43F !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -233,9 +243,9 @@ $successMessage = SessionManager::getFlash('success');
                 </div>
 
                 <p style="font-size:12px; color:#666; margin-bottom:20px; line-height:1.5;">
-                    <i class="fas fa-shield-alt" style="color:#C6A43F;"></i> By registering, you agree to our
-                    <a href="../pages/terms-of-use.php" style="color:#C6A43F;">Terms</a> and
-                    <a href="../pages/privacy-policy.php" style="color:#C6A43F;">Privacy Policy</a>.
+                    <i class="fas fa-shield-alt je-text-gold" style="color:#C6A43F;"></i> By registering, you agree to our
+                    <a href="../pages/terms-of-use.php" class="je-text-gold" style="color:#C6A43F;">Terms</a> and
+                    <a href="../pages/privacy-policy.php" class="je-text-gold" style="color:#C6A43F;">Privacy Policy</a>.
                 </p>
 
                 <button type="submit" id="submitBtn" class="je-btn je-btn-gold je-btn-block je-btn-lg">
@@ -277,10 +287,10 @@ document.getElementById('registerForm').addEventListener('submit', async functio
     const name = form.name.value.trim(), email = form.email.value.trim(), phone = form.phone.value.trim();
     const password = form.password.value, passwordConfirmation = form.password_confirmation.value;
     const captchaToken = document.getElementById('captcha-token')?.value || '';
-    if (!name || !email || !phone || !password || !passwordConfirmation) { alert('Please fill in all required fields'); return; }
-    if (password !== passwordConfirmation) { alert('Passwords do not match'); return; }
-    if (password.length < 8) { alert('Password must be at least 8 characters'); return; }
-    if (isCaptchaConfigured && !captchaToken) { alert('Please complete the CAPTCHA verification'); return; }
+    if (!name || !email || !phone || !password || !passwordConfirmation) { kinasToast('Please fill in all required fields', 'error'); return; }
+    if (password !== passwordConfirmation) { kinasToast('Passwords do not match', 'error'); return; }
+    if (password.length < 8) { kinasToast('Password must be at least 8 characters', 'error'); return; }
+    if (isCaptchaConfigured && !captchaToken) { kinasToast('Please complete the CAPTCHA verification', 'warning'); return; }
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account…';
     try {
@@ -299,18 +309,19 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         } else {
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Create Buyer Account';
-            if (result.errors && Array.isArray(result.errors)) alert(result.errors.join('\n'));
-            else if (result.error) alert(result.error);
-            else alert('Registration failed');
+            if (result.errors && Array.isArray(result.errors)) kinasToast(result.errors.join(' · '), 'error');
+            else if (result.error) kinasToast(result.error, 'error');
+            else kinasToast('Registration failed', 'error');
         }
     } catch (err) {
         console.error(err);
-        alert('Network error. Please try again.');
+        kinasToast('Network error. Please try again.', 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = 'Create Buyer Account';
     }
 });
 </script>
+<?php require_once __DIR__ . '/../includes/kinas-ui.php'; ?>
 <?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
 </body>
 </html>
