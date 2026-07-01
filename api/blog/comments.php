@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // CSRF for form posts
     $token = $data['csrf_token'] ?? '';
     if (!$isJson && ($token === '' || !Security::verifyCSRFToken($token))) {
-        if (!$isJson) { $_SESSION['flash_error'] = 'Invalid security token.'; header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/blog/')); exit; }
+        if (!$isJson) { $_SESSION['flash_error'] = 'Please refresh the page and try again.'; header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/blog/')); exit; }
         http_response_code(403);
         echo json_encode(['error' => 'Invalid CSRF token']);
         exit;
