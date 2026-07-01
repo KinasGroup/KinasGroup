@@ -755,10 +755,9 @@ function renderImages() {
 // FIX: Remove an existing image with CSRF refresh
 // ============================================
 function removeExistingImage(imageId, button) {
-    if (!confirm('Remove this image from the listing?')) return;
-    
-    button.classList.add('loading');
-    button.innerHTML = '⏳';
+    kinasConfirm('Remove this image from the listing?', function() {
+        button.classList.add('loading');
+        button.innerHTML = '⏳';
     
     // Use the current CSRF token
     const csrfToken = document.getElementById('csrfTokenInput')?.value || currentCsrfToken;
@@ -804,12 +803,8 @@ function removeExistingImage(imageId, button) {
                 })
                 .catch(e => console.warn('Could not refresh CSRF token:', e));
             
-            // Show success message (optional)
-            // You can uncomment this if you want a toast notification
-            // showToast('Image removed successfully', 'success');
-            
         } else {
-            alert(data.error || 'Failed to remove image');
+            kinasToast(data.error || 'Failed to remove image', 'error');
             button.classList.remove('loading');
             button.innerHTML = '&times;';
             
@@ -821,10 +816,11 @@ function removeExistingImage(imageId, button) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error: ' + error.message);
+        kinasToast('Error: ' + error.message, 'error');
         button.classList.remove('loading');
         button.innerHTML = '&times;';
     });
+    }, { title: 'Remove Image', confirm: 'Remove', variant: 'warning', icon: 'fa-image' });
 }
 
 // Remove a newly uploaded image (not yet saved)

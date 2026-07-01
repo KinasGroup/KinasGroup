@@ -281,7 +281,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
             <h3 style="margin-top:32px; color:#DC2626; border-bottom-color:#FECACA;"><i class="fas fa-exclamation-triangle" style="color:#DC2626;"></i> Danger Zone</h3>
             <p style="font-size:13px; color:#666; margin-bottom:12px;">Deactivating your account hides all your listings but preserves your data. To permanently delete, contact support.</p>
-            <form method="POST" action="/api/agent/deactivate.php" onsubmit="return confirm('WARNING: Deactivating will hide all your listings from public view. Continue?');" style="display:inline;">
+            <form method="POST" action="/api/agent/deactivate.php" data-kinas-confirm="Deactivating will hide all your listings from public view. Continue?" data-kinas-title="Deactivate Account" data-kinas-label="Deactivate" data-kinas-variant="warning" data-kinas-icon="fa-user-slash" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                 <button type="submit" class="btn-danger"><i class="fas fa-user-slash"></i> Deactivate Account</button>
             </form>

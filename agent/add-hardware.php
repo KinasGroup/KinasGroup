@@ -35,7 +35,7 @@ $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::verifyCSRFToken($_POST['csrf_token'] ?? '')) {
-        $errors[] = 'Invalid security token. Please refresh the page and try again.';
+        $errors[] = 'Please refresh the page and try again.';
     } else {
         $title         = trim($_POST['title'] ?? '');
         $serviceType   = $_POST['service_type'] ?? '';

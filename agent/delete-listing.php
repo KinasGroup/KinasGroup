@@ -24,7 +24,7 @@ $csrf_token = isset($_GET['csrf_token']) ? $_GET['csrf_token'] : '';
 
 // Validate CSRF token
 if (!Security::verifyCSRFToken($csrf_token)) {
-    $_SESSION['flash_error'] = 'Invalid security token.';
+    $_SESSION['flash_error'] = 'Please refresh the page and try again.';
     header('Location: listings.php');
     exit;
 }

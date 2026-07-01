@@ -306,7 +306,7 @@ include '../templates/header.php';
                                         </a>
                                         <a href="delete-listing.php?id=<?php echo $item['id']; ?>&division=<?php echo $item['division']; ?>&csrf_token=<?php echo Security::generateCSRFToken(); ?>" 
                                            class="action-btn action-btn-delete" 
-                                           onclick="return confirm('Are you sure you want to delete this listing?');">
+                                           data-kinas-confirm="Delete this listing? It will be permanently removed." data-kinas-title="Delete Listing" data-kinas-warning="This cannot be undone.">
                                             <i class="fas fa-trash"></i> Delete
                                         </a>
                                     </div>

@@ -174,7 +174,7 @@ include '../templates/header.php';
                                         </a>
                                         <a href="delete-listing.php?id=<?php echo $item['id']; ?>&division=solar&csrf_token=<?php echo Security::generateCSRFToken(); ?>" 
                                            class="action-btn action-btn-delete" 
-                                           onclick="return confirm('Delete this hardware item? This cannot be undone.');">
+                                           data-kinas-confirm="Delete this hardware item? This cannot be undone." data-kinas-title="Delete Hardware Item" data-kinas-warning="This is a permanent, irreversible action.">
                                             <i class="fas fa-trash"></i> Delete
                                         </a>
                                     </div>
