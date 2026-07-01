@@ -45,7 +45,7 @@ if ($token !== '' && !Security::verifyCSRFToken($token)) {
         http_response_code(403);
         echo json_encode(['error' => 'Invalid CSRF token']);
     } else {
-        $_SESSION['flash_error'] = 'Invalid security token.';
+        $_SESSION['flash_error'] = 'Please refresh the page and try again.';
         header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/admin/user-management.php'));
     }
     exit;
