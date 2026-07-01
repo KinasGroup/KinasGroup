@@ -51,13 +51,13 @@ class AdminPanel {
         approveButtons.forEach(btn => {
             btn.addEventListener('click', async () => {
                 const agentId = btn.dataset.agentId;
-                if (confirm('Approve this agent?')) {
+                kinasConfirm('Approve this agent? They will be granted listing privileges.', async function() {
                     await api.request('admin/approve-agent.php', {
                         method: 'POST',
                         body: JSON.stringify({ agent_id: agentId })
                     });
                     location.reload();
-                }
+                }, { title: 'Approve Agent', confirm: 'Approve', variant: 'gold', icon: 'fa-user-check' });
             });
         });
         
@@ -83,13 +83,13 @@ class AdminPanel {
         removeButtons.forEach(btn => {
             btn.addEventListener('click', async () => {
                 const listingId = btn.dataset.listingId;
-                if (confirm('Remove this listing? This action cannot be undone.')) {
+                kinasConfirm('Remove this listing? This action cannot be undone.', async function() {
                     await api.request('admin/remove-listing.php', {
                         method: 'POST',
                         body: JSON.stringify({ listing_id: listingId })
                     });
                     btn.closest('tr').remove();
-                }
+                }, { title: 'Remove Listing', confirm: 'Remove', warning: 'This is a permanent, irreversible action.' });
             });
         });
     }

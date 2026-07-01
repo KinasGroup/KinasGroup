@@ -306,12 +306,12 @@ async function toggleListingStatus(id) {
 }
 
 async function deleteListing(id) {
-    if (confirm('Are you sure you want to delete this listing? This cannot be undone.')) {
+    kinasConfirm('Are you sure you want to delete this listing? This cannot be undone.', async function() {
         try {
             await api.deleteListing(id);
             window.location.reload();
         } catch (error) {
-            alert('Failed to delete listing');
+            kinasToast('Failed to delete listing', 'error');
         }
-    }
+    }, { title: 'Delete Listing', warning: 'This is a permanent, irreversible action.' });
 }
