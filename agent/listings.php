@@ -186,6 +186,45 @@ include '../templates/header.php';
 .filter-bar .filter-link.inactive { background: #f0f0f0; color: #333; }
 .filter-bar .filter-link.inactive:hover { background: #e0e0e0; }
 
+/* Search bar */
+.listings-search-wrap {
+    background: #fff;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    border: 1px solid #E0E0E0;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.listings-search-wrap .search-icon {
+    color: #C6A43F;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+.listings-search-wrap input[type="text"] {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #0A0A0A;
+    background: transparent;
+}
+.listings-search-wrap input[type="text"]::placeholder { color: #aaa; }
+.listings-search-wrap .search-clear {
+    background: none; border: none; cursor: pointer;
+    color: #aaa; font-size: 16px; line-height: 1;
+    display: none; padding: 2px 4px;
+}
+.listings-search-wrap .search-clear:hover { color: #555; }
+.search-no-results {
+    display: none; text-align: center;
+    padding: 40px 20px; color: #888;
+    font-size: 14px;
+}
+.search-no-results i { font-size: 32px; color: #C6A43F; display: block; margin-bottom: 12px; }
+
 @media (max-width: 768px) {
     .je-dash-main { padding: 10px !important; }
     .je-table th, .je-table td { padding: 8px 8px; font-size: 11px; }
@@ -248,6 +287,13 @@ include '../templates/header.php';
             <a href="listings.php?division=marketplace" class="filter-link <?php echo $division === 'marketplace' ? 'active' : 'inactive'; ?>">🛍️ Marketplace</a>
         </div>
 
+        <!-- Search Bar -->
+        <div class="listings-search-wrap">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="listingSearch" placeholder="Search by title, type, status…" autocomplete="off">
+            <button class="search-clear" id="listingSearchClear" title="Clear search">&#x2715;</button>
+        </div>
+
         <!-- Listings Table -->
         <div class="je-panel" style="overflow-x: hidden;">
             <div class="je-panel-body" style="overflow-x: hidden;">
@@ -260,7 +306,7 @@ include '../templates/header.php';
                     </div>
                 <?php else: ?>
                     <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
-                    <table class="je-table" style="min-width: 700px; width: 100%;">
+                    <table class="je-table" id="listingsTable" style="min-width: 700px; width: 100%;">
                         <thead>
                             <tr>
                                 <th>#</th>
@@ -273,7 +319,7 @@ include '../templates/header.php';
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="listingsBody">
                             <?php $i = 1; foreach ($listings as $item): ?>
                             <tr>
                                 <td><?php echo $i++; ?></td>
@@ -315,10 +361,46 @@ include '../templates/header.php';
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    <div class="search-no-results" id="listingsNoResults">
+                        <i class="fas fa-search"></i>
+                        No listings match your search.
+                    </div>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
+
+<script>
+(function() {
+    var input   = document.getElementById('listingSearch');
+    var clear   = document.getElementById('listingSearchClear');
+    var tbody   = document.getElementById('listingsBody');
+    var noRes   = document.getElementById('listingsNoResults');
+    if (!input || !tbody) return;
+
+    function filterListings() {
+        var q = input.value.trim().toLowerCase();
+        var rows = tbody.querySelectorAll('tr');
+        var visible = 0;
+        rows.forEach(function(row) {
+            var text = row.textContent.toLowerCase();
+            var match = !q || text.indexOf(q) !== -1;
+            row.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        clear.style.display = q ? 'block' : 'none';
+        if (noRes) noRes.style.display = (visible === 0 && q) ? 'block' : 'none';
+    }
+
+    input.addEventListener('input', filterListings);
+    clear.addEventListener('click', function() {
+        input.value = '';
+        filterListings();
+        input.focus();
+    });
+})();
+</script>
+
     </main>
 </div>
 
