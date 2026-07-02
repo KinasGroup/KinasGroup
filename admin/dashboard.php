@@ -84,6 +84,28 @@ $pageTitle = 'Admin Dashboard - KINAS GROUP';
 include '../templates/header.php';
 ?>
 
+<style>
+/* ── Admin dashboard: force light mode on dark OS ── */
+@media (prefers-color-scheme: dark) {
+    body, .je-dash-main { background: #F5F7FA !important; }
+    /* Quick-link action tiles */
+    .je-dash-main [style*="background: white"],
+    .je-dash-main [style*="background:#fff"],
+    .je-dash-main [style*="background: #fff"] {
+        background-color: #ffffff !important;
+    }
+    .je-dash-main [style*="background: #F5F7FA"] { background-color: #F5F7FA !important; }
+    .je-dash-main [style*="color: #333"],
+    .je-dash-main [style*="color:#333"] { color: #333 !important; }
+    .je-dash-main [style*="color: #666"],
+    .je-dash-main [style*="color:#666"] { color: #666 !important; }
+    /* Quick-link icon tiles (inline background colours already set, just ensure text) */
+    .je-dash-main a[style] span,
+    .je-dash-main a[style] strong,
+    .je-dash-main a[style] p { color: inherit !important; }
+}
+</style>
+
 <div class="je-dash-shell">
     <!-- Sidebar -->
     <?php include __DIR__ . '/../includes/partials/admin-sidebar.php'; ?>
