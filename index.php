@@ -473,11 +473,14 @@ include 'templates/header.php';
         
         <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px;">
             <?php foreach ($featuredListings as $item): 
-                $divisionSlug = strtolower(str_replace(' ', '-', str_replace('KINAS ', '', $item['division'])));
-                // Special handling for Williams Connect Home
-                if (strpos($item['division'], 'Williams') !== false) {
-                    $divisionSlug = 'williams-connect-home';
-                }
+                // Explicit map — stripping "KINAS " gives wrong slugs (volt, automobile, etc.)
+                $divisionFolderMap = [
+                    'KINAS Automobile'   => 'kinas-automobile',
+                    'KINAS Volt'         => 'kinas-volt',
+                    'KINAS Marketplace'  => 'kinas-marketplace',
+                    'Williams Connect Home' => 'williams-connect-home',
+                ];
+                $divisionSlug = $divisionFolderMap[$item['division']] ?? strtolower(str_replace(' ', '-', $item['division']));
                 $detailUrl = '/divisions/' . $divisionSlug . '/detail.php?id=' . $item['id'];
                 $price = isset($item['price']) ? '₦' . number_format($item['price']) : 'Contact for price';
                 $title = $item['title'] ?? 'Featured Listing';
