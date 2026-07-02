@@ -1,7 +1,73 @@
 <?php
 /**
  * KINAS GROUP — Homepage
+ * 
+ * This file serves as the entry point for ALL domains:
+ * - kinas-group.com → Shows main homepage
+ * - kinas-automobile.com → Shows /divisions/kinas-automobile/index.php
+ * - williams-connect-home.com → Shows /divisions/williams-connect-home/index.php
+ * - kinas-volt.com → Shows /divisions/kinas-volt/index.php
+ * - kinas-marketplace.com → Shows /divisions/kinas-marketplace/index.php
  */
+
+// ============================================================
+// DOMAIN ROUTER - Detect which domain is being accessed
+// ============================================================
+
+// Get the domain that was used to access this site
+$host = $_SERVER['HTTP_HOST'];
+$host = str_replace('www.', '', $host); // Remove www. for cleaner matching
+
+// Get the request path (e.g., /detail.php, /search.php, /)
+$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+
+// ============================================================
+// DOMAIN TO DIVISION MAPPING
+// ============================================================
+$divisionMap = [
+    'kinas-automobile.com' => '/divisions/kinas-automobile',
+    'williams-connect-home.com' => '/divisions/williams-connect-home',
+    'kinas-volt.com' => '/divisions/kinas-volt',
+    'kinas-marketplace.com' => '/divisions/kinas-marketplace',
+];
+
+// ============================================================
+// CHECK IF THIS IS A DIVISION DOMAIN
+// ============================================================
+if (isset($divisionMap[$host])) {
+    // This is a division domain!
+    $divisionPath = $divisionMap[$host];
+    
+    // Determine which file to serve
+    if ($requestUri === '/' || $requestUri === '/index.php') {
+        // Root of the division domain → show division index
+        require_once __DIR__ . $divisionPath . '/index.php';
+        exit;
+    }
+    
+    // For other pages (e.g., /detail.php, /search.php)
+    // Remove query string for file check
+    $requestFile = strtok($requestUri, '?');
+    
+    // Build the full file path
+    $fullPath = __DIR__ . $divisionPath . $requestFile;
+    
+    // Check if the file exists in the division folder
+    if (file_exists($fullPath) && is_file($fullPath)) {
+        // Include the requested file
+        require_once $fullPath;
+        exit;
+    }
+    
+    // If file doesn't exist, show the division index (fallback)
+    require_once __DIR__ . $divisionPath . '/index.php';
+    exit;
+}
+
+// ============================================================
+// NOT A DIVISION DOMAIN - SHOW MAIN SITE (kinas-group.com)
+// ============================================================
+
 require_once 'includes/session.php';
 require_once 'includes/functions.php';
 require_once 'includes/helpers.php';
