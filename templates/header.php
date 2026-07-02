@@ -37,6 +37,22 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     
     <!-- ============================================================
+         FAVICON - KINAS GROUP BRANDING
+         ============================================================ -->
+    <!-- Standard favicon for all browsers -->
+    <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+    <!-- PNG favicons for modern browsers -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png">
+    <!-- Apple Touch Icon for iOS devices -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
+    <!-- Android Chrome / PWA -->
+    <link rel="manifest" href="/assets/images/site.webmanifest">
+    <!-- Theme color for browser UI -->
+    <meta name="theme-color" content="#0A0A0A">
+    <!-- ============================================================ -->
+    
+    <!-- ============================================================
          FORCE LIGHT MODE - PERMANENT FIX
          ============================================================ -->
     <meta name="color-scheme" content="light only">
