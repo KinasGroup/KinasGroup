@@ -1,10 +1,28 @@
 /* ============================================================
-   FORCE LIGHT MODE - SAFE VERSION
+   FORCE LIGHT MODE — COMPREHENSIVE
+   Covers JE components, custom dashboard classes, user/admin
+   pages, all child elements, and CSS variable overrides.
    ============================================================ */
 
-/* Force light mode at the root level ONLY */
+/* Force light mode at the root level */
 :root {
     color-scheme: light !important;
+    /* Override CSS variables to their light-mode values */
+    --je-ink:        #0A0A0A !important;
+    --je-ink-2:      #1A1A1A !important;
+    --je-paper:      #FFFFFF !important;
+    --je-mist:       #F5F7FA !important;
+    --je-bone:       #F8F6F1 !important;
+    --je-line:       #E0E0E0 !important;
+    --je-line-2:     #E8E8E8 !important;
+    --je-line-3:     #F0F0F0 !important;
+    --je-mute:       #888888 !important;
+    --je-mute-2:     #999999 !important;
+    --je-mute-3:     #666666 !important;
+    --je-gold:       #C6A43F !important;
+    --je-gold-soft:  #D4B96A !important;
+    --je-gold-deep:  #A8882E !important;
+    --je-gold-tint:  rgba(198,164,63,0.1) !important;
 }
 
 html {
@@ -17,96 +35,311 @@ body {
     color: #0A0A0A !important;
 }
 
-/* Minimal dark mode override - WITH MOBILE MENU FIX */
 @media (prefers-color-scheme: dark) {
+    /* ── Root + variables ─────────────────────────────────── */
     html, body, :root {
         color-scheme: light !important;
         background: #ffffff !important;
         color: #0A0A0A !important;
     }
-    
-    /* ONLY target form elements */
-    input, 
-    textarea, 
-    select, 
-    button:not(.je-hero-btn):not(.search-btn):not(.je-btn):not(.je-btn-gold),
-    .je-filter-select, 
-    .je-filter-input, 
-    .je-sort-select, 
-    .je-form-group input,
-    .je-form-group select, 
-    .je-form-group textarea {
+    :root {
+        --je-ink:        #0A0A0A !important;
+        --je-ink-2:      #1A1A1A !important;
+        --je-paper:      #FFFFFF !important;
+        --je-mist:       #F5F7FA !important;
+        --je-bone:       #F8F6F1 !important;
+        --je-line:       #E0E0E0 !important;
+        --je-line-2:     #E8E8E8 !important;
+        --je-line-3:     #F0F0F0 !important;
+        --je-mute:       #888888 !important;
+        --je-mute-2:     #999999 !important;
+        --je-mute-3:     #666666 !important;
+        --je-gold:       #C6A43F !important;
+        --je-gold-soft:  #D4B96A !important;
+        --je-gold-deep:  #A8882E !important;
+        --je-gold-tint:  rgba(198,164,63,0.1) !important;
+    }
+
+    /* ── Form elements ────────────────────────────────────── */
+    input,
+    textarea,
+    select,
+    button:not(.je-hero-btn):not(.search-btn):not(.je-btn):not(.je-btn-gold):not(.je-btn-gold-outline):not(#kinasConfirmProceed):not(#kinasConfirmCancel) {
         background-color: #ffffff !important;
         color: #0A0A0A !important;
         border-color: #e0e0e0 !important;
     }
-    
-    /* Dashboard panels */
+
+    /* ── JE Dashboard Shell & Sidebar ─────────────────────── */
+    .je-dash-shell { background: #F5F7FA !important; }
+    .je-dash-sidebar,
+    .je-dash-sidebar * {
+        background-color: #0A0A0A !important;
+        color: rgba(255,255,255,0.7) !important;
+    }
+    .je-dash-sidebar-brand,
+    .je-dash-sidebar-brand * { color: #ffffff !important; }
+    .je-dash-nav a i { color: #C6A43F !important; }
+    .je-dash-nav a.is-active { color: #ffffff !important; }
+    .je-dash-nav .je-dash-signout a,
+    .je-dash-nav .je-dash-signout a i { color: #ff6b6b !important; }
+
+    /* ── JE Dashboard Main ────────────────────────────────── */
+    .je-dash-main {
+        background: #F5F7FA !important;
+        color: #0A0A0A !important;
+    }
+    .je-dash-main *:not(.je-dash-sidebar):not(.je-dash-sidebar *):not(.je-auth-aside):not(.je-auth-aside *):not(#kinasConfirmOverlay):not(#kinasConfirmOverlay *):not(#kinasToastContainer):not(#kinasToastContainer *) {
+        color: #0A0A0A !important;
+    }
+    .je-dash-header h1,
+    .je-dash-header h1 *,
+    .je-dash-header p { color: #0A0A0A !important; }
+
+    /* ── JE Panels, Cards, Stat Cards ────────────────────── */
     .je-panel,
     .je-stat-card,
     .je-card,
     .je-card-body,
-    .je-dash-main,
     .je-auth-main,
     .je-auth-form {
         background-color: #ffffff !important;
         color: #0A0A0A !important;
     }
-    
-    .je-panel *,
-    .je-stat-card *,
-    .je-card *,
-    .je-card-body *,
-    .je-dash-main *:not(.je-dash-sidebar *):not(.je-auth-aside *),
-    .je-auth-main *:not(.je-auth-aside *),
-    .je-auth-form * {
+    .je-panel *, .je-stat-card *, .je-card *, .je-card-body * {
         color: #0A0A0A !important;
     }
-    
-    /* Keep sidebar dark */
-    .je-dash-sidebar,
-    .je-dash-sidebar *,
+    .je-panel, .je-stat-card, .je-card, .je-line, .je-line-2, .je-line-3 {
+        border-color: #e0e0e0 !important;
+    }
+
+    /* ── JE Gold Accents ──────────────────────────────────── */
+    .je-text-gold, .je-gold, .je-card-eyebrow,
+    .je-panel-title i, .je-stat-icon { color: #C6A43F !important; }
+
+    /* ── Auth aside (keep dark) ───────────────────────────── */
     .je-auth-aside,
-    .je-auth-aside *,
-    .je-footer,
-    .je-footer * {
+    .je-auth-aside * {
         background-color: #0A0A0A !important;
         color: rgba(255,255,255,0.7) !important;
     }
-    
-    /* Sidebar headings white */
-    .je-dash-sidebar h1,
-    .je-dash-sidebar h2,
-    .je-dash-sidebar h3,
-    .je-dash-sidebar h4,
-    .je-dash-sidebar .je-dash-sidebar-brand,
-    .je-dash-sidebar .je-dash-sidebar-brand *,
-    .je-auth-aside h1,
-    .je-auth-aside h2,
-    .je-auth-aside h3,
-    .je-auth-aside .je-auth-headline {
-        color: #ffffff !important;
+    .je-auth-aside h1, .je-auth-aside h2, .je-auth-aside h3,
+    .je-auth-aside .je-auth-headline { color: #ffffff !important; }
+
+    /* ── JE Footer (keep dark) ────────────────────────────── */
+    .je-footer, .je-footer * {
+        background-color: #0A0A0A !important;
+        color: rgba(255,255,255,0.7) !important;
     }
-    
-    /* Gold accents */
-    .je-text-gold,
-    .je-gold,
-    .je-card-eyebrow,
-    .je-dash-nav a i,
-    .je-panel-title i,
-    .je-stat-icon {
-        color: #C6A43F !important;
-    }
-    
-    /* Borders */
-    .je-card, 
-    .je-panel, 
-    .je-stat-card,
-    .je-line, 
-    .je-line-2, 
-    .je-line-3 {
+
+    /* ── JE Table ─────────────────────────────────────────── */
+    .je-table { background: #ffffff !important; color: #0A0A0A !important; }
+    .je-table th { background: #F8F8F8 !important; color: #555 !important; border-color: #e0e0e0 !important; }
+    .je-table td { color: #333 !important; border-color: #f0f0f0 !important; }
+    .je-table tr:hover td { background: #FAFAFA !important; }
+
+    /* ── JE Form elements ─────────────────────────────────── */
+    .je-form-group input, .je-form-group select, .je-form-group textarea,
+    .je-filter-select, .je-filter-input, .je-sort-select {
+        background-color: #ffffff !important;
+        color: #0A0A0A !important;
         border-color: #e0e0e0 !important;
     }
+
+    /* ── Custom search / filter bars ─────────────────────── */
+    .listings-search-wrap,
+    .filter-bar,
+    .filters-bar {
+        background: #ffffff !important;
+        border-color: #e0e0e0 !important;
+        color: #0A0A0A !important;
+    }
+    .listings-search-wrap *,
+    .filter-bar *, .filters-bar * { color: #0A0A0A !important; }
+    .listings-search-wrap .search-icon,
+    .filters-bar .search-input-wrap i { color: #C6A43F !important; }
+    .search-input-wrap { background: #ffffff !important; border-color: #e0e0e0 !important; }
+    .search-input-wrap input { background: transparent !important; color: #0A0A0A !important; }
+    .filters-bar select { background: #ffffff !important; color: #0A0A0A !important; }
+    .btn-filter { background: #C6A43F !important; color: #0A0A0A !important; }
+
+    /* ── User dashboard custom classes ───────────────────── */
+    .dashboard-container { background: transparent !important; }
+    .stat-card {
+        background: #ffffff !important;
+        color: #0A0A0A !important;
+        border-color: #E0E0E0 !important;
+    }
+    .stat-card * { color: #0A0A0A !important; }
+    .stat-number { color: #C6A43F !important; }
+    .stat-label { color: #666 !important; }
+    .stat-icon { background: rgba(198,164,63,0.1) !important; color: #C6A43F !important; }
+    .stat-icon.blue   { background: rgba(59,130,246,0.1) !important;  color: #3B82F6 !important; }
+    .stat-icon.green  { background: rgba(34,197,94,0.1) !important;   color: #22C55E !important; }
+    .stat-icon.gold   { background: rgba(198,164,63,0.12) !important; color: #C6A43F !important; }
+    .stat-icon.red    { background: rgba(220,38,38,0.12) !important;  color: #DC2626 !important; }
+    .stat-icon.orange { background: rgba(245,158,11,0.12) !important; color: #F59E0B !important; }
+    .listing-card {
+        background: #ffffff !important;
+        color: #0A0A0A !important;
+        border-color: #E0E0E0 !important;
+    }
+    .listing-card * { color: #0A0A0A !important; }
+    .listing-title { color: #0A0A0A !important; }
+    .listing-price { color: #C6A43F !important; }
+    .listing-location, .saved-date { color: #666 !important; }
+    .section-title { color: #0A0A0A !important; }
+    .view-all { color: #C6A43F !important; }
+    .message-item {
+        background: #ffffff !important;
+        color: #0A0A0A !important;
+        border-color: #e8e5e0 !important;
+    }
+    .message-item * { color: #0A0A0A !important; }
+    .message-item.unread { background: #FFFDF5 !important; }
+    .message-item .preview, .message-item .time { color: #666 !important; }
+    .empty-state {
+        background: #ffffff !important;
+        border-color: #e8e5e0 !important;
+        color: #0A0A0A !important;
+    }
+    .empty-state * { color: #0A0A0A !important; }
+    .quick-actions {
+        background: #ffffff !important;
+        border-color: #E0E0E0 !important;
+        color: #0A0A0A !important;
+    }
+    .action-btn {
+        background: #F8F8F8 !important;
+        border-color: #E0E0E0 !important;
+        color: #0A0A0A !important;
+    }
+    .action-btn span { color: #333 !important; }
+    .action-btn i { color: #C6A43F !important; }
+    .action-btn:hover { background: #C6A43F !important; }
+    .action-btn:hover i, .action-btn:hover span { color: #0A0A0A !important; }
+
+    /* ── Admin custom classes ─────────────────────────────── */
+    .admin-main, .admin-layout { background: #F5F7FA !important; color: #0A0A0A !important; }
+    .page-header h1, .page-header p { color: #0A0A0A !important; }
+    .stats-row .stat-card { border-color: #C6A43F !important; }
+    .table-container {
+        background: #ffffff !important;
+        border-color: #E0E0E0 !important;
+        color: #0A0A0A !important;
+    }
+    .data-table { background: #ffffff !important; color: #0A0A0A !important; }
+    .data-table th { background: #F8F8F8 !important; color: #666 !important; border-color: #E0E0E0 !important; }
+    .data-table td { color: #333 !important; border-color: #E0E0E0 !important; }
+    .data-table tr:hover { background: #FAFAFA !important; }
+    .user-avatar { background: #C6A43F !important; color: #0A0A0A !important; }
+    .role-badge.admin   { background: #F3E5F5 !important; color: #7B1FA2 !important; }
+    .role-badge.agent   { background: #E3F2FD !important; color: #1565C0 !important; }
+    .role-badge.user    { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .status-badge,
+    .status-badge-active   { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .status-badge-pending  { background: #FFF3E0 !important; color: #F57C00 !important; }
+    .status-badge-sold     { background: #E3F2FD !important; color: #1565C0 !important; }
+    .status-badge-suspended,
+    .status-badge-inactive,
+    .status-badge-banned   { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .email-verified-badge   { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .email-unverified-badge { background: #FFF3E0 !important; color: #F57C00 !important; }
+    .act-btn              { background: #F0F0F0 !important; color: #333 !important; border-color: #e0e0e0 !important; }
+    .act-btn.activate     { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .act-btn.suspend      { background: #FFF3E0 !important; color: #F57C00 !important; }
+    .act-btn.ban,
+    .act-btn.delete       { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .page-btn             { background: #ffffff !important; color: #333 !important; border-color: #E0E0E0 !important; }
+    .page-btn.active      { background: #C6A43F !important; color: #0A0A0A !important; }
+    .flash.success        { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .flash.error          { background: #FEF2F2 !important; color: #DC2626 !important; }
+
+    /* ── Dashboard action/view buttons (listing pages) ───── */
+    .action-btn-view    { background: #1565C0 !important; color: #ffffff !important; }
+    .action-btn-edit    { background: #F57C00 !important; color: #ffffff !important; }
+    .action-btn-delete  { background: #C62828 !important; color: #ffffff !important; }
+    .action-btn-suspend { background: #D97706 !important; color: #ffffff !important; }
+    .action-btn-activate { background: #2E7D32 !important; color: #ffffff !important; }
+
+    /* ── Division badges ──────────────────────────────────── */
+    .division-badge         { background: #F0F0F0 !important; color: #333 !important; }
+    .division-badge-solar   { background: #FFF8E1 !important; color: #F57F17 !important; }
+    .division-badge-car     { background: #E3F2FD !important; color: #1565C0 !important; }
+    .division-badge-property { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .division-badge-marketplace { background: #F3E5F5 !important; color: #6A1B9A !important; }
+
+    /* ── Admin flagged / filter bar ──────────────────────── */
+    .filter-bar .filter-link.active   { background: #C6A43F !important; color: #0A0A0A !important; }
+    .filter-bar .filter-link.inactive { background: #f0f0f0 !important; color: #333 !important; }
+    .filter-label { color: #333 !important; }
+
+    /* ── User settings / profile ──────────────────────────── */
+    .settings-page, .profile-page,
+    .settings-section, .settings-form,
+    .profile-card, .profile-details { background: #ffffff !important; color: #0A0A0A !important; }
+    .settings-section *, .settings-form * { color: #0A0A0A !important; }
+    .btn-save     { background: #C6A43F !important; color: #0A0A0A !important; }
+    .btn-danger   { background: #DC2626 !important; color: #ffffff !important; }
+    .danger-zone  { background: #FEF2F2 !important; border-color: #FCA5A5 !important; }
+
+    /* ── Edit listing page ────────────────────────────────── */
+    .listing-form-page, .form-section,
+    .je-form-section, .je-form-card { background: #ffffff !important; color: #0A0A0A !important; }
+    .listing-form-page * { color: #0A0A0A !important; }
+    .preview-item { background: #f0f0f0 !important; }
+    .preview-badge { background: #C6A43F !important; color: #0A0A0A !important; }
+
+    /* ── Inline background overrides (admin dashboard divs) ── */
+    [style*="background: white"],
+    [style*="background:#fff"],
+    [style*="background: #fff"],
+    [style*="background-color: white"],
+    [style*="background-color:#fff"],
+    [style*="background-color: #fff"] {
+        background-color: #ffffff !important;
+    }
+    [style*="background: #F5F7FA"],
+    [style*="background-color: #F5F7FA"] {
+        background-color: #F5F7FA !important;
+    }
+    [style*="color: #333"],
+    [style*="color:#333"],
+    [style*="color: #666"],
+    [style*="color:#666"],
+    [style*="color: #0A0A0A"],
+    [style*="color:#0A0A0A"] {
+        color: inherit !important;
+    }
+
+    /* ── Kinas Confirm Modal (always correct) ─────────────── */
+    #kinasConfirmOverlay { display: none; }
+    #kinasConfirmOverlay.active { display: flex !important; }
+    #kinasConfirmBox { background: #ffffff !important; color: #0A0A0A !important; }
+    #kinasConfirmBox * { color: #0A0A0A !important; }
+    #kinasConfirmTitle { color: #0A0A0A !important; font-family: 'Prata', Georgia, serif !important; }
+    #kinasConfirmSubtitle, #kinasConfirmMsg { color: #555 !important; }
+    #kinasConfirmProceed.is-danger,
+    #kinasConfirmProceed:not(.is-warning):not(.is-gold) { background: #DC2626 !important; color: #ffffff !important; }
+    #kinasConfirmProceed.is-warning { background: #D97706 !important; color: #ffffff !important; }
+    #kinasConfirmProceed.is-gold    { background: #C6A43F !important; color: #0A0A0A !important; }
+    #kinasConfirmCancel { background: #ffffff !important; color: #555 !important; border-color: #e0e0e0 !important; }
+    #kinasConfirmWarningBadge { background: #FEF9EC !important; color: #92660A !important; border-color: #F5E6B0 !important; }
+    #kinasConfirmWarningBadge * { color: #92660A !important; }
+    #kinasConfirmIconWrap { background: rgba(220,38,38,0.1) !important; color: #DC2626 !important; }
+    #kinasConfirmIconWrap.is-warning { background: rgba(245,158,11,0.12) !important; color: #D97706 !important; }
+    #kinasConfirmIconWrap.is-gold    { background: rgba(198,164,63,0.12) !important; color: #C6A43F !important; }
+    #kinasConfirmHead { border-color: #f0f0f0 !important; }
+    #kinasConfirmActions { background: #fafafa !important; }
+    #kinasConfirmMsg { background: #fafafa !important; }
+
+    /* ── Kinas Toast (always correct) ────────────────────── */
+    .kinas-toast { background: #1A1A1A !important; color: #ffffff !important; }
+    .kinas-toast * { color: #ffffff !important; }
+    .kinas-toast i.fa-exclamation-circle,
+    .kinas-toast.is-error i  { color: #EF4444 !important; }
+    .kinas-toast.is-success i { color: #22C55E !important; }
+    .kinas-toast.is-info i    { color: #3B82F6 !important; }
 }
 
 /* ============================================================
