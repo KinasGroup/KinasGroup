@@ -444,38 +444,6 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     .stats-grid { grid-template-columns: 1fr; }
     .actions-grid { grid-template-columns: 1fr; }
 }
-
-/* ── Force light mode on dark OS ── */
-@media (prefers-color-scheme: dark) {
-    body { background: #F5F7FA !important; color: #0A0A0A !important; }
-    .dashboard-container { background: transparent !important; }
-    .stat-card { background: #ffffff !important; color: #0A0A0A !important; border-color: #E0E0E0 !important; }
-    .stat-card * { color: #0A0A0A !important; }
-    .stat-number { color: #C6A43F !important; }
-    .stat-label { color: #666 !important; }
-    .listing-card { background: #ffffff !important; border-color: #E0E0E0 !important; color: #0A0A0A !important; }
-    .listing-card * { color: #0A0A0A !important; }
-    .listing-title { color: #0A0A0A !important; }
-    .listing-price { color: #C6A43F !important; }
-    .listing-location, .saved-date { color: #666 !important; }
-    .listing-image-placeholder { background: linear-gradient(135deg,#f5f5f5,#e8e8e8) !important; color: #ccc !important; }
-    .section-title { color: #0A0A0A !important; }
-    .view-all { color: #C6A43F !important; }
-    .message-item { background: #ffffff !important; border-color: #e8e5e0 !important; color: #0A0A0A !important; }
-    .message-item.unread { background: #FFFDF5 !important; }
-    .message-item .sender { color: #0A0A0A !important; }
-    .message-item .preview, .message-item .time { color: #666 !important; }
-    .empty-state { background: #ffffff !important; border-color: #e8e5e0 !important; color: #0A0A0A !important; }
-    .empty-state p { color: #666 !important; }
-    .quick-actions { background: #ffffff !important; border-color: #E0E0E0 !important; }
-    .quick-actions h2, .quick-actions h3, .quick-actions * { color: #0A0A0A !important; }
-    .action-btn { background: #F8F8F8 !important; border-color: #E0E0E0 !important; }
-    .action-btn i { color: #C6A43F !important; }
-    .action-btn span { color: #333 !important; }
-    .action-btn:hover { background: #C6A43F !important; }
-    .action-btn:hover i, .action-btn:hover span { color: #0A0A0A !important; }
-    .btn-view { background: #C6A43F !important; color: #0A0A0A !important; }
-}
 </style>
 
 <div class="je-dash-shell">
