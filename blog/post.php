@@ -66,7 +66,7 @@ $recStmt->execute([$post['id']]);
 $recentPosts = $recStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Share URLs (using current page)
-$shareUrl   = urlencode('https://kinas-group.com/blog/post.php?id=' . $post['id']);
+$shareUrl   = urlencode('/blog/post.php?id=' . $post['id']);
 $shareTitle = urlencode($post['title']);
 
 $flashSuccess = $_SESSION['flash_success'] ?? null;
