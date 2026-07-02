@@ -379,7 +379,7 @@ include 'templates/header.php';
         <select name="division" style="padding: 14px 20px; border: 2px solid #E0E0E0; border-radius: 8px; background: #fff; min-width: 150px; font-family: 'Inter', sans-serif;">
             <option value="all" <?php echo $division === 'all' ? 'selected' : ''; ?>>All Divisions</option>
             <option value="car" <?php echo $division === 'car' ? 'selected' : ''; ?>>🚗 Automobile</option>
-            <option value="solar" <?php echo $division === 'solar' ? 'selected' : ''; ?>>☀️ Volt</option>
+            <option value="solar" <?php echo $division === 'kinas-volt' ? 'selected' : ''; ?>>☀️ Volt</option>
             <option value="property" <?php echo $division === 'property' ? 'selected' : ''; ?>>🏠 Homes</option>
             <option value="marketplace" <?php echo $division === 'marketplace' ? 'selected' : ''; ?>>🛍️ Marketplace</option>
         </select>
@@ -433,7 +433,7 @@ include 'templates/header.php';
                                         <?php 
                                         $displayNames = [
                                             'car' => 'Automobile',
-                                            'solar' => 'Volt',
+                                            'solar' => 'kinas-volt',
                                             'property' => 'Homes',
                                             'marketplace' => 'Marketplace'
                                         ];
