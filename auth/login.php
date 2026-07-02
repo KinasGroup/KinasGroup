@@ -197,8 +197,8 @@ if ($registrationSuccess) {
             <i class="fas fa-exclamation-circle" id="jeNotificationIcon"></i>
         </span>
         <div class="je-notification-body">
-            <div class="je-notification-title" id="jeNotificationTitle">Attention</div>
-            <div class="je-notification-message" id="jeNotificationMessage">Your message here</div>
+            <div class="je-notification-title" id="jeNotificationTitle"></div>
+            <div class="je-notification-message" id="jeNotificationMessage"></div>
         </div>
         <button class="je-notification-close" id="jeNotificationClose" aria-label="Close notification">
             <i class="fas fa-times"></i>
