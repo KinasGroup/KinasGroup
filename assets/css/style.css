@@ -1,48 +1,50 @@
 /* ============================================================
    FORCE LIGHT MODE — COMPREHENSIVE
-   Covers JE components, custom dashboard classes, user/admin
-   pages, all child elements, and CSS variable overrides.
+   Strategy:
+   • Pin CSS variables to light values so var() resolves correctly
+   • body/html → white bg + dark text (inherited everywhere)
+   • Only BACKGROUNDS need explicit overrides on containers
+   • Only SPECIFIC COLOURS need overrides (gold, green, red,
+     white-on-dark sidebar/footer, muted greys)
+   • NO wildcard * { color } rules — they kill gold/green/red
    ============================================================ */
 
-/* Force light mode at the root level */
 :root {
     color-scheme: light !important;
-    /* Override CSS variables to their light-mode values */
-    --je-ink:        #0A0A0A !important;
-    --je-ink-2:      #1A1A1A !important;
-    --je-paper:      #FFFFFF !important;
-    --je-mist:       #F5F7FA !important;
-    --je-bone:       #F8F6F1 !important;
-    --je-line:       #E0E0E0 !important;
-    --je-line-2:     #E8E8E8 !important;
-    --je-line-3:     #F0F0F0 !important;
-    --je-mute:       #888888 !important;
-    --je-mute-2:     #999999 !important;
-    --je-mute-3:     #666666 !important;
-    --je-gold:       #C6A43F !important;
-    --je-gold-soft:  #D4B96A !important;
-    --je-gold-deep:  #A8882E !important;
-    --je-gold-tint:  rgba(198,164,63,0.1) !important;
+    --je-ink:        #0A0A0A;
+    --je-ink-2:      #1A1A1A;
+    --je-paper:      #FFFFFF;
+    --je-mist:       #F5F7FA;
+    --je-bone:       #F8F6F1;
+    --je-line:       #E0E0E0;
+    --je-line-2:     #E8E8E8;
+    --je-line-3:     #F0F0F0;
+    --je-mute:       #888888;
+    --je-mute-2:     #999999;
+    --je-mute-3:     #666666;
+    --je-gold:       #C6A43F;
+    --je-gold-soft:  #D4B96A;
+    --je-gold-deep:  #A8882E;
+    --je-gold-tint:  rgba(198,164,63,0.1);
+    --je-green:      #1B5E20;
+    --je-red:        #B71C1C;
 }
 
-html {
-    color-scheme: light !important;
-    background: #ffffff !important;
-}
-
-body {
-    background: #ffffff !important;
-    color: #0A0A0A !important;
-}
+html { color-scheme: light !important; background: #ffffff !important; }
+body { background: #ffffff !important; color: #0A0A0A !important; }
 
 @media (prefers-color-scheme: dark) {
-    /* ── Root + variables ─────────────────────────────────── */
-    html, body, :root {
+
+    /* ── 1. Root reset ──────────────────────────────────────── */
+    html, body {
         color-scheme: light !important;
         background: #ffffff !important;
         color: #0A0A0A !important;
     }
+
+    /* Pin all CSS variables so var() resolves to light values */
     :root {
+        color-scheme: light !important;
         --je-ink:        #0A0A0A !important;
         --je-ink-2:      #1A1A1A !important;
         --je-paper:      #FFFFFF !important;
@@ -58,288 +60,290 @@ body {
         --je-gold-soft:  #D4B96A !important;
         --je-gold-deep:  #A8882E !important;
         --je-gold-tint:  rgba(198,164,63,0.1) !important;
+        --je-green:      #1B5E20 !important;
+        --je-red:        #B71C1C !important;
+        --kg-green:      #1B5E20 !important;
+        --kg-mute:       #888888 !important;
     }
 
-    /* ── Form elements ────────────────────────────────────── */
-    input,
-    textarea,
-    select,
-    button:not(.je-hero-btn):not(.search-btn):not(.je-btn):not(.je-btn-gold):not(.je-btn-gold-outline):not(#kinasConfirmProceed):not(#kinasConfirmCancel) {
+    /* ── 2. Form elements ───────────────────────────────────── */
+    input:not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="range"]),
+    textarea, select {
         background-color: #ffffff !important;
         color: #0A0A0A !important;
         border-color: #e0e0e0 !important;
     }
 
-    /* ── JE Dashboard Shell & Sidebar ─────────────────────── */
-    .je-dash-shell { background: #F5F7FA !important; }
-    .je-dash-sidebar,
-    .je-dash-sidebar * {
-        background-color: #0A0A0A !important;
-        color: rgba(255,255,255,0.7) !important;
-    }
-    .je-dash-sidebar-brand,
-    .je-dash-sidebar-brand * { color: #ffffff !important; }
-    .je-dash-nav a i { color: #C6A43F !important; }
-    .je-dash-nav a.is-active { color: #ffffff !important; }
-    .je-dash-nav .je-dash-signout a,
-    .je-dash-nav .je-dash-signout a i { color: #ff6b6b !important; }
-
-    /* ── JE Dashboard Main ────────────────────────────────── */
-    .je-dash-main {
-        background: #F5F7FA !important;
-        color: #0A0A0A !important;
-    }
-    .je-dash-main *:not(.je-dash-sidebar):not(.je-dash-sidebar *):not(.je-auth-aside):not(.je-auth-aside *):not(#kinasConfirmOverlay):not(#kinasConfirmOverlay *):not(#kinasToastContainer):not(#kinasToastContainer *) {
-        color: #0A0A0A !important;
-    }
-    .je-dash-header h1,
-    .je-dash-header h1 *,
-    .je-dash-header p { color: #0A0A0A !important; }
-
-    /* ── JE Panels, Cards, Stat Cards ────────────────────── */
+    /* ── 3. JE Dashboard containers (backgrounds only) ───────── */
+    .je-dash-shell   { background: #F5F7FA !important; }
+    .je-dash-main    { background: #F5F7FA !important; }
     .je-panel,
     .je-stat-card,
     .je-card,
-    .je-card-body,
+    .je-card-body    { background-color: #ffffff !important; border-color: #e0e0e0 !important; }
     .je-auth-main,
-    .je-auth-form {
-        background-color: #ffffff !important;
-        color: #0A0A0A !important;
-    }
-    .je-panel *, .je-stat-card *, .je-card *, .je-card-body * {
-        color: #0A0A0A !important;
-    }
-    .je-panel, .je-stat-card, .je-card, .je-line, .je-line-2, .je-line-3 {
-        border-color: #e0e0e0 !important;
-    }
+    .je-auth-form    { background-color: #ffffff !important; }
 
-    /* ── JE Gold Accents ──────────────────────────────────── */
-    .je-text-gold, .je-gold, .je-card-eyebrow,
-    .je-panel-title i, .je-stat-icon { color: #C6A43F !important; }
-
-    /* ── Auth aside (keep dark) ───────────────────────────── */
+    /* ── 4. JE Sidebar / Auth aside / Footer (KEEP DARK) ─────── */
+    .je-dash-sidebar { background-color: #0A0A0A !important; border-color: #1A1A1A !important; }
+    .je-dash-sidebar .je-dash-sidebar-brand,
+    .je-dash-sidebar .je-dash-sidebar-brand * { color: #ffffff !important; }
+    .je-dash-sidebar .je-dash-nav a           { color: rgba(255,255,255,0.7) !important; }
+    .je-dash-sidebar .je-dash-nav a:hover,
+    .je-dash-sidebar .je-dash-nav a.is-active { color: #ffffff !important; }
+    .je-dash-sidebar .je-dash-nav a i         { color: #C6A43F !important; }
     .je-auth-aside,
-    .je-auth-aside * {
-        background-color: #0A0A0A !important;
-        color: rgba(255,255,255,0.7) !important;
-    }
-    .je-auth-aside h1, .je-auth-aside h2, .je-auth-aside h3,
-    .je-auth-aside .je-auth-headline { color: #ffffff !important; }
+    .je-auth-aside *                  { background-color: #0A0A0A !important; color: rgba(255,255,255,0.7) !important; }
+    .je-auth-aside h1, .je-auth-aside h2,
+    .je-auth-aside h3, .je-auth-aside .je-auth-headline { color: #ffffff !important; }
+    .je-footer,
+    .je-footer *                      { background-color: #0A0A0A !important; color: rgba(255,255,255,0.7) !important; }
 
-    /* ── JE Footer (keep dark) ────────────────────────────── */
-    .je-footer, .je-footer * {
-        background-color: #0A0A0A !important;
-        color: rgba(255,255,255,0.7) !important;
-    }
+    /* ── 5. JE gold accents (must come after sidebar rules) ───── */
+    .je-text-gold, .je-gold, .je-card-eyebrow,
+    .je-panel-title i, .je-stat-icon  { color: #C6A43F !important; }
 
-    /* ── JE Table ─────────────────────────────────────────── */
-    .je-table { background: #ffffff !important; color: #0A0A0A !important; }
-    .je-table th { background: #F8F8F8 !important; color: #555 !important; border-color: #e0e0e0 !important; }
-    .je-table td { color: #333 !important; border-color: #f0f0f0 !important; }
-    .je-table tr:hover td { background: #FAFAFA !important; }
+    /* ── 6. JE Table ─────────────────────────────────────────── */
+    .je-table                       { background: #ffffff !important; }
+    .je-table th                    { background: #F8F8F8 !important; color: #555 !important; border-color: #e0e0e0 !important; }
+    .je-table td                    { border-color: #f0f0f0 !important; }
+    .je-table tr:hover td           { background: #FAFAFA !important; }
 
-    /* ── JE Form elements ─────────────────────────────────── */
-    .je-form-group input, .je-form-group select, .je-form-group textarea,
-    .je-filter-select, .je-filter-input, .je-sort-select {
-        background-color: #ffffff !important;
-        color: #0A0A0A !important;
-        border-color: #e0e0e0 !important;
-    }
+    /* ── 7. Admin/User-management custom classes ─────────────── */
+    .admin-layout, .admin-main,
+    .admin-container, .user-container,
+    .dashboard-container            { background: #F5F7FA !important; }
+    .stat-card, .metric-card,
+    .chart-card, .insight-card,
+    .summary-card, .approval-card,
+    .settings-card, .meta-card,
+    .table-container, .logs-card,
+    .mail-app, .mail-view,
+    .mail-list, .mail-sidebar,
+    .data-table                     { background: #ffffff !important; border-color: #e0e0e0 !important; }
+    .stat-number, .metric-value     { color: #C6A43F !important; }
+    .stat-label, .stat-lbl,
+    .metric-label                   { color: #666 !important; }
+    .stat-icon.gold, .stat-icon     { background: rgba(198,164,63,0.12) !important; color: #C6A43F !important; }
+    .stat-icon.blue                 { background: rgba(59,130,246,0.12) !important; color: #3B82F6 !important; }
+    .stat-icon.green                { background: rgba(34,197,94,0.12) !important;  color: #22C55E !important; }
+    .stat-icon.red                  { background: rgba(220,38,38,0.12) !important;  color: #DC2626 !important; }
+    .stat-icon.orange               { background: rgba(245,158,11,0.12) !important; color: #F59E0B !important; }
 
-    /* ── Custom search / filter bars ─────────────────────── */
-    .listings-search-wrap,
-    .filter-bar,
-    .filters-bar {
-        background: #ffffff !important;
-        border-color: #e0e0e0 !important;
-        color: #0A0A0A !important;
-    }
-    .listings-search-wrap *,
-    .filter-bar *, .filters-bar * { color: #0A0A0A !important; }
-    .listings-search-wrap .search-icon,
-    .filters-bar .search-input-wrap i { color: #C6A43F !important; }
-    .search-input-wrap { background: #ffffff !important; border-color: #e0e0e0 !important; }
-    .search-input-wrap input { background: transparent !important; color: #0A0A0A !important; }
-    .filters-bar select { background: #ffffff !important; color: #0A0A0A !important; }
-    .btn-filter { background: #C6A43F !important; color: #0A0A0A !important; }
-
-    /* ── User dashboard custom classes ───────────────────── */
-    .dashboard-container { background: transparent !important; }
-    .stat-card {
-        background: #ffffff !important;
-        color: #0A0A0A !important;
-        border-color: #E0E0E0 !important;
-    }
-    .stat-card * { color: #0A0A0A !important; }
-    .stat-number { color: #C6A43F !important; }
-    .stat-label { color: #666 !important; }
-    .stat-icon { background: rgba(198,164,63,0.1) !important; color: #C6A43F !important; }
-    .stat-icon.blue   { background: rgba(59,130,246,0.1) !important;  color: #3B82F6 !important; }
-    .stat-icon.green  { background: rgba(34,197,94,0.1) !important;   color: #22C55E !important; }
-    .stat-icon.gold   { background: rgba(198,164,63,0.12) !important; color: #C6A43F !important; }
-    .stat-icon.red    { background: rgba(220,38,38,0.12) !important;  color: #DC2626 !important; }
-    .stat-icon.orange { background: rgba(245,158,11,0.12) !important; color: #F59E0B !important; }
-    .listing-card {
-        background: #ffffff !important;
-        color: #0A0A0A !important;
-        border-color: #E0E0E0 !important;
-    }
-    .listing-card * { color: #0A0A0A !important; }
-    .listing-title { color: #0A0A0A !important; }
-    .listing-price { color: #C6A43F !important; }
-    .listing-location, .saved-date { color: #666 !important; }
-    .section-title { color: #0A0A0A !important; }
-    .view-all { color: #C6A43F !important; }
-    .message-item {
-        background: #ffffff !important;
-        color: #0A0A0A !important;
-        border-color: #e8e5e0 !important;
-    }
-    .message-item * { color: #0A0A0A !important; }
-    .message-item.unread { background: #FFFDF5 !important; }
-    .message-item .preview, .message-item .time { color: #666 !important; }
-    .empty-state {
-        background: #ffffff !important;
-        border-color: #e8e5e0 !important;
-        color: #0A0A0A !important;
-    }
-    .empty-state * { color: #0A0A0A !important; }
-    .quick-actions {
-        background: #ffffff !important;
-        border-color: #E0E0E0 !important;
-        color: #0A0A0A !important;
-    }
-    .action-btn {
-        background: #F8F8F8 !important;
-        border-color: #E0E0E0 !important;
-        color: #0A0A0A !important;
-    }
-    .action-btn span { color: #333 !important; }
-    .action-btn i { color: #C6A43F !important; }
-    .action-btn:hover { background: #C6A43F !important; }
-    .action-btn:hover i, .action-btn:hover span { color: #0A0A0A !important; }
-
-    /* ── Admin custom classes ─────────────────────────────── */
-    .admin-main, .admin-layout { background: #F5F7FA !important; color: #0A0A0A !important; }
-    .page-header h1, .page-header p { color: #0A0A0A !important; }
-    .stats-row .stat-card { border-color: #C6A43F !important; }
-    .table-container {
-        background: #ffffff !important;
-        border-color: #E0E0E0 !important;
-        color: #0A0A0A !important;
-    }
-    .data-table { background: #ffffff !important; color: #0A0A0A !important; }
-    .data-table th { background: #F8F8F8 !important; color: #666 !important; border-color: #E0E0E0 !important; }
-    .data-table td { color: #333 !important; border-color: #E0E0E0 !important; }
+    /* Data table internals */
+    .data-table th  { background: #F8F8F8 !important; color: #555 !important; border-color: #e0e0e0 !important; }
+    .data-table td  { border-color: #e8e8e8 !important; }
     .data-table tr:hover { background: #FAFAFA !important; }
-    .user-avatar { background: #C6A43F !important; color: #0A0A0A !important; }
-    .role-badge.admin   { background: #F3E5F5 !important; color: #7B1FA2 !important; }
-    .role-badge.agent   { background: #E3F2FD !important; color: #1565C0 !important; }
-    .role-badge.user    { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .user-avatar    { background: #C6A43F !important; color: #0A0A0A !important; }
+
+    /* ── 8. Search / filter bars ─────────────────────────────── */
+    .filter-bar, .filters-bar,
+    .listings-search-wrap           { background: #ffffff !important; border-color: #e0e0e0 !important; }
+    .search-input-wrap              { background: #ffffff !important; border-color: #e0e0e0 !important; }
+    .search-input-wrap i,
+    .listings-search-wrap .search-icon { color: #C6A43F !important; }
+    .filters-bar select,
+    .filter-bar select              { background: #ffffff !important; }
+    .btn-filter                     { background: #C6A43F !important; color: #0A0A0A !important; }
+    .filter-link.active             { background: #C6A43F !important; color: #0A0A0A !important; }
+    .filter-link.inactive           { background: #f0f0f0 !important; color: #333 !important; }
+
+    /* ── 9. Status / role / division badges ──────────────────── */
     .status-badge,
-    .status-badge-active   { background: #E8F5E9 !important; color: #2E7D32 !important; }
-    .status-badge-pending  { background: #FFF3E0 !important; color: #F57C00 !important; }
-    .status-badge-sold     { background: #E3F2FD !important; color: #1565C0 !important; }
+    .status-badge-active,
+    .status-active, .email-verified-badge,
+    .badge-verified, .badge-member  { background: #E8F5E9 !important; color: #1B5E20 !important; }
+    .status-badge-pending,
+    .status-pending, .email-unverified-badge,
+    .badge-buyer, .warn             { background: #FFF3E0 !important; color: #E65100 !important; }
     .status-badge-suspended,
     .status-badge-inactive,
-    .status-badge-banned   { background: #FEF2F2 !important; color: #DC2626 !important; }
-    .email-verified-badge   { background: #E8F5E9 !important; color: #2E7D32 !important; }
-    .email-unverified-badge { background: #FFF3E0 !important; color: #F57C00 !important; }
-    .act-btn              { background: #F0F0F0 !important; color: #333 !important; border-color: #e0e0e0 !important; }
-    .act-btn.activate     { background: #E8F5E9 !important; color: #2E7D32 !important; }
-    .act-btn.suspend      { background: #FFF3E0 !important; color: #F57C00 !important; }
+    .status-badge-flagged,
+    .status-badge-removed,
+    .status-badge-banned,
+    .status-badge-unverified,
+    .status-suspended               { background: #FEF2F2 !important; color: #B71C1C !important; }
+    .status-badge-sold              { background: #E3F2FD !important; color: #1565C0 !important; }
+    .status-badge-verified          { background: #E8F5E9 !important; color: #1B5E20 !important; }
+    .role-badge.admin               { background: #F3E5F5 !important; color: #7B1FA2 !important; }
+    .role-badge.agent               { background: #E3F2FD !important; color: #1565C0 !important; }
+    .role-badge.user                { background: #E8F5E9 !important; color: #1B5E20 !important; }
+    .division-badge-solar           { background: #FFF8E1 !important; color: #F57F17 !important; }
+    .division-badge-car             { background: #E3F2FD !important; color: #1565C0 !important; }
+    .division-badge-property        { background: #E8F5E9 !important; color: #1B5E20 !important; }
+    .division-badge-marketplace     { background: #F3E5F5 !important; color: #6A1B9A !important; }
+    .division-badge                 { background: #F0F0F0 !important; color: #333 !important; }
+    .listing-type-badge             { background: #F0F0F0 !important; color: #333 !important; }
+    .log-type                       { background: #F0F0F0 !important; }
+
+    /* ── 10. Action / CTA buttons (coloured — must not go black) */
+    .action-btn-view     { background: #1565C0 !important; color: #ffffff !important; }
+    .action-btn-edit     { background: #F57C00 !important; color: #ffffff !important; }
+    .action-btn-delete   { background: #C62828 !important; color: #ffffff !important; }
+    .action-btn-suspend  { background: #D97706 !important; color: #ffffff !important; }
+    .action-btn-activate,
+    .action-btn-restore  { background: #2E7D32 !important; color: #ffffff !important; }
+    .act-btn             { background: #F0F0F0 !important; color: #333 !important; border-color: #e0e0e0 !important; }
+    .act-btn.activate    { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .act-btn.suspend     { background: #FFF3E0 !important; color: #D97706 !important; }
     .act-btn.ban,
-    .act-btn.delete       { background: #FEF2F2 !important; color: #DC2626 !important; }
-    .page-btn             { background: #ffffff !important; color: #333 !important; border-color: #E0E0E0 !important; }
-    .page-btn.active      { background: #C6A43F !important; color: #0A0A0A !important; }
-    .flash.success        { background: #E8F5E9 !important; color: #2E7D32 !important; }
-    .flash.error          { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .act-btn.delete      { background: #FEF2F2 !important; color: #C62828 !important; }
+    .btn-approve         { background: #2E7D32 !important; color: #ffffff !important; }
+    .btn-reject,
+    .btn-danger          { background: #C62828 !important; color: #ffffff !important; }
+    .btn-save, .btn-primary,
+    .btn-filter, .je-save-btn,
+    .send-btn, .compose-btn { background: #C6A43F !important; color: #0A0A0A !important; }
+    .btn-secondary,
+    .btn-cancel          { background: #F0F0F0 !important; color: #333 !important; }
+    .btn-export          { background: #1565C0 !important; color: #ffffff !important; }
+    .btn-unsave          { background: #FEF2F2 !important; color: #C62828 !important; }
+    .page-btn            { background: #ffffff !important; color: #333 !important; border-color: #e0e0e0 !important; }
+    .page-btn.active     { background: #C6A43F !important; color: #0A0A0A !important; }
 
-    /* ── Dashboard action/view buttons (listing pages) ───── */
-    .action-btn-view    { background: #1565C0 !important; color: #ffffff !important; }
-    .action-btn-edit    { background: #F57C00 !important; color: #ffffff !important; }
-    .action-btn-delete  { background: #C62828 !important; color: #ffffff !important; }
-    .action-btn-suspend { background: #D97706 !important; color: #ffffff !important; }
-    .action-btn-activate { background: #2E7D32 !important; color: #ffffff !important; }
+    /* ── 11. Listing / profile / message cards ───────────────── */
+    .listing-card, .profile-card,
+    .division-card, .settings-card,
+    .quick-actions, .empty-state,
+    .message-item, .mail-item,
+    .step, .doc-row, .kv-grid,
+    .earnings-summary               { background: #ffffff !important; border-color: #e0e0e0 !important; }
+    .listing-price, .stat-num       { color: #C6A43F !important; }
+    .listing-location, .saved-date,
+    .listing-meta, .doc-meta,
+    .act-btn-label, .time           { color: #666 !important; }
+    .message-item.unread,
+    .mail-item.unread               { background: #FFFDF5 !important; }
+    .listing-image-placeholder      { background: linear-gradient(135deg,#f5f5f5,#e8e8e8) !important; }
 
-    /* ── Division badges ──────────────────────────────────── */
-    .division-badge         { background: #F0F0F0 !important; color: #333 !important; }
-    .division-badge-solar   { background: #FFF8E1 !important; color: #F57F17 !important; }
-    .division-badge-car     { background: #E3F2FD !important; color: #1565C0 !important; }
-    .division-badge-property { background: #E8F5E9 !important; color: #2E7D32 !important; }
-    .division-badge-marketplace { background: #F3E5F5 !important; color: #6A1B9A !important; }
+    /* ── 12. Agent-specific ───────────────────────────────────── */
+    .agent-container, .agent-header { background: #ffffff !important; }
+    .profile-banner                 { background: linear-gradient(135deg,#0A0A0A,#1A1A1A) !important; }
+    .profile-banner-name,
+    .profile-banner-email,
+    .profile-banner-info,
+    .profile-badge                  { color: #ffffff !important; }
+    .profile-stats-row,
+    .profile-stats-inner            { background: rgba(255,255,255,0.08) !important; }
+    .profile-stats-row *            { color: rgba(255,255,255,0.85) !important; }
+    .profile-sidenav,
+    .profile-card, .profile-grid,
+    .profile-main                   { background: #ffffff !important; }
+    .sidenav-link                   { color: #555 !important; }
+    .sidenav-link.active,
+    .sidenav-section-title          { color: #C6A43F !important; }
+    .verification-shell,
+    .verify-shell, .verify-header   { background: #ffffff !important; }
+    .step-head, .step-num           { background: #F5F7FA !important; }
+    .step-num.done                  { background: #C6A43F !important; color: #0A0A0A !important; }
+    .analytics-page .chart-card,
+    .chart-header                   { background: #ffffff !important; }
+    .payout-settings,
+    .bank-fields, .stripe-fields,
+    .paypal-fields                  { background: #F8F8F8 !important; border-color: #e0e0e0 !important; }
 
-    /* ── Admin flagged / filter bar ──────────────────────── */
-    .filter-bar .filter-link.active   { background: #C6A43F !important; color: #0A0A0A !important; }
-    .filter-bar .filter-link.inactive { background: #f0f0f0 !important; color: #333 !important; }
-    .filter-label { color: #333 !important; }
+    /* ── 13. Mail / messages layout ─────────────────────────── */
+    .mail-layout                    { background: #F5F7FA !important; }
+    .mail-sidebar                   { background: #ffffff !important; border-color: #e0e0e0 !important; }
+    .mail-list                      { background: #ffffff !important; }
+    .mail-view                      { background: #ffffff !important; }
+    .mail-header                    { background: #F8F8F8 !important; border-color: #e0e0e0 !important; }
+    .mail-tabs                      { background: #ffffff !important; border-color: #e0e0e0 !important; }
+    .mail-search                    { background: #F8F8F8 !important; }
+    .mail-view-header               { border-color: #e0e0e0 !important; }
+    .mail-view-body                 { background: #ffffff !important; }
+    .unread-dot                     { background: #C6A43F !important; }
+    .count-badge                    { background: #C6A43F !important; color: #0A0A0A !important; }
 
-    /* ── User settings / profile ──────────────────────────── */
-    .settings-page, .profile-page,
-    .settings-section, .settings-form,
-    .profile-card, .profile-details { background: #ffffff !important; color: #0A0A0A !important; }
-    .settings-section *, .settings-form * { color: #0A0A0A !important; }
-    .btn-save     { background: #C6A43F !important; color: #0A0A0A !important; }
-    .btn-danger   { background: #DC2626 !important; color: #ffffff !important; }
-    .danger-zone  { background: #FEF2F2 !important; border-color: #FCA5A5 !important; }
+    /* ── 14. Flash / alert banners ───────────────────────────── */
+    .flash.success, .flash-success,
+    .alert-success                  { background: #E8F5E9 !important; color: #1B5E20 !important; border-color: #A5D6A7 !important; }
+    .flash.error, .flash-error,
+    .is-danger                      { background: #FEF2F2 !important; color: #B71C1C !important; border-color: #FCA5A5 !important; }
+    .info-banner, .notice,
+    .flash.info                     { background: #E3F2FD !important; color: #1565C0 !important; border-color: #90CAF9 !important; }
+    .danger-zone                    { background: #FEF2F2 !important; border-color: #FCA5A5 !important; }
 
-    /* ── Edit listing page ────────────────────────────────── */
-    .listing-form-page, .form-section,
-    .je-form-section, .je-form-card { background: #ffffff !important; color: #0A0A0A !important; }
-    .listing-form-page * { color: #0A0A0A !important; }
-    .preview-item { background: #f0f0f0 !important; }
-    .preview-badge { background: #C6A43F !important; color: #0A0A0A !important; }
+    /* ── 15. Settings / form sections ───────────────────────── */
+    .settings-grid, .form-section,
+    .form-grid, .form-row           { background: transparent !important; }
+    .setting-item, .setting-item-full,
+    .toggle-row                     { border-color: #e0e0e0 !important; }
+    .toggle                         { background: #e0e0e0 !important; }
+    .toggle input:checked + .slider { background: #C6A43F !important; }
+    .readonly-field                 { background: #F8F8F8 !important; color: #666 !important; }
+    .input-prefix                   { background: #F0F0F0 !important; color: #555 !important; border-color: #e0e0e0 !important; }
+    .upload-zone, .upload-placeholder { background: #F8F8F8 !important; border-color: #e0e0e0 !important; }
+    .preview-item                   { background: #F0F0F0 !important; }
+    .preview-badge                  { background: #C6A43F !important; color: #0A0A0A !important; }
 
-    /* ── Inline background overrides (admin dashboard divs) ── */
+    /* ── 16. Inline background colours (attribute selectors) ─── */
+    [style*="background: #f8f8f8"],
+    [style*="background:#f8f8f8"],
+    [style*="background: #F8F8F8"],
+    [style*="background:#F8F8F8"]   { background: #F8F8F8 !important; }
+    [style*="background: #f0f0f0"],
+    [style*="background:#f0f0f0"],
+    [style*="background: #F0F0F0"],
+    [style*="background:#F0F0F0"]   { background: #F0F0F0 !important; }
     [style*="background: white"],
     [style*="background:#fff"],
     [style*="background: #fff"],
-    [style*="background-color: white"],
-    [style*="background-color:#fff"],
-    [style*="background-color: #fff"] {
-        background-color: #ffffff !important;
-    }
+    [style*="background:#ffffff"],
+    [style*="background: #ffffff"]  { background-color: #ffffff !important; }
     [style*="background: #F5F7FA"],
-    [style*="background-color: #F5F7FA"] {
-        background-color: #F5F7FA !important;
-    }
-    [style*="color: #333"],
-    [style*="color:#333"],
-    [style*="color: #666"],
-    [style*="color:#666"],
-    [style*="color: #0A0A0A"],
-    [style*="color:#0A0A0A"] {
-        color: inherit !important;
-    }
+    [style*="background:#F5F7FA"]   { background: #F5F7FA !important; }
+    [style*="background:linear-gradient(135deg,#FFF8E1"],
+    [style*="background: linear-gradient(135deg, #FFF8E1"] { background: linear-gradient(135deg,#FFF8E1,#FFF3E0) !important; }
 
-    /* ── Kinas Confirm Modal (always correct) ─────────────── */
-    #kinasConfirmOverlay { display: none; }
-    #kinasConfirmOverlay.active { display: flex !important; }
-    #kinasConfirmBox { background: #ffffff !important; color: #0A0A0A !important; }
-    #kinasConfirmBox * { color: #0A0A0A !important; }
-    #kinasConfirmTitle { color: #0A0A0A !important; font-family: 'Prata', Georgia, serif !important; }
-    #kinasConfirmSubtitle, #kinasConfirmMsg { color: #555 !important; }
-    #kinasConfirmProceed.is-danger,
-    #kinasConfirmProceed:not(.is-warning):not(.is-gold) { background: #DC2626 !important; color: #ffffff !important; }
+    /* ── 17. Inline text colours (attribute selectors) ──────── */
+    [style*="color: #666"],[style*="color:#666"]     { color: #666 !important; }
+    [style*="color: #888"],[style*="color:#888"]     { color: #888 !important; }
+    [style*="color: #999"],[style*="color:#999"]     { color: #999 !important; }
+    [style*="color: #333"],[style*="color:#333"]     { color: #333 !important; }
+    [style*="color: #1B5E20"],[style*="color:#1B5E20"] { color: #1B5E20 !important; }
+    [style*="color: #2E7D32"],[style*="color:#2E7D32"] { color: #2E7D32 !important; }
+    [style*="color: #B71C1C"],[style*="color:#B71C1C"] { color: #B71C1C !important; }
+    [style*="color: #BF360C"],[style*="color:#BF360C"] { color: #BF360C !important; }
+    [style*="color: #5D4037"],[style*="color:#5D4037"] { color: #5D4037 !important; }
+    [style*="color: #F57C00"],[style*="color:#F57C00"] { color: #F57C00 !important; }
+    [style*="color: #1565C0"],[style*="color:#1565C0"] { color: #1565C0 !important; }
+    [style*="color: #C6A43F"],[style*="color:#C6A43F"] { color: #C6A43F !important; }
+    [style*="color: #bbb"],[style*="color:#bbb"]     { color: #bbb !important; }
+    [style*="color: green"]                          { color: #2E7D32 !important; }
+    [style*="color: red"]                            { color: #B71C1C !important; }
+    [style*="color:var(--kg-green)"],
+    [style*="color: var(--kg-green)"]                { color: #1B5E20 !important; }
+    [style*="color:var(--kg-mute)"],
+    [style*="color: var(--kg-mute)"]                 { color: #888 !important; }
+
+    /* ── 18. Kinas Confirm Modal (always correct) ─────────────── */
+    #kinasConfirmOverlay            { display: none; background: rgba(10,10,10,0.72) !important; }
+    #kinasConfirmOverlay.active     { display: flex !important; }
+    #kinasConfirmBox                { background: #ffffff !important; }
+    #kinasConfirmTitle              { color: #0A0A0A !important; }
+    #kinasConfirmSubtitle,
+    #kinasConfirmMsg                { color: #555 !important; }
+    #kinasConfirmMsg                { background: #fafafa !important; }
+    #kinasConfirmActions            { background: #fafafa !important; }
+    #kinasConfirmHead               { border-color: #f0f0f0 !important; }
+    #kinasConfirmProceed            { background: #DC2626 !important; color: #ffffff !important; }
     #kinasConfirmProceed.is-warning { background: #D97706 !important; color: #ffffff !important; }
     #kinasConfirmProceed.is-gold    { background: #C6A43F !important; color: #0A0A0A !important; }
-    #kinasConfirmCancel { background: #ffffff !important; color: #555 !important; border-color: #e0e0e0 !important; }
-    #kinasConfirmWarningBadge { background: #FEF9EC !important; color: #92660A !important; border-color: #F5E6B0 !important; }
-    #kinasConfirmWarningBadge * { color: #92660A !important; }
-    #kinasConfirmIconWrap { background: rgba(220,38,38,0.1) !important; color: #DC2626 !important; }
-    #kinasConfirmIconWrap.is-warning { background: rgba(245,158,11,0.12) !important; color: #D97706 !important; }
-    #kinasConfirmIconWrap.is-gold    { background: rgba(198,164,63,0.12) !important; color: #C6A43F !important; }
-    #kinasConfirmHead { border-color: #f0f0f0 !important; }
-    #kinasConfirmActions { background: #fafafa !important; }
-    #kinasConfirmMsg { background: #fafafa !important; }
+    #kinasConfirmCancel             { background: #ffffff !important; color: #555 !important; border-color: #e0e0e0 !important; }
+    #kinasConfirmWarningBadge       { background: #FEF9EC !important; color: #92660A !important; border-color: #F5E6B0 !important; }
+    #kinasConfirmIconWrap           { background: rgba(220,38,38,0.1) !important; color: #DC2626 !important; }
+    #kinasConfirmIconWrap.is-warning{ background: rgba(245,158,11,0.12) !important; color: #D97706 !important; }
+    #kinasConfirmIconWrap.is-gold   { background: rgba(198,164,63,0.12) !important; color: #C6A43F !important; }
 
-    /* ── Kinas Toast (always correct) ────────────────────── */
-    .kinas-toast { background: #1A1A1A !important; color: #ffffff !important; }
-    .kinas-toast * { color: #ffffff !important; }
-    .kinas-toast i.fa-exclamation-circle,
-    .kinas-toast.is-error i  { color: #EF4444 !important; }
-    .kinas-toast.is-success i { color: #22C55E !important; }
-    .kinas-toast.is-info i    { color: #3B82F6 !important; }
+    /* ── 19. Kinas Toast (always correct) ────────────────────── */
+    .kinas-toast                    { background: #1A1A1A !important; color: #ffffff !important; }
+    .kinas-toast span               { color: #ffffff !important; }
+    .kinas-toast i                  { color: #C6A43F !important; }
+    .kinas-toast.is-error i         { color: #EF4444 !important; }
+    .kinas-toast.is-success i       { color: #22C55E !important; }
+    .kinas-toast.is-info i          { color: #3B82F6 !important; }
+
 }
 
 /* ============================================================
