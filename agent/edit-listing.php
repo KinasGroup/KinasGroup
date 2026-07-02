@@ -645,6 +645,130 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     </form>
 </div>
 
+<!-- ============================================================
+     EDIT LISTING: INLINE CONFIRM MODAL + TOAST
+     Self-contained here so image-delete works regardless of
+     footer load order. The global footer.php version is still
+     present for other pages; this one wins on edit-listing.php
+     because it's declared first.
+     ============================================================ -->
+<style>
+#kinasConfirmOverlay{display:none;position:fixed;inset:0;z-index:99999;background:rgba(10,10,10,.72);backdrop-filter:blur(4px);align-items:center;justify-content:center;animation:kinasOverlayIn .2s ease}
+#kinasConfirmOverlay.active{display:flex}
+@keyframes kinasOverlayIn{from{opacity:0}to{opacity:1}}
+#kinasConfirmBox{background:#fff;border-radius:16px;width:min(440px,92vw);overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.28),0 0 0 1px rgba(0,0,0,.06);animation:kinasBoxIn .25s cubic-bezier(.34,1.56,.64,1)}
+@keyframes kinasBoxIn{from{opacity:0;transform:scale(.88) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+#kinasConfirmHead{padding:28px 28px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:flex-start;gap:16px}
+#kinasConfirmIconWrap{width:48px;height:48px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(220,38,38,.1);font-size:20px;color:#DC2626}
+#kinasConfirmIconWrap.is-warning{background:rgba(245,158,11,.12);color:#D97706}
+#kinasConfirmIconWrap.is-gold{background:rgba(198,164,63,.12);color:#C6A43F}
+#kinasConfirmTitleWrap{flex:1}
+#kinasConfirmTitle{font-family:'Prata',Georgia,serif;font-size:18px;font-weight:400;color:#0A0A0A;margin:0 0 4px;line-height:1.3}
+#kinasConfirmSubtitle{font-size:13px;color:#777;margin:0;line-height:1.5;font-family:'Inter',sans-serif}
+#kinasConfirmMsg{padding:18px 28px 0;font-size:14px;color:#444;line-height:1.65;font-family:'Inter',sans-serif;background:#fafafa;margin:0}
+#kinasConfirmWarningBadge{display:none;margin:16px 28px 0;background:#FEF9EC;border:1px solid #F5E6B0;border-radius:8px;padding:10px 14px;font-size:12px;color:#92660A;font-family:'Inter',sans-serif;align-items:center;gap:8px}
+#kinasConfirmWarningBadge.visible{display:flex}
+#kinasConfirmActions{display:flex;gap:10px;padding:20px 28px 24px;background:#fafafa;justify-content:flex-end}
+#kinasConfirmCancel{padding:10px 22px;border-radius:999px;border:1.5px solid #e0e0e0;background:#fff;color:#555;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;letter-spacing:.3px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+#kinasConfirmCancel:hover{border-color:#aaa;color:#222}
+#kinasConfirmProceed{padding:10px 22px;border-radius:999px;border:none;background:#DC2626;color:#fff;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;letter-spacing:.3px;cursor:pointer;transition:all .2s;text-transform:uppercase;display:flex;align-items:center;gap:7px}
+#kinasConfirmProceed:hover{background:#b91c1c;transform:translateY(-1px)}
+#kinasConfirmProceed.is-warning{background:#D97706}
+#kinasConfirmProceed.is-warning:hover{background:#b45309}
+#kinasConfirmProceed.is-gold{background:#C6A43F;color:#0A0A0A}
+#kinasToastContainer{position:fixed;bottom:28px;right:28px;z-index:100000;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.kinas-toast{min-width:280px;max-width:380px;background:#1A1A1A;color:#fff;border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.22);font-family:'Inter',sans-serif;font-size:13.5px;line-height:1.45;pointer-events:all;position:relative;animation:kinasToastIn .3s cubic-bezier(.34,1.4,.64,1);border-left:3px solid #C6A43F}
+.kinas-toast.is-error{border-left-color:#EF4444}.kinas-toast.is-success{border-left-color:#22C55E}
+.kinas-toast i{font-size:15px;flex-shrink:0;color:#C6A43F}.kinas-toast.is-error i{color:#EF4444}.kinas-toast.is-success i{color:#22C55E}
+@keyframes kinasToastIn{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}
+@keyframes kinasToastOut{from{opacity:1;transform:translateX(0);max-height:100px}to{opacity:0;transform:translateX(60px);max-height:0}}
+@media(max-width:480px){#kinasConfirmBox{width:94vw}#kinasConfirmActions{flex-direction:column-reverse}#kinasToastContainer{left:14px;right:14px;bottom:20px}.kinas-toast{min-width:unset;max-width:unset}}
+</style>
+
+<div id="kinasConfirmOverlay" role="dialog" aria-modal="true" aria-labelledby="kinasConfirmTitle">
+    <div id="kinasConfirmBox">
+        <div id="kinasConfirmHead">
+            <div id="kinasConfirmIconWrap"><i class="fas fa-trash-alt"></i></div>
+            <div id="kinasConfirmTitleWrap">
+                <h3 id="kinasConfirmTitle">Confirm Action</h3>
+                <p id="kinasConfirmSubtitle">This action cannot be undone.</p>
+            </div>
+        </div>
+        <p id="kinasConfirmMsg"></p>
+        <div id="kinasConfirmWarningBadge">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="kinasConfirmWarningText"></span>
+        </div>
+        <div id="kinasConfirmActions">
+            <button id="kinasConfirmCancel" type="button">Cancel</button>
+            <button id="kinasConfirmProceed" type="button">
+                <i class="fas fa-trash-alt"></i><span>Delete</span>
+            </button>
+        </div>
+    </div>
+</div>
+<div id="kinasToastContainer" aria-live="polite"></div>
+
+<script>
+// Ensure kinasConfirm/kinasToast are defined NOW, before the main script block uses them
+window.kinasConfirm = function(message, onConfirm, opts) {
+    opts = opts || {};
+    var variant  = opts.variant  || 'danger';
+    var title    = opts.title    || 'Confirm Action';
+    var subtitle = opts.subtitle || 'This action cannot be undone.';
+    var label    = opts.confirm  || 'Delete';
+    var icon     = opts.icon     || 'fa-trash-alt';
+    var overlay     = document.getElementById('kinasConfirmOverlay');
+    var iconWrap    = document.getElementById('kinasConfirmIconWrap');
+    var badge       = document.getElementById('kinasConfirmWarningBadge');
+    var badgeTxt    = document.getElementById('kinasConfirmWarningText');
+    var proceedBtn  = document.getElementById('kinasConfirmProceed');
+    var proceedIcon = proceedBtn.querySelector('i');
+    var proceedLbl  = proceedBtn.querySelector('span');
+    document.getElementById('kinasConfirmTitle').textContent    = title;
+    document.getElementById('kinasConfirmSubtitle').textContent = subtitle;
+    document.getElementById('kinasConfirmMsg').textContent      = message;
+    iconWrap.className   = 'is-' + variant;
+    iconWrap.innerHTML   = '<i class="fas ' + icon + '"></i>';
+    proceedBtn.className = 'is-' + variant;
+    proceedIcon.className = 'fas ' + icon;
+    proceedLbl.textContent = label;
+    if (opts.warning) { badgeTxt.textContent = opts.warning; badge.classList.add('visible'); }
+    else              { badge.classList.remove('visible'); }
+    overlay.classList.add('active');
+    document.getElementById('kinasConfirmCancel').focus();
+    function close() {
+        overlay.classList.remove('active');
+        overlay.removeEventListener('click', outsideClick);
+        document.removeEventListener('keydown', escKey);
+    }
+    function outsideClick(e) { if (e.target === overlay) close(); }
+    function escKey(e)       { if (e.key === 'Escape') close(); }
+    overlay.addEventListener('click', outsideClick);
+    document.addEventListener('keydown', escKey);
+    document.getElementById('kinasConfirmCancel').onclick = close;
+    proceedBtn.onclick = function() { close(); if (onConfirm) onConfirm(); };
+};
+window.kinasToast = function(message, type, duration) {
+    type = type || 'error'; duration = duration || 5000;
+    var container = document.getElementById('kinasToastContainer');
+    var iconMap = { error:'fa-exclamation-circle', success:'fa-check-circle', info:'fa-info-circle', warning:'fa-exclamation-triangle' };
+    var toast = document.createElement('div');
+    toast.className = 'kinas-toast is-' + type;
+    toast.innerHTML = '<i class="fas ' + (iconMap[type] || iconMap.error) + '"></i><span>' + message + '</span>';
+    container.appendChild(toast);
+    var timer = setTimeout(function() {
+        toast.style.animation = 'kinasToastOut .35s ease forwards';
+        setTimeout(function() { toast.remove(); }, 340);
+    }, duration);
+    toast.addEventListener('click', function() {
+        clearTimeout(timer);
+        toast.style.animation = 'kinasToastOut .35s ease forwards';
+        setTimeout(function() { toast.remove(); }, 340);
+    });
+};
+</script>
+
 <script>
 // ============================================
 // CSRF TOKEN MANAGEMENT - FIX FOR MULTIPLE DELETES
@@ -863,30 +987,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 100);
 });
 
-// ============================================
-// SIMPLE TOAST NOTIFICATION (Optional)
-// ============================================
+// Legacy alias — calls kinasToast so any remaining showToast() refs still work
 function showToast(message, type) {
-    const existing = document.querySelector('.custom-toast');
-    if (existing) existing.remove();
-    
-    const toast = document.createElement('div');
-    toast.className = 'custom-toast';
-    toast.style.cssText = `
-        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-        padding: 14px 28px; border-radius: 8px; color: #fff;
-        font-family: 'Inter', sans-serif; font-size: 14px; z-index: 9999;
-        opacity: 0; transition: opacity 0.3s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-        max-width: 90%; text-align: center;
-    `;
-    toast.textContent = message;
-    if (type === 'success') toast.style.background = '#1B5E20';
-    else if (type === 'error') toast.style.background = '#B71C1C';
-    else toast.style.background = '#0047AB';
-    
-    document.body.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '1'; }, 100);
-    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+    var typeMap = { success: 'success', error: 'error', info: 'info' };
+    kinasToast(message, typeMap[type] || 'info');
 }
 </script>
 

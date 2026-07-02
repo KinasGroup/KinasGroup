@@ -84,6 +84,21 @@ $pageTitle = 'Agent Dashboard - KINAS GROUP';
 include '../templates/header.php';
 ?>
 
+<style>
+/* ── Agent dashboard: force light mode on dark OS ── */
+@media (prefers-color-scheme: dark) {
+    body, .je-dash-main { background: #F5F7FA !important; }
+    .je-dash-main [style*="background: #fff"],
+    .je-dash-main [style*="background:#fff"],
+    .je-dash-main [style*="background: white"] { background-color: #ffffff !important; }
+    .je-dash-main [style*="background: #F5F7FA"] { background-color: #F5F7FA !important; }
+    .je-dash-main [style*="color: #666"],
+    .je-dash-main [style*="color:#666"] { color: #666 !important; }
+    /* Division count tiles */
+    .je-dash-main [style*="border: 1px solid #E0E0E0"] { border-color: #E0E0E0 !important; }
+}
+</style>
+
 <div class="je-dash-shell">
     <?php include __DIR__ . '/../includes/partials/agent-sidebar.php'; ?>
 
