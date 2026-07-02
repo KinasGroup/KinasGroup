@@ -75,8 +75,13 @@ require_once __DIR__ . '/../templates/header.php';
     .stat-card:hover{border-color:#C6A43F;box-shadow:0 8px 24px rgba(198,164,63,0.15);transform:translateY(-3px)}
     .stat-number{font-size:28px;font-weight:700;color:#C6A43F;font-family:'Prata',serif}.stat-label{color:#666;font-size:12px;margin-top:4px}
     .filters-bar{background:white;border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;border:1px solid #E0E0E0}
-    .filters-bar input,.filters-bar select{padding:9px 14px;border:1px solid #E0E0E0;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px}
-    .filters-bar input{flex:1;min-width:200px}.btn-filter{padding:9px 18px;background:#C6A43F;border:none;border-radius:8px;font-weight:600;color:#0A0A0A;cursor:pointer}
+    .filters-bar .search-input-wrap{flex:1;min-width:200px;display:flex;align-items:center;gap:10px;border:1px solid #E0E0E0;border-radius:8px;padding:0 14px;background:#fff}
+    .filters-bar .search-input-wrap:focus-within{border-color:#C6A43F;box-shadow:0 0 0 3px rgba(198,164,63,0.12)}
+    .filters-bar .search-input-wrap i{color:#C6A43F;font-size:14px;flex-shrink:0}
+    .filters-bar .search-input-wrap input{flex:1;border:none;outline:none;padding:9px 0;font-family:'Inter',sans-serif;font-size:13px;background:transparent}
+    .filters-bar .search-input-wrap input::placeholder{color:#aaa}
+    .filters-bar select{padding:9px 14px;border:1px solid #E0E0E0;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px}
+    .btn-filter{padding:9px 18px;background:#C6A43F;border:none;border-radius:8px;font-weight:600;color:#0A0A0A;cursor:pointer}
     .table-container{background:white;border-radius:16px;border:1px solid #E0E0E0;overflow:hidden;width:100%}
     .table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%}
     .data-table{width:100%;border-collapse:collapse;min-width:700px}
@@ -148,6 +153,45 @@ require_once __DIR__ . '/../templates/header.php';
         .data-table th:nth-child(5),.data-table td:nth-child(5){display:none}
         .pagination .page-btn{padding:5px 8px;font-size:11px}
     }
+
+    /* ── Force light mode on dark OS ───────────────────────────── */
+    @media (prefers-color-scheme: dark) {
+        html, body, :root { color-scheme: light !important; background: #F5F7FA !important; color: #0A0A0A !important; }
+        .admin-main, .je-dash-main { background: #F5F7FA !important; color: #0A0A0A !important; }
+        .stat-card { background: #ffffff !important; color: #0A0A0A !important; border-color: #C6A43F !important; }
+        .stat-card * { color: #0A0A0A !important; }
+        .stat-number { color: #C6A43F !important; }
+        .stat-label { color: #666 !important; }
+        .filters-bar { background: #ffffff !important; border-color: #E0E0E0 !important; }
+        .filters-bar * { color: #0A0A0A !important; background: #ffffff; }
+        .search-input-wrap { background: #ffffff !important; border-color: #E0E0E0 !important; }
+        .search-input-wrap i { color: #C6A43F !important; }
+        .search-input-wrap input { color: #0A0A0A !important; background: transparent !important; }
+        .filters-bar select { background: #ffffff !important; color: #0A0A0A !important; }
+        .btn-filter { background: #C6A43F !important; color: #0A0A0A !important; }
+        .table-container { background: #ffffff !important; border-color: #E0E0E0 !important; }
+        .data-table { background: #ffffff !important; color: #0A0A0A !important; }
+        .data-table th { background: #F8F8F8 !important; color: #666 !important; border-color: #E0E0E0 !important; }
+        .data-table td { color: #333 !important; border-color: #E0E0E0 !important; }
+        .data-table tr:hover { background: #FAFAFA !important; }
+        .user-avatar { background: #C6A43F !important; color: #0A0A0A !important; }
+        .role-badge.admin { background: #F3E5F5 !important; color: #7B1FA2 !important; }
+        .role-badge.agent { background: #E3F2FD !important; color: #1565C0 !important; }
+        .role-badge.user  { background: #E8F5E9 !important; color: #2E7D32 !important; }
+        .status-badge.active    { background: #E8F5E9 !important; color: #2E7D32 !important; }
+        .status-badge.pending   { background: #FFF3E0 !important; color: #F57C00 !important; }
+        .status-badge.suspended, .status-badge.banned { background: #FEF2F2 !important; color: #DC2626 !important; }
+        .email-verified-badge   { background: #E8F5E9 !important; color: #2E7D32 !important; }
+        .email-unverified-badge { background: #FFF3E0 !important; color: #F57C00 !important; }
+        .act-btn.activate { background: #E8F5E9 !important; color: #2E7D32 !important; }
+        .act-btn.suspend  { background: #FFF3E0 !important; color: #F57C00 !important; }
+        .act-btn.ban, .act-btn.delete { background: #FEF2F2 !important; color: #DC2626 !important; }
+        .page-btn { background: #ffffff !important; color: #333 !important; border-color: #E0E0E0 !important; }
+        .page-btn.active { background: #C6A43F !important; color: #0A0A0A !important; }
+        .page-header h1, .page-header p { color: #0A0A0A !important; }
+        .flash.success { background: #E8F5E9 !important; color: #2E7D32 !important; }
+        .flash.error   { background: #FEF2F2 !important; color: #DC2626 !important; }
+    }
 </style>
 
 <div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
@@ -168,7 +212,10 @@ require_once __DIR__ . '/../templates/header.php';
     </div>
 
     <form method="GET" class="filters-bar">
-        <input type="text" name="search" placeholder="Search name or email…" value="<?= htmlspecialchars($search) ?>">
+        <div class="search-input-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" name="search" placeholder="Search name or email…" value="<?= htmlspecialchars($search) ?>">
+        </div>
         <select name="role">
             <option value="all" <?= $role==='all'?'selected':'' ?>>All Roles</option>
             <option value="admin" <?= $role==='admin'?'selected':'' ?>>Admin</option>
