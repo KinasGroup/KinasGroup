@@ -153,45 +153,6 @@ require_once __DIR__ . '/../templates/header.php';
         .data-table th:nth-child(5),.data-table td:nth-child(5){display:none}
         .pagination .page-btn{padding:5px 8px;font-size:11px}
     }
-
-    /* ── Force light mode on dark OS ───────────────────────────── */
-    @media (prefers-color-scheme: dark) {
-        html, body, :root { color-scheme: light !important; background: #F5F7FA !important; color: #0A0A0A !important; }
-        .admin-main, .je-dash-main { background: #F5F7FA !important; color: #0A0A0A !important; }
-        .stat-card { background: #ffffff !important; color: #0A0A0A !important; border-color: #C6A43F !important; }
-        .stat-card * { color: #0A0A0A !important; }
-        .stat-number { color: #C6A43F !important; }
-        .stat-label { color: #666 !important; }
-        .filters-bar { background: #ffffff !important; border-color: #E0E0E0 !important; }
-        .filters-bar * { color: #0A0A0A !important; background: #ffffff; }
-        .search-input-wrap { background: #ffffff !important; border-color: #E0E0E0 !important; }
-        .search-input-wrap i { color: #C6A43F !important; }
-        .search-input-wrap input { color: #0A0A0A !important; background: transparent !important; }
-        .filters-bar select { background: #ffffff !important; color: #0A0A0A !important; }
-        .btn-filter { background: #C6A43F !important; color: #0A0A0A !important; }
-        .table-container { background: #ffffff !important; border-color: #E0E0E0 !important; }
-        .data-table { background: #ffffff !important; color: #0A0A0A !important; }
-        .data-table th { background: #F8F8F8 !important; color: #666 !important; border-color: #E0E0E0 !important; }
-        .data-table td { color: #333 !important; border-color: #E0E0E0 !important; }
-        .data-table tr:hover { background: #FAFAFA !important; }
-        .user-avatar { background: #C6A43F !important; color: #0A0A0A !important; }
-        .role-badge.admin { background: #F3E5F5 !important; color: #7B1FA2 !important; }
-        .role-badge.agent { background: #E3F2FD !important; color: #1565C0 !important; }
-        .role-badge.user  { background: #E8F5E9 !important; color: #2E7D32 !important; }
-        .status-badge.active    { background: #E8F5E9 !important; color: #2E7D32 !important; }
-        .status-badge.pending   { background: #FFF3E0 !important; color: #F57C00 !important; }
-        .status-badge.suspended, .status-badge.banned { background: #FEF2F2 !important; color: #DC2626 !important; }
-        .email-verified-badge   { background: #E8F5E9 !important; color: #2E7D32 !important; }
-        .email-unverified-badge { background: #FFF3E0 !important; color: #F57C00 !important; }
-        .act-btn.activate { background: #E8F5E9 !important; color: #2E7D32 !important; }
-        .act-btn.suspend  { background: #FFF3E0 !important; color: #F57C00 !important; }
-        .act-btn.ban, .act-btn.delete { background: #FEF2F2 !important; color: #DC2626 !important; }
-        .page-btn { background: #ffffff !important; color: #333 !important; border-color: #E0E0E0 !important; }
-        .page-btn.active { background: #C6A43F !important; color: #0A0A0A !important; }
-        .page-header h1, .page-header p { color: #0A0A0A !important; }
-        .flash.success { background: #E8F5E9 !important; color: #2E7D32 !important; }
-        .flash.error   { background: #FEF2F2 !important; color: #DC2626 !important; }
-    }
 </style>
 
 <div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
