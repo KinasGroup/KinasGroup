@@ -3,11 +3,11 @@
  * KINAS GROUP — Homepage
  * 
  * This file serves as the entry point for ALL domains:
- * - kinas-group.com → Shows main homepage
- * - kinas-automobile.com → Shows /divisions/kinas-automobile/index.php
- * - williams-connect-home.com → Shows /divisions/williams-connect-home/index.php
- * - kinas-volt.com → Shows /divisions/kinas-volt/index.php
- * - kinas-marketplace.com → Shows /divisions/kinas-marketplace/index.php
+ * - kinasstore.com → Shows main homepage (kinas-group.com)
+ * - kinasautomobile.com → Shows /divisions/kinas-automobile/index.php
+ * - williamsconnecthome.com → Shows /divisions/williams-connect-home/index.php
+ * - kinasvolt.com → Shows /divisions/kinas-volt/index.php
+ * - kinasstore.com (also handles marketplace) → Shows /divisions/kinas-marketplace/index.php
  */
 
 // ============================================================
@@ -25,10 +25,17 @@ $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 // DOMAIN TO DIVISION MAPPING
 // ============================================================
 $divisionMap = [
-    'kinas-automobile.com' => '/divisions/kinas-automobile',
-    'williams-connect-home.com' => '/divisions/williams-connect-home',
-    'kinas-volt.com' => '/divisions/kinas-volt',
-    'kinas-marketplace.com' => '/divisions/kinas-marketplace',
+    // Automobile Division
+    'kinasautomobile.com' => '/divisions/kinas-automobile',
+    
+    // Real Estate Division
+    'williamsconnecthome.com' => '/divisions/williams-connect-home',
+    
+    // Solar Division
+    'kinasvolt.com' => '/divisions/kinas-volt',
+    
+    // Marketplace Division (kinasstore.com is the main store/marketplace)
+    'kinasstore.com' => '/divisions/kinas-marketplace',
 ];
 
 // ============================================================
@@ -65,7 +72,7 @@ if (isset($divisionMap[$host])) {
 }
 
 // ============================================================
-// NOT A DIVISION DOMAIN - SHOW MAIN SITE (kinas-group.com)
+// NOT A DIVISION DOMAIN - SHOW MAIN SITE (kinasstore.com / kinas-group.com)
 // ============================================================
 
 require_once 'includes/session.php';
