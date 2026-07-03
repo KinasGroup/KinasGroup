@@ -4,7 +4,7 @@
  * 
  * This file serves as the entry point for ALL domains:
  * - kinasstore.com → Shows main homepage (kinas-group.com)
- * - kinasautomobile.com → Shows /divisions/kinas-automobile/index.php
+ * - kinasauto.com → Shows /divisions/kinas-automobile/index.php
  * - williamsconnecthome.com → Shows /divisions/williams-connect-home/index.php
  * - kinasvolt.com → Shows /divisions/kinas-volt/index.php
  * - kinasstore.com (also handles marketplace) → Shows /divisions/kinas-marketplace/index.php
@@ -26,7 +26,7 @@ $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 // ============================================================
 $divisionMap = [
     // Automobile Division
-    'kinasautomobile.com' => '/divisions/kinas-automobile',
+    'kinasauto.com' => '/divisions/kinas-automobile',
     
     // Real Estate Division
     'williamsconnecthome.com' => '/divisions/williams-connect-home',
