@@ -65,7 +65,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .input-prefix { position: relative; display: flex; align-items: center; }
 .prefix { position: absolute; left: 16px; color: #C6A43F; font-weight: 600; }
 .input-prefix input { padding-left: 32px; }
-.image-upload-area { border: 2px dashed #E0E0E0; border-radius: 16px; padding: 20px; text-align: center; transition: all 0.3s; }
+.image-upload-area { border: 2px dashed #E0E0E0; border-radius: 16px; padding: 20px; text-align: center; transition: all 0.3s; position: relative; }
 .image-upload-area:hover { border-color: #C6A43F; background: rgba(198,164,63,0.02); }
 .upload-placeholder { cursor: pointer; }
 .upload-placeholder i { font-size: 48px; color: #C6A43F; margin-bottom: 12px; }
@@ -87,6 +87,24 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .full-width { grid-column: 1 / -1; }
 @media (max-width: 968px) { .form-grid { grid-template-columns: 1fr; } .form-section:first-child { border-right: none; border-bottom: 1px solid #E0E0E0; } .form-row { grid-template-columns: 1fr; gap: 0; } .automobile-fields-grid { grid-template-columns: 1fr; } }
 @media (max-width: 768px) { .agent-container { padding: 20px; } .form-section { padding: 24px; } }
+
+/* Upload loading overlay */
+.upload-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+    border-radius: 16px;
+    z-index: 10;
+}
 </style>
 
 <div class="je-dash-shell">
@@ -422,5 +440,8 @@ if (imageUpload) {
 
 </main>
 </div>
+
+<!-- Image Optimization - Client-side compression -->
+<script src="/assets/js/image-upload.js"></script>
 
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
