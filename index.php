@@ -3,11 +3,10 @@
  * KINAS GROUP — Homepage
  * 
  * This file serves as the entry point for ALL domains:
- * - kinasstore.com → Shows main homepage (kinas-group.com)
  * - kinasauto.com → Shows /divisions/kinas-automobile/index.php
  * - williamsconnecthome.com → Shows /divisions/williams-connect-home/index.php
  * - kinasvolt.com → Shows /divisions/kinas-volt/index.php
- * - kinasstore.com (also handles marketplace) → Shows /divisions/kinas-marketplace/index.php
+ * - kinasstore.com → Shows /divisions/kinas-marketplace/index.php
  */
 
 // ============================================================
