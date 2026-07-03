@@ -388,11 +388,20 @@ include 'templates/header.php';
         </button>
     </form>
     
-    <?php if ($query): ?>
+    <?php 
+    $hasFilter = ($query !== '' || $division !== 'all');
+    if ($hasFilter): 
+    ?>
         <p style="color: #666; margin-bottom: 30px;">
-            <strong><?php echo $totalCount; ?></strong> results found for "<strong><?php echo htmlspecialchars($query); ?></strong>"
-            <?php if ($division !== 'all'): ?>
-                in <strong><?php echo ucfirst($division); ?></strong> division
+            <?php if ($query): ?>
+                <strong><?php echo $totalCount; ?></strong> result<?php echo $totalCount !== 1 ? 's' : ''; ?> for
+                "<strong><?php echo htmlspecialchars($query); ?></strong>"
+                <?php if ($division !== 'all'): ?>
+                    in <strong><?php echo ucfirst($division); ?></strong>
+                <?php endif; ?>
+            <?php else: ?>
+                Browsing <strong><?php echo $totalCount; ?></strong> listing<?php echo $totalCount !== 1 ? 's' : ''; ?>
+                in <strong><?php echo $division === 'all' ? 'All Divisions' : ucfirst($division); ?></strong>
             <?php endif; ?>
         </p>
         
