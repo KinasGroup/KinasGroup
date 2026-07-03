@@ -59,28 +59,28 @@ class EmailService
     }
     
     /**
-     * Get the email header - EXACT MATCH TO PDF HEADER
-     * Using the same styling as solar-pdf.php
+     * Get the email header - KINAS GROUP BRANDING
+     * Uses the main KINAS GROUP logo for all communications
      */
     private function getEmailHeader()
     {
         return '
         <div style="text-align:center; padding-bottom:12px; border-bottom:2px solid #C6A43F; margin-bottom:24px;">
-            <img src="https://kinas-group.com/assets/images/logos/kinas-volt-logo.jpg" 
-                 style="max-height:60px; width:auto;" alt="KINAS VOLT" onerror="this.style.display=\'none\'">
-            <div style="font-size:10px; color:#666; letter-spacing:2px; margin-top:4px; font-family: Arial, sans-serif;">POWERING A SUSTAINABLE FUTURE</div>
+            <img src="https://kinas-group.com/assets/images/logos/kinas-email-header.jpg" 
+                 style="max-height:60px; width:auto;" alt="KINAS GROUP" onerror="this.style.display=\'none\'">
+            <div style="font-size:10px; color:#666; letter-spacing:2px; margin-top:4px; font-family: Arial, sans-serif;">BUILDING EXCELLENCE ACROSS INDUSTRIES</div>
             <div style="font-size:8px; color:#999; margin-top:2px; font-family: Arial, sans-serif;">Gwarinpa, Abuja • +234 810 757 6042</div>
         </div>';
     }
     
     /**
-     * Get the email footer - EXACT MATCH TO PDF FOOTER
+     * Get the email footer - KINAS GROUP BRANDING
      */
     private function getEmailFooter()
     {
         return '
         <div style="text-align:center; padding-top:12px; border-top:1px solid #E0E0E0; margin-top:20px; font-size:8px; color:#999; font-family: Arial, sans-serif;">
-            KINAS VOLT • Solar Division<br>
+            KINAS GROUP OF COMPANIES LIMITED<br>
             www.kinas-group.com
         </div>';
     }
