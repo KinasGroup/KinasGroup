@@ -188,26 +188,6 @@ if ($registrationSuccess) {
 </head>
 <body>
 
-<!-- ============================================================
-     CUSTOM NOTIFICATION SYSTEM
-     ============================================================ -->
-<div id="jeNotification" class="je-notification" role="alert" aria-live="polite">
-    <div class="je-notification-content">
-        <span class="je-notification-icon">
-            <i class="fas fa-exclamation-circle" id="jeNotificationIcon"></i>
-        </span>
-        <div class="je-notification-body">
-            <div class="je-notification-title" id="jeNotificationTitle"></div>
-            <div class="je-notification-message" id="jeNotificationMessage"></div>
-        </div>
-        <button class="je-notification-close" id="jeNotificationClose" aria-label="Close notification">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>
-    <div class="je-notification-progress" id="jeNotificationProgress"></div>
-</div>
-<!-- ============================================================ -->
-
 <div class="je-auth-shell">
     <!-- ── Left aside ── -->
     <aside class="je-auth-aside">
@@ -313,106 +293,12 @@ if (window.location.search.includes('registered=1')) {
 }
 
 // ============================================================
-// CUSTOM NOTIFICATION SYSTEM
+// NOTIFICATION — delegates to kinasToast (defined in kinas-ui.php)
 // ============================================================
-(function() {
-    'use strict';
-
-    // Get elements
-    var notification = document.getElementById('jeNotification');
-    var messageEl = document.getElementById('jeNotificationMessage');
-    var titleEl = document.getElementById('jeNotificationTitle');
-    var iconEl = document.getElementById('jeNotificationIcon');
-    var closeBtn = document.getElementById('jeNotificationClose');
-    var progressBar = document.getElementById('jeNotificationProgress');
-    var timeoutId = null;
-
-    // Icon mappings
-    var icons = {
-        error: 'fa-exclamation-circle',
-        success: 'fa-check-circle',
-        warning: 'fa-exclamation-triangle',
-        info: 'fa-info-circle'
-    };
-
-    // Title mappings
-    var titles = {
-        error: 'Error',
-        success: 'Success',
-        warning: 'Warning',
-        info: 'Information'
-    };
-
-    // Show notification
-    window.showNotification = function(message, type, title) {
-        // Clear any existing timeout
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-            timeoutId = null;
-        }
-
-        // Set type (error, success, warning, info)
-        type = type || 'error';
-        
-        // Set content
-        messageEl.textContent = message || 'An error occurred. Please try again.';
-        titleEl.textContent = title || titles[type] || 'Attention';
-        
-        // Set icon
-        var iconClass = icons[type] || icons.error;
-        iconEl.className = 'fas ' + iconClass;
-        
-        // Set notification class
-        notification.className = 'je-notification ' + type + ' is-visible';
-        
-        // Reset progress bar
-        progressBar.style.animation = 'none';
-        // Force reflow
-        void progressBar.offsetWidth;
-        progressBar.style.animation = 'jeNotificationProgress 5s linear forwards';
-        
-        // Auto-hide after 5 seconds
-        timeoutId = setTimeout(function() {
-            hideNotification();
-        }, 5000);
-    };
-
-    // Hide notification
-    window.hideNotification = function() {
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-            timeoutId = null;
-        }
-        notification.classList.remove('is-visible');
-        notification.className = 'je-notification';
-    };
-
-    // Close button handler
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            hideNotification();
-        });
-    }
-
-    // Click outside to close
-    document.addEventListener('click', function(e) {
-        if (notification.classList.contains('is-visible')) {
-            if (!notification.contains(e.target)) {
-                hideNotification();
-            }
-        }
-    });
-
-    // Escape key to close
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && notification.classList.contains('is-visible')) {
-            hideNotification();
-        }
-    });
-
-    console.log('Notification system initialized');
-})();
+window.showNotification = function(message, type) {
+    var typeMap = { error: 'error', success: 'success', warning: 'warning', info: 'info' };
+    kinasToast(message, typeMap[type] || 'error', 5000);
+};
 
 // ============================================================
 // LOGIN FORM HANDLER
