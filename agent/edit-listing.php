@@ -154,6 +154,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     text-align: center; 
     transition: all 0.3s; 
     width: 100%;
+    position: relative;
 }
 .image-upload-area:hover { border-color: #C6A43F; background: rgba(198,164,63,0.02); }
 .upload-placeholder { cursor: pointer; }
@@ -241,6 +242,24 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .automobile-fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .automobile-fields-grid .form-group { margin-bottom: 0; }
 .full-width { grid-column: 1 / -1; }
+
+/* Upload loading overlay */
+.upload-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+    border-radius: 16px;
+    z-index: 10;
+}
 
 /* ============================================================
    RESPONSIVE BREAKPOINTS - FIXED
@@ -996,5 +1015,8 @@ function showToast(message, type) {
 
 </main>
 </div>
+
+<!-- Image Optimization - Client-side compression -->
+<script src="/assets/js/image-upload.js"></script>
 
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
