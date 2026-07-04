@@ -10,12 +10,34 @@
  * Per the Paystack golden rule: this is the ONLY place the secret key
  * is used. The frontend gets back an `access_code` + the PUBLIC key
  * to open the Popup with — never the secret key itself.
+ *
+ * Settlement:
+ *   - If every item in this order belongs to the SAME agent, and that
+ *     agent has a verified Paystack subaccount, the payment is split
+ *     at source: the agent's bank account receives (price − commission)
+ *     directly from Paystack, we never touch it.
+ *   - Otherwise (a cart spanning multiple agents, or an agent who
+ *     hasn't connected Paystack), the full amount goes to the
+ *     platform's main account, and the agent is paid out through the
+ *     existing manual payout flow — Paystack only supports a single
+ *     subaccount per transaction, so a mixed-seller cart can't be
+ *     auto-split in one charge.
+ *
+ * Fee gross-up:
+ *   - If PAYSTACK_PASS_FEES_TO_BUYER is enabled, we add the estimated
+ *     Paystack processing fee on top of the listing price(s) as a
+ *     separate, clearly-labelled line item, and route the exact
+ *     matching amount to the platform via `transaction_charge` so
+ *     the agent's share is never touched by it — see
+ *     includes/paystack.php for the fee math and why this uses
+ *     transaction_charge rather than the subaccount's percentage split.
  */
 header('Content-Type: application/json');
 require_once '../config/database.php';
 require_once '../../includes/session.php';
 require_once '../../includes/helpers.php';
 require_once '../../includes/paystack.php';
+require_once '../../api/config/constants.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -33,6 +55,13 @@ $userId = (int)($_SESSION['user_id'] ?? 0);
 
 $data = json_decode(file_get_contents('php://input'), true) ?: $_POST;
 $mode = $data['mode'] ?? 'cart';
+
+$paystack = new PaystackService();
+if (!$paystack->isEnabled()) {
+    http_response_code(503);
+    echo json_encode(['error' => 'Card payments are temporarily unavailable. Please try again shortly.']);
+    exit;
+}
 
 try {
     $db = Database::getInstance()->getConnection();
@@ -95,12 +124,41 @@ try {
         exit;
     }
 
-    $total = array_sum(array_map(fn($l) => (float)$l['price'], $listings));
-    if ($total <= 0) {
+    $subtotal = array_sum(array_map(fn($l) => (float)$l['price'], $listings));
+    if ($subtotal <= 0) {
         http_response_code(422);
         echo json_encode(['error' => 'Invalid order total']);
         exit;
     }
+
+    // ── Determine settlement: single-agent order with a verified
+    //    Paystack subaccount can be auto-split at source. ──
+    $agentIds = array_unique(array_map(fn($l) => (int)$l['agent_id'], $listings));
+    $settlementMode  = 'platform';
+    $subaccountCode  = null;
+
+    if (count($agentIds) === 1) {
+        $psStmt = $db->prepare("
+            SELECT paystack_subaccount_code
+            FROM payout_settings
+            WHERE agent_id = ? AND payment_method = 'paystack' AND paystack_account_verified = 1
+        ");
+        $psStmt->execute([$agentIds[0]]);
+        $code = $psStmt->fetchColumn();
+        if ($code) {
+            $settlementMode = 'subaccount';
+            $subaccountCode = $code;
+        }
+    }
+
+    // ── Fee gross-up: buyer covers the Paystack processing fee as a
+    //    separate, visible line item, rather than it quietly eating
+    //    into the agent's or platform's cut. ──
+    $passFeesToBuyer = strtolower(getenv('PAYSTACK_PASS_FEES_TO_BUYER') ?: 'true') !== 'false';
+    $feeAmount = $passFeesToBuyer
+        ? round(PaystackService::grossUpForFee($subtotal) - $subtotal, 2)
+        : 0.0;
+    $chargeTotal = round($subtotal + $feeAmount, 2);
 
     // ── Create the order + snapshot line items ──
     $reference = 'KINAS-' . strtoupper(bin2hex(random_bytes(8)));
@@ -108,9 +166,14 @@ try {
     $db->beginTransaction();
 
     $db->prepare("
-        INSERT INTO orders (buyer_id, reference, email, phone, amount, currency, status)
-        VALUES (?, ?, ?, ?, ?, 'NGN', 'pending')
-    ")->execute([$userId, $reference, $buyer['email'], $buyer['phone'] ?? null, $total]);
+        INSERT INTO orders
+            (buyer_id, reference, email, phone, amount, subtotal_amount, fee_amount,
+             settlement_mode, subaccount_code, currency, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'NGN', 'pending')
+    ")->execute([
+        $userId, $reference, $buyer['email'], $buyer['phone'] ?? null,
+        $chargeTotal, $subtotal, $feeAmount, $settlementMode, $subaccountCode,
+    ]);
     $orderId = (int)$db->lastInsertId();
 
     $itemStmt = $db->prepare("
@@ -124,18 +187,28 @@ try {
     $db->commit();
 
     // ── Initialize the transaction with Paystack (server-side, secret key) ──
-    $paystack = new PaystackService();
-    if (!$paystack->isEnabled()) {
-        http_response_code(503);
-        echo json_encode(['error' => 'Card payments are temporarily unavailable. Please try again shortly.']);
-        exit;
-    }
-
     $callbackUrl = url('/divisions/kinas-marketplace/checkout.php?ref=' . urlencode($reference));
+
+    $split = [];
+    if ($settlementMode === 'subaccount') {
+        // transaction_charge = exactly what the MAIN account should
+        // receive: our commission on the subtotal, plus the fee
+        // gross-up (since the main account is the one that pays
+        // Paystack's actual fee — bearer defaults to "account").
+        // Whatever's left over goes straight to the agent's subaccount,
+        // untouched by either the commission or the processing fee.
+        $commissionKobo = (int) round($subtotal * ((float)COMMISSION_RATE) / 100 * 100);
+        $feeKobo        = (int) round($feeAmount * 100);
+        $split = [
+            'subaccount'         => $subaccountCode,
+            'transaction_charge' => $commissionKobo + $feeKobo,
+            'bearer'             => 'account',
+        ];
+    }
 
     $init = $paystack->initializeTransaction(
         $buyer['email'],
-        $total,
+        $chargeTotal,
         $reference,
         $callbackUrl,
         [
@@ -146,7 +219,8 @@ try {
                 'variable_name' => 'order_reference',
                 'value'         => $reference,
             ]],
-        ]
+        ],
+        $split
     );
 
     if (!$init['success']) {
@@ -163,13 +237,18 @@ try {
        ->execute([$init['access_code'], $orderId]);
 
     echo json_encode([
-        'success'      => true,
-        'reference'    => $reference,
-        'access_code'  => $init['access_code'],
-        'public_key'   => $paystack->getPublicKey(),
-        'amount'       => $total,
-        'amount_label' => formatPrice($total),
-        'email'        => $buyer['email'],
+        'success'          => true,
+        'reference'        => $reference,
+        'access_code'      => $init['access_code'],
+        'public_key'       => $paystack->getPublicKey(),
+        'subtotal'         => $subtotal,
+        'subtotal_label'   => formatPrice($subtotal),
+        'fee_amount'       => $feeAmount,
+        'fee_label'        => $feeAmount > 0 ? formatPrice($feeAmount) : null,
+        'amount'           => $chargeTotal,
+        'amount_label'     => formatPrice($chargeTotal),
+        'settlement_mode'  => $settlementMode,
+        'email'            => $buyer['email'],
     ]);
 
 } catch (Exception $e) {
