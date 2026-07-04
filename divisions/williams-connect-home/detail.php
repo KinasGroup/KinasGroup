@@ -187,7 +187,15 @@ window.isUserLoggedIn = function() {
 };
 
 window.showLoginRequired = function() {
-    alert('Please login to continue');
+    // Native alert()/confirm() dialogs show as a generic browser popup
+    // ("kinas-group.com says: ..."). kinasToast (includes/kinas-ui.php,
+    // loaded site-wide via templates/footer.php) is an in-page, mobile
+    // responsive banner — falls back to showSuccessBanner just in case.
+    if (typeof kinasToast === 'function') {
+        kinasToast('Please sign in to continue — redirecting you to login…', 'warning');
+    } else if (typeof window.showSuccessBanner === 'function') {
+        window.showSuccessBanner('Please sign in to continue — redirecting you to login…', true);
+    }
     setTimeout(function() {
         window.location.href = '/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
     }, 1500);
