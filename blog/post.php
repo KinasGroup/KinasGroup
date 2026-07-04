@@ -317,8 +317,8 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
         <div class="sidebar-widget newsletter-widget">
             <h4>Newsletter</h4>
             <p style="margin-bottom: 12px; color:#666; font-size:13px;">Get the latest luxury insights delivered to your inbox.</p>
-            <form onsubmit="event.preventDefault(); alert('Newsletter subscription coming soon.');">
-                <input type="email" placeholder="Your email" required>
+            <form class="kinas-newsletter-form" data-source="blog_post">
+                <input type="email" name="email" placeholder="Your email" required>
                 <button type="submit">Subscribe</button>
             </form>
         </div>

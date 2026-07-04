@@ -205,8 +205,8 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     <div class="newsletter-card">
         <h3>Subscribe to Our Newsletter</h3>
         <p>Get the latest luxury insights and exclusive offers delivered to your inbox</p>
-        <form class="newsletter-form" onsubmit="event.preventDefault(); alert('Thank you for subscribing! Newsletter delivery is coming soon.'); this.reset();">
-            <input type="email" placeholder="Your email address" required>
+        <form class="newsletter-form kinas-newsletter-form" data-source="blog_index">
+            <input type="email" name="email" placeholder="Your email address" required>
             <button type="submit">Subscribe</button>
         </form>
     </div>
