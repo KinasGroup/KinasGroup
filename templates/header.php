@@ -271,6 +271,10 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
             <a href="/divisions/kinas-volt/">KINAS VOLT</a>
             <a href="/divisions/kinas-marketplace/">KINAS MARKETPLACE</a>
             <a href="/pages/about.php">ABOUT US</a>
+            <a href="/divisions/kinas-marketplace/cart.php" id="jeHeaderCartLink" style="position:relative;" aria-label="Cart">
+                <i class="fas fa-shopping-bag"></i>
+                <span id="jeCartBadge" style="display:none;position:absolute;top:-8px;right:-12px;background:#C6A43F;color:#0A0A0A;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:999px;align-items:center;justify-content:center;padding:0 4px;line-height:16px;text-align:center;"></span>
+            </a>
             <?php if ($isLoggedIn): ?>
                 <?php if ($userRole === 'admin'): ?>
                     <a href="/admin/dashboard.php" class="je2-button nav-btn-outline">Admin Panel</a>
@@ -291,6 +295,23 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
 <main>
 
 <script>
+// ============================================================
+// CART BADGE — synced on every page load
+// ============================================================
+(function() {
+    var badge = document.getElementById('jeCartBadge');
+    if (!badge) return;
+    fetch('/api/cart/count.php', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success && data.count > 0) {
+                badge.textContent = data.count;
+                badge.style.display = 'flex';
+            }
+        })
+        .catch(function() { /* silent — badge just stays hidden */ });
+})();
+
 // ============================================================
 // MOBILE MENU TOGGLE - SIMPLIFIED AND FIXED
 // ============================================================
