@@ -35,7 +35,12 @@ class Notify
     {
         try {
             $svc = new EmailService();
-            return $svc->send($to, $subject, $body, $altBody);
+            // EmailService::send() expects (to, name, subject, htmlBody, plainText).
+            // $body here is plain text assembled by callers, so it needs to be
+            // turned into a safe HTML fragment before being used as htmlBody.
+            $htmlBody = nl2br(htmlspecialchars($body, ENT_QUOTES));
+            $plainText = $altBody ?? $body;
+            return $svc->send($to, '', $subject, $htmlBody, $plainText);
         } catch (Throwable $e) {
             error_log('Notify::email failed: ' . $e->getMessage());
             return false;

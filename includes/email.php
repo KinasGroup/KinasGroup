@@ -61,15 +61,19 @@ class EmailService
     /**
      * Get the email header - KINAS GROUP BRANDING
      * Uses the main KINAS GROUP logo for all communications
+     * NOTE: colors are set with BOTH the bgcolor attribute and an inline
+     * style, and text colors are always explicit. This is what keeps the
+     * email looking identical in dark-mode inboxes (Gmail/Apple Mail/Outlook
+     * auto-invert anything that doesn't have an explicit color declared).
      */
     private function getEmailHeader()
     {
         return '
-        <div style="text-align:center; padding-bottom:12px; border-bottom:2px solid #C6A43F; margin-bottom:24px;">
+        <div class="email-card" bgcolor="#FFFFFF" style="background-color:#FFFFFF !important; text-align:center; padding-bottom:12px; border-bottom:2px solid #C6A43F; margin-bottom:24px;">
             <img src="https://kinas-group.com/assets/images/logos/kinas-email-header.jpg" 
                  style="max-height:60px; width:auto;" alt="KINAS GROUP" onerror="this.style.display=\'none\'">
-            <div style="font-size:10px; color:#666; letter-spacing:2px; margin-top:4px; font-family: Arial, sans-serif;">BUILDING EXCELLENCE ACROSS INDUSTRIES</div>
-            <div style="font-size:8px; color:#999; margin-top:2px; font-family: Arial, sans-serif;">Gwarinpa, Abuja • +234 810 757 6042</div>
+            <div style="font-size:10px; color:#666666 !important; letter-spacing:2px; margin-top:4px; font-family: Arial, sans-serif;">BUILDING EXCELLENCE ACROSS INDUSTRIES</div>
+            <div style="font-size:8px; color:#999999 !important; margin-top:2px; font-family: Arial, sans-serif;">Gwarinpa, Abuja &bull; +234 810 757 6042</div>
         </div>';
     }
     
@@ -79,10 +83,80 @@ class EmailService
     private function getEmailFooter()
     {
         return '
-        <div style="text-align:center; padding-top:12px; border-top:1px solid #E0E0E0; margin-top:20px; font-size:8px; color:#999; font-family: Arial, sans-serif;">
+        <div class="email-card" bgcolor="#FFFFFF" style="background-color:#FFFFFF !important; text-align:center; padding-top:12px; border-top:1px solid #E0E0E0; margin-top:20px; font-size:8px; color:#999999 !important; font-family: Arial, sans-serif;">
             KINAS GROUP OF COMPANIES LIMITED<br>
             www.kinas-group.com
         </div>';
+    }
+
+    /**
+     * Wrap any inner email HTML fragment in a full, dark-mode-safe HTML
+     * document: a light-only color-scheme declaration, a table-based
+     * layout (best client compatibility), and every background/text
+     * color set explicitly via both bgcolor attributes AND inline
+     * !important styles so mail clients cannot auto-invert it in dark mode.
+     */
+    private function wrapEmailDocument($innerHtml, $subject = '')
+    {
+        $title = htmlspecialchars($subject !== '' ? $subject : 'KINAS GROUP', ENT_QUOTES);
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light only">
+<title>{$title}</title>
+<!--[if mso]>
+<style type="text/css">
+    body, table, td { font-family: Arial, Helvetica, sans-serif !important; }
+</style>
+<![endif]-->
+<style>
+    :root { color-scheme: light only; supported-color-schemes: light only; }
+    body { margin:0; padding:0; width:100% !important; background-color:#F2F2F2 !important; }
+    table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+    img { -ms-interpolation-mode:bicubic; border:0; outline:none; text-decoration:none; }
+    a { color:#C6A43F !important; text-decoration:none; }
+
+    /* Force the same light appearance regardless of the client/device
+       dark-mode setting (Gmail, Apple Mail, Outlook.com / OWA, etc.) */
+    .email-bg  { background-color:#F2F2F2 !important; }
+    .email-card, .email-card * { background-color:#FFFFFF !important; }
+    .email-card, .email-card p, .email-card li, .email-card span,
+    .email-card div, .email-card h1, .email-card h2, .email-card h3 { color:#0A0A0A !important; }
+
+    @media (prefers-color-scheme: dark) {
+        body, .email-bg { background-color:#F2F2F2 !important; }
+        .email-card, .email-card * { background-color:#FFFFFF !important; color:#0A0A0A !important; }
+        a { color:#C6A43F !important; }
+    }
+    /* Outlook.com / Office 365 webmail dark mode hooks */
+    [data-ogsc] .email-card, [data-ogsc] .email-card *,
+    [data-ogsb] .email-card, [data-ogsb] .email-card * {
+        background-color:#FFFFFF !important; color:#0A0A0A !important;
+    }
+</style>
+</head>
+<body class="email-bg" bgcolor="#F2F2F2" style="margin:0; padding:0; background-color:#F2F2F2 !important;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-bg" bgcolor="#F2F2F2" style="background-color:#F2F2F2 !important;">
+<tr>
+<td align="center" style="padding:32px 16px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="email-card" bgcolor="#FFFFFF" style="background-color:#FFFFFF !important; max-width:600px; width:100%; border-radius:6px;">
+<tr>
+<td class="email-card" bgcolor="#FFFFFF" style="background-color:#FFFFFF !important; color:#0A0A0A !important; padding:32px 32px 24px;">
+{$innerHtml}
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>
+HTML;
     }
     
     /**
@@ -90,6 +164,8 @@ class EmailService
      */
     public function send($to, $name, $subject, $htmlBody, $plainText = '')
     {
+        $htmlBody = $this->wrapEmailDocument($htmlBody, $subject);
+
         // Try Resend first
         if ($this->useResend) {
             $result = $this->sendViaResend($to, $name, $subject, $htmlBody, $plainText);
@@ -198,22 +274,22 @@ class EmailService
     private function buildVerificationEmailBody($name, $verificationLink, $year)
     {
         return <<<HTML
-        <div style="padding: 20px 0; font-family: Arial, sans-serif;">
-            <h2 style="color: #0A0A0A;">Welcome to KINAS GROUP!</h2>
-            <p>Hello <strong>{$name}</strong>,</p>
-            <p>Thank you for joining KINAS GROUP OF COMPANIES LIMITED. We're excited to have you as part of our luxury marketplace ecosystem.</p>
+        <div class="email-card" style="padding: 20px 0; font-family: Arial, sans-serif; background-color:#FFFFFF !important; color:#0A0A0A !important;">
+            <h2 style="color: #0A0A0A !important; margin:0 0 16px;">Welcome to KINAS GROUP!</h2>
+            <p style="color:#0A0A0A !important;">Hello <strong style="color:#0A0A0A !important;">{$name}</strong>,</p>
+            <p style="color:#0A0A0A !important;">Thank you for joining KINAS GROUP OF COMPANIES LIMITED. We're excited to have you as part of our luxury marketplace ecosystem.</p>
             
-            <p style="margin: 20px 0;">Please verify your email address to complete your registration:</p>
+            <p style="margin: 20px 0; color:#0A0A0A !important;">Please verify your email address to complete your registration:</p>
             
             <div style="text-align: center; margin: 30px 0;">
-                <a href="{$verificationLink}" style="display: inline-block; padding: 14px 40px; background: #C6A43F; color: #0A0A0A; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 15px;">Verify Email Address</a>
+                <a href="{$verificationLink}" style="display: inline-block; padding: 14px 40px; background-color: #C6A43F !important; color: #0A0A0A !important; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 15px;">Verify Email Address</a>
             </div>
             
-            <p style="font-size: 12px; color: #999;">Or copy and paste this link into your browser:</p>
-            <p style="font-size: 12px; color: #C6A43F; word-break: break-all;">{$verificationLink}</p>
+            <p style="font-size: 12px; color: #666666 !important;">Or copy and paste this link into your browser:</p>
+            <p style="font-size: 12px; color: #C6A43F !important; word-break: break-all;">{$verificationLink}</p>
             
-            <p style="font-size: 12px; color: #999; margin-top: 20px;">This verification link expires in <strong>24 hours</strong>.</p>
-            <p style="font-size: 12px; color: #999;">If you did not create an account with KINAS GROUP, please ignore this email.</p>
+            <p style="font-size: 12px; color: #666666 !important; margin-top: 20px;">This verification link expires in <strong style="color:#666666 !important;">24 hours</strong>.</p>
+            <p style="font-size: 12px; color: #666666 !important;">If you did not create an account with KINAS GROUP, please ignore this email.</p>
         </div>
 HTML;
     }
@@ -265,7 +341,8 @@ TEXT;
         $year = date('Y');
         $header = $this->getEmailHeader();
         $footer = $this->getEmailFooter();
-        return $header . $this->buildVerificationEmailBody($name, $verificationLink, $year) . $footer;
+        $inner = $header . $this->buildVerificationEmailBody($name, $verificationLink, $year) . $footer;
+        return $this->wrapEmailDocument($inner, 'Verify your KINAS GROUP account');
     }
     
     /**
