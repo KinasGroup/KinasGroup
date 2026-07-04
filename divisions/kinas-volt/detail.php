@@ -251,7 +251,13 @@ function isUserLoggedIn() {
 }
 
 function showLoginRequired() {
-    alert('Please login to continue');
+    // In-page, mobile-responsive banner instead of a native browser
+    // alert() (which shows as a generic "kinas-group.com says: ..." popup).
+    if (typeof kinasToast === 'function') {
+        kinasToast('Please sign in to continue — redirecting you to login…', 'warning');
+    } else if (typeof window.showSuccessBanner === 'function') {
+        window.showSuccessBanner('Please sign in to continue — redirecting you to login…', true);
+    }
     setTimeout(function() {
         window.location.href = '/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
     }, 1500);
