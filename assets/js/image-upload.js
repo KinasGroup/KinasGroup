@@ -255,6 +255,22 @@ document.addEventListener('DOMContentLoaded', function() {
         // Replace with our compressed version
         input.addEventListener('change', async function(e) {
             if (!this.files || this.files.length === 0) return;
+
+            // ── Re-entrancy guard ─────────────────────────────────────
+            // BUG FIX: this handler used to finish by doing
+            //   this.files = <compressed files>;
+            //   this.dispatchEvent(new Event('change', { bubbles: true }));
+            // to let the page's own "add to selectedFiles" listener pick up
+            // the compressed files. But dispatching a 'change' event on the
+            // SAME input re-invokes every 'change' listener on it — including
+            // this very handler — which would compress again and dispatch
+            // again, forever. Each pass also made the page's listener append
+            // the files to its array *again* (it appends, it never replaces),
+            // so a single selection could balloon into 100+ duplicates in a
+            // fraction of a second. The guard below makes sure this handler
+            // can never re-enter itself while a run is already in flight.
+            if (this.dataset.kinasProcessing === '1') return;
+            this.dataset.kinasProcessing = '1';
             
             const files = this.files;
             
@@ -306,16 +322,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 compressedFiles.forEach(file => dataTransfer.items.add(file));
                 this.files = dataTransfer.files;
                 
-                // Trigger the original onchange handler if it exists
+                // Call the original onchange handler if the page assigned one
+                // via input.onchange = fn (older pattern). This does NOT
+                // re-trigger this listener, unlike dispatching 'change' did.
                 if (typeof originalChange === 'function') {
                     originalChange.call(this, e);
                 }
                 
-                // Trigger a change event to update previews
-                this.dispatchEvent(new Event('change', { bubbles: true }));
+                // Tell the page the compressed files are ready. Pages should
+                // listen for THIS event (not 'change') to add files to their
+                // preview/selection state — see add-listing.php / edit-listing.php.
+                // Using a distinct event type (rather than re-dispatching
+                // 'change') means this handler can never be re-entered by its
+                // own completion signal.
+                this.dispatchEvent(new CustomEvent('kinas:images-ready', {
+                    bubbles: true,
+                    detail: { files: compressedFiles }
+                }));
                 
                 // Show success notification via existing toast system
-                const totalSize = compressedFiles.reduce((sum, f) => sum + f.size, 0);
                 if (typeof kinasToast === 'function') {
                     kinasToast(`✅ ${compressedFiles.length} image${compressedFiles.length > 1 ? 's' : ''} optimized for upload`, 'success');
                 } else if (typeof showNotification === 'function') {
@@ -329,11 +354,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (typeof showNotification === 'function') {
                     showNotification('⚠️ Image optimization failed. Using originals.', 'warning');
                 }
+                // Even on failure, the page still needs to know about the
+                // (uncompressed) files it selected, or nothing gets added.
+                this.dispatchEvent(new CustomEvent('kinas:images-ready', {
+                    bubbles: true,
+                    detail: { files: Array.from(files) }
+                }));
             } finally {
                 // Remove loading overlay
                 if (uploadArea && loadingOverlay) {
                     loadingOverlay.remove();
                 }
+                this.dataset.kinasProcessing = '0';
             }
         });
     });
