@@ -85,10 +85,13 @@ $agents = $db->query("
     SELECT u.id, u.name, u.email, u.phone, u.created_at,
            ap.division, ap.verification_status, ap.company_name, ap.license_number, ap.bio, ap.website, ap.kyc_submitted_at,
            ap.kyc_provider, ap.kyc_verification_id,
-           mv.mati_status, mv.completed_at AS mv_completed
+           ap.kyb_status, ap.kyb_verification_id, ap.kyb_registry_snapshot,
+           mv.mati_status, mv.completed_at AS mv_completed,
+           dv.didit_status, dv.completed_at AS dv_completed
     FROM users u
     JOIN agent_profiles ap ON ap.user_id = u.id
     LEFT JOIN metamap_verifications mv ON mv.user_id = u.id
+    LEFT JOIN didit_verifications dv ON dv.user_id = u.id AND dv.session_type = 'kyc'
     WHERE ap.verification_status IN ('pending','phone_verified','kyc_passed','documents_submitted','in_progress','review_needed')
     ORDER BY COALESCE(ap.kyc_submitted_at, u.created_at) ASC
 ")->fetchAll();
@@ -230,6 +233,9 @@ require_once __DIR__ . '/../templates/header.php';
                 <?php if (!empty($agent['mati_status'])): ?>
                 <p><strong>MetaMap status:</strong> <?= htmlspecialchars($agent['mati_status']) ?></p>
                 <?php endif; ?>
+                <?php if (!empty($agent['didit_status'])): ?>
+                <p><strong>Didit status:</strong> <?= htmlspecialchars($agent['didit_status']) ?></p>
+                <?php endif; ?>
                 <p class="doc-meta" style="font-size:12px; color:#888; margin-top:8px;">
                     KYC is handled by a third-party provider. KINAS GROUP does not store ID images.
                 </p>
@@ -245,11 +251,16 @@ require_once __DIR__ . '/../templates/header.php';
             </div>
 
             <div class="info-section" style="margin-top:20px">
-                <h4>Identity (MetaMap)</h4>
+                <h4>Identity (<?= htmlspecialchars(ucfirst($agent['kyc_provider'] ?? 'not started')) ?>)</h4>
                 <?php if ($agent['kyc_provider'] === 'metamap' && !empty($agent['kyc_verification_id'])): ?>
                     <p><strong>Verification ID:</strong> <code style="font-size:12px;"><?= htmlspecialchars($agent['kyc_verification_id']) ?></code></p>
                     <?php if (!empty($agent['mati_status'])): ?>
                     <p><strong>MetaMap status:</strong> <?= htmlspecialchars($agent['mati_status']) ?></p>
+                    <?php endif; ?>
+                <?php elseif ($agent['kyc_provider'] === 'didit' && !empty($agent['kyc_verification_id'])): ?>
+                    <p><strong>Session ID:</strong> <code style="font-size:12px;"><?= htmlspecialchars($agent['kyc_verification_id']) ?></code></p>
+                    <?php if (!empty($agent['didit_status'])): ?>
+                    <p><strong>Didit status:</strong> <?= htmlspecialchars($agent['didit_status']) ?></p>
                     <?php endif; ?>
                 <?php else: ?>
                     <p style="color:#888;">Not started yet.</p>
@@ -257,7 +268,25 @@ require_once __DIR__ . '/../templates/header.php';
             </div>
 
             <div class="info-section" style="margin-top:20px">
-                <h4>Business Documents</h4>
+                <h4>Business Verification (Didit KYB)</h4>
+                <?php if (!empty($agent['kyb_verification_id'])): ?>
+                    <p><strong>Session ID:</strong> <code style="font-size:12px;"><?= htmlspecialchars($agent['kyb_verification_id']) ?></code></p>
+                    <p><strong>Status:</strong> <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $agent['kyb_status'] ?? 'not_started'))) ?></p>
+                    <?php
+                        $registry = !empty($agent['kyb_registry_snapshot']) ? json_decode($agent['kyb_registry_snapshot'], true) : null;
+                    ?>
+                    <?php if ($registry): ?>
+                        <p><strong>Registered name:</strong> <?= htmlspecialchars($registry['legal_name'] ?? '—') ?></p>
+                        <p><strong>Registration #:</strong> <?= htmlspecialchars($registry['registration_number'] ?? '—') ?></p>
+                        <?php if (!empty($registry['company_status'])): ?><p><strong>Registry status:</strong> <?= htmlspecialchars($registry['company_status']) ?></p><?php endif; ?>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <p style="color:#888;">Not started — agent may still submit manual documents below instead.</p>
+                <?php endif; ?>
+            </div>
+
+            <div class="info-section" style="margin-top:20px">
+                <h4>Business Documents (manual upload)</h4>
                 <?php if (!empty($agent['cac_number']) || !empty($agent['tin']) || !empty($agent['company_legal_name'])): ?>
                 <p><strong>Legal name:</strong> <?= htmlspecialchars($agent['company_legal_name'] ?? '—') ?></p>
                 <p><strong>CAC #:</strong> <?= htmlspecialchars($agent['cac_number'] ?? '—') ?></p>
