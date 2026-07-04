@@ -137,24 +137,32 @@ $agentVerified = !empty($item['agent_verified']);
             </dl>
 
             <!-- ============================================================ -->
-            <!-- BUTTONS - Fully Working -->
+            <!-- BUTTONS - Cart & Checkout (Paystack) -->
             <!-- ============================================================ -->
+            <?php if ($isPreview || $item['status'] === 'sold'): ?>
             <div class="je-cta-row">
-                <!-- Schedule Viewing -->
-                <button class="je-cta-primary" id="scheduleBtn" onclick="openScheduleViewing(<?= $listingId ?>, 'marketplace', <?= $agentId ?>);">
-                    <i class="far fa-calendar-alt"></i> Schedule Viewing
+                <button class="je-cta-secondary" disabled style="opacity:.55;cursor:not-allowed;">
+                    <i class="fas fa-lock"></i> <?= $item['status'] === 'sold' ? 'Sold' : 'Not yet available' ?>
                 </button>
-                
-                <!-- Contact Seller -->
-                <button class="je-cta-secondary" id="contactBtn" onclick="openContactAgent(<?= $agentId ?>, '<?= $agentName ?>', 'marketplace');">
-                    <i class="far fa-envelope"></i> Contact Seller
+            </div>
+            <?php else: ?>
+            <div class="je-cta-row">
+                <!-- Buy Now -->
+                <button class="je-cta-primary" id="buyNowBtn" onclick="jeBuyNow(<?= $listingId ?>);">
+                    <i class="fas fa-bolt"></i> Buy Now
                 </button>
-                
+
+                <!-- Add to Cart -->
+                <button class="je-cta-secondary" id="addToCartBtn" onclick="jeAddToCart(<?= $listingId ?>);">
+                    <i class="fas fa-shopping-bag"></i> Add to Cart
+                </button>
+
                 <!-- Save Listing -->
                 <button class="je-cta-secondary" id="saveBtn" onclick="jeSaveListing('marketplace', <?= $listingId ?>);">
                     <i class="far fa-heart"></i> Save
                 </button>
             </div>
+            <?php endif; ?>
 
             <div class="je-agent-card">
                 <div class="je-agent-avatar">
@@ -272,261 +280,73 @@ function showSuccessBanner(message, isError) {
 }
 
 // ============================================================
-// SCHEDULE VIEWING
+// ADD TO CART
 // ============================================================
 
-function openScheduleViewing(listingId, listingType, agentId) {
-    console.log('Schedule Viewing clicked!', listingId, listingType, agentId);
-    
+function jeAddToCart(listingId) {
     if (!isUserLoggedIn()) {
         showLoginRequired();
         return;
     }
-    
-    const old = document.getElementById('schedule-modal');
-    if (old) old.remove();
-    
-    const html = `
-    <div id="schedule-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;">
-        <div style="background:#fff;border-radius:12px;padding:30px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                <h3 style="margin:0;font-size:20px;">📅 Schedule Viewing</h3>
-                <button onclick="document.getElementById('schedule-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
-            </div>
-            <div style="padding:12px;background:#f5f5f5;border-radius:8px;margin-bottom:20px;">
-                <strong><?= $agentName ?></strong> · <?= $listingTitle ?>
-            </div>
-            <form id="scheduleForm">
-                <input type="hidden" name="listing_id" value="${listingId}">
-                <input type="hidden" name="listing_type" value="${listingType}">
-                <input type="hidden" name="agent_id" value="${agentId}">
-                <input type="hidden" name="inquiry_type" value="viewing">
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Name *</label>
-                    <input type="text" name="name" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Email *</label>
-                    <input type="email" name="email" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Phone</label>
-                    <input type="tel" name="phone" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-                    <div>
-                        <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Date *</label>
-                        <input type="date" name="preferred_date" id="prefDate" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                    </div>
-                    <div>
-                        <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Time *</label>
-                        <select name="preferred_time" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                            <option value="">Select</option>
-                            <option value="09:00">9:00 AM</option>
-                            <option value="10:00">10:00 AM</option>
-                            <option value="11:00">11:00 AM</option>
-                            <option value="12:00">12:00 PM</option>
-                            <option value="13:00">1:00 PM</option>
-                            <option value="14:00">2:00 PM</option>
-                            <option value="15:00">3:00 PM</option>
-                            <option value="16:00">4:00 PM</option>
-                            <option value="17:00">5:00 PM</option>
-                        </select>
-                    </div>
-                </div>
-                <div style="margin-bottom:16px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Notes</label>
-                    <textarea name="message" rows="3" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;resize:vertical;"></textarea>
-                </div>
-                <button type="submit" style="width:100%;padding:12px;background:#0A0A0A;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;">
-                    <i class="fas fa-calendar-check"></i> Request Viewing
-                </button>
-                <div id="scheduleMsg" style="margin-top:12px;padding:10px;border-radius:6px;display:none;"></div>
-            </form>
-        </div>
-    </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', html);
-    
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateInput = document.getElementById('prefDate');
-    if (dateInput) {
-        dateInput.min = tomorrow.toISOString().split('T')[0];
-        dateInput.value = tomorrow.toISOString().split('T')[0];
-    }
-    
-    const meta = document.querySelector('meta[name="user-data"]');
-    if (meta) {
-        try {
-            const data = JSON.parse(meta.content);
-            const form = document.getElementById('scheduleForm');
-            if (form) {
-                form.querySelector('input[name="name"]').value = data.name || '';
-                form.querySelector('input[name="email"]').value = data.email || '';
-                form.querySelector('input[name="phone"]').value = data.phone || '';
-            }
-        } catch (e) {}
-    }
-    
-    document.getElementById('scheduleForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = this.querySelector('button[type="submit"]');
-        const msg = document.getElementById('scheduleMsg');
-        const original = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+    const btn = document.getElementById('addToCartBtn');
+    const original = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
         btn.disabled = true;
-        msg.style.display = 'none';
-        
-        const formData = new FormData(this);
-        const notes = formData.get('message') || '';
-        if (!notes.trim()) {
-            formData.set('message', 'I would like to schedule a viewing for this item.');
-        }
-        
-        try {
-            const res = await fetch('../../../api/messages/send-inquiry.php', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await res.json();
-            if (data.success) {
-                const modal = document.getElementById('schedule-modal');
-                if (modal) modal.remove();
-                showSuccessBanner('✅ Viewing requested successfully! The seller will confirm within 24 hours.', false);
-            } else {
-                msg.style.display = 'block';
-                msg.style.background = '#f8d7da';
-                msg.style.color = '#721c24';
-                msg.textContent = data.error || 'Failed to schedule. Please try again.';
-                btn.innerHTML = original;
-                btn.disabled = false;
+    }
+
+    const formData = new FormData();
+    formData.append('listing_id', listingId);
+
+    fetch('/api/cart/add.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-check"></i> In Cart';
             }
-        } catch (error) {
-            msg.style.display = 'block';
-            msg.style.background = '#f8d7da';
-            msg.style.color = '#721c24';
-            msg.textContent = 'Network error. Please try again.';
-            btn.innerHTML = original;
-            btn.disabled = false;
+            updateCartBadge(data.cart_count);
+            showSuccessBanner('✅ Added to cart! <a href="/divisions/kinas-marketplace/cart.php" style="color:#155724;font-weight:700;text-decoration:underline;margin-left:6px;">View cart</a>', false);
+            setTimeout(function() {
+                if (btn) { btn.innerHTML = original; btn.disabled = false; }
+            }, 2000);
+        } else {
+            if (btn) { btn.innerHTML = original; btn.disabled = false; }
+            showSuccessBanner('❌ ' + (data.error || 'Failed to add to cart'), true);
         }
+    })
+    .catch(function() {
+        if (btn) { btn.innerHTML = original; btn.disabled = false; }
+        showSuccessBanner('❌ Network error. Please try again.', true);
     });
 }
 
+function updateCartBadge(count) {
+    const badge = document.getElementById('jeCartBadge');
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
 // ============================================================
-// CONTACT SELLER
+// BUY NOW — skips the cart, goes straight to checkout
 // ============================================================
 
-function openContactAgent(agentId, agentName, division) {
-    console.log('Contact Seller clicked!', agentId, agentName, division);
-    
+function jeBuyNow(listingId) {
     if (!isUserLoggedIn()) {
         showLoginRequired();
         return;
     }
-    
-    const old = document.getElementById('contact-modal');
-    if (old) old.remove();
-    
-    const verifiedBadge = <?= $agentVerified ? 'true' : 'false' ?> ? '<span style="color:#1B5E20;">✓ Verified</span>' : '';
-    
-    const html = `
-    <div id="contact-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999998;display:flex;align-items:center;justify-content:center;">
-        <div style="background:#fff;border-radius:12px;padding:30px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                <h3 style="margin:0;font-size:20px;">✉️ Contact Seller</h3>
-                <button onclick="document.getElementById('contact-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
-            </div>
-            <div style="padding:12px;background:#f5f5f5;border-radius:8px;margin-bottom:20px;">
-                <strong>${agentName}</strong> ${verifiedBadge} · ${division}
-            </div>
-            <form id="contactForm">
-                <input type="hidden" name="listing_id" value="<?= $listingId ?>">
-                <input type="hidden" name="listing_type" value="marketplace">
-                <input type="hidden" name="agent_id" value="${agentId}">
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Name *</label>
-                    <input type="text" name="name" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Email *</label>
-                    <input type="email" name="email" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Phone</label>
-                    <input type="tel" name="phone" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Subject</label>
-                    <input type="text" name="subject" value="Inquiry about item" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:16px;">
-                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Message *</label>
-                    <textarea name="message" rows="5" required placeholder="Hi, I'm interested in your item..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;resize:vertical;"></textarea>
-                </div>
-                <button type="submit" style="width:100%;padding:12px;background:#0A0A0A;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;">
-                    <i class="fas fa-paper-plane"></i> Send Inquiry
-                </button>
-                <div id="contactMsg" style="margin-top:12px;padding:10px;border-radius:6px;display:none;"></div>
-            </form>
-        </div>
-    </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', html);
-    
-    const meta = document.querySelector('meta[name="user-data"]');
-    if (meta) {
-        try {
-            const data = JSON.parse(meta.content);
-            const form = document.getElementById('contactForm');
-            if (form) {
-                form.querySelector('input[name="name"]').value = data.name || '';
-                form.querySelector('input[name="email"]').value = data.email || '';
-                form.querySelector('input[name="phone"]').value = data.phone || '';
-            }
-        } catch (e) {}
-    }
-    
-    document.getElementById('contactForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = this.querySelector('button[type="submit"]');
-        const msg = document.getElementById('contactMsg');
-        const original = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-        btn.disabled = true;
-        msg.style.display = 'none';
-        
-        const formData = new FormData(this);
-        
-        try {
-            const res = await fetch('../../../api/messages/send-inquiry.php', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await res.json();
-            if (data.success) {
-                const modal = document.getElementById('contact-modal');
-                if (modal) modal.remove();
-                showSuccessBanner('✅ Inquiry sent successfully! The seller will contact you shortly.', false);
-            } else {
-                msg.style.display = 'block';
-                msg.style.background = '#f8d7da';
-                msg.style.color = '#721c24';
-                msg.textContent = data.error || 'Failed to send. Please try again.';
-                btn.innerHTML = original;
-                btn.disabled = false;
-            }
-        } catch (error) {
-            msg.style.display = 'block';
-            msg.style.background = '#f8d7da';
-            msg.style.color = '#721c24';
-            msg.textContent = 'Network error. Please try again.';
-            btn.innerHTML = original;
-            btn.disabled = false;
-        }
-    });
+    window.location.href = '/divisions/kinas-marketplace/checkout.php?buy_now=' + encodeURIComponent(listingId);
 }
 
 // ============================================================
