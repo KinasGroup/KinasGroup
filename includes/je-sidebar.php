@@ -89,6 +89,7 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
         ['key' => 'flagged',      'icon' => 'flag',             'label' => 'Flagged Listings', 'href' => 'flagged-listings.php'],
         ['type' => 'heading',     'label' => 'ANALYTICS'],
         ['key' => 'reports',      'icon' => 'chart-bar',        'label' => 'Reports',        'href' => 'reports.php'],
+        ['key' => 'orders',       'icon' => 'receipt',          'label' => 'Marketplace Orders', 'href' => 'marketplace-orders.php'],
         ['key' => 'activity',     'icon' => 'history',          'label' => 'Activity Log',   'href' => 'activity-logs.php'],
         ['type' => 'heading',     'label' => 'FEATURED MANAGEMENT'],
         ['key' => 'test_algo',    'icon' => 'chart-line',       'label' => 'Test Algorithm', 'href' => 'test-featured.php'],
