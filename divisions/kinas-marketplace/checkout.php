@@ -66,6 +66,15 @@ if (!$returningOrder) {
     }
 }
 
+// Estimate the Paystack fee gross-up for display — pure math, no API
+// call needed. The authoritative amount actually charged still comes
+// back from checkout-init.php right before payment.
+$passFeesToBuyer = strtolower(getenv('PAYSTACK_PASS_FEES_TO_BUYER') ?: 'true') !== 'false';
+$checkoutFee = $passFeesToBuyer && $checkoutTotal > 0
+    ? round(PaystackService::grossUpForFee($checkoutTotal) - $checkoutTotal, 2)
+    : 0.0;
+$checkoutGrandTotal = round($checkoutTotal + $checkoutFee, 2);
+
 $userStmt = $db->prepare("SELECT name, email, phone FROM users WHERE id = ?");
 $userStmt->execute([$userId]);
 $buyer = $userStmt->fetch();
@@ -203,12 +212,18 @@ include '../../templates/header.php';
                     <span>Items (<?= count(array_filter($checkoutItems, fn($i) => $i['status'] === 'active')) ?>)</span>
                     <span><?= formatPrice($checkoutTotal) ?></span>
                 </div>
+                <?php if ($checkoutFee > 0): ?>
+                <div class="je-cart-summary-row" style="font-weight:400;color:#666;">
+                    <span>Card processing fee <i class="fas fa-info-circle" title="Covers the payment gateway's processing charge" style="color:#bbb;"></i></span>
+                    <span><?= formatPrice($checkoutFee) ?></span>
+                </div>
+                <?php endif; ?>
                 <div class="je-cart-summary-row" style="border-top:1px solid #ddd;margin-top:8px;padding-top:12px;font-size:16px;">
                     <span>Total</span>
-                    <span id="checkoutTotalLabel"><?= formatPrice($checkoutTotal) ?></span>
+                    <span id="checkoutTotalLabel"><?= formatPrice($checkoutGrandTotal) ?></span>
                 </div>
                 <button class="je-cta-primary" style="width:100%;margin-top:16px;" id="payNowBtn" <?= $paystackReady ? '' : 'disabled' ?> onclick="jeStartPayment();">
-                    <i class="fas fa-lock"></i> Pay <?= formatPrice($checkoutTotal) ?>
+                    <i class="fas fa-lock"></i> Pay <?= formatPrice($checkoutGrandTotal) ?>
                 </button>
                 <p style="font-size:11px;color:#999;margin-top:12px;text-align:center;"><i class="fas fa-shield-alt"></i> Secured by Paystack. We never see or store your card details.</p>
             </aside>
