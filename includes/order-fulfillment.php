@@ -110,15 +110,15 @@ function finalizeMarketplaceOrder(PDO $db, string $reference): array
             $db->prepare("
                 INSERT INTO transactions
                     (agent_id, listing_id, listing_type, order_id, buyer_id, payment_method,
-                     paystack_reference, buyer_name, buyer_email, amount, commission_pct,
+                     paystack_reference, settlement_mode, buyer_name, buyer_email, amount, commission_pct,
                      commission, currency, status, paid_at)
                 VALUES
                     (?, ?, 'marketplace', ?, ?, 'paystack',
-                     ?, ?, ?, ?, ?,
+                     ?, ?, ?, ?, ?, ?,
                      ?, ?, 'paid', NOW())
             ")->execute([
                 $item['agent_id'], $item['listing_id'], $order['id'], $order['buyer_id'],
-                $reference, $buyerName, $order['email'], $item['price'], $commissionPct,
+                $reference, $order['settlement_mode'], $buyerName, $order['email'], $item['price'], $commissionPct,
                 $commission, $order['currency'],
             ]);
         }
