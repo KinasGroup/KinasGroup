@@ -36,6 +36,9 @@ $current_page = $current_page ?? 'dashboard';
             <a href="/user/saved-listings.php" class="je-dash-nav-item <?php echo $current_page === 'saved' ? 'active' : ''; ?>">
                 <i class="fas fa-heart"></i> Saved Listings
             </a>
+            <a href="/user/orders.php" class="je-dash-nav-item <?php echo $current_page === 'orders' ? 'active' : ''; ?>">
+                <i class="fas fa-receipt"></i> My Orders
+            </a>
             <a href="/user/profile.php" class="je-dash-nav-item <?php echo $current_page === 'profile' ? 'active' : ''; ?>">
                 <i class="fas fa-user"></i> Profile
             </a>
