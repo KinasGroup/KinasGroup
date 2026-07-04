@@ -2,47 +2,74 @@
 /**
  * KINAS GROUP — Agent Verification Wizard
  *
- * 3 steps:
+ * 4 steps:
  *   1. Phone verified? (handled at login time, but show status here)
- *   2. MetaMap identity verification
- *   3. Business document upload (CAC, TIN, etc.)
+ *   2. Didit KYC — personal identity verification
+ *   3. Didit KYB — automated business verification (registry, UBOs, AML)
+ *   4. Manual business document upload — fallback path, admin-reviewed
+ *      (kept for businesses Didit's registry coverage can't reach)
  *
- * State machine on agent_profiles.verification_status:
+ * KYC and KYB are two independent Didit *workflows* (their term for
+ * a configured verification flow) — an agent can do either in any
+ * order, but full admin approval looks at both.
+ *
+ * State machine on agent_profiles.verification_status (KYC):
  *   pending → phone_verified → kyc_passed → documents_submitted → approved
+ * Parallel state machine on agent_profiles.kyb_status (KYB):
+ *   not_started → in_progress → review_needed|approved|rejected
+ *
+ * NOTE: MetaMap remains in the codebase (includes/metamap.php,
+ * api/agent/kyc-start.php, api/webhooks/metamap.php) purely so
+ * historical verifications keep their record intact — new identity
+ * verifications go through Didit from here on.
  */
 require_once __DIR__ . '/../api/config/database.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
-require_once __DIR__ . '/../includes/metamap.php';
+require_once __DIR__ . '/../includes/didit.php';
 
 SessionManager::requireAgent();
 $userId = (int)$_SESSION['user_id'];
 $db     = Database::getInstance()->getConnection();
 $csrf   = Security::generateCSRFToken();
 
-// Load current state
+// Load current state (KYC + KYB + phone + business docs)
 $row = $db->prepare("
     SELECT ap.verification_status, ap.kyc_submitted_at, ap.kyc_decision_at,
            ap.kyc_provider, ap.kyc_verification_id,
+           ap.kyb_status, ap.kyb_submitted_at, ap.kyb_decision_at, ap.kyb_registry_snapshot,
            ap.cac_number, ap.tin, ap.company_legal_name, ap.business_doc_notes,
-           mv.verification_id AS mv_id, mv.mati_status, mv.created_at AS mv_started,
+           dv.session_id AS dv_id, dv.didit_status, dv.created_at AS dv_started,
            u.name, u.email, u.phone, u.phone_verified_at
     FROM users u
     JOIN agent_profiles ap ON ap.user_id = u.id
-    LEFT JOIN metamap_verifications mv ON mv.user_id = u.id
+    LEFT JOIN didit_verifications dv ON dv.user_id = u.id AND dv.session_type = 'kyc'
     WHERE u.id = ?
-    ORDER BY mv.id DESC LIMIT 1
+    ORDER BY dv.id DESC LIMIT 1
 ");
 $row->execute([$userId]);
 $state = $row->fetch(PDO::FETCH_ASSOC) ?: [];
 
-$status       = $state['verification_status'] ?? 'pending';
-$phoneVerified = !empty($state['phone_verified_at']);
-$kycPassed    = in_array($status, ['kyc_passed','documents_submitted','approved'], true);
-$docsUploaded = in_array($status, ['documents_submitted','approved'], true);
-$approved     = $status === 'approved';
+$kybRow = $db->prepare("
+    SELECT session_id, didit_status, created_at
+    FROM didit_verifications
+    WHERE user_id = ? AND session_type = 'kyb'
+    ORDER BY id DESC LIMIT 1
+");
+$kybRow->execute([$userId]);
+$kybState = $kybRow->fetch(PDO::FETCH_ASSOC) ?: [];
 
-$metamap = new MetaMapService();
+$status        = $state['verification_status'] ?? 'pending';
+$phoneVerified = !empty($state['phone_verified_at']);
+$kycPassed     = in_array($status, ['kyc_passed','documents_submitted','approved'], true);
+$docsUploaded  = in_array($status, ['documents_submitted','approved'], true);
+$approved      = $status === 'approved';
+
+$kybStatus     = $state['kyb_status'] ?? 'not_started';
+$kybApproved   = $kybStatus === 'approved';
+$kybRegistry   = !empty($state['kyb_registry_snapshot']) ? json_decode($state['kyb_registry_snapshot'], true) : null;
+
+$didit = new DiditService();
 $pageTitle = 'Verification - KINAS GROUP';
 include __DIR__ . '/../templates/header.php';
 ?>
@@ -158,6 +185,7 @@ include __DIR__ . '/../templates/header.php';
     .toast.show { transform: translateY(0); opacity: 1; }
     .toast.success { background: var(--kg-green); color: white; }
     .toast.error   { background: #B71C1C; color: white; }
+    .toast.info    { background: var(--kg-ink); color: white; }
 
     .info-banner { background: linear-gradient(135deg,#FFF8E1,#FFF3E0); border: 1px solid #FFE0B2; border-radius: 12px; padding: 18px 24px; margin-bottom: 24px; display: flex; gap: 14px; align-items: flex-start; }
     .info-banner i { color: #BF360C; font-size: 18px; }
@@ -179,7 +207,7 @@ include __DIR__ . '/../templates/header.php';
 
     <div class="verify-header">
         <h1><i class="fas fa-shield-alt"></i> Verification</h1>
-        <p>Complete all three steps to become a verified KINAS agent and unlock the ability to list inventory.</p>
+        <p>Complete these steps to become a verified KINAS agent and unlock the ability to list inventory.</p>
     </div>
 
     <?php if ($approved): ?>
@@ -195,7 +223,7 @@ include __DIR__ . '/../templates/header.php';
     <div class="info-banner">
         <i class="fas fa-info-circle"></i>
         <div class="text">
-            <strong>How verification works:</strong> MetaMap handles your personal ID (fast, automated). Our admin team reviews your business documents (CAC, etc.) for trust and safety. Your ID images never touch our servers — they're stored with MetaMap under their privacy policy.
+            <strong>How verification works:</strong> Didit handles your personal ID and your business's registry check (fast, automated, powered by two separate verification workflows). Our admin team does a final review before you're fully approved. Your ID images never touch our servers — they're processed by Didit under their privacy policy.
         </div>
     </div>
 
@@ -222,7 +250,7 @@ include __DIR__ . '/../templates/header.php';
             </div>
         </div>
 
-        <!-- ── Step 2: MetaMap KYC ── -->
+        <!-- ── Step 2: Didit KYC ── -->
         <div class="step <?= $approved ? 'is-done' : ($kycPassed ? 'is-done' : (!$phoneVerified ? 'is-pending' : 'is-active')) ?>">
             <div class="step-head">
                 <div class="step-num"><?= $kycPassed ? '<i class="fas fa-check"></i>' : '2' ?></div>
@@ -230,42 +258,93 @@ include __DIR__ . '/../templates/header.php';
                     <div class="step-status">
                         <?php
                         if ($status === 'kyc_passed' || $status === 'documents_submitted' || $status === 'approved') echo 'Identity Verified';
-                        elseif (!$phoneVerified) echo 'Step 2 of 3 (locked)';
+                        elseif (!$phoneVerified) echo 'Step 2 of 4 (locked)';
                         elseif ($status === 'rejected') echo 'Identity needs re-do';
-                        else echo 'Step 2 of 3';
+                        else echo 'Step 2 of 4';
                         ?>
                     </div>
-                    <div class="step-title">Identity verification (MetaMap)</div>
+                    <div class="step-title">Identity verification (Didit KYC)</div>
                 </div>
             </div>
             <div class="step-body">
                 <?php if ($kycPassed): ?>
-                    <p style="color:var(--kg-green);">✓ Personal identity verified via MetaMap. <?= $state['mv_started'] ? 'Started ' . date('M j, Y g:i A', strtotime($state['mv_started'])) : '' ?></p>
+                    <p style="color:var(--kg-green);">✓ Personal identity verified via Didit. <?= $state['dv_started'] ? 'Started ' . date('M j, Y g:i A', strtotime($state['dv_started'])) : '' ?></p>
                 <?php elseif (!$phoneVerified): ?>
                     <p style="color:var(--kg-mute);">Complete Step 1 first to unlock this step.</p>
                 <?php else: ?>
-                    <p>MetaMap will guide you through a quick, secure flow. You'll need a valid government ID and a few minutes.</p>
+                    <p>Didit will guide you through a quick, secure flow. You'll need a valid government ID and a few minutes.</p>
                     <div class="cta-row">
-                        <button id="metamapBtn" class="btn-primary">
-                            <i class="fas fa-shield-alt"></i> Start MetaMap Verification
+                        <button id="diditKycBtn" class="btn-primary">
+                            <i class="fas fa-shield-alt"></i> Start Identity Verification
                         </button>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
 
-        <!-- ── Step 3: Business docs ── -->
+        <!-- ── Step 3: Didit KYB (business verification) ── -->
+        <div class="step <?= $kybApproved ? 'is-done' : (!$phoneVerified ? 'is-pending' : ($kybStatus === 'rejected' ? 'is-rejected' : 'is-active')) ?>">
+            <div class="step-head">
+                <div class="step-num"><?= $kybApproved ? '<i class="fas fa-check"></i>' : '3' ?></div>
+                <div style="flex:1; min-width:0;">
+                    <div class="step-status">
+                        <?php
+                        if ($kybApproved) echo 'Business Verified';
+                        elseif ($kybStatus === 'review_needed') echo 'Under Didit Review';
+                        elseif ($kybStatus === 'in_progress') echo 'In Progress';
+                        elseif ($kybStatus === 'rejected') echo 'Business verification declined';
+                        elseif (!$phoneVerified) echo 'Step 3 of 4 (locked)';
+                        else echo 'Step 3 of 4 · Optional but recommended';
+                        ?>
+                    </div>
+                    <div class="step-title">Business verification (Didit KYB)</div>
+                </div>
+            </div>
+            <div class="step-body">
+                <?php if ($kybApproved): ?>
+                    <p style="color:var(--kg-green);">✓ Business verified via Didit — registry, ownership, and sanctions screening all passed.</p>
+                    <?php if ($kybRegistry): ?>
+                        <div class="meta-row" style="margin-top:14px;">
+                            <?php if (!empty($kybRegistry['legal_name'])): ?><div class="meta-card"><div class="l">Registered Name</div><div class="v"><?= htmlspecialchars($kybRegistry['legal_name']) ?></div></div><?php endif; ?>
+                            <?php if (!empty($kybRegistry['registration_number'])): ?><div class="meta-card"><div class="l">Registration No.</div><div class="v"><?= htmlspecialchars($kybRegistry['registration_number']) ?></div></div><?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                <?php elseif ($kybStatus === 'review_needed'): ?>
+                    <p>Didit flagged your business verification for review. This usually resolves within a day — no action needed from you right now.</p>
+                <?php elseif ($kybStatus === 'in_progress'): ?>
+                    <p>Your business verification is in progress. If you closed the Didit tab before finishing, click below to resume.</p>
+                    <div class="cta-row">
+                        <button id="diditKybBtn" class="btn-secondary"><i class="fas fa-building"></i> Resume Business Verification</button>
+                    </div>
+                <?php elseif ($kybStatus === 'rejected'): ?>
+                    <p style="color:#B71C1C;">Your business verification was declined. You can try again below, or use manual document upload in Step 4.</p>
+                    <div class="cta-row">
+                        <button id="diditKybBtn" class="btn-primary"><i class="fas fa-building"></i> Retry Business Verification</button>
+                    </div>
+                <?php elseif (!$phoneVerified): ?>
+                    <p style="color:var(--kg-mute);">Complete Step 1 first to unlock this step.</p>
+                <?php else: ?>
+                    <p>Didit automatically pulls your company's official registry record, identifies beneficial owners, and screens for sanctions — usually faster than manual document review. If your business isn't in Didit's registry coverage, use manual upload in Step 4 instead.</p>
+                    <div class="cta-row">
+                        <button id="diditKybBtn" class="btn-primary"><i class="fas fa-building"></i> Start Business Verification</button>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- ── Step 4: Business docs (manual fallback) ── -->
         <div class="step <?= $approved ? 'is-done' : ($docsUploaded ? 'is-active' : (!$kycPassed ? 'is-pending' : 'is-pending')) ?>">
             <div class="step-head">
-                <div class="step-num"><?= $approved ? '<i class="fas fa-check"></i>' : '3' ?></div>
+                <div class="step-num"><?= $approved ? '<i class="fas fa-check"></i>' : '4' ?></div>
                 <div style="flex:1; min-width:0;">
                     <div class="step-status">
                         <?php
                         if ($approved) echo 'Business Verified';
                         elseif ($status === 'documents_submitted') echo 'Under Admin Review';
                         elseif ($status === 'rejected') echo 'Resubmit Required';
-                        elseif (!$kycPassed) echo 'Step 3 of 3 (locked)';
-                        else echo 'Step 3 of 3';
+                        elseif (!$kycPassed) echo 'Step 4 of 4 (locked)';
+                        elseif ($kybApproved) echo 'Step 4 of 4 · Not needed — business already verified via Didit';
+                        else echo 'Step 4 of 4 · Manual fallback';
                         ?>
                     </div>
                     <div class="step-title">Business document upload (CAC, TIN, etc.)</div>
@@ -274,6 +353,8 @@ include __DIR__ . '/../templates/header.php';
             <div class="step-body">
                 <?php if ($approved): ?>
                     <p style="color:var(--kg-green);">✓ Business documents approved. You're a fully verified agent.</p>
+                <?php elseif ($kybApproved): ?>
+                    <p style="color:var(--kg-mute);">Your business is already verified via Didit KYB (Step 3) — you don't need to upload documents here as well, unless our admin team asks for something specific.</p>
                 <?php elseif ($status === 'documents_submitted'): ?>
                     <p>Your documents are being reviewed by our admin team. This usually takes 1–2 business days. We'll notify you by SMS once a decision is made.</p>
                     <?php if ($state['business_doc_notes']): ?>
@@ -368,41 +449,40 @@ include __DIR__ . '/../templates/header.php';
         setTimeout(() => toast.classList.remove('show'), 4500);
     }
 
-    // ── MetaMap start
-    const metamapBtn = document.getElementById('metamapBtn');
-    if (metamapBtn) {
-        metamapBtn.addEventListener('click', async () => {
-            metamapBtn.disabled = true;
-            metamapBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting…';
+    // ── Didit KYC start
+    const diditKycBtn = document.getElementById('diditKycBtn');
+    if (diditKycBtn) {
+        diditKycBtn.addEventListener('click', async () => {
+            diditKycBtn.disabled = true;
+            diditKycBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting…';
             try {
                 const fd = new FormData();
                 fd.append('csrf_token', csrf);
-                fd.append('country', 'NG');
-                const res = await fetch('/api/agent/kyc-start.php', { method:'POST', body: fd, credentials:'same-origin' });
+                const res = await fetch('/api/agent/didit-kyc-start.php', { method:'POST', body: fd, credentials:'same-origin' });
                 const data = await res.json().catch(()=>({}));
-                if (res.ok && data.success && data.hostedUrl) {
-                    window.open(data.hostedUrl, '_blank', 'noopener,noreferrer');
-                    showToast('MetaMap opened in a new tab. Return here when you\'re done.', 'success');
+                if (res.ok && data.success && data.url) {
+                    window.open(data.url, '_blank', 'noopener,noreferrer');
+                    showToast('Didit opened in a new tab. Return here when you\'re done.', 'success');
                     pollForKycUpdate();
                 } else {
-                    showToast(data.error || 'Could not start MetaMap.', 'error');
+                    showToast(data.error || 'Could not start identity verification.', 'error');
                 }
             } catch (e) { showToast('Network error.', 'error'); }
             finally {
-                metamapBtn.disabled = false;
-                metamapBtn.innerHTML = '<i class="fas fa-shield-alt"></i> Start MetaMap Verification';
+                diditKycBtn.disabled = false;
+                diditKycBtn.innerHTML = '<i class="fas fa-shield-alt"></i> Start Identity Verification';
             }
         });
     }
 
-    // Poll until MetaMap's webhook updates our state
+    // Poll until Didit's webhook updates our state
     function pollForKycUpdate() {
         let attempts = 0;
         const t = setInterval(async () => {
             attempts++;
             if (attempts > 60) { clearInterval(t); return; }
             try {
-                const r = await fetch('/api/agent/kyc-status.php', { credentials:'same-origin' });
+                const r = await fetch('/api/agent/didit-kyc-status.php', { credentials:'same-origin' });
                 const d = await r.json();
                 if (d.status === 'kyc_passed' || d.status === 'documents_submitted' || d.status === 'approved') {
                     clearInterval(t);
@@ -411,6 +491,57 @@ include __DIR__ . '/../templates/header.php';
                 } else if (d.status === 'rejected') {
                     clearInterval(t);
                     showToast('Identity verification was declined.', 'error');
+                }
+            } catch (_) {}
+        }, 5000);
+    }
+
+    // ── Didit KYB start
+    const diditKybBtn = document.getElementById('diditKybBtn');
+    if (diditKybBtn) {
+        diditKybBtn.addEventListener('click', async () => {
+            diditKybBtn.disabled = true;
+            const originalHtml = diditKybBtn.innerHTML;
+            diditKybBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting…';
+            try {
+                const fd = new FormData();
+                fd.append('csrf_token', csrf);
+                const res = await fetch('/api/agent/didit-kyb-start.php', { method:'POST', body: fd, credentials:'same-origin' });
+                const data = await res.json().catch(()=>({}));
+                if (res.ok && data.success && data.url) {
+                    window.open(data.url, '_blank', 'noopener,noreferrer');
+                    showToast('Didit opened in a new tab. Return here when you\'re done.', 'success');
+                    pollForKybUpdate();
+                } else {
+                    showToast(data.error || 'Could not start business verification.', 'error');
+                }
+            } catch (e) { showToast('Network error.', 'error'); }
+            finally {
+                diditKybBtn.disabled = false;
+                diditKybBtn.innerHTML = originalHtml;
+            }
+        });
+    }
+
+    // Poll until Didit's KYB webhook updates our state
+    function pollForKybUpdate() {
+        let attempts = 0;
+        const t = setInterval(async () => {
+            attempts++;
+            if (attempts > 60) { clearInterval(t); return; }
+            try {
+                const r = await fetch('/api/agent/didit-kyb-status.php', { credentials:'same-origin' });
+                const d = await r.json();
+                if (d.status === 'approved') {
+                    clearInterval(t);
+                    showToast('Business verified!', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else if (d.status === 'rejected') {
+                    clearInterval(t);
+                    showToast('Business verification was declined.', 'error');
+                } else if (d.status === 'review_needed') {
+                    clearInterval(t);
+                    showToast('Business verification is under review.', 'info');
                 }
             } catch (_) {}
         }, 5000);
