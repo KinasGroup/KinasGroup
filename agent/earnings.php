@@ -6,6 +6,7 @@
 require_once __DIR__ . '/../api/config/database.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
+require_once __DIR__ . '/../api/config/constants.php';
 
 SessionManager::requireAgent();
 
@@ -158,8 +159,14 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .checkbox-group { display: flex; align-items: center; gap: 8px; }
 .checkbox-group input { accent-color: #C6A43F; }
 .checkbox-group label { font-size: 13px; color: #333; }
-.bank-fields, .paypal-fields, .stripe-fields { display: none; }
-.bank-fields.active, .paypal-fields.active, .stripe-fields.active { display: contents; }
+.bank-fields, .paypal-fields, .stripe-fields, .paystack-fields { display: none; }
+.bank-fields.active, .paypal-fields.active, .stripe-fields.active, .paystack-fields.active { display: contents; }
+.paystack-status { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 8px; }
+.paystack-status.connected { background: #E8F5E9; color: #2E7D32; }
+.paystack-status.pending { background: #FFF8E1; color: #8A6D00; }
+.verify-account-btn { background: #0A0A0A; color: #fff; border: none; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.verify-account-btn:hover { background: #C6A43F; color: #0A0A0A; }
+.verify-account-btn:disabled { opacity: .5; cursor: not-allowed; }
 @media (max-width: 768px) { .agent-container { padding: 20px; } .earnings-summary { grid-template-columns: 1fr; } .settings-grid { grid-template-columns: 1fr; } }
 </style>
 
@@ -234,7 +241,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     <div class="table-container">
         <div class="table-responsive">
             <table class="data-table">
-                <thead><tr><th>Date</th><th>Listing</th><th>Buyer</th><th>Amount</th><th>Commission</th><th>Status</th></tr></thead>
+                <thead><tr><th>Date</th><th>Listing</th><th>Buyer</th><th>Amount</th><th>Commission</th><th>Payout</th><th>Status</th></tr></thead>
                 <tbody>
                 <?php foreach ($transactions as $t): ?>
                     <tr>
@@ -253,6 +260,13 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                         <td>
                             ₦<?= number_format((float)$t['commission']) ?>
                             <br><span style="font-size:11px; color:#999;"><?= rtrim(rtrim(number_format((float)$t['commission_pct'], 2), '0'), '.') ?>%</span>
+                        </td>
+                        <td>
+                            <?php if (($t['settlement_mode'] ?? 'platform') === 'subaccount'): ?>
+                                <span style="font-size:11px;font-weight:700;color:#2E7D32;"><i class="fas fa-bolt"></i> Auto-settled</span>
+                            <?php else: ?>
+                                <span style="font-size:11px;color:#999;">Manual payout</span>
+                            <?php endif; ?>
                         </td>
                         <td><span class="status-badge <?= htmlspecialchars($t['status']) ?>"><?= htmlspecialchars(ucfirst($t['status'])) ?></span></td>
                     </tr>
@@ -281,7 +295,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 </select>
             </div>
 
-            <!-- Bank fields -->
+            <!-- Bank fields (manual bank transfer) -->
             <div class="setting-item bank-fields active">
                 <label>Bank Name</label>
                 <input type="text" name="bank_name" value="<?= htmlspecialchars($payout['bank_name'] ?? '') ?>" placeholder="e.g., GTBank, Zenith">
@@ -292,7 +306,29 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
             </div>
             <div class="setting-item bank-fields active">
                 <label>Account Number / IBAN</label>
-                <input type="text" name="bank_account_number" value="<?= htmlspecialchars($payout['bank_account_number'] ?? '') ?>" placeholder="0123456789">
+                <input type="text" name="bank_account_number" id="bankAccountNumberInput" value="<?= htmlspecialchars($payout['bank_account_number'] ?? '') ?>" placeholder="0123456789">
+            </div>
+
+            <!-- Paystack fields (auto-settle straight to agent's bank account) -->
+            <div class="setting-item paystack-fields">
+                <label>Bank <span style="font-weight:400;color:#999;">(for auto-settlement)</span></label>
+                <select name="paystack_bank_code" id="paystackBankCode">
+                    <option value="<?= htmlspecialchars($payout['paystack_bank_code'] ?? '') ?>" selected><?= !empty($payout['paystack_bank_code']) ? 'Loading banks…' : 'Select your bank' ?></option>
+                </select>
+            </div>
+            <div class="setting-item paystack-fields" style="grid-column: span 2;">
+                <label>Account Number &amp; Verification</label>
+                <div style="display:flex;gap:10px;">
+                    <input type="text" id="paystackAccountNumberDisplay" placeholder="0123456789" value="<?= htmlspecialchars($payout['bank_account_number'] ?? '') ?>" style="flex:1;" oninput="document.getElementById('bankAccountNumberInput').value = this.value; document.getElementById('paystackVerifyResult').innerHTML='';">
+                    <button type="button" class="verify-account-btn" id="verifyAccountBtn" onclick="jeVerifyPaystackAccount();">Verify</button>
+                </div>
+                <div id="paystackVerifyResult" style="margin-top:6px;">
+                    <?php if (!empty($payout['paystack_account_verified']) && !empty($payout['paystack_verified_account_name'])): ?>
+                        <span class="paystack-status connected"><i class="fas fa-check-circle"></i> Connected — pays out to <?= htmlspecialchars($payout['paystack_verified_account_name']) ?></span>
+                    <?php endif; ?>
+                </div>
+                <input type="hidden" name="paystack_verified_account_name" id="paystackVerifiedName" value="<?= htmlspecialchars($payout['paystack_verified_account_name'] ?? '') ?>">
+                <p style="font-size:11px;color:#999;margin-top:4px;">Sales you make will be auto-settled to this account, minus KINAS's <?= (float)COMMISSION_RATE ?>% commission — no manual payout request needed.</p>
             </div>
 
             <!-- PayPal fields -->
@@ -306,6 +342,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 <label>Stripe Account ID</label>
                 <input type="text" name="stripe_account_id" value="<?= htmlspecialchars($payout['stripe_account_id'] ?? '') ?>" placeholder="acct_…">
             </div>
+
 
             <div class="setting-item">
                 <label>Minimum Payout Threshold</label>
@@ -371,10 +408,88 @@ if (ctx) {
         document.querySelectorAll('.bank-fields').forEach(function(el){ el.classList.toggle('active', v === 'bank_transfer_ngn'); });
         document.querySelectorAll('.paypal-fields').forEach(function(el){ el.classList.toggle('active', v === 'paypal'); });
         document.querySelectorAll('.stripe-fields').forEach(function(el){ el.classList.toggle('active', v === 'stripe'); });
+        document.querySelectorAll('.paystack-fields').forEach(function(el){ el.classList.toggle('active', v === 'paystack'); });
+
+        // Keep the two account-number inputs (bank-transfer vs paystack) in sync
+        // so whichever one the agent actually edited is what gets submitted.
+        var bankInput = document.getElementById('bankAccountNumberInput');
+        var paystackInput = document.getElementById('paystackAccountNumberDisplay');
+        if (bankInput && paystackInput) {
+            if (v === 'paystack') paystackInput.value = bankInput.value;
+            else bankInput.value = paystackInput.value || bankInput.value;
+        }
     }
     sel.addEventListener('change', sync);
     sync();
 })();
+
+// Load the Nigerian bank list into the Paystack bank dropdown
+(function() {
+    var bankSelect = document.getElementById('paystackBankCode');
+    if (!bankSelect) return;
+    var currentCode = bankSelect.value;
+
+    fetch('/api/agent/paystack-banks.php', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.success || !data.banks || !data.banks.length) {
+                bankSelect.innerHTML = '<option value="">Unable to load banks — try again later</option>';
+                return;
+            }
+            var options = '<option value="">Select your bank</option>';
+            data.banks.forEach(function(b) {
+                var sel = b.code === currentCode ? ' selected' : '';
+                options += '<option value="' + b.code + '"' + sel + '>' + b.name + '</option>';
+            });
+            bankSelect.innerHTML = options;
+        })
+        .catch(function() {
+            bankSelect.innerHTML = '<option value="">Unable to load banks — try again later</option>';
+        });
+})();
+
+function jeVerifyPaystackAccount() {
+    var btn = document.getElementById('verifyAccountBtn');
+    var bankCode = document.getElementById('paystackBankCode').value;
+    var acctNo = document.getElementById('paystackAccountNumberDisplay').value.trim();
+    var resultBox = document.getElementById('paystackVerifyResult');
+    var hiddenName = document.getElementById('paystackVerifiedName');
+    var csrf = document.querySelector('#payoutForm input[name="csrf_token"]').value;
+
+    if (!bankCode || !acctNo) {
+        resultBox.innerHTML = '<span class="paystack-status pending"><i class="fas fa-exclamation-circle"></i> Select a bank and enter an account number first</span>';
+        return;
+    }
+
+    var original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Verifying…';
+
+    var formData = new FormData();
+    formData.append('bank_code', bankCode);
+    formData.append('account_number', acctNo);
+    formData.append('csrf_token', csrf);
+
+    fetch('/api/agent/paystack-verify-account.php', { method: 'POST', body: formData, credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            btn.disabled = false;
+            btn.innerHTML = original;
+            if (data.success && data.account_name) {
+                resultBox.innerHTML = '<span class="paystack-status connected"><i class="fas fa-check-circle"></i> ' + data.account_name + ' — click "Save Payout Settings" to connect</span>';
+                hiddenName.value = data.account_name;
+                document.getElementById('bankAccountNumberInput').value = acctNo;
+            } else {
+                resultBox.innerHTML = '<span class="paystack-status pending"><i class="fas fa-times-circle"></i> ' + (data.error || 'Could not verify this account') + '</span>';
+                hiddenName.value = '';
+            }
+        })
+        .catch(function() {
+            btn.disabled = false;
+            btn.innerHTML = original;
+            resultBox.innerHTML = '<span class="paystack-status pending"><i class="fas fa-times-circle"></i> Network error. Please try again.</span>';
+        });
+}
 </script>
 
 </main>
