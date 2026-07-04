@@ -400,6 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
 const imageUpload = document.getElementById('imageUpload');
 const previewGrid = document.getElementById('imagePreviewGrid');
 let selectedFiles = [];
+let selectedFilePreviewUrls = []; // objectURLs, kept 1:1 with selectedFiles so we can revoke them
 
 function syncInputFiles() { 
     const dt = new DataTransfer(); 
@@ -410,15 +411,21 @@ function syncInputFiles() {
 function updatePreview() { 
     if (!previewGrid) return;
     previewGrid.innerHTML = ''; 
+
+    // Rebuild the objectURL cache to match selectedFiles 1:1 (revoking any
+    // URLs we no longer need so we don't leak memory).
+    selectedFilePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    selectedFilePreviewUrls = selectedFiles.map(file => URL.createObjectURL(file));
+
+    // createObjectURL is synchronous, so — unlike the previous FileReader
+    // version — there's no async gap where a second, overlapping call to
+    // updatePreview() could interleave and append images out of order or
+    // bind a "remove" button to the wrong index.
     selectedFiles.forEach((file, index) => { 
-        const reader = new FileReader(); 
-        reader.onload = function(e) { 
-            const div = document.createElement('div'); 
-            div.className = 'preview-item'; 
-            div.innerHTML = `<img src="${e.target.result}"><button class="preview-remove" onclick="removeImage(${index})">&times;</button>`; 
-            previewGrid.appendChild(div); 
-        }; 
-        reader.readAsDataURL(file); 
+        const div = document.createElement('div'); 
+        div.className = 'preview-item'; 
+        div.innerHTML = `<img src="${selectedFilePreviewUrls[index]}"><button type="button" class="preview-remove" onclick="removeImage(${index})">&times;</button>`; 
+        previewGrid.appendChild(div); 
     }); 
 }
 
@@ -429,13 +436,22 @@ function removeImage(index) {
 }
 
 if (imageUpload) {
-    imageUpload.addEventListener('change', function(e) { 
-        const newFiles = Array.from(e.target.files);
-        selectedFiles = [...selectedFiles, ...newFiles]; 
-        syncInputFiles(); 
-        updatePreview(); 
+    // NOTE: we intentionally listen for 'kinas:images-ready' (dispatched by
+    // assets/js/image-upload.js once it has finished compressing) rather
+    // than the native 'change' event. The compression module used to
+    // re-dispatch 'change' on this same input after compressing, which
+    // re-triggered this exact listener (and the compression listener)
+    // over and over — a single file selection could add the same image
+    // 100+ times in a couple of seconds. 'kinas:images-ready' only ever
+    // fires once per genuine selection, so that loop can't happen.
+    imageUpload.addEventListener('kinas:images-ready', function(e) {
+        const newFiles = e.detail && Array.isArray(e.detail.files) ? e.detail.files : Array.from(imageUpload.files || []);
+        selectedFiles = [...selectedFiles, ...newFiles];
+        syncInputFiles();
+        updatePreview();
     });
 }
+
 </script>
 
 </main>

@@ -860,6 +860,7 @@ const existingImages = <?php echo json_encode($existingImages); ?>;
 const imagePreviewGrid = document.getElementById('imagePreviewGrid');
 const imageUpload = document.getElementById('imageUpload');
 let selectedFiles = [];
+let selectedFilePreviewUrls = []; // objectURLs, kept 1:1 with selectedFiles so we can revoke them
 
 // Function to render all images (existing + new)
 function renderImages() {
@@ -878,19 +879,23 @@ function renderImages() {
         imagePreviewGrid.appendChild(div);
     });
     
-    // Add new images that were just uploaded
+    // Add new images that were just uploaded. createObjectURL is
+    // synchronous (unlike the FileReader version this replaced), so there's
+    // no async gap where an overlapping renderImages() call could interleave
+    // and bind a "remove" button to the wrong index — which is what let
+    // deletes silently remove the wrong (or no) image after a rapid burst
+    // of selections.
+    selectedFilePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    selectedFilePreviewUrls = selectedFiles.map(file => URL.createObjectURL(file));
+
     selectedFiles.forEach((file, index) => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const div = document.createElement('div');
-            div.className = 'preview-item';
-            div.innerHTML = `
-                <img src="${e.target.result}" alt="New image ${index + 1}">
-                <button class="preview-remove" onclick="removeNewImage(${index})" title="Remove this image">&times;</button>
-            `;
-            imagePreviewGrid.appendChild(div);
-        };
-        reader.readAsDataURL(file);
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        div.innerHTML = `
+            <img src="${selectedFilePreviewUrls[index]}" alt="New image ${index + 1}">
+            <button class="preview-remove" onclick="removeNewImage(${index})" title="Remove this image">&times;</button>
+        `;
+        imagePreviewGrid.appendChild(div);
     });
 }
 
@@ -982,8 +987,14 @@ function syncInputFiles() {
 }
 
 if (imageUpload) {
-    imageUpload.addEventListener('change', function(e) {
-        const newFiles = Array.from(e.target.files);
+    // See add-listing.php for the full explanation: we listen for
+    // 'kinas:images-ready' (dispatched once by image-upload.js after it
+    // finishes compressing) instead of 'change'. The old code re-dispatched
+    // 'change' on this same input after compressing, which re-triggered
+    // this listener — and the compression listener — in an infinite loop,
+    // appending the same image over and over (100+ times in seconds).
+    imageUpload.addEventListener('kinas:images-ready', function(e) {
+        const newFiles = e.detail && Array.isArray(e.detail.files) ? e.detail.files : Array.from(imageUpload.files || []);
         selectedFiles = [...selectedFiles, ...newFiles];
         syncInputFiles();
         renderImages();
