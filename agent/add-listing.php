@@ -1,4 +1,9 @@
 <?php
+// Authenticated, per-agent content — never cache this page (see
+// agent/edit-listing.php for the full rationale).
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
 require_once __DIR__ . '/../api/config/database.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
@@ -421,6 +426,29 @@ function getPreviewUrl(file) {
     return url;
 }
 
+// If a preview <img> ever fails to load its blob URL, this tells us
+// definitively whether it's a browser/environment issue (retrying with a
+// brand-new URL for the same File still fails) or a one-off glitch (retry
+// succeeds). Logs loudly to the console either way so it's diagnosable.
+window.__kinasPreviewImgError = function(imgEl, index) {
+    const file = selectedFiles[index];
+    if (!file) {
+        console.error('[preview] broken image at index', index, 'but no matching file in selectedFiles');
+        return;
+    }
+    console.warn('[preview] <img> failed to load blob URL for', file.name, '— retrying with a fresh URL once.');
+    const oldUrl = filePreviewUrls.get(file);
+    if (oldUrl) { URL.revokeObjectURL(oldUrl); filePreviewUrls.delete(file); }
+    const freshUrl = getPreviewUrl(file);
+    if (imgEl.dataset.kinasRetried === '1') {
+        console.error('[preview] retry ALSO failed for', file.name, '— this browser/environment cannot preview this file locally. The upload itself is unaffected.');
+        return;
+    }
+    imgEl.dataset.kinasRetried = '1';
+    imgEl.onerror = function() { window.__kinasPreviewImgError(imgEl, index); };
+    imgEl.src = freshUrl;
+};
+
 function syncInputFiles() { 
     const dt = new DataTransfer(); 
     selectedFiles.forEach(f => dt.items.add(f)); 
@@ -443,7 +471,7 @@ function updatePreview() {
     selectedFiles.forEach((file, index) => { 
         const div = document.createElement('div'); 
         div.className = 'preview-item'; 
-        div.innerHTML = `<img src="${getPreviewUrl(file)}"><button type="button" class="preview-remove" onclick="removeImage(${index})">&times;</button>`; 
+        div.innerHTML = `<img src="${getPreviewUrl(file)}" onerror="window.__kinasPreviewImgError && window.__kinasPreviewImgError(this, ${index})"><button type="button" class="preview-remove" onclick="removeImage(${index})">&times;</button>`; 
         previewGrid.appendChild(div); 
     }); 
 }
