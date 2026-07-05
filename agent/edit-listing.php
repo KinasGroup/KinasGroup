@@ -650,7 +650,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 <h3>Images</h3>
                 <div class="image-upload-area">
                     <input type="file" name="images[]" id="imageUpload" multiple accept="image/*" style="display: none;">
-                    <div class="upload-placeholder" onclick="document.getElementById('imageUpload').click()">
+                    <div class="upload-placeholder" onclick="if (document.getElementById('imageUpload').dataset.kinasProcessing === '1') return; document.getElementById('imageUpload').click()">
                         <i class="fas fa-cloud-upload-alt"></i>
                         <p>Click or drag images here</p>
                         <span>Upload up to 10 images (Max 5MB each)</span>
@@ -1028,6 +1028,7 @@ function showToast(message, type) {
 </div>
 
 <!-- Image Optimization - Client-side compression -->
-<script src="/assets/js/image-upload.js"></script>
+<?php $__imgUploadJsV = @filemtime(__DIR__ . '/../assets/js/image-upload.js') ?: time(); ?>
+<script src="/assets/js/image-upload.js?v=<?= $__imgUploadJsV ?>"></script>
 
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
