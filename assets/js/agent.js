@@ -150,10 +150,10 @@ class AgentDashboard {
                 
                 try {
                     const response = await api.createListing(formData);
-                    alert('Listing created successfully!');
+                    if (typeof showSuccessBanner === 'function') { showSuccessBanner('Listing created successfully!', false); } else { console.log('Listing created successfully!'); }
                     window.location.reload();
                 } catch (error) {
-                    alert('Failed to create listing: ' + error.message);
+                    if (typeof showSuccessBanner === 'function') { showSuccessBanner('Failed to create listing: ' + error.message, true); } else { console.error('Failed to create listing:', error.message); }
                 }
             });
         }
@@ -207,7 +207,7 @@ class AgentDashboard {
                     sendForm.reset();
                     this.loadConversation(recipientId);
                 } catch (error) {
-                    alert('Failed to send message');
+                    if (typeof showSuccessBanner === 'function') { showSuccessBanner('Failed to send message', true); } else { console.error('Failed to send message'); }
                 }
             });
         }
@@ -301,7 +301,7 @@ async function toggleListingStatus(id) {
         await api.updateListing(id, { toggle_status: true });
         window.location.reload();
     } catch (error) {
-        alert('Failed to update listing status');
+        if (typeof showSuccessBanner === 'function') { showSuccessBanner('Failed to update listing status', true); } else { console.error('Failed to update listing status'); }
     }
 }
 

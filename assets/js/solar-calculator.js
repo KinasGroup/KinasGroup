@@ -136,15 +136,15 @@ document.getElementById('solarCalculatorForm').addEventListener('submit', functi
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(`✅ Proposal generated successfully!\nReference: ${data.reference}\n\nCheck your email for the PDF.`);
+            if (typeof showSuccessBanner === 'function') { showSuccessBanner('Proposal generated successfully! Reference: ' + data.reference + ' &mdash; check your email for the PDF.', false); } else { console.log('Proposal generated successfully! Reference:', data.reference); }
             // Optionally redirect or show success screen
             window.location.href = `/divisions/kinas-volt/calculator.php?success=1&ref=${data.reference}`;
         } else {
-            alert('Error: ' + (data.message || 'Failed to generate proposal'));
+            if (typeof showSuccessBanner === 'function') { showSuccessBanner('Error: ' + (data.message || 'Failed to generate proposal'), true); } else { console.error('Error:', data.message || 'Failed to generate proposal'); }
         }
     })
     .catch(err => {
         console.error(err);
-        alert('Connection error. Please try again.');
+        if (typeof showSuccessBanner === 'function') { showSuccessBanner('Connection error. Please try again.', true); } else { console.error('Connection error. Please try again.'); }
     });
 });

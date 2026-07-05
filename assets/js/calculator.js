@@ -184,9 +184,9 @@ async function saveCalculation() {
             method: 'POST',
             body: JSON.stringify({ /* calculation data */ })
         });
-        alert('Calculation saved to your account!');
+        if (typeof showSuccessBanner === 'function') { showSuccessBanner('Calculation saved to your account!', false); } else { console.log('Calculation saved to your account!'); }
     } catch (error) {
-        alert('Please log in to save calculations');
+        if (typeof showSuccessBanner === 'function') { showSuccessBanner('Please log in to save calculations', true); } else { console.warn('Please log in to save calculations'); }
     }
 }
 

@@ -372,7 +372,11 @@ async function toggleFavorite(listingId) {
         const btn = event.target;
         btn.textContent = btn.textContent === '♡' ? '♥' : '♡';
     } catch (error) {
-        alert('Please log in to save favorites');
+        if (typeof showSuccessBanner === 'function') {
+            showSuccessBanner('Please log in to save favorites', true);
+        } else {
+            console.warn('Please log in to save favorites');
+        }
     }
 }
 
