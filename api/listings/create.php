@@ -378,9 +378,17 @@ try {
                 continue;
             }
 
-            // R2Upload returns a full public URL in 'filepath'; local FileUpload
-            // returns a filesystem path, so build the public URL ourselves.
-            $publicUrl = $uploader->isUsingR2()
+            // R2Upload::upload() includes a 'key' in its result; the local
+            // fallback (FileUpload::uploadLocal()) does not. Checking the
+            // uploader's static isUsingR2() flag here was wrong: it only
+            // says R2 is configured for this uploader instance, not that
+            // THIS particular file actually made it to R2. If one upload in
+            // a batch fell back to local storage (R2 hiccup, etc.), the
+            // code would still treat its local filesystem path as a public
+            // R2 URL and store that raw path in the database — an image
+            // URL that can never load, so the browser just shows a tiny
+            // broken-image icon instead of a photo filling the listing card.
+            $publicUrl = isset($result['key'])
                 ? $result['filepath']
                 : '/uploads/' . $subDir . '/' . $result['filename'];
 
