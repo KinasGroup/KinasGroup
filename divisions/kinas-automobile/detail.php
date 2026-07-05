@@ -112,7 +112,7 @@ $agentVerified = !empty($item['agent_verified']);
                 </div>
             <?php else: ?>
                 <div class="je-gallery-main" id="jeGalleryMain">
-                    <img id="jeMainImage" src="<?= htmlspecialchars($images[0]['url']) ?>" alt="<?= htmlspecialchars($item['title']) ?>">
+                    <img id="jeMainImage" src="<?= htmlspecialchars($images[0]['url']) ?>" alt="<?= htmlspecialchars($item['title']) ?>" onerror="this.onerror=null; this.src='/assets/images/placeholder/car-placeholder.svg';">
                     <?php if (!empty($item['featured'])): ?>
                         <span class="je-card-badge" style="top:16px;left:16px;">Featured</span>
                     <?php endif; ?>
@@ -124,7 +124,7 @@ $agentVerified = !empty($item['agent_verified']);
                              onclick="document.getElementById('jeMainImage').src='<?= htmlspecialchars($img['url']) ?>';
                                       document.querySelectorAll('.je-gallery-thumb').forEach(t=>t.classList.remove('is-active'));
                                       this.classList.add('is-active');">
-                            <img src="<?= htmlspecialchars($img['url']) ?>" alt="thumb <?= $idx + 1 ?>">
+                            <img src="<?= htmlspecialchars($img['url']) ?>" alt="thumb <?= $idx + 1 ?>" onerror="this.onerror=null; this.src='/assets/images/placeholder/car-placeholder.svg';">
                         </div>
                     <?php endforeach; ?>
                 </div>
