@@ -99,7 +99,7 @@ $agentVerified = !empty($item['agent_verified']);
                     <i class="fas fa-gem"></i>
                 </div>
             <?php else: ?>
-                <div class="je-gallery-main"><img id="jeMainImage" src="<?= htmlspecialchars($images[0]['url']) ?>" alt=""></div>
+                <div class="je-gallery-main"><img id="jeMainImage" src="<?= htmlspecialchars($images[0]['url']) ?>" alt="" onerror="this.onerror=null; this.src='/assets/images/placeholder/product-placeholder.svg';"></div>
                 <?php if (count($images) > 1): ?>
                 <div class="je-gallery-thumbs">
                     <?php foreach ($images as $idx => $img): ?>
@@ -107,7 +107,7 @@ $agentVerified = !empty($item['agent_verified']);
                              onclick="document.getElementById('jeMainImage').src='<?= htmlspecialchars($img['url']) ?>';
                                       document.querySelectorAll('.je-gallery-thumb').forEach(t=>t.classList.remove('is-active'));
                                       this.classList.add('is-active');">
-                            <img src="<?= htmlspecialchars($img['url']) ?>" alt="">
+                            <img src="<?= htmlspecialchars($img['url']) ?>" alt="" onerror="this.onerror=null; this.src='/assets/images/placeholder/product-placeholder.svg';">
                         </div>
                     <?php endforeach; ?>
                 </div>
