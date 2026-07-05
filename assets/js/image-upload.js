@@ -2,7 +2,14 @@
  * KINAS GROUP - Image Upload Optimization
  * Client-side image compression for listing uploads
  * Reduces file size BEFORE upload to save R2 storage and bandwidth
+ *
+ * BUILD MARKER: kinas-image-upload-v2 (event-based handoff, no self
+ * re-dispatch). If a duplicate-image bug is seen again, check the browser
+ * console for this line on page load — if it's missing or shows an older
+ * marker, the browser/CDN is serving a stale cached copy of this file, not
+ * running this code.
  */
+console.log('%c[image-upload.js] kinas-image-upload-v2 loaded', 'color:#C6A43F');
 
 class ImageOptimizer {
     /**
@@ -269,7 +276,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // so a single selection could balloon into 100+ duplicates in a
             // fraction of a second. The guard below makes sure this handler
             // can never re-enter itself while a run is already in flight.
-            if (this.dataset.kinasProcessing === '1') return;
+            if (this.dataset.kinasProcessing === '1') {
+                console.warn('[image-upload.js] Ignored a duplicate/overlapping change event while a previous selection was still being compressed.');
+                return;
+            }
             this.dataset.kinasProcessing = '1';
             
             const files = this.files;
