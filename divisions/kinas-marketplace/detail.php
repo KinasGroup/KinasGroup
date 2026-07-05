@@ -247,43 +247,22 @@ function isUserLoggedIn() {
 function showLoginRequired() {
     // In-page, mobile-responsive banner instead of a native browser
     // alert() (which shows as a generic "kinas-group.com says: ..." popup).
-    if (typeof kinasToast === 'function') {
-        kinasToast('Please sign in to continue — redirecting you to login…', 'warning');
-    } else if (typeof window.showSuccessBanner === 'function') {
+    // showSuccessBanner is the site-wide standard notification style
+    // (see includes/kinas-ui.php) - preferred here over kinasToast for
+    // visual consistency with other in-page banners like the add-to-cart
+    // error.
+    if (typeof window.showSuccessBanner === 'function') {
         window.showSuccessBanner('Please sign in to continue — redirecting you to login…', true);
+    } else if (typeof kinasToast === 'function') {
+        kinasToast('Please sign in to continue — redirecting you to login…', 'warning');
     }
     setTimeout(function() {
         window.location.href = '/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
     }, 1500);
 }
 
-// ============================================================
-// GREEN SUCCESS BANNER
-// ============================================================
-
-function showSuccessBanner(message, isError) {
-    const existing = document.querySelectorAll('.custom-success-banner');
-    existing.forEach(function(b) { b.remove(); });
-    
-    const banner = document.createElement('div');
-    banner.className = 'custom-success-banner';
-    const bgColor = isError ? '#f8d7da' : '#d4edda';
-    const textColor = isError ? '#721c24' : '#155724';
-    const borderColor = isError ? '#dc3545' : '#28a745';
-    const icon = isError ? 'fa-exclamation-circle' : 'fa-check-circle';
-    
-    banner.style.cssText = 'position:fixed;top:100px;right:20px;z-index:100000;padding:16px 24px;background:' + bgColor + ';color:' + textColor + ';border-left:4px solid ' + borderColor + ';border-radius:8px;font-family:Inter,sans-serif;font-size:14px;font-weight:500;box-shadow:0 8px 30px rgba(0,0,0,0.15);max-width:450px;display:flex;align-items:center;gap:12px;';
-    banner.innerHTML = '<i class="fas ' + icon + '" style="color:' + borderColor + ';font-size:18px;"></i><span>' + message + '</span><button onclick="this.parentElement.remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + textColor + ';margin-left:auto;">✕</button>';
-    document.body.appendChild(banner);
-    
-    setTimeout(function() {
-        if (banner.parentElement) {
-            banner.style.opacity = '0';
-            banner.style.transition = 'opacity 0.3s ease';
-            setTimeout(function() { banner.remove(); }, 300);
-        }
-    }, 5000);
-}
+// showSuccessBanner() is now defined globally in includes/kinas-ui.php
+// (loaded site-wide via templates/footer.php) — no need to duplicate it here.
 
 // ============================================================
 // ADD TO CART
