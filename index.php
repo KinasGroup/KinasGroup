@@ -584,6 +584,22 @@ include 'templates/header.php';
         </div>
     </div>
 </section>
+<script>
+// Featured listing thumbnails are set via CSS background-image, which has
+// no native onerror event — a broken/404'd photo URL just leaves an empty
+// box instead of falling back to the placeholder. This preloads each one
+// and swaps in the placeholder if it fails to load, so every card always
+// shows something that fills the box.
+document.querySelectorAll('.featured-item-card .item-image').forEach(function (el) {
+    var match = el.style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
+    var url = match ? match[1] : '';
+    var placeholder = '/assets/images/placeholder/product-placeholder.svg';
+    if (!url || url.indexOf(placeholder) !== -1) return;
+    var probe = new Image();
+    probe.onerror = function () { el.style.backgroundImage = "url('" + placeholder + "')"; };
+    probe.src = url;
+});
+</script>
 <?php endif; ?>
 
 <!-- ============================================================ -->
