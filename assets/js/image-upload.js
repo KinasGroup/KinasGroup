@@ -283,49 +283,14 @@ document.addEventListener('DOMContentLoaded', function() {
             this.dataset.kinasProcessing = '1';
             
             const files = this.files;
-            
-            // Find the upload area container
-            const uploadArea = this.closest('.image-upload-area');
-            let loadingOverlay = null;
-            
-            // Show loading state
-            if (uploadArea) {
-                loadingOverlay = document.createElement('div');
-                loadingOverlay.className = 'upload-loading-overlay';
-                loadingOverlay.style.cssText = `
-                    position: absolute; top: 0; left: 0; 
-                    width: 100%; height: 100%; 
-                    background: rgba(0,0,0,0.5); 
-                    color: white; 
-                    display: flex; 
-                    flex-direction: column;
-                    align-items: center; 
-                    justify-content: center; 
-                    font-family: 'Inter', sans-serif;
-                    border-radius: 16px;
-                    z-index: 10;
-                `;
-                loadingOverlay.innerHTML = `
-                    <i class="fas fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 12px;"></i>
-                    <span style="font-size: 14px; font-weight: 500;">Optimizing ${files.length} image${files.length > 1 ? 's' : ''}...</span>
-                    <span style="font-size: 12px; opacity: 0.7; margin-top: 4px;">This may take a moment</span>
-                `;
-                uploadArea.style.position = 'relative';
-                uploadArea.appendChild(loadingOverlay);
-            }
-            
+
+            // Compression is an internal implementation detail (saves R2
+            // storage/bandwidth) — intentionally silent. No loading overlay,
+            // no "optimizing..." message, no success/failure toast. The
+            // person uploading just sees their photo appear.
             try {
                 // Compress images
-                const compressedFiles = await optimizer.compressImages(files, function(current, total) {
-                    // Update progress
-                    if (loadingOverlay) {
-                        loadingOverlay.innerHTML = `
-                            <i class="fas fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 12px;"></i>
-                            <span style="font-size: 14px; font-weight: 500;">Optimizing ${current} of ${total}...</span>
-                            <span style="font-size: 12px; opacity: 0.7; margin-top: 4px;">This may take a moment</span>
-                        `;
-                    }
-                });
+                const compressedFiles = await optimizer.compressImages(files);
                 
                 // Create new FileList with compressed files
                 const dataTransfer = new DataTransfer();
@@ -350,31 +315,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     detail: { files: compressedFiles }
                 }));
                 
-                // Show success notification via existing toast system
-                if (typeof kinasToast === 'function') {
-                    kinasToast(`✅ ${compressedFiles.length} image${compressedFiles.length > 1 ? 's' : ''} optimized for upload`, 'success');
-                } else if (typeof showNotification === 'function') {
-                    showNotification(`✅ ${compressedFiles.length} image${compressedFiles.length > 1 ? 's' : ''} optimized for upload`, 'success');
-                }
-                
             } catch (error) {
                 console.error('Compression error:', error);
-                if (typeof kinasToast === 'function') {
-                    kinasToast('⚠️ Image optimization failed. Using originals.', 'warning');
-                } else if (typeof showNotification === 'function') {
-                    showNotification('⚠️ Image optimization failed. Using originals.', 'warning');
-                }
-                // Even on failure, the page still needs to know about the
+                // Fall back to the original, uncompressed files silently —
+                // the upload should never be blocked by an optimization
+                // step failing. The page still needs to know about the
                 // (uncompressed) files it selected, or nothing gets added.
                 this.dispatchEvent(new CustomEvent('kinas:images-ready', {
                     bubbles: true,
                     detail: { files: Array.from(files) }
                 }));
             } finally {
-                // Remove loading overlay
-                if (uploadArea && loadingOverlay) {
-                    loadingOverlay.remove();
-                }
                 this.dataset.kinasProcessing = '0';
             }
         });
