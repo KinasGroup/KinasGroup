@@ -527,7 +527,7 @@ console.log('=== WILLIAMS CONNECT HOME detail page loaded ===');
                     <i class="fas fa-home"></i>
                 </div>
             <?php else: ?>
-                <div class="je-gallery-main"><img id="jeMainImage" src="<?= htmlspecialchars($images[0]['url']) ?>" alt="<?= htmlspecialchars($item['title']) ?>"></div>
+                <div class="je-gallery-main"><img id="jeMainImage" src="<?= htmlspecialchars($images[0]['url']) ?>" alt="<?= htmlspecialchars($item['title']) ?>" onerror="this.onerror=null; this.src='/assets/images/placeholder/property-placeholder.svg';"></div>
                 <?php if (count($images) > 1): ?>
                 <div class="je-gallery-thumbs">
                     <?php foreach ($images as $idx => $img): ?>
@@ -535,7 +535,7 @@ console.log('=== WILLIAMS CONNECT HOME detail page loaded ===');
                              onclick="document.getElementById('jeMainImage').src='<?= htmlspecialchars($img['url']) ?>';
                                       document.querySelectorAll('.je-gallery-thumb').forEach(t=>t.classList.remove('is-active'));
                                       this.classList.add('is-active');">
-                            <img src="<?= htmlspecialchars($img['url']) ?>" alt="thumb <?= $idx + 1 ?>">
+                            <img src="<?= htmlspecialchars($img['url']) ?>" alt="thumb <?= $idx + 1 ?>" onerror="this.onerror=null; this.src='/assets/images/placeholder/property-placeholder.svg';">
                         </div>
                     <?php endforeach; ?>
                 </div>
