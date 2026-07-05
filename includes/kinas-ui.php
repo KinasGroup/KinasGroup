@@ -2,10 +2,40 @@
 /**
  * KINAS GLOBAL UI PARTIAL — kinas-ui.php
  * Include just before </body> on pages that do NOT use templates/footer.php.
- * Provides: kinasConfirm(), kinasToast(), and the data-kinas-confirm interceptor.
+ * Provides: kinasConfirm(), kinasToast(), showSuccessBanner(), and the
+ * data-kinas-confirm interceptor.
  * The same system is also injected via templates/footer.php for all standard pages.
  */
 ?>
+<style>
+/* ── Success/Error Banner (showSuccessBanner) ────────────────
+   Promoted here from what used to be a copy-pasted per-page function
+   (divisions/*/detail.php). This is the banner style used for things like
+   "Added to cart" / "You can't add your own listing to cart" — kept as the
+   site-wide standard for one-shot notifications instead of native
+   alert()/confirm() popups (which show as a generic
+   "kinas-group.com says: ..." browser dialog). */
+.custom-success-banner {
+    position: fixed; top: 100px; right: 20px; left: auto; z-index: 100000;
+    padding: 16px 24px; border-radius: 8px; font-family: 'Inter', sans-serif;
+    font-size: 14px; font-weight: 500; box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    max-width: 450px; display: flex; align-items: center; gap: 12px;
+    animation: kinasBannerIn 0.25s ease;
+}
+@keyframes kinasBannerIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 480px) {
+    /* The original version had no mobile rule at all: top:100px;right:20px
+       with max-width:450px could run off the left edge of a phone screen.
+       Anchor to both sides instead so it always fits within the viewport. */
+    .custom-success-banner {
+        top: 16px; right: 12px; left: 12px; max-width: none;
+        padding: 14px 16px;
+    }
+}
+</style>
 <style>
 /* ── Confirm Modal ────────────────────────────────────────── */
 #kinasConfirmOverlay {
@@ -232,6 +262,45 @@ window.kinasToast = function(message, type, duration) {
         toast.style.animation = 'kinasToastOut 0.35s ease forwards';
         setTimeout(function() { toast.remove(); }, 340);
     });
+};
+
+/**
+ * showSuccessBanner(message, isError)
+ * Promoted from a function that used to be copy-pasted into each of the
+ * divisions/*/detail.php pages. This is the site-wide standard for
+ * one-shot success/error notifications — used in place of native
+ * alert()/confirm() popups, which render as a generic
+ * "kinas-group.com says: ..." browser dialog instead of an in-page,
+ * on-brand banner.
+ * @param {string} message - can include simple HTML (e.g. a link)
+ * @param {boolean} isError - true for the red/error styling, false/omitted for green/success
+ */
+window.showSuccessBanner = function(message, isError) {
+    document.querySelectorAll('.custom-success-banner').forEach(function(b) { b.remove(); });
+
+    var banner = document.createElement('div');
+    banner.className = 'custom-success-banner';
+    banner.setAttribute('role', 'status');
+    var bgColor = isError ? '#f8d7da' : '#d4edda';
+    var textColor = isError ? '#721c24' : '#155724';
+    var borderColor = isError ? '#dc3545' : '#28a745';
+    var icon = isError ? 'fa-exclamation-circle' : 'fa-check-circle';
+
+    banner.style.background = bgColor;
+    banner.style.color = textColor;
+    banner.style.borderLeft = '4px solid ' + borderColor;
+    banner.innerHTML = '<i class="fas ' + icon + '" style="color:' + borderColor + ';font-size:18px;"></i>' +
+        '<span>' + message + '</span>' +
+        '<button onclick="this.parentElement.remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + textColor + ';margin-left:auto;">&times;</button>';
+    document.body.appendChild(banner);
+
+    setTimeout(function() {
+        if (banner.parentElement) {
+            banner.style.opacity = '0';
+            banner.style.transition = 'opacity 0.3s ease';
+            setTimeout(function() { banner.remove(); }, 300);
+        }
+    }, 5000);
 };
 
 document.addEventListener('submit', function(e) {
