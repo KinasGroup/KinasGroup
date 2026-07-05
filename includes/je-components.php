@@ -248,7 +248,8 @@ function je_render_card($card) {
     <a href="<?php echo htmlspecialchars($detail_url); ?>" class="je-card">
         <div class="je-card-img">
             <?php if (!empty($thumbnail)): ?>
-                <img src="<?php echo htmlspecialchars($thumbnail); ?>" alt="<?php echo htmlspecialchars($title); ?>" loading="lazy">
+                <img src="<?php echo htmlspecialchars($thumbnail); ?>" alt="<?php echo htmlspecialchars($title); ?>" loading="lazy"
+                     onerror="this.onerror=null; this.src='/assets/images/placeholder/product-placeholder.svg';">
             <?php else: ?>
                 <div style="width:100%; height:100%; background:#f0f0f0; display:flex; align-items:center; justify-content:center; color:#ccc; font-size:40px;">
                     <i class="fas fa-image"></i>
