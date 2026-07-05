@@ -359,19 +359,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const description = form.querySelector('textarea[name="description"]')?.value?.trim() || '';
             
             if (!division) {
-                alert('Please select a division.');
+                showSuccessBanner('Please select a division.', true);
                 return;
             }
             if (!title) {
-                alert('Please enter a listing title.');
+                showSuccessBanner('Please enter a listing title.', true);
                 return;
             }
             if (!price || parseFloat(price) <= 0) {
-                alert('Please enter a valid price greater than zero.');
+                showSuccessBanner('Please enter a valid price greater than zero.', true);
                 return;
             }
             if (!description) {
-                alert('Please enter a description.');
+                showSuccessBanner('Please enter a description.', true);
                 return;
             }
             
@@ -380,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const listingType = document.getElementById('listing_type')?.value || '';
             
             if (!listingType) {
-                alert('Please select a valid division.');
+                showSuccessBanner('Please select a valid division.', true);
                 return;
             }
             
@@ -400,7 +400,26 @@ document.addEventListener('DOMContentLoaded', function() {
 const imageUpload = document.getElementById('imageUpload');
 const previewGrid = document.getElementById('imagePreviewGrid');
 let selectedFiles = [];
-let selectedFilePreviewUrls = []; // objectURLs, kept 1:1 with selectedFiles so we can revoke them
+
+// Map<File, objectURL> — a stable, one-time URL per file for its whole
+// lifetime in selectedFiles. BUG FIX: the previous version revoked *every*
+// existing preview URL and recreated all of them from scratch on every
+// render. If the browser hadn't finished decoding a freshly-created blob
+// URL yet (very likely immediately after an upload) when a second render
+// happened for any reason, that URL got revoked while still in use —
+// which is exactly what showed up as a broken-image icon right after
+// adding a photo. Now a URL is only ever revoked once its file is actually
+// removed from selectedFiles, never just because a re-render happened.
+const filePreviewUrls = new Map();
+
+function getPreviewUrl(file) {
+    let url = filePreviewUrls.get(file);
+    if (!url) {
+        url = URL.createObjectURL(file);
+        filePreviewUrls.set(file, url);
+    }
+    return url;
+}
 
 function syncInputFiles() { 
     const dt = new DataTransfer(); 
@@ -412,19 +431,19 @@ function updatePreview() {
     if (!previewGrid) return;
     previewGrid.innerHTML = ''; 
 
-    // Rebuild the objectURL cache to match selectedFiles 1:1 (revoking any
-    // URLs we no longer need so we don't leak memory).
-    selectedFilePreviewUrls.forEach(url => URL.revokeObjectURL(url));
-    selectedFilePreviewUrls = selectedFiles.map(file => URL.createObjectURL(file));
+    // Clean up URLs only for files that are no longer selected.
+    const currentFiles = new Set(selectedFiles);
+    for (const [file, url] of filePreviewUrls) {
+        if (!currentFiles.has(file)) {
+            URL.revokeObjectURL(url);
+            filePreviewUrls.delete(file);
+        }
+    }
 
-    // createObjectURL is synchronous, so — unlike the previous FileReader
-    // version — there's no async gap where a second, overlapping call to
-    // updatePreview() could interleave and append images out of order or
-    // bind a "remove" button to the wrong index.
     selectedFiles.forEach((file, index) => { 
         const div = document.createElement('div'); 
         div.className = 'preview-item'; 
-        div.innerHTML = `<img src="${selectedFilePreviewUrls[index]}"><button type="button" class="preview-remove" onclick="removeImage(${index})">&times;</button>`; 
+        div.innerHTML = `<img src="${getPreviewUrl(file)}"><button type="button" class="preview-remove" onclick="removeImage(${index})">&times;</button>`; 
         previewGrid.appendChild(div); 
     }); 
 }

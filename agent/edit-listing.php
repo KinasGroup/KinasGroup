@@ -824,15 +824,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const description = form.querySelector('textarea[name="description"]')?.value?.trim() || '';
             
             if (!title) {
-                alert('Please enter a listing title.');
+                showSuccessBanner('Please enter a listing title.', true);
                 return;
             }
             if (!price || parseFloat(price) <= 0) {
-                alert('Please enter a valid price greater than zero.');
+                showSuccessBanner('Please enter a valid price greater than zero.', true);
                 return;
             }
             if (!description) {
-                alert('Please enter a description.');
+                showSuccessBanner('Please enter a description.', true);
                 return;
             }
             
@@ -860,7 +860,24 @@ const existingImages = <?php echo json_encode($existingImages); ?>;
 const imagePreviewGrid = document.getElementById('imagePreviewGrid');
 const imageUpload = document.getElementById('imageUpload');
 let selectedFiles = [];
-let selectedFilePreviewUrls = []; // objectURLs, kept 1:1 with selectedFiles so we can revoke them
+
+// Map<File, objectURL> — a stable, one-time URL per file for its whole
+// lifetime in selectedFiles. BUG FIX: revoking *every* existing preview URL
+// and recreating all of them from scratch on every render could revoke a
+// blob URL while the browser hadn't finished decoding it yet (very likely
+// right after adding a photo) — showing up as a broken-image icon even
+// though the underlying file was fine and uploaded correctly. A URL is now
+// only ever revoked once its file is actually removed from selectedFiles.
+const filePreviewUrls = new Map();
+
+function getPreviewUrl(file) {
+    let url = filePreviewUrls.get(file);
+    if (!url) {
+        url = URL.createObjectURL(file);
+        filePreviewUrls.set(file, url);
+    }
+    return url;
+}
 
 // Function to render all images (existing + new)
 function renderImages() {
@@ -874,26 +891,26 @@ function renderImages() {
         div.innerHTML = `
             <img src="${img.url}" alt="Existing image ${index + 1}">
             <span class="preview-badge">Saved</span>
-            <button class="preview-remove" onclick="removeExistingImage(${img.id}, this)" title="Remove this image">&times;</button>
+            <button type="button" class="preview-remove" onclick="removeExistingImage(${img.id}, this)" title="Remove this image">&times;</button>
         `;
         imagePreviewGrid.appendChild(div);
     });
     
-    // Add new images that were just uploaded. createObjectURL is
-    // synchronous (unlike the FileReader version this replaced), so there's
-    // no async gap where an overlapping renderImages() call could interleave
-    // and bind a "remove" button to the wrong index — which is what let
-    // deletes silently remove the wrong (or no) image after a rapid burst
-    // of selections.
-    selectedFilePreviewUrls.forEach(url => URL.revokeObjectURL(url));
-    selectedFilePreviewUrls = selectedFiles.map(file => URL.createObjectURL(file));
+    // Clean up URLs only for files that are no longer selected.
+    const currentFiles = new Set(selectedFiles);
+    for (const [file, url] of filePreviewUrls) {
+        if (!currentFiles.has(file)) {
+            URL.revokeObjectURL(url);
+            filePreviewUrls.delete(file);
+        }
+    }
 
     selectedFiles.forEach((file, index) => {
         const div = document.createElement('div');
         div.className = 'preview-item';
         div.innerHTML = `
-            <img src="${selectedFilePreviewUrls[index]}" alt="New image ${index + 1}">
-            <button class="preview-remove" onclick="removeNewImage(${index})" title="Remove this image">&times;</button>
+            <img src="${getPreviewUrl(file)}" alt="New image ${index + 1}">
+            <button type="button" class="preview-remove" onclick="removeNewImage(${index})" title="Remove this image">&times;</button>
         `;
         imagePreviewGrid.appendChild(div);
     });
