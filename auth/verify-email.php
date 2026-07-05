@@ -271,12 +271,13 @@ document.getElementById('resend-link')?.addEventListener('click', async function
             body: JSON.stringify({ email })
         });
         const data = await res.json();
-        alert(data.message || 'If that email is registered and unverified, a new link has been sent.');
+        showSuccessBanner(data.message || 'If that email is registered and unverified, a new link has been sent.', false);
     } catch (err) {
-        alert('Request failed. Please try again.');
+        showSuccessBanner('Request failed. Please try again.', true);
     }
     this.innerHTML = original;
 });
 </script>
+<?php require_once __DIR__ . '/../includes/kinas-ui.php'; ?>
 </body>
 </html>
