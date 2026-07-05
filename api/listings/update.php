@@ -259,7 +259,12 @@ try {
 
                 if (!$result['success']) continue;
 
-                $publicUrl = $uploader->isUsingR2()
+                // See api/listings/create.php for the full explanation: use
+                // the per-file result (R2 results include a 'key'; local
+                // fallback results don't) rather than the uploader's static
+                // isUsingR2() flag, so a local-fallback upload never gets
+                // stored as if it were a working R2 URL.
+                $publicUrl = isset($result['key'])
                     ? $result['filepath']
                     : '/uploads/' . $subDir . '/' . $result['filename'];
 
