@@ -236,7 +236,7 @@ $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
     </style>
     <!-- ============================================================ -->
     
-    <title>Verify Your Phone - KK</title>
+    <title>Verify Your Phone - KINAS GROUP</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
@@ -249,7 +249,7 @@ $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
     <aside class="je-auth-aside">
         <a href="../index.php" class="je-auth-brand">
             <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
-            <span>KINAS GROUP</span>
+            <span>KK</span>
         </a>
         <div>
             <h1 class="je-auth-headline">One quick step.</h1>
