@@ -236,7 +236,7 @@ $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
     </style>
     <!-- ============================================================ -->
     
-    <title>Verify Your Phone - KINAS GROUP</title>
+    <title>Verify Your Phone - KK</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
