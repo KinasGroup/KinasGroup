@@ -543,7 +543,7 @@ include 'templates/header.php';
             <a href="/search.php" class="je-btn je-btn-outline">View all <i class="fas fa-arrow-right"></i></a>
         </div>
         
-        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px;">
+        <div class="je-listings-grid" style="gap:24px;">
             <?php foreach ($featuredListings as $item): 
                 // Explicit map — stripping "KINAS " gives wrong slugs (volt, automobile, etc.)
                 $divisionFolderMap = [
