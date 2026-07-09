@@ -67,6 +67,18 @@ $agentId = (int)$item['agent_id'];
 $agentName = htmlspecialchars($item['agent_name'] ?? 'Seller', ENT_QUOTES, 'UTF-8');
 $listingTitle = htmlspecialchars($item['title'] ?? 'Item', ENT_QUOTES, 'UTF-8');
 $agentVerified = !empty($item['agent_verified']);
+
+// Reflect real cart state on load — previously the button always said
+// "Add to Cart" regardless of whether the item was already in the cart,
+// since nothing checked. Combined with cart_items never actually being
+// created (see database/migrations/2026_07_08_create_cart_items.sql),
+// this made it look like items were never really being saved.
+$alreadyInCart = false;
+if (SessionManager::isLoggedIn()) {
+    $cartCheckStmt = $db->prepare("SELECT 1 FROM cart_items WHERE buyer_id = ? AND listing_id = ? AND listing_type = 'marketplace'");
+    $cartCheckStmt->execute([SessionManager::getUserId(), $listingId]);
+    $alreadyInCart = (bool)$cartCheckStmt->fetchColumn();
+}
 ?>
 
 <div class="je-page">
@@ -153,8 +165,15 @@ $agentVerified = !empty($item['agent_verified']);
                 </button>
 
                 <!-- Add to Cart -->
-                <button class="je-cta-secondary" id="addToCartBtn" onclick="jeAddToCart(<?= $listingId ?>);">
-                    <i class="fas fa-shopping-bag"></i> Add to Cart
+                <button class="je-cta-secondary" id="addToCartBtn"
+                        data-in-cart="<?= $alreadyInCart ? '1' : '0' ?>"
+                        onclick="jeAddToCart(<?= $listingId ?>);"
+                        <?= $alreadyInCart ? 'disabled' : '' ?>>
+                    <?php if ($alreadyInCart): ?>
+                        <i class="fas fa-check"></i> In Cart
+                    <?php else: ?>
+                        <i class="fas fa-shopping-bag"></i> Add to Cart
+                    <?php endif; ?>
                 </button>
 
                 <!-- Save Listing -->
@@ -294,12 +313,11 @@ function jeAddToCart(listingId) {
         if (data.success) {
             if (btn) {
                 btn.innerHTML = '<i class="fas fa-check"></i> In Cart';
+                btn.disabled = true;
+                btn.dataset.inCart = '1';
             }
             updateCartBadge(data.cart_count);
             showSuccessBanner('✅ Added to cart! <a href="/divisions/kinas-marketplace/cart.php" style="color:#155724;font-weight:700;text-decoration:underline;margin-left:6px;">View cart</a>', false);
-            setTimeout(function() {
-                if (btn) { btn.innerHTML = original; btn.disabled = false; }
-            }, 2000);
         } else {
             if (btn) { btn.innerHTML = original; btn.disabled = false; }
             showSuccessBanner('❌ ' + (data.error || 'Failed to add to cart'), true);
