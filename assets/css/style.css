@@ -33,6 +33,17 @@
 html { color-scheme: light !important; background: #ffffff !important; }
 body { background: #ffffff !important; color: #0A0A0A !important; }
 
+/* Native widget accent (checkbox check, radio dot, range thumb) isn't
+   governed by background-color/color at all — only accent-color. Setting
+   this UNCONDITIONALLY (not just inside the dark-mode block) means every
+   checkbox/radio across the site matches the brand gold consistently,
+   regardless of OS theme, instead of falling back to the OS's default
+   accent color which several pages were only opting into individually. */
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: #C6A43F;
+}
+
 @media (prefers-color-scheme: dark) {
 
     /* ── 1. Root reset ──────────────────────────────────────── */
@@ -72,6 +83,25 @@ body { background: #ffffff !important; color: #0A0A0A !important; }
         background-color: #ffffff !important;
         color: #0A0A0A !important;
         border-color: #e0e0e0 !important;
+    }
+
+    /* Placeholder text is a separate pseudo-element that doesn't inherit
+       the input's own forced color above — left alone, some browsers'
+       dark-mode heuristics adjust it independently and it can end up too
+       faint (or too dark) against the forced-white input background. */
+    input::placeholder, textarea::placeholder {
+        color: #999999 !important;
+        opacity: 1 !important;
+    }
+
+    /* The little calendar/clock icon on date & time inputs is drawn by
+       the browser, not styled via background-color/color — without this,
+       Chrome/Edge can render it in a dark-mode tint that's hard to see
+       against the white input background we're forcing above. */
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator,
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+        filter: invert(0.5);
     }
 
     /* ── 3. JE Dashboard containers (backgrounds only) ───────── */
@@ -475,7 +505,75 @@ a { color:inherit; text-decoration:none; }
   flex-wrap: nowrap;
   flex-shrink: 1;
   min-width: 0;
+  justify-content: flex-end;
 }
+
+/* Division/text links: allowed to compress and, as a last resort,
+   scroll horizontally on tight viewports — this group should never be
+   what steals space from the cart/account actions. */
+.header-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.header-nav-links::-webkit-scrollbar { display: none; }
+
+/* Cart + auth buttons: a fixed, never-shrinking group so the cart icon
+   can never be squeezed down to near-invisible width by the text links
+   overflowing on a real laptop viewport (previously all in one
+   flex-nowrap row together). */
+.header-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(128,128,128,0.25);
+}
+
+.header-cart-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: 50%;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+.je3-header.transparent .header-cart-link { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.je3-header.transparent .header-cart-link:hover { background: rgba(255,255,255,0.18); }
+.je3-header.solid .header-cart-link { color: var(--primary); }
+.je3-header.solid .header-cart-link:hover { background: rgba(10,10,10,0.06); }
+
+.header-cart-badge {
+  display: none;
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #C6A43F;
+  color: #0A0A0A;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+}
+.je3-header.transparent .header-cart-badge { box-shadow: 0 0 0 2px rgba(0,0,0,0.15); }
 
 .header-nav a {
   font-size: 13px;
