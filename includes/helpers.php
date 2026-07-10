@@ -33,6 +33,23 @@ function error($key) {
 function formatPrice($price, $currency = '₦') {
     return '₦' . number_format($price, 0, '.', ',');
 }
+
+/**
+ * The buyer-facing price for a KINAS Marketplace listing: the agent's
+ * listed (net) price with the Paystack card-processing fee already
+ * baked in, so it can be shown as a single, final number with no
+ * separate "processing fee" line anywhere in the buyer experience.
+ * The agent's own listing price in the database is untouched — this
+ * only affects what buyers see when browsing/checking out.
+ */
+function marketplaceBuyerPrice(float $rawPrice): float {
+    if ($rawPrice <= 0) return $rawPrice;
+    if (!class_exists('PaystackService')) {
+        require_once __DIR__ . '/paystack.php';
+    }
+    $passFeesToBuyer = strtolower(getenv('PAYSTACK_PASS_FEES_TO_BUYER') ?: 'true') !== 'false';
+    return $passFeesToBuyer ? PaystackService::grossUpForFee($rawPrice) : $rawPrice;
+}
 function flash($key) {
     return SessionManager::getFlash($key);
 }
