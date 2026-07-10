@@ -238,6 +238,10 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <a href="/divisions/kinas-volt/">KINAS VOLT</a>
     <a href="/divisions/kinas-marketplace/">KINAS MARKETPLACE</a>
     <a href="/pages/about.php">ABOUT US</a>
+    <a href="/divisions/kinas-marketplace/cart.php">
+        <i class="fas fa-shopping-bag" style="margin-right:8px;"></i>Cart
+        <span id="jeCartBadgeMobile" style="display:none;background:#C6A43F;color:#0A0A0A;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:999px;padding:0 5px;line-height:18px;text-align:center;margin-left:8px;"></span>
+    </a>
     <hr>
     <?php if ($isLoggedIn): ?>
         <?php if ($userRole === 'admin'): ?>
@@ -266,28 +270,32 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
             <span class="menu-icon-close" style="display:none;" aria-hidden="true">✕</span>
         </button>
         <nav class="header-nav" id="mainNav">
-            <a href="/divisions/kinas-automobile/">KINAS AUTOMOBILE</a>
-            <a href="/divisions/williams-connect-home/">WILLIAMS CONNECT HOME</a>
-            <a href="/divisions/kinas-volt/">KINAS VOLT</a>
-            <a href="/divisions/kinas-marketplace/">KINAS MARKETPLACE</a>
-            <a href="/pages/about.php">ABOUT US</a>
-            <a href="/divisions/kinas-marketplace/cart.php" id="jeHeaderCartLink" style="position:relative;" aria-label="Cart">
-                <i class="fas fa-shopping-bag"></i>
-                <span id="jeCartBadge" style="display:none;position:absolute;top:-8px;right:-12px;background:#C6A43F;color:#0A0A0A;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:999px;align-items:center;justify-content:center;padding:0 4px;line-height:16px;text-align:center;"></span>
-            </a>
-            <?php if ($isLoggedIn): ?>
-                <?php if ($userRole === 'admin'): ?>
-                    <a href="/admin/dashboard.php" class="je2-button nav-btn-outline">Admin Panel</a>
-                <?php elseif ($userRole === 'agent'): ?>
-                    <a href="/agent/dashboard.php" class="je2-button nav-btn-outline">Dashboard</a>
+            <div class="header-nav-links">
+                <a href="/divisions/kinas-automobile/">KINAS AUTOMOBILE</a>
+                <a href="/divisions/williams-connect-home/">WILLIAMS CONNECT HOME</a>
+                <a href="/divisions/kinas-volt/">KINAS VOLT</a>
+                <a href="/divisions/kinas-marketplace/">KINAS MARKETPLACE</a>
+                <a href="/pages/about.php">ABOUT US</a>
+            </div>
+            <div class="header-nav-actions">
+                <a href="/divisions/kinas-marketplace/cart.php" id="jeHeaderCartLink" class="header-cart-link" aria-label="Cart">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span id="jeCartBadge" class="header-cart-badge"></span>
+                </a>
+                <?php if ($isLoggedIn): ?>
+                    <?php if ($userRole === 'admin'): ?>
+                        <a href="/admin/dashboard.php" class="je2-button nav-btn-outline">Admin Panel</a>
+                    <?php elseif ($userRole === 'agent'): ?>
+                        <a href="/agent/dashboard.php" class="je2-button nav-btn-outline">Dashboard</a>
+                    <?php else: ?>
+                        <a href="/user/dashboard.php" class="je2-button nav-btn-outline">Dashboard</a>
+                    <?php endif; ?>
+                    <a href="/auth/logout.php" class="je2-button nav-btn-outline">Sign Out</a>
                 <?php else: ?>
-                    <a href="/user/dashboard.php" class="je2-button nav-btn-outline">Dashboard</a>
+                    <a href="/auth/login.php" class="je2-button nav-btn-outline">Sign In</a>
+                    <a href="/auth/register.php" class="je2-button nav-btn-filled">Register</a>
                 <?php endif; ?>
-                <a href="/auth/logout.php" class="je2-button nav-btn-outline">Sign Out</a>
-            <?php else: ?>
-                <a href="/auth/login.php" class="je2-button nav-btn-outline">Sign In</a>
-                <a href="/auth/register.php" class="je2-button nav-btn-filled">Register</a>
-            <?php endif; ?>
+            </div>
         </nav>
     </div>
 </header>
@@ -300,13 +308,14 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
 // ============================================================
 (function() {
     var badge = document.getElementById('jeCartBadge');
-    if (!badge) return;
+    var badgeMobile = document.getElementById('jeCartBadgeMobile');
+    if (!badge && !badgeMobile) return;
     fetch('/api/cart/count.php', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success && data.count > 0) {
-                badge.textContent = data.count;
-                badge.style.display = 'flex';
+                if (badge) { badge.textContent = data.count; badge.style.display = 'flex'; }
+                if (badgeMobile) { badgeMobile.textContent = data.count; badgeMobile.style.display = 'inline-block'; }
             }
         })
         .catch(function() { /* silent — badge just stays hidden */ });
