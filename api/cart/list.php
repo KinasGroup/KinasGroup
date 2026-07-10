@@ -52,7 +52,7 @@ try {
         if (!$available) {
             $hasUnavailable = true;
         } else {
-            $subtotal += (float)$row['price'];
+            $subtotal += marketplaceBuyerPrice((float)$row['price']);
         }
 
         $items[] = [
@@ -60,7 +60,7 @@ try {
             'title'       => $row['title'],
             'thumbnail'   => $row['thumbnail'] ?: null,
             'agent_name'  => $row['agent_name'] ?: 'Seller',
-            'price_label' => formatPrice((float)$row['price']),
+            'price_label' => formatPrice(marketplaceBuyerPrice((float)$row['price'])),
             'available'   => $available,
             'detail_url'  => '/divisions/kinas-marketplace/detail.php?id=' . (int)$row['listing_id'],
         ];
