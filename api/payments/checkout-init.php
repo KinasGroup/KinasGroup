@@ -55,6 +55,13 @@ $userId = (int)($_SESSION['user_id'] ?? 0);
 
 $data = json_decode(file_get_contents('php://input'), true) ?: $_POST;
 $mode = $data['mode'] ?? 'cart';
+$shippingAddress = trim((string)($data['shipping_address'] ?? ''));
+
+if ($shippingAddress === '') {
+    http_response_code(422);
+    echo json_encode(['error' => 'Please enter a shipping address']);
+    exit;
+}
 
 $paystack = new PaystackService();
 if (!$paystack->isEnabled()) {
@@ -167,11 +174,11 @@ try {
 
     $db->prepare("
         INSERT INTO orders
-            (buyer_id, reference, email, phone, amount, subtotal_amount, fee_amount,
+            (buyer_id, reference, email, phone, shipping_address, amount, subtotal_amount, fee_amount,
              settlement_mode, subaccount_code, currency, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'NGN', 'pending')
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NGN', 'pending')
     ")->execute([
-        $userId, $reference, $buyer['email'], $buyer['phone'] ?? null,
+        $userId, $reference, $buyer['email'], $buyer['phone'] ?? null, $shippingAddress,
         $chargeTotal, $subtotal, $feeAmount, $settlementMode, $subaccountCode,
     ]);
     $orderId = (int)$db->lastInsertId();
