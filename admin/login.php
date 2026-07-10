@@ -23,11 +23,47 @@ $errorMessage  = SessionManager::getFlash('error');
 $successMessage = SessionManager::getFlash('success');
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="color-scheme: light;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light only">
+    <meta name="theme-color" content="#ffffff">
+    <style>
+        /* Force light mode immediately — see auth/login.php for the same
+           pattern. This page was previously missing it entirely: no inline
+           color-scheme on <html>, and no local override block, unlike
+           every other auth page. */
+        html, body {
+            color-scheme: light !important;
+            background: #ffffff !important;
+        }
+        @media (prefers-color-scheme: dark) {
+            html, body {
+                color-scheme: light !important;
+                background: #ffffff !important;
+                color: #0A0A0A !important;
+            }
+            .je-auth-shell,
+            .je-auth-main,
+            .je-auth-form {
+                background-color: #ffffff !important;
+                color: #0A0A0A !important;
+            }
+            .je-auth-aside {
+                background-color: #0A0A0A !important;
+                color: rgba(255,255,255,0.7) !important;
+            }
+            .je-auth-aside * {
+                color: rgba(255,255,255,0.7) !important;
+            }
+            .je-auth-aside h1,
+            .je-auth-aside .je-auth-headline {
+                color: #ffffff !important;
+            }
+        }
+    </style>
+    <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
     <title>Admin Portal - KINAS GROUP | Luxury Marketplace</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">
