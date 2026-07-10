@@ -184,7 +184,7 @@ include '../../templates/header.php';
                     <div class="je-cart-item-body">
                         <div class="je-cart-item-title"><?= htmlspecialchars($it['title']) ?></div>
                         <div class="je-cart-item-seller">Sold by <?= htmlspecialchars($it['agent_name'] ?? 'Seller') ?></div>
-                        <div class="je-cart-item-price"><?= formatPrice((float)$it['price']) ?></div>
+                        <div class="je-cart-item-price"><?= formatPrice(marketplaceBuyerPrice((float)$it['price'])) ?></div>
                         <?php if ($unavailable): ?><div class="je-cart-item-unavailable"><i class="fas fa-exclamation-circle"></i> No longer available — will be excluded</div><?php endif; ?>
                     </div>
                 </div>
@@ -202,7 +202,12 @@ include '../../templates/header.php';
                             <input type="text" value="<?= htmlspecialchars($buyer['email'] ?? '') ?>" disabled style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;background:#f0f0f0;">
                         </div>
                     </div>
-                    <p style="font-size:11px;color:#999;margin-top:10px;">To change these, update your <a href="/user/profile.php">profile</a> first.</p>
+                    <div style="margin-top:14px;">
+                        <label for="shippingAddress" style="display:block;font-weight:600;font-size:12px;margin-bottom:4px;color:#666;">Shipping Address <span style="color:#C6414D;">*</span></label>
+                        <textarea id="shippingAddress" rows="3" placeholder="Street address, city, state" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+                        <p id="shippingAddressError" style="display:none;color:#C6414D;font-size:11px;margin-top:4px;">Please enter a shipping address before paying.</p>
+                    </div>
+                    <p style="font-size:11px;color:#999;margin-top:10px;">To change your name or email, update your <a href="/user/profile.php">profile</a> first.</p>
                 </div>
             </div>
 
@@ -210,14 +215,8 @@ include '../../templates/header.php';
                 <h3>Order Summary</h3>
                 <div class="je-cart-summary-row">
                     <span>Items (<?= count(array_filter($checkoutItems, fn($i) => $i['status'] === 'active')) ?>)</span>
-                    <span><?= formatPrice($checkoutTotal) ?></span>
+                    <span><?= formatPrice($checkoutGrandTotal) ?></span>
                 </div>
-                <?php if ($checkoutFee > 0): ?>
-                <div class="je-cart-summary-row" style="font-weight:400;color:#666;">
-                    <span>Card processing fee <i class="fas fa-info-circle" title="Covers the payment gateway's processing charge" style="color:#bbb;"></i></span>
-                    <span><?= formatPrice($checkoutFee) ?></span>
-                </div>
-                <?php endif; ?>
                 <div class="je-cart-summary-row" style="border-top:1px solid #ddd;margin-top:8px;padding-top:12px;font-size:16px;">
                     <span>Total</span>
                     <span id="checkoutTotalLabel"><?= formatPrice($checkoutGrandTotal) ?></span>
@@ -234,7 +233,7 @@ include '../../templates/header.php';
 </div>
 
 <style>
-.je-checkout-wrap { max-width: 1100px; margin: 0 auto; padding: 110px 24px 80px; }
+.je-checkout-wrap { max-width: 1100px; margin: 0 auto; padding: 30px 24px 80px; }
 .je-cart-title { font-family:'Prata',serif; font-size: 28px; margin: 18px 0 24px; color: var(--je-ink); }
 .je-cart-grid { display: grid; grid-template-columns: 1fr 320px; gap: 32px; align-items: start; }
 @media (max-width: 820px) { .je-cart-grid { grid-template-columns: 1fr; } }
@@ -249,7 +248,7 @@ include '../../templates/header.php';
 .je-cart-item-price { font-weight:700; color:#C6A43F; font-size:15px; }
 .je-cart-item-unavailable { color:#DC2626; font-size:12px; font-weight:600; margin-top:4px; }
 
-.je-cart-summary { background:#fafafa; border:1px solid #eee; border-radius:10px; padding:24px; position:sticky; top:110px; }
+.je-cart-summary { background:#fafafa; border:1px solid #eee; border-radius:10px; padding:24px; position:sticky; top:86px; }
 .je-cart-summary h3 { font-family:'Prata',serif; font-size:18px; margin-bottom:16px; }
 .je-cart-summary-row { display:flex; justify-content:space-between; font-size:14px; color:#333; padding:6px 0; font-weight:600; }
 </style>
@@ -264,14 +263,25 @@ const jeCheckoutMode    = <?= json_encode($checkoutMode) ?>;
 const jeCheckoutListing = <?= json_encode($checkoutMode === 'buy_now' ? (int)$checkoutItems[0]['listing_id'] : null) ?>;
 
 function jeStartPayment() {
+    const addressEl = document.getElementById('shippingAddress');
+    const addressErrorEl = document.getElementById('shippingAddressError');
+    const shippingAddress = addressEl ? addressEl.value.trim() : '';
+
+    if (!shippingAddress) {
+        if (addressErrorEl) addressErrorEl.style.display = 'block';
+        if (addressEl) addressEl.focus();
+        return;
+    }
+    if (addressErrorEl) addressErrorEl.style.display = 'none';
+
     const btn = document.getElementById('payNowBtn');
     const original = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing checkout…';
 
     const payload = jeCheckoutMode === 'buy_now'
-        ? { mode: 'buy_now', listing_id: jeCheckoutListing }
-        : { mode: 'cart' };
+        ? { mode: 'buy_now', listing_id: jeCheckoutListing, shipping_address: shippingAddress }
+        : { mode: 'cart', shipping_address: shippingAddress };
 
     fetch('/api/payments/checkout-init.php', {
         method: 'POST',

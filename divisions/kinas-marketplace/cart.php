@@ -64,7 +64,7 @@ include '../../templates/header.php';
 </div>
 
 <style>
-.je-cart-wrap { max-width: 1100px; margin: 0 auto; padding: 110px 24px 80px; }
+.je-cart-wrap { max-width: 1100px; margin: 0 auto; padding: 30px 24px 80px; }
 .je-cart-title { font-family:'Prata',serif; font-size: 30px; margin: 18px 0 28px; color: var(--je-ink); }
 .je-cart-grid { display: grid; grid-template-columns: 1fr 320px; gap: 32px; align-items: start; }
 @media (max-width: 820px) { .je-cart-grid { grid-template-columns: 1fr; } }
@@ -81,7 +81,7 @@ include '../../templates/header.php';
 .je-cart-item-remove { background:none; border:none; color:#999; cursor:pointer; font-size:16px; padding:8px; }
 .je-cart-item-remove:hover { color:#DC2626; }
 
-.je-cart-summary { background:#fafafa; border:1px solid #eee; border-radius:10px; padding:24px; position:sticky; top:110px; }
+.je-cart-summary { background:#fafafa; border:1px solid #eee; border-radius:10px; padding:24px; position:sticky; top:86px; }
 .je-cart-summary h3 { font-family:'Prata',serif; font-size:18px; margin-bottom:16px; }
 .je-cart-summary-row { display:flex; justify-content:space-between; font-size:14px; color:#333; padding:6px 0; font-weight:600; }
 </style>

@@ -350,7 +350,7 @@ include '../../templates/header.php';
                 $locParts = array_filter([$r['city'] ?? null, $r['state'] ?? null, $r['country'] ?? null]);
                 return [
                     'id' => $r['id'], 'title' => $r['title'] ?? '',
-                    'price' => $r['price'], 'thumbnail' => $r['thumbnail'] ?: '',
+                    'price' => marketplaceBuyerPrice((float)$r['price']), 'thumbnail' => $r['thumbnail'] ?: '',
                     'specs' => implode(' • ', array_map('ucfirst', $specParts)),
                     'location' => implode(', ', $locParts),
                     // FIXED: Full path to detail page

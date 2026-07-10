@@ -132,7 +132,7 @@ if (SessionManager::isLoggedIn()) {
             <h1 class="je-spec-title"><?= htmlspecialchars($item['title'] ?? '') ?></h1>
             <?php if ($location): ?><div style="font-size:13px;color:#888;margin-bottom:8px;"><i class="fas fa-map-marker-alt" style="color:#C6A43F"></i> <?= htmlspecialchars($location) ?></div><?php endif; ?>
 
-            <div class="je-spec-price"><?= function_exists('formatPrice') ? formatPrice((float)$item['price']) : '₦' . number_format((float)$item['price']) ?></div>
+            <div class="je-spec-price"><?= formatPrice(marketplaceBuyerPrice((float)$item['price'])) ?></div>
 
             <dl class="je-spec-key">
                 <?php
@@ -331,12 +331,14 @@ function jeAddToCart(listingId) {
 
 function updateCartBadge(count) {
     const badge = document.getElementById('jeCartBadge');
-    if (!badge) return;
-    if (count > 0) {
-        badge.textContent = count;
-        badge.style.display = 'flex';
-    } else {
-        badge.style.display = 'none';
+    const badgeMobile = document.getElementById('jeCartBadgeMobile');
+    if (badge) {
+        if (count > 0) { badge.textContent = count; badge.style.display = 'flex'; }
+        else { badge.style.display = 'none'; }
+    }
+    if (badgeMobile) {
+        if (count > 0) { badgeMobile.textContent = count; badgeMobile.style.display = 'inline-block'; }
+        else { badgeMobile.style.display = 'none'; }
     }
 }
 
