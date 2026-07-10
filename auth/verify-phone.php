@@ -43,7 +43,7 @@ $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
     <!-- ============================================================
          FORCE LIGHT MODE - PERMANENT FIX
          ============================================================ -->
-    <meta name="color-scheme" content="light only">
+    <meta name="color-scheme" content="only light">
     <meta name="theme-color" content="#ffffff">
     <style>
         /* Force light mode immediately */

@@ -18,7 +18,7 @@ $csrf_token = Security::generateCSRFToken();
     <!-- ============================================================
          FORCE LIGHT MODE - PERMANENT FIX
          ============================================================ -->
-    <meta name="color-scheme" content="light only">
+    <meta name="color-scheme" content="only light">
     <meta name="theme-color" content="#ffffff">
     <style>
         html, body { 
