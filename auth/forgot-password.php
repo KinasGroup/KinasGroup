@@ -52,6 +52,7 @@ $csrf_token = Security::generateCSRFToken();
     </style>
     <!-- ============================================================ -->
     
+    <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
     <title>Forgot Password - KINAS GROUP</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">

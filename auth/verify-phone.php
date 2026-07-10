@@ -236,6 +236,7 @@ $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
     </style>
     <!-- ============================================================ -->
     
+    <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
     <title>Verify Your Phone - KINAS GROUP</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">
@@ -249,7 +250,7 @@ $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
     <aside class="je-auth-aside">
         <a href="../index.php" class="je-auth-brand">
             <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
-            <span></span>
+            <span>KINAS GROUP</span>
         </a>
         <div>
             <h1 class="je-auth-headline">One quick step.</h1>

@@ -56,6 +56,7 @@ $successMessage = SessionManager::getFlash('success');
     </style>
     <!-- ============================================================ -->
     
+    <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
     <title>Buyer Registration - KINAS GROUP | Luxury Marketplace</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">
