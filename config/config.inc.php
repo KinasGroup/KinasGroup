@@ -39,7 +39,7 @@ $config['language'] = 'en_US';
 $config['timezone'] = 'Africa/Lagos';           // Nigeria timezone
 
 // Security
-$config['des_key'] = 'REPLACE_WITH_A_RANDOM_24_CHAR_STRING_!'; // Generate a strong one
+$config['des_key'] = '2f9851c4263fd15f80b5e840'; // Generate a strong one
 $config['cipher_method'] = 'AES-256-CBC';
 
 // Features
