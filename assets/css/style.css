@@ -505,48 +505,26 @@ a { color:inherit; text-decoration:none; }
   flex-wrap: nowrap;
   flex-shrink: 1;
   min-width: 0;
-  justify-content: flex-end;
 }
 
-/* Division/text links: allowed to compress and, as a last resort,
-   scroll horizontally on tight viewports — this group should never be
-   what steals space from the cart/account actions. */
-.header-nav-links {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.header-nav-links::-webkit-scrollbar { display: none; }
-
-/* Cart + auth buttons: a fixed, never-shrinking group so the cart icon
-   can never be squeezed down to near-invisible width by the text links
-   overflowing on a real laptop viewport (previously all in one
-   flex-nowrap row together). */
-.header-nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  margin-left: 12px;
-  padding-left: 12px;
-  border-left: 1px solid rgba(128,128,128,0.25);
-}
-
-.header-cart-link {
+/* Cart icon: needs higher specificity than ".header-nav a" below (which
+   sets padding: 8px 10px) so its own fixed circular sizing isn't
+   overridden by it — ".header-nav a.header-cart-link" beats
+   ".header-nav a" on specificity regardless of source order. */
+.header-nav a.header-cart-link {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   padding: 0;
+  margin: 0 2px;
   box-sizing: border-box;
   border-radius: 50%;
-  font-size: 16px;
+  font-size: 15px;
   flex-shrink: 0;
+  vertical-align: middle;
   transition: background 0.2s ease;
 }
 .je3-header.transparent .header-cart-link { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
@@ -557,8 +535,8 @@ a { color:inherit; text-decoration:none; }
 .header-cart-badge {
   display: none;
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -2px;
+  right: -2px;
   background: #C6A43F;
   color: #0A0A0A;
   font-size: 10px;
