@@ -106,8 +106,8 @@ class EmailService
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="x-apple-disable-message-reformatting">
-<meta name="color-scheme" content="light only">
-<meta name="supported-color-schemes" content="light only">
+<meta name="color-scheme" content="only light">
+<meta name="supported-color-schemes" content="only light">
 <title>{$title}</title>
 <!--[if mso]>
 <style type="text/css">
@@ -115,7 +115,7 @@ class EmailService
 </style>
 <![endif]-->
 <style>
-    :root { color-scheme: light only; supported-color-schemes: light only; }
+    :root { color-scheme: only light; supported-color-schemes: only light; }
     body { margin:0; padding:0; width:100% !important; background-color:#F2F2F2 !important; }
     table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
     img { -ms-interpolation-mode:bicubic; border:0; outline:none; text-decoration:none; }
