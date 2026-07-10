@@ -426,11 +426,11 @@ table {
    visitor in normal/light mode, we explicitly opt the whole site out
    of automatic dark theming. */
 :root {
-    color-scheme: light only;
+    color-scheme: only light;
 }
 
 html {
-    color-scheme: light only;
+    color-scheme: only light;
 }
 
 /* High Contrast Mode */
