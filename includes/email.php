@@ -18,7 +18,7 @@ class EmailService
     {
         $this->fromEmail = getenv('MAIL_FROM_ADDRESS') ?: 'noreply@kinas-group.com';
         $this->fromName = getenv('MAIL_FROM_NAME') ?: 'KINAS GROUP OF COMPANIES LIMITED';
-        $this->siteUrl = getenv('SITE_URL') ?: '/';
+        $this->siteUrl = rtrim(getenv('APP_URL') ?: 'https://kinas-group.com', '/');
         
         // Check for Resend API key first
         $this->apiKey = getenv('RESEND_API_KEY') ?: '';
