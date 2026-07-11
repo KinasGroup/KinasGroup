@@ -102,7 +102,7 @@ $otpCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
 try {
     // Try to send via Termii if enabled
     if ($termii->isEnabled()) {
-        $result = $termii->sendOtp($phone, 6, 10);
+        $result = $termii->sendOtp($phone, 6, 15);
         if (!$result['success']) {
             throw new RuntimeException($result['message'] ?? 'Termii send failed');
         }
@@ -125,7 +125,7 @@ try {
     $insert = $db->prepare("
         INSERT INTO phone_otps
             (user_id, phone, code_hash, purpose, max_attempts, termii_message_id, expires_at, ip_address, created_at)
-        VALUES (?, ?, ?, ?, 5, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE), ?, NOW())
+        VALUES (?, ?, ?, ?, 5, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE), ?, NOW())
     ");
     $insert->execute([
         $userId,
@@ -159,7 +159,7 @@ try {
     $insert = $db->prepare("
         INSERT INTO phone_otps
             (user_id, phone, code_hash, purpose, max_attempts, expires_at, ip_address, created_at)
-        VALUES (?, ?, ?, ?, 5, DATE_ADD(NOW(), INTERVAL 10 MINUTE), ?, NOW())
+        VALUES (?, ?, ?, ?, 5, DATE_ADD(NOW(), INTERVAL 15 MINUTE), ?, NOW())
     ");
     $insert->execute([
         $userId,
