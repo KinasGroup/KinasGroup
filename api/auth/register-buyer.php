@@ -163,6 +163,8 @@ try {
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
     $verificationExpiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
+    $db->beginTransaction();
+
     // Insert user as buyer (role = 'user').
     // The 24h expiry is enforced server-side in auth/verify-email.php —
     // the email body advertises "this link will expire in 24 hours".
@@ -210,6 +212,8 @@ try {
     // Log registration
     Security::logActivity($userId, 'buyer_registration', "New buyer registered: $email from $ip");
 
+    $db->commit();
+
     // Generate new CSRF token
     $newCsrfToken = Security::generate_csrf_token();
 
@@ -222,10 +226,12 @@ try {
     ]);
 
 } catch (PDOException $e) {
+    if (isset($db) && $db->inTransaction()) $db->rollBack();
     error_log('Registration PDO error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => 'Registration failed. Please try again later.']);
 } catch (Exception $e) {
+    if (isset($db) && $db->inTransaction()) $db->rollBack();
     error_log('Registration error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => 'Registration failed. Please try again later.']);
