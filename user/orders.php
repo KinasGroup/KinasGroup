@@ -64,6 +64,30 @@ include __DIR__ . '/../templates/header.php';
 .empty-state{text-align:center;padding:70px 20px;background:white;border-radius:16px;border:1px solid #E0E0E0;color:#999}
 .empty-state i{font-size:3rem;color:#E0E0E0;margin-bottom:14px;display:block}
 .empty-state a{color:#C6A43F;text-decoration:none;font-weight:600}
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .page-header h1 { color: #0A0A0A !important; }
+    .order-card { background: white !important; }
+    .order-head { background: #FAFAFA !important; }
+    .order-ref { color: #888 !important; }
+    .order-date { color: #888 !important; }
+    .status-paid { background: #d4edda !important; color: #155724 !important; }
+    .status-pending { background: #fff3cd !important; color: #856404 !important; }
+    .status-failed,.status-abandoned { background: #f8d7da !important; color: #721c24 !important; }
+    .order-item-thumb { background: linear-gradient(135deg,#1a1a1a,#0a0a0a) !important; }
+    .order-item-thumb i { color: #C6A43F !important; }
+    .order-item-title { color: #333 !important; }
+    .order-item-price { color: #C6A43F !important; }
+    .empty-state { background: white !important; color: #999 !important; }
+    .empty-state i { color: #E0E0E0 !important; }
+    .empty-state a { color: #C6A43F !important; }
+}
 </style>
 
 <div class="je-dash-shell">

@@ -358,6 +358,50 @@ require_once __DIR__ . '/../templates/header.php';
     .stat-block { min-width: 50%; }
     .form-grid { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    .profile-page { background: #f7f7f7 !important; }
+    .profile-banner { background: #0A0A0A !important; }
+    .profile-banner::before { background: linear-gradient(135deg, rgba(198,164,63,0.08) 0%, transparent 60%) !important; }
+    .profile-avatar-circle { background: linear-gradient(135deg, #C6A43F, #A8882E) !important; color: #0A0A0A !important; }
+    .profile-banner-name { color: #fff !important; }
+    .profile-banner-email { color: rgba(255,255,255,0.5) !important; }
+    .badge-buyer { background: rgba(198,164,63,0.15) !important; color: #C6A43F !important; }
+    .badge-member { background: rgba(255,255,255,0.07) !important; color: rgba(255,255,255,0.5) !important; }
+    .badge-verified { background: rgba(46,125,50,0.2) !important; color: #66BB6A !important; }
+    .profile-stats-row { background: #fff !important; }
+    .stat-num { color: #0A0A0A !important; }
+    .stat-lbl { color: #999 !important; }
+    .profile-sidenav { background: #fff !important; }
+    .sidenav-section-title { color: #bbb !important; }
+    .sidenav-link { color: #555 !important; }
+    .sidenav-link:hover { background: #f9f9f9 !important; color: #0A0A0A !important; }
+    .sidenav-link.active { background: rgba(198,164,63,0.06) !important; color: #C6A43F !important; }
+    .profile-card { background: #fff !important; }
+    .profile-card-title { color: #0A0A0A !important; }
+    .profile-card-subtitle { color: #999 !important; }
+    .flash-success { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .flash-error { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .je-form-group label { color: #999 !important; }
+    .je-form-group input,
+.je-form-group textarea { color: #0A0A0A !important; background: #fff !important; }
+    .je-form-group input:focus,
+.je-form-group textarea:focus { border-color: #C6A43F !important; }
+    .je-form-group input[readonly],
+.je-form-group input[disabled] { background: #f7f7f7 !important; color: #999 !important; }
+    .je-form-hint { color: #bbb !important; }
+    .je-save-btn { background: #0A0A0A !important; color: #fff !important; }
+    .je-save-btn:hover { background: #333 !important; }
+    .readonly-field { background: #f7f7f7 !important; color: #666 !important; }
+    .danger-zone-text { color: #888 !important; }
+    .je-danger-btn { color: #DC2626 !important; }
+    .je-danger-btn:hover { background: #FEF2F2 !important; }
+}
 </style>
 
 <div class="je-dash-shell">

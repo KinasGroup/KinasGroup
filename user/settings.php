@@ -57,7 +57,32 @@ require_once __DIR__ . '/../templates/header.php';
         .danger-zone p{color:#666;font-size:13px;margin-bottom:16px}
         .btn-danger{background:#DC2626;color:white;border:none;padding:10px 22px;border-radius:40px;cursor:pointer;font-weight:600}
         @media(max-width:768px){.user-container{padding:20px}}
-    </style>
+    
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .page-header h1 { color: #0A0A0A !important; }
+    .page-header p { color: #666 !important; }
+    .flash.success { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .settings-card { background: white !important; }
+    .settings-card h3 { color: #C6A43F !important; }
+    .toggle-label h4 { color: #0A0A0A !important; }
+    .toggle-label p { color: #666 !important; }
+    .slider { background: #E0E0E0 !important; }
+    .slider:before { background: white !important; }
+    input:checked + .slider { background: #C6A43F !important; }
+    .btn-save { background: #C6A43F !important; color: #0A0A0A !important; }
+    .btn-save:hover { background: #A8882E !important; }
+    .danger-zone { background: #FEF2F2 !important; }
+    .danger-zone h3 { color: #DC2626 !important; }
+    .danger-zone p { color: #666 !important; }
+    .btn-danger { background: #DC2626 !important; color: white !important; }
+}
+</style>
 <div class="je-dash-shell">
 <?php include __DIR__ . '/../includes/partials/user-sidebar.php'; ?>
 <main class="je-dash-main">

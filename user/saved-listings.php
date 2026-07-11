@@ -97,6 +97,33 @@ include __DIR__ . '/../templates/header.php';
 .empty-state a{color:#C6A43F;text-decoration:none;font-weight:600}
 .alert-success{background:#d4edda;color:#155724;padding:12px 20px;border-radius:8px;margin-bottom:20px;border-left:4px solid #28a745}
 @media(max-width:640px){.listings-grid{grid-template-columns:1fr}}
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .page-header h1 { color: #0A0A0A !important; }
+    .listing-card { background: white !important; }
+    .listing-card:hover { border-color: #C6A43F !important; }
+    .listing-img { background: linear-gradient(135deg,#F5F7FA,#E0E0E0) !important; }
+    .listing-img .no-image { color: #C6A43F !important; }
+    .listing-type-badge { background: rgba(198,164,63,.9) !important; color: #0A0A0A !important; }
+    .listing-title { color: #0A0A0A !important; }
+    .listing-price { color: #C6A43F !important; }
+    .listing-meta { color: #999 !important; }
+    .listing-meta i { color: #C6A43F !important; }
+    .btn-view { background: #F5F7FA !important; color: #333 !important; }
+    .btn-view:hover { background: #E0E0E0 !important; }
+    .btn-unsave { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .btn-unsave:hover { background: #FECACA !important; }
+    .empty-state { background: white !important; color: #999 !important; }
+    .empty-state i { color: #E0E0E0 !important; }
+    .empty-state a { color: #C6A43F !important; }
+    .alert-success { background: #d4edda !important; color: #155724 !important; }
+}
 </style>
 
 <div class="je-dash-shell">

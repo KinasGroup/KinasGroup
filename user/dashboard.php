@@ -444,6 +444,59 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     .stats-grid { grid-template-columns: 1fr; }
     .actions-grid { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .welcome-banner { background: linear-gradient(135deg, #0A0A0A 0%, #1A1A1A 100%) !important; }
+    .welcome-banner::before { background: radial-gradient(circle, rgba(198,164,63,0.1) 0%, transparent 70%) !important; }
+    .welcome-banner h1 { color: white !important; }
+    .welcome-banner p { color: rgba(255,255,255,0.7) !important; }
+    .member-since { background: rgba(198,164,63,0.2) !important; color: #C6A43F !important; }
+    .stat-card { background: white !important; }
+    .stat-card::before { background: #C6A43F !important; }
+    .stat-icon { background: rgba(198,164,63,0.1) !important; color: #C6A43F !important; }
+    .stat-icon.blue { background: rgba(59,130,246,.1) !important; color: #3B82F6 !important; }
+    .stat-icon.green { background: rgba(34,197,94,.1) !important; color: #22C55E !important; }
+    .stat-icon.gold { background: rgba(198,164,63,.12) !important; color: #C6A43F !important; }
+    .stat-icon.red { background: rgba(220,38,38,.12) !important; color: #DC2626 !important; }
+    .stat-icon.orange { background: rgba(245,158,11,.12) !important; color: #F59E0B !important; }
+    .stat-number { color: #0A0A0A !important; }
+    .stat-label { color: #666 !important; }
+    .section-title { color: #0A0A0A !important; }
+    .section-title::after { background: #C6A43F !important; }
+    .view-all { color: #C6A43F !important; }
+    .view-all:hover { color: #A8882E !important; }
+    .listing-card { background: white !important; }
+    .listing-card:hover { border-color: #C6A43F !important; }
+    .listing-image { background: #f0f0f0 !important; }
+    .listing-image-placeholder { background: linear-gradient(135deg, #f5f5f5, #e8e8e8) !important; color: #ccc !important; }
+    .listing-title { color: #0A0A0A !important; }
+    .listing-price { color: #C6A43F !important; }
+    .listing-location { color: #666 !important; }
+    .saved-date { color: #999 !important; }
+    .message-item { background: #fff !important; }
+    .message-item:hover { border-color: #C6A43F !important; }
+    .message-item.unread { background: #FFFDF5 !important; }
+    .message-item .sender { color: #0A0A0A !important; }
+    .message-item .preview { color: #666 !important; }
+    .message-item .time { color: #999 !important; }
+    .empty-state { background: #fff !important; }
+    .empty-state i { color: #C6A43F !important; }
+    .empty-state p { color: #666 !important; }
+    .quick-actions { background: #fff !important; }
+    .action-btn { background: #F8F8F8 !important; }
+    .action-btn:hover { background: #C6A43F !important; border-color: #C6A43F !important; }
+    .action-btn i { color: #C6A43F !important; }
+    .action-btn span { color: #333 !important; }
+    .action-btn:hover i, .action-btn:hover span { color: #0A0A0A !important; }
+    .btn-view { background: #C6A43F !important; color: #0A0A0A !important; }
+    .btn-view:hover { background: #A8882E !important; }
+}
 </style>
 
 <div class="je-dash-shell">
