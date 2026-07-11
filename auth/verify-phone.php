@@ -233,7 +233,22 @@ $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
                 justify-content: center !important;
             }
         }
-    </style>
+    
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    html, body { background: #ffffff !important; }
+    .toast { background: #0A0A0A !important; color: #fff !important; }
+    .toast.success { background: #1B5E20 !important; }
+    .toast.error { background: #B71C1C !important; }
+    .toast.info { background: #0047AB !important; }
+    .je-auth-switch a { color: #888 !important; }
+    .je-auth-switch a:hover { color: #C6A43F !important; }
+}
+</style>
     <!-- ============================================================ -->
     
     <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
@@ -250,7 +265,7 @@ $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '');
     <aside class="je-auth-aside">
         <a href="../index.php" class="je-auth-brand">
             <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
-            <span></span>
+            <span>KINAS GROUP</span>
         </a>
         <div>
             <h1 class="je-auth-headline">One quick step.</h1>

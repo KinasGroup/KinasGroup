@@ -188,7 +188,7 @@ $pageTitle = 'Email Verification Preview - KINAS GROUP';
         <!-- Gold Rounded Rectangle Logo -->
         <div class="logo-placeholder">
             <svg viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
-                <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Prata, serif" font-size="22" font-weight="600" fill="#0A0A0A"></text>
+                <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Prata, serif" font-size="22" font-weight="600" fill="#0A0A0A">KINAS GROUP</text>
             </svg>
         </div>
 

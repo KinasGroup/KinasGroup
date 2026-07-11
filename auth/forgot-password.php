@@ -149,7 +149,22 @@ $csrf_token = Security::generateCSRFToken();
                 font-size: 1.8rem;
             }
         }
-    </style>
+    
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    html, body { background: #ffffff !important; }
+    .forgot-icon-wrap { background: linear-gradient(135deg, #FFF8E1 0%, #FCE4B6 100%) !important; }
+    .forgot-icon-wrap i { color: #B45309 !important; }
+    .security-list { background: rgba(255,255,255,0.05) !important; }
+    .security-list .label { color: #C6A43F !important; }
+    .security-list ul { color: rgba(255,255,255,0.75) !important; }
+    .security-list i { color: #C6A43F !important; }
+}
+</style>
 </head>
 <body>
 
@@ -158,7 +173,7 @@ $csrf_token = Security::generateCSRFToken();
     <aside class="je-auth-aside">
         <a href="../index.php" class="je-auth-brand">
             <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
-            <span></span>
+            <span>KINAS GROUP</span>
         </a>
         <div>
             <h1 class="je-auth-headline">Secure your account.</h1>

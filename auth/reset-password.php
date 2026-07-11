@@ -182,7 +182,26 @@ $success = !empty($_GET['success']);
         .je-password-toggle:hover {
             color: #666;
         }
-    </style>
+    
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    html, body { background: #ffffff !important; }
+    .reset-icon-wrap.success { background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%) !important; }
+    .reset-icon-wrap.success i { color: #1B5E20 !important; }
+    .reset-icon-wrap.edit { background: linear-gradient(135deg, #FFF8E1 0%, #FCE4B6 100%) !important; }
+    .reset-icon-wrap.edit    i { color: #B45309 !important; }
+    .password-rules { background: rgba(255,255,255,0.05) !important; }
+    .password-rules .label { color: #C6A43F !important; }
+    .password-rules ul { color: rgba(255,255,255,0.75) !important; }
+    .password-rules i { color: #C6A43F !important; }
+    .je-password-toggle { color: #999 !important; }
+    .je-password-toggle:hover { color: #666 !important; }
+}
+</style>
 </head>
 <body>
 
@@ -191,7 +210,7 @@ $success = !empty($_GET['success']);
     <aside class="je-auth-aside">
         <a href="../index.php" class="je-auth-brand">
             <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
-            <span></span>
+            <span>KINAS GROUP</span>
         </a>
         <div>
             <h1 class="je-auth-headline">A new key to your account.</h1>

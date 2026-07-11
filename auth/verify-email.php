@@ -195,7 +195,24 @@ if (!empty($code)) {
                 font-size: 1.8rem;
             }
         }
-    </style>
+    
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    html, body { background: #ffffff !important; }
+    .verify-icon-wrap.success { background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%) !important; }
+    .verify-icon-wrap.error { background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%) !important; }
+    .verify-icon-wrap.success i { color: #1B5E20 !important; }
+    .verify-icon-wrap.error   i { color: #B71C1C !important; }
+    .verify-step-list { background: rgba(255,255,255,0.05) !important; }
+    .verify-step-list .step-label { color: #C6A43F !important; }
+    .verify-step-list ul { color: rgba(255,255,255,0.75) !important; }
+    .verify-step-list i { color: #C6A43F !important; }
+}
+</style>
     <!-- ============================================================ -->
     
     <?php require_once __DIR__ . '/../includes/favicon.php'; ?>

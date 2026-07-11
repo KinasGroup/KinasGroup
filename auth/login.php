@@ -185,7 +185,18 @@ if ($registrationSuccess) {
                 color: #C6A43F !important;
             }
         }
-    </style>
+    
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    html, body { background: #ffffff !important; }
+    .je-password-toggle { color: #999 !important; }
+    .je-password-toggle:hover { color: #666 !important; }
+}
+</style>
 </head>
 <body>
 
