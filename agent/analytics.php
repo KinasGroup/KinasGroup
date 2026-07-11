@@ -80,6 +80,40 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     .agent-header { flex-direction: column; align-items: flex-start; }
     .date-range { width: 100%; justify-content: flex-start; }
 }
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .agent-header h1 { color: #0A0A0A !important; }
+    .agent-header h1 i { color: #C6A43F !important; }
+    .date-btn { background: white !important; color: #666 !important; }
+    .date-btn.active, .date-btn:hover { background: #C6A43F !important; border-color: #C6A43F !important; color: #0A0A0A !important; }
+    .metric-card { background: white !important; }
+    .metric-card:hover { border-color: #C6A43F !important; }
+    .metric-icon { background: rgba(198,164,63,0.1) !important; }
+    .metric-icon i { color: #C6A43F !important; }
+    .metric-value { color: #C6A43F !important; }
+    .metric-label { color: #666 !important; }
+    .metric-change.positive { color: #2E7D32 !important; }
+    .chart-card { background: white !important; }
+    .chart-header h3 { color: #0A0A0A !important; }
+    .division-performance { background: white !important; }
+    .division-card { background: #F8F8F8 !important; }
+    .division-card:hover { background: rgba(198,164,63,0.05) !important; }
+    .division-icon.automobile { background: #E3F2FD !important; color: #1565C0 !important; }
+    .division-icon.realestate { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .division-icon.solar { background: #FFF3E0 !important; color: #F57C00 !important; }
+    .division-icon.marketplace { background: #F3E5F5 !important; color: #7B1FA2 !important; }
+    .stats-row { color: #666 !important; }
+    .progress-bar { background: #E0E0E0 !important; }
+    .progress-fill { background: #C6A43F !important; }
+    .insight-card { background: white !important; }
+    .chart-empty { color: #999 !important; }
+}
 </style>
 
 <div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">

@@ -710,6 +710,60 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 @keyframes kinasToastIn{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}
 @keyframes kinasToastOut{from{opacity:1;transform:translateX(0);max-height:100px}to{opacity:0;transform:translateX(60px);max-height:0}}
 @media(max-width:480px){#kinasConfirmBox{width:94vw}#kinasConfirmActions{flex-direction:column-reverse}#kinasToastContainer{left:14px;right:14px;bottom:20px}.kinas-toast{min-width:unset;max-width:unset}}
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .agent-header h1 { color: #0A0A0A !important; }
+    .agent-header h1 i { color: #C6A43F !important; }
+    .btn-secondary { background: #F5F5F5 !important; color: #666 !important; }
+    .btn-secondary:hover { background: #E0E0E0 !important; }
+    .listing-form { background: white !important; }
+    .form-section h3 { color: #C6A43F !important; }
+    .form-group label { color: #333 !important; }
+    .form-group label i { color: #C6A43F !important; }
+    .form-group input, .form-group select, .form-group textarea { background: #fff !important; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #C6A43F !important; }
+    .prefix { color: #C6A43F !important; }
+    .image-upload-area:hover { border-color: #C6A43F !important; background: rgba(198,164,63,0.02) !important; }
+    .upload-placeholder i { color: #C6A43F !important; }
+    .upload-placeholder p { color: #666 !important; }
+    .upload-placeholder span { color: #999 !important; }
+    .preview-item { background: #F5F5F5 !important; }
+    .preview-item.existing { border-color: #2E7D32 !important; }
+    .preview-item.existing .preview-badge { background: #2E7D32 !important; color: white !important; }
+    .preview-remove { background: rgba(0,0,0,0.7) !important; color: white !important; }
+    .preview-remove:hover { background: #C62828 !important; }
+    .btn-cancel { background: #F5F5F5 !important; color: #666 !important; }
+    .btn-submit { background: #C6A43F !important; color: #0A0A0A !important; }
+    .btn-submit:hover { background: #A8882E !important; }
+    .upload-loading-overlay { background: rgba(0,0,0,0.5) !important; color: white !important; }
+    #kinasConfirmOverlay { background: rgba(10,10,10,.72) !important; }
+    #kinasConfirmBox { background: #fff !important; }
+    #kinasConfirmIconWrap { background: rgba(220,38,38,.1) !important; color: #DC2626 !important; }
+    #kinasConfirmIconWrap.is-warning { background: rgba(245,158,11,.12) !important; color: #D97706 !important; }
+    #kinasConfirmIconWrap.is-gold { background: rgba(198,164,63,.12) !important; color: #C6A43F !important; }
+    #kinasConfirmTitle { color: #0A0A0A !important; }
+    #kinasConfirmSubtitle { color: #777 !important; }
+    #kinasConfirmMsg { color: #444 !important; background: #fafafa !important; }
+    #kinasConfirmWarningBadge { background: #FEF9EC !important; color: #92660A !important; }
+    #kinasConfirmActions { background: #fafafa !important; }
+    #kinasConfirmCancel { background: #fff !important; color: #555 !important; }
+    #kinasConfirmCancel:hover { border-color: #aaa !important; color: #222 !important; }
+    #kinasConfirmProceed { background: #DC2626 !important; color: #fff !important; }
+    #kinasConfirmProceed:hover { background: #b91c1c !important; }
+    #kinasConfirmProceed.is-warning { background: #D97706 !important; }
+    #kinasConfirmProceed.is-warning:hover { background: #b45309 !important; }
+    #kinasConfirmProceed.is-gold { background: #C6A43F !important; color: #0A0A0A !important; }
+    .kinas-toast { background: #1A1A1A !important; color: #fff !important; }
+    .kinas-toast i { color: #C6A43F !important; }
+    .kinas-toast.is-error i { color: #EF4444 !important; }
+    .kinas-toast.is-success i { color: #22C55E !important; }
+}
 </style>
 
 <div id="kinasConfirmOverlay" role="dialog" aria-modal="true" aria-labelledby="kinasConfirmTitle">

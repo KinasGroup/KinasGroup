@@ -835,6 +835,74 @@ include '../templates/header.php';
     .msg-row .bubble { max-width: 92%; }
     .mail-item { padding: 8px 10px; }
 }
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    .mail-app { background: #ffffff !important; }
+    .mail-header .logo-area .menu-icon { color: #5f6368 !important; }
+    .mail-header .logo-area .menu-icon:hover { background: #f1f3f4 !important; }
+    .mail-header .logo-area h1 { color: #1a1a2e !important; }
+    .mail-header .logo-area h1 .mail-icon { color: #C6A43F !important; }
+    .mail-header .logo-area h1 .count-badge { color: #5f6368 !important; background: #f1f3f4 !important; }
+    .mail-header .header-actions button { color: #5f6368 !important; }
+    .mail-header .header-actions button:hover { background: #f1f3f4 !important; }
+    .mail-header .header-actions .compose-btn { background: #C6A43F !important; color: #fff !important; }
+    .mail-header .header-actions .compose-btn:hover { background: #b8942f !important; }
+    .mail-layout { background: #ffffff !important; }
+    .mail-sidebar { background: #f8f9fa !important; }
+    .mail-tabs { background: #fff !important; }
+    .mail-tabs button { color: #5f6368 !important; }
+    .mail-tabs button.active { background: #e8f0fe !important; color: #1a73e8 !important; }
+    .mail-tabs button:hover { background: #f1f3f4 !important; }
+    .mail-search input { background: #fff !important; }
+    .mail-search input:focus { border-color: #C6A43F !important; }
+    .mail-list::-webkit-scrollbar-thumb { background: #dadce0 !important; }
+    .mail-item:hover { background: #f1f3f4 !important; }
+    .mail-item.active { background: #e8f0fe !important; }
+    .mail-item .avatar { background: #dadce0 !important; color: #3c4043 !important; }
+    .mail-item .avatar.unread { background: #C6A43F !important; color: #fff !important; }
+    .mail-item .content .sender { color: #1a1a2e !important; }
+    .mail-item .content .sender .tag { color: #5f6368 !important; background: #f1f3f4 !important; }
+    .mail-item .content .sender .tag.admin { background: #C6A43F !important; color: #fff !important; }
+    .mail-item .content .sender .tag.agent { background: #1B5E20 !important; color: #fff !important; }
+    .mail-item .content .sender .tag.user { background: #e8f0fe !important; color: #1a73e8 !important; }
+    .mail-item .content .subject-line { color: #3c4043 !important; }
+    .mail-item .content .preview-line { color: #5f6368 !important; }
+    .mail-item .meta .time { color: #5f6368 !important; }
+    .mail-item .meta .unread-dot { background: #C6A43F !important; }
+    .mail-view { background: #ffffff !important; }
+    .mail-view-header { background: #fafbfc !important; }
+    .mail-view-header .sender-block .av-sm { background: #C6A43F !important; color: #fff !important; }
+    .mail-view-header .sender-block .info .name { color: #1a1a2e !important; }
+    .mail-view-header .sender-block .info .email-line { color: #5f6368 !important; }
+    .mail-view-header .listing-tag { color: #C6A43F !important; background: #f1f3f4 !important; }
+    .mail-view-body { background: #ffffff !important; }
+    .mail-view-body::-webkit-scrollbar-thumb { background: #dadce0 !important; }
+    .msg-row.sent .bubble { background: #e8f0fe !important; color: #1a1a2e !important; }
+    .msg-row.received .bubble { background: #f1f3f4 !important; color: #1a1a2e !important; }
+    .msg-row .bubble .footer { color: #5f6368 !important; }
+    .msg-row .bubble .v-badge { background: #C6A43F !important; color: #fff !important; }
+    .msg-row.received .bubble .v-badge { background: #f1f3f4 !important; color: #C6A43F !important; }
+    .msg-row .bubble .v-details { color: #5f6368 !important; }
+    .date-divider span { background: #ffffff !important; color: #5f6368 !important; }
+    .date-divider::after { background: #e8eaed !important; }
+    .mail-reply { background: #fafbfc !important; }
+    .mail-reply .input-wrap textarea { background: #fff !important; }
+    .mail-reply .input-wrap textarea:focus { border-color: #C6A43F !important; }
+    .mail-reply .input-wrap textarea::placeholder { color: #9aa0a6 !important; }
+    .mail-reply .send-btn { background: #C6A43F !important; color: #fff !important; }
+    .mail-reply .send-btn:hover { background: #b8942f !important; }
+    .empty-mail { color: #5f6368 !important; }
+    .empty-mail .big-icon { color: #dadce0 !important; }
+    .empty-mail h3 { color: #1a1a2e !important; }
+    .empty-mail p { color: #5f6368 !important; }
+    .toast-success { background: #e6f4ea !important; color: #1e7e34 !important; }
+    .toast-success i { color: #1e7e34 !important; }
+}
 </style>
 
 <!-- ============================================================ -->

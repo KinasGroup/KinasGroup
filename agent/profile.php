@@ -98,6 +98,42 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .stat-mini .info small { font-size: 11px; color: #666; }
 .full-width { grid-column: 1 / -1; }
 @media (max-width: 900px) { .profile-grid { grid-template-columns: 1fr; } .stats-row { grid-template-columns: 1fr; } .form-row { grid-template-columns: 1fr; } }
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .agent-header h1 { color: #0A0A0A !important; }
+    .agent-header h1 i { color: #C6A43F !important; }
+    .profile-card { background: white !important; }
+    .profile-card h3 { color: #0A0A0A !important; }
+    .profile-card h3 i { color: #C6A43F !important; }
+    .form-group label { color: #333 !important; }
+    .form-group label i { color: #C6A43F !important; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #C6A43F !important; }
+    .form-group input[readonly] { background: #F8F8F8 !important; color: #888 !important; }
+    .btn-save { background: #C6A43F !important; color: #0A0A0A !important; }
+    .btn-save:hover { background: #A8882E !important; }
+    .btn-secondary { background: #F5F5F5 !important; color: #333 !important; }
+    .btn-danger { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .profile-avatar-large { background: #C6A43F !important; color: #0A0A0A !important; }
+    .btn-upload { background: #F5F5F5 !important; color: #333 !important; }
+    .btn-upload:hover { background: #E8E8E8 !important; }
+    .photo-note { color: #999 !important; }
+    .account-meta { color: #888 !important; }
+    .status-active { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .status-suspended { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .status-pending { background: #FFF3E0 !important; color: #F57C00 !important; }
+    .flash.success { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .flash.error { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .stat-mini { background: white !important; }
+    .stat-mini .icon { color: #C6A43F !important; }
+    .stat-mini .info strong { color: #0A0A0A !important; }
+    .stat-mini .info small { color: #666 !important; }
+}
 </style>
 
 <div class="je-dash-shell">

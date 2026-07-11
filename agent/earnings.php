@@ -168,6 +168,49 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .verify-account-btn:hover { background: #C6A43F; color: #0A0A0A; }
 .verify-account-btn:disabled { opacity: .5; cursor: not-allowed; }
 @media (max-width: 768px) { .agent-container { padding: 20px; } .earnings-summary { grid-template-columns: 1fr; } .settings-grid { grid-template-columns: 1fr; } }
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .agent-header h1 { color: #0A0A0A !important; }
+    .agent-header h1 i { color: #C6A43F !important; }
+    .flash.success { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .flash.error { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .summary-card { background: white !important; }
+    .summary-card:hover { border-color: #C6A43F !important; }
+    .summary-label { color: #666 !important; }
+    .summary-amount { color: #C6A43F !important; }
+    .trend { color: #2E7D32 !important; }
+    .trend.neutral { color: #888 !important; }
+    .trend.warn { color: #F57C00 !important; }
+    .chart-card { background: white !important; }
+    .chart-header h3 { color: #0A0A0A !important; }
+    .section-header h3 { color: #0A0A0A !important; }
+    .btn-export { background: #666 !important; color: white !important; }
+    .btn-export:hover { background: #333 !important; }
+    .table-container { background: white !important; }
+    .data-table th { background: #F8F8F8 !important; color: #666 !important; }
+    .data-table td { color: #333 !important; }
+    .status-badge.paid { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .status-badge.pending { background: #FFF3E0 !important; color: #F57C00 !important; }
+    .status-badge.cancelled { background: #ECEFF1 !important; color: #607D8B !important; }
+    .status-badge.refunded { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .payout-settings { background: white !important; }
+    .setting-item label { color: #666 !important; }
+    .btn-save { background: #C6A43F !important; color: #0A0A0A !important; }
+    .btn-save:hover { background: #A8882E !important; }
+    .empty-state { color: #999 !important; }
+    .empty-state i { color: #C6A43F !important; }
+    .checkbox-group label { color: #333 !important; }
+    .paystack-status.connected { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .paystack-status.pending { background: #FFF8E1 !important; color: #8A6D00 !important; }
+    .verify-account-btn { background: #0A0A0A !important; color: #fff !important; }
+    .verify-account-btn:hover { background: #C6A43F !important; color: #0A0A0A !important; }
+}
 </style>
 
 <div class="je-dash-shell">

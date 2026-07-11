@@ -197,6 +197,33 @@ include __DIR__ . '/../templates/header.php';
     .success-banner p { color: #2E7D32; font-size: 13px; margin: 0; }
 
     @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    .step { background: #fff !important; }
+    .step.is-rejected::before { background: #B71C1C !important; }
+    .step.is-done    .step-num { color: #fff !important; }
+    .step.is-rejected .step-num { background: #B71C1C !important; color: #fff !important; }
+    .step.is-rejected .step-status { color: #B71C1C !important; }
+    .step-body { color: #555 !important; }
+    .btn-secondary { background: #fff !important; }
+    .btn-secondary:hover { color: #fff !important; }
+    .upload-zone { background: #FAFAFA !important; }
+    .upload-zone:hover, .upload-zone.is-drag { background: rgba(198,164,63,0.04) !important; }
+    .form-row label, .form-group label { color: #333 !important; }
+    .toast.success { color: white !important; }
+    .toast.error { background: #B71C1C !important; color: white !important; }
+    .toast.info { color: white !important; }
+    .info-banner { background: linear-gradient(135deg,#FFF8E1,#FFF3E0) !important; }
+    .info-banner i { color: #BF360C !important; }
+    .info-banner .text { color: #5D4037 !important; }
+    .success-banner { background: linear-gradient(135deg,#E8F5E9,#F1F8E9) !important; }
+    .success-banner p { color: #2E7D32 !important; }
+}
 </style>
 
 <div class="je-page">
