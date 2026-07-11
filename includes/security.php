@@ -125,12 +125,7 @@ class Security {
         if ($token === '' || empty($_SESSION['csrf_token'])) {
             return false;
         }
-        if (!hash_equals((string)$_SESSION['csrf_token'], $token)) {
-            return false;
-        }
-        // Rotate after use
-        unset($_SESSION['csrf_token']);
-        return true;
+        return hash_equals((string)$_SESSION['csrf_token'], $token);
     }
 
     /**
