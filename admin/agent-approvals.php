@@ -155,7 +155,47 @@ require_once __DIR__ . '/../templates/header.php';
         .empty-state i{font-size:3rem;margin-bottom:16px;display:block;color:#E0E0E0}
         .empty-state h3{font-family:'Prata',serif;margin-bottom:8px;color:#333}
         @media(max-width:768px){.admin-main{padding:20px}.info-grid{grid-template-columns:1fr}.card-header{flex-direction:column;align-items:flex-start}}
-    </style>
+    
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .admin-main { background: #F5F7FA !important; }
+    .page-header h1 { color: #0A0A0A !important; }
+    .page-header p { color: #666 !important; }
+    .flash.success { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .flash.error { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .flash.info { background: #EFF6FF !important; color: #1D4ED8 !important; }
+    .stat-card { background: white !important; }
+    .stat-card:hover { border-color: #C6A43F !important; }
+    .stat-number { color: #C6A43F !important; }
+    .stat-label { color: #666 !important; }
+    .approval-card { background: white !important; }
+    .card-header { background: #F8F8F8 !important; }
+    .card-header h3 { color: #0A0A0A !important; }
+    .status-badge { background: #FFF3E0 !important; color: #F57C00 !important; }
+    .info-section h4 { color: #C6A43F !important; }
+    .info-section p { color: #333 !important; }
+    .info-section p strong { color: #0A0A0A !important; }
+    .doc-chip { background: #F8F8F8 !important; color: #333 !important; }
+    .doc-chip i { color: #C6A43F !important; }
+    .doc-chip a { color: #C6A43F !important; }
+    .doc-chip.missing { color: #DC2626 !important; border-color: #FECACA !important; background: #FEF2F2 !important; }
+    .card-actions { background: #F8F8F8 !important; }
+    .btn-approve { background: #2E7D32 !important; color: white !important; }
+    .btn-approve:hover { background: #1B5E20 !important; }
+    .btn-reject { background: #DC2626 !important; color: white !important; }
+    .btn-reject:hover { background: #B91C1C !important; }
+    .btn-info { background: #555 !important; color: white !important; }
+    .btn-info:hover { background: #444 !important; }
+    .empty-state { color: #999 !important; }
+    .empty-state i { color: #E0E0E0 !important; }
+    .empty-state h3 { color: #333 !important; }
+}
+</style>
 
 </head>
 <body>

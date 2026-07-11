@@ -120,7 +120,48 @@ require_once __DIR__ . '/../templates/header.php';
             .stats-row { grid-template-columns: 1fr; }
             .logs-table th:nth-child(3), .logs-table td:nth-child(3) { display: none; }
         }
-    </style>
+    
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .admin-main { background: #F5F7FA !important; }
+    .page-header h1 { color: #0A0A0A !important; }
+    .page-header p { color: #666 !important; }
+    .filters-bar { background: white !important; }
+    .filter-group label { color: #666 !important; }
+    .btn-filter { background: #C6A43F !important; color: #0A0A0A !important; }
+    .btn-filter:hover { background: #A8882E !important; }
+    .btn-secondary { background: #F5F5F5 !important; color: #333 !important; }
+    .stat-card { background: white !important; }
+    .stat-card:hover { border-color: #C6A43F !important; }
+    .stat-card .number { color: #C6A43F !important; }
+    .stat-card .label { color: #666 !important; }
+    .logs-card { background: white !important; }
+    .logs-header { background: #F8F8F8 !important; }
+    .logs-header h2 { color: #0A0A0A !important; }
+    .export-btn { background: #666 !important; color: white !important; }
+    .export-btn:hover { background: #333 !important; }
+    .logs-table th { background: #F8F8F8 !important; color: #666 !important; }
+    .logs-table td { color: #333 !important; }
+    .logs-table tr:hover { background: #F8F8F8 !important; }
+    .log-type.user { background: #E3F2FD !important; color: #1565C0 !important; }
+    .log-type.listing { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .log-type.agent { background: #FFF3E0 !important; color: #F57C00 !important; }
+    .log-type.admin { background: #F3E5F5 !important; color: #7B1FA2 !important; }
+    .log-type.system { background: #ECEFF1 !important; color: #455A64 !important; }
+    .log-type.auth { background: #FCE4EC !important; color: #AD1457 !important; }
+    .log-type.message { background: #E0F2F1 !important; color: #00695C !important; }
+    .empty-state { color: #999 !important; }
+    .empty-state i { color: #C6A43F !important; }
+    .pagination a, .pagination span { background: white !important; color: #333 !important; }
+    .pagination a:hover, .pagination .active { background: #C6A43F !important; border-color: #C6A43F !important; color: #0A0A0A !important; }
+    .pagination .disabled { color: #CCC !important; }
+}
+</style>
 <div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
 <?php include __DIR__ . "/../includes/partials/admin-sidebar.php"; ?>
 <main class="je-dash-main" style="overflow-x:hidden;width:100%;max-width:100%;padding:15px;">

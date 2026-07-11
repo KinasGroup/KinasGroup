@@ -128,7 +128,37 @@ require_once __DIR__ . '/../templates/header.php';
             .chart-card { padding: 15px; }
             .chart-card h3 { font-size: 15px; }
         }
-    </style>
+    
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .admin-main { background: #F5F7FA !important; }
+    .page-header h1 { color: #0A0A0A !important; }
+    .page-header p { color: #666 !important; }
+    .date-range { background: white !important; }
+    .date-group label { color: #666 !important; }
+    .btn-filter { background: #C6A43F !important; color: #0A0A0A !important; }
+    .btn-filter:hover { background: #A8882E !important; }
+    .btn-secondary { background: #F5F5F5 !important; color: #333 !important; }
+    .stat-card { background: white !important; }
+    .stat-card:hover { border-color: #C6A43F !important; }
+    .stat-card .icon { color: #C6A43F !important; }
+    .stat-card h3 { color: #C6A43F !important; }
+    .stat-card p { color: #666 !important; }
+    .chart-card { background: white !important; }
+    .recent-table { background: white !important; }
+    th { background: #F8F8F8 !important; color: #666 !important; }
+    tr:hover { background: #F8F8F8 !important; }
+    .empty-state { color: #999 !important; }
+    .empty-state i { color: #C6A43F !important; }
+    .btn-export { background: #666 !important; color: white !important; }
+    .btn-export:hover { background: #333 !important; }
+}
+</style>
 <div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
 <?php include __DIR__ . "/../includes/partials/admin-sidebar.php"; ?>
 <main class="je-dash-main" style="overflow-x:hidden;width:100%;max-width:100%;padding:15px;">

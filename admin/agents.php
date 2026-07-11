@@ -101,6 +101,22 @@ include '../templates/header.php';
     .je-table th:nth-child(1), .je-table td:nth-child(1) { display: none; }
     .je-table th:nth-child(4), .je-table td:nth-child(4) { display: none; }
 }
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    .action-btn-suspend { background: #F57C00 !important; color: white !important; }
+    .action-btn-activate { background: #2E7D32 !important; color: white !important; }
+    .action-btn-delete { background: #C62828 !important; color: white !important; }
+    .status-badge-active { background: #E8F5E9 !important; color: #1B5E20 !important; }
+    .status-badge-suspended { background: #FFF3E0 !important; color: #E65100 !important; }
+    .status-badge-pending { background: #FFF8E1 !important; color: #F57F17 !important; }
+    .status-badge-verified { background: #E8F5E9 !important; color: #1B5E20 !important; }
+    .status-badge-unverified { background: #FFEBEE !important; color: #C62828 !important; }
+}
 </style>
 
 <div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">

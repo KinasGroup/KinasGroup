@@ -201,6 +201,29 @@ include '../templates/header.php';
     padding: 40px 20px; color: #888; font-size: 14px;
 }
 .search-no-results i { font-size: 32px; color: #C6A43F; display: block; margin-bottom: 12px; }
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    .action-btn-view { background: #1565C0 !important; color: white !important; }
+    .action-btn-delete { background: #C62828 !important; color: white !important; }
+    .status-badge-active { background: #E8F5E9 !important; color: #1B5E20 !important; }
+    .status-badge-inactive { background: #FFF3E0 !important; color: #E65100 !important; }
+    .status-badge-pending { background: #FFF8E1 !important; color: #F57F17 !important; }
+    .status-badge-flagged { background: #FFEBEE !important; color: #C62828 !important; }
+    .status-badge-removed { background: #FFEBEE !important; color: #C62828 !important; }
+    .listings-search-wrap { background: #fff !important; }
+    .listings-search-wrap .search-icon { color: #C6A43F !important; }
+    .listings-search-wrap input[type="text"] { color: #0A0A0A !important; }
+    .listings-search-wrap input[type="text"]::placeholder { color: #aaa !important; }
+    .listings-search-wrap .search-clear { color: #aaa !important; }
+    .listings-search-wrap .search-clear:hover { color: #555 !important; }
+    .search-no-results { color: #888 !important; }
+    .search-no-results i { color: #C6A43F !important; }
+}
 </style>
 
 <div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">

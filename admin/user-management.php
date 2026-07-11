@@ -153,6 +153,50 @@ require_once __DIR__ . '/../templates/header.php';
         .data-table th:nth-child(5),.data-table td:nth-child(5){display:none}
         .pagination .page-btn{padding:5px 8px;font-size:11px}
     }
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .admin-main { background: #F5F7FA !important; }
+    .page-header h1 { color: #0A0A0A !important; }
+    .page-header p { color: #666 !important; }
+    .flash.success { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .flash.error { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .stat-card { background: white !important; }
+    .stat-card:hover { border-color: #C6A43F !important; }
+    .stat-number { color: #C6A43F !important; }
+    .stat-label { color: #666 !important; }
+    .filters-bar { background: white !important; }
+    .filters-bar .search-input-wrap { background: #fff !important; }
+    .filters-bar .search-input-wrap:focus-within { border-color: #C6A43F !important; }
+    .filters-bar .search-input-wrap i { color: #C6A43F !important; }
+    .filters-bar .search-input-wrap input::placeholder { color: #aaa !important; }
+    .btn-filter { background: #C6A43F !important; color: #0A0A0A !important; }
+    .table-container { background: white !important; }
+    .data-table th { background: #F8F8F8 !important; color: #666 !important; }
+    .data-table td { color: #333 !important; }
+    .data-table tr:hover { background: #FAFAFA !important; }
+    .user-avatar { background: #C6A43F !important; color: #0A0A0A !important; }
+    .role-badge.admin { background: #F3E5F5 !important; color: #7B1FA2 !important; }
+    .role-badge.agent { background: #E3F2FD !important; color: #1565C0 !important; }
+    .role-badge.user { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .status-badge.active { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .status-badge.pending { background: #FFF3E0 !important; color: #F57C00 !important; }
+    .status-badge.suspended,.status-badge.banned { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .status-badge.deleted { background: #1A1A1A !important; color: #fff !important; }
+    .email-verified-badge { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .email-unverified-badge { background: #FFF3E0 !important; color: #F57C00 !important; }
+    .act-btn.activate { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .act-btn.suspend { background: #FFF3E0 !important; color: #F57C00 !important; }
+    .act-btn.ban { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .act-btn.delete { background: #FEE2E2 !important; color: #B91C1C !important; }
+    .page-btn { background: white !important; color: #333 !important; }
+    .page-btn:hover,.page-btn.active { background: #C6A43F !important; border-color: #C6A43F !important; color: #0A0A0A !important; }
+}
 </style>
 
 <div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">

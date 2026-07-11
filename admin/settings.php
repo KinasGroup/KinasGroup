@@ -171,7 +171,42 @@ require_once __DIR__ . '/../templates/header.php';
             .kv-grid dt { margin-top: 12px; }
             .form-row { grid-template-columns: 1fr; }
         }
-    </style>
+    
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    body { background: #F5F7FA !important; }
+    .admin-main { background: #F5F7FA !important; }
+    .page-header h1 { color: #0A0A0A !important; }
+    .page-header p { color: #666 !important; }
+    .flash.success { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .flash.error { background: #FEF2F2 !important; color: #DC2626 !important; }
+    .settings-card { background: white !important; }
+    .card-header h2 { color: #0A0A0A !important; }
+    .card-header i { color: #C6A43F !important; }
+    .kv-grid dt { color: #666 !important; }
+    .kv-grid dd { color: #0A0A0A !important; }
+    .kv-grid dd code { background: #F8F8F8 !important; color: #C6A43F !important; }
+    .notice { background: #FFF8E1 !important; color: #5D4037 !important; }
+    .notice i { color: #F57C00 !important; }
+    .form-group label { color: #333 !important; }
+    .form-group label i { color: #C6A43F !important; }
+    .form-group input:focus { border-color: #C6A43F !important; }
+    .btn-save { background: #C6A43F !important; color: #0A0A0A !important; }
+    .btn-save:hover { background: #A8882E !important; }
+    .action-link { background: #F8F8F8 !important; color: #0A0A0A !important; }
+    .action-link:hover { background: #C6A43F !important; border-color: #C6A43F !important; color: #0A0A0A !important; }
+    .action-link i { color: #C6A43F !important; }
+    .action-link:hover i { color: #0A0A0A !important; }
+    .action-link small { color: #666 !important; }
+    .action-link:hover small { color: #0A0A0A !important; }
+    .social-preview.active { background: #E8F5E9 !important; color: #2E7D32 !important; }
+    .social-preview.inactive { background: #F5F5F5 !important; color: #999 !important; }
+}
+</style>
 <div class="je-dash-shell">
 <?php include __DIR__ . "/../includes/partials/admin-sidebar.php"; ?>
 <main class="je-dash-main">

@@ -109,6 +109,35 @@ table.orders-table td { padding: 14px 16px; border-bottom: 1px solid #F0F0F0; fo
 .item-line .seller { color: #999; }
 .empty-state { padding: 60px 20px; text-align: center; color: #999; }
 .empty-state i { font-size: 40px; color: #E0E0E0; display: block; margin-bottom: 12px; }
+
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    .page-header h1 { color: #0A0A0A !important; }
+    .page-header p { color: #666 !important; }
+    .date-range { background: white !important; }
+    .date-group label { color: #666 !important; }
+    .btn-filter { background: #C6A43F !important; color: #0A0A0A !important; }
+    .btn-secondary { color: #666 !important; }
+    .stat-card { background: white !important; }
+    .stat-card h3 { color: #0A0A0A !important; }
+    .stat-card p { color: #888 !important; }
+    .orders-table-wrap { background: white !important; }
+    table.orders-table th { color: #888 !important; background: #FAFAFA !important; }
+    .ref-code { color: #999 !important; }
+    .status-pill.paid { background: #d4edda !important; color: #155724 !important; }
+    .status-pill.pending { background: #fff3cd !important; color: #856404 !important; }
+    .status-pill.failed, .status-pill.abandoned { background: #f8d7da !important; color: #721c24 !important; }
+    .settle-pill.subaccount { color: #2E7D32 !important; }
+    .settle-pill.platform { color: #999 !important; }
+    .item-line { color: #444 !important; }
+    .item-line .seller { color: #999 !important; }
+    .empty-state { color: #999 !important; }
+    .empty-state i { color: #E0E0E0 !important; }
+}
 </style>
 
 <div class="je-dash-shell" style="max-width:100%;overflow-x:hidden;">
