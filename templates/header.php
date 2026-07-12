@@ -50,7 +50,7 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <!-- ============================================================
          FORCE LIGHT MODE - PERMANENT FIX
          ============================================================ -->
-    <meta name="color-scheme" content="light only">
+    <meta name="color-scheme" content="only light">
     <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -91,12 +91,22 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <meta name="user-id" content="<?php echo $_SESSION['user_id'] ?? ''; ?>">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="/assets/css/footer-social.css">
-    <link rel="stylesheet" href="/assets/css/style.css">
-    <link rel="stylesheet" href="/assets/css/james-edition.css">
-    <link rel="stylesheet" href="/assets/css/responsive.css">
+    <?php
+    // Cache-bust every local stylesheet with its own file's last-modified
+    // time. Without this, a browser or CDN (e.g. Cloudflare) can keep
+    // serving a stale cached copy indefinitely after a CSS fix ships —
+    // this exact class of bug already bit image-upload.js earlier.
+    $__cssVer = function ($relPath) {
+        $abs = __DIR__ . '/..' . $relPath;
+        return $relPath . '?v=' . (@filemtime($abs) ?: time());
+    };
+    ?>
+    <link rel="stylesheet" href="<?= $__cssVer('/assets/css/footer-social.css') ?>">
+    <link rel="stylesheet" href="<?= $__cssVer('/assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= $__cssVer('/assets/css/james-edition.css') ?>">
+    <link rel="stylesheet" href="<?= $__cssVer('/assets/css/responsive.css') ?>">
     <?php if ($userRole === 'admin'): ?>
-    <link rel="stylesheet" href="/assets/css/admin.css">
+    <link rel="stylesheet" href="<?= $__cssVer('/assets/css/admin.css') ?>">
     <?php endif; ?>
 
     <!-- ============================================================ -->
@@ -239,7 +249,7 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     <a href="/divisions/kinas-marketplace/">KINAS MARKETPLACE</a>
     <a href="/pages/about.php">ABOUT US</a>
     <a href="/divisions/kinas-marketplace/cart.php">
-        <i class="fas fa-shopping-bag" style="margin-right:8px;"></i>Cart
+        <i class="fas fa-cart-shopping" style="margin-right:8px;"></i>Cart
         <span id="jeCartBadgeMobile" style="display:none;background:#C6A43F;color:#0A0A0A;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:999px;padding:0 5px;line-height:18px;text-align:center;margin-left:8px;"></span>
     </a>
     <hr>
@@ -270,32 +280,28 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
             <span class="menu-icon-close" style="display:none;" aria-hidden="true">✕</span>
         </button>
         <nav class="header-nav" id="mainNav">
-            <div class="header-nav-links">
-                <a href="/divisions/kinas-automobile/">KINAS AUTOMOBILE</a>
-                <a href="/divisions/williams-connect-home/">WILLIAMS CONNECT HOME</a>
-                <a href="/divisions/kinas-volt/">KINAS VOLT</a>
-                <a href="/divisions/kinas-marketplace/">KINAS MARKETPLACE</a>
-                <a href="/pages/about.php">ABOUT US</a>
-            </div>
-            <div class="header-nav-actions">
-                <a href="/divisions/kinas-marketplace/cart.php" id="jeHeaderCartLink" class="header-cart-link" aria-label="Cart">
-                    <i class="fas fa-shopping-bag"></i>
-                    <span id="jeCartBadge" class="header-cart-badge"></span>
-                </a>
-                <?php if ($isLoggedIn): ?>
-                    <?php if ($userRole === 'admin'): ?>
-                        <a href="/admin/dashboard.php" class="je2-button nav-btn-outline">Admin Panel</a>
-                    <?php elseif ($userRole === 'agent'): ?>
-                        <a href="/agent/dashboard.php" class="je2-button nav-btn-outline">Dashboard</a>
-                    <?php else: ?>
-                        <a href="/user/dashboard.php" class="je2-button nav-btn-outline">Dashboard</a>
-                    <?php endif; ?>
-                    <a href="/auth/logout.php" class="je2-button nav-btn-outline">Sign Out</a>
+            <a href="/divisions/kinas-automobile/">KINAS AUTOMOBILE</a>
+            <a href="/divisions/williams-connect-home/">WILLIAMS CONNECT HOME</a>
+            <a href="/divisions/kinas-volt/">KINAS VOLT</a>
+            <a href="/divisions/kinas-marketplace/">KINAS MARKETPLACE</a>
+            <a href="/pages/about.php">ABOUT US</a>
+            <a href="/divisions/kinas-marketplace/cart.php" id="jeHeaderCartLink" class="header-cart-link" aria-label="Cart">
+                <i class="fas fa-cart-shopping"></i>
+                <span id="jeCartBadge" class="header-cart-badge"></span>
+            </a>
+            <?php if ($isLoggedIn): ?>
+                <?php if ($userRole === 'admin'): ?>
+                    <a href="/admin/dashboard.php" class="je2-button nav-btn-outline">Admin Panel</a>
+                <?php elseif ($userRole === 'agent'): ?>
+                    <a href="/agent/dashboard.php" class="je2-button nav-btn-outline">Dashboard</a>
                 <?php else: ?>
-                    <a href="/auth/login.php" class="je2-button nav-btn-outline">Sign In</a>
-                    <a href="/auth/register.php" class="je2-button nav-btn-filled">Register</a>
+                    <a href="/user/dashboard.php" class="je2-button nav-btn-outline">Dashboard</a>
                 <?php endif; ?>
-            </div>
+                <a href="/auth/logout.php" class="je2-button nav-btn-outline">Sign Out</a>
+            <?php else: ?>
+                <a href="/auth/login.php" class="je2-button nav-btn-outline">Sign In</a>
+                <a href="/auth/register.php" class="je2-button nav-btn-filled">Register</a>
+            <?php endif; ?>
         </nav>
     </div>
 </header>
