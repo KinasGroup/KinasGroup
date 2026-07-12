@@ -101,38 +101,27 @@ $csrf = Security::generateCSRFToken();
 $headerDepth = '../';
 require_once __DIR__ . '/../templates/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Agent Approvals - KINAS GROUP Admin</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/james-edition.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Inter',sans-serif;background:#F5F7FA}
-        .admin-layout{display:flex;min-height:100vh}
-        .admin-main{flex:1;padding:30px;background:#F5F7FA}
-        .page-header{margin-bottom:28px}
-        .page-header h1{font-family:'Prata',serif;font-size:28px;color:#0A0A0A;margin-bottom:6px}
-        .page-header p{color:#666;font-size:14px}
-        .flash{padding:14px 20px;border-radius:12px;margin-bottom:20px;font-weight:500;font-size:14px}
-        .flash.success{background:#E8F5E9;color:#2E7D32;border:1px solid #A7F3D0}
-        .flash.error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}
-        .flash.info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
-        .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;margin-bottom:28px}
-        .stat-card{background:white;border-radius:14px;padding:20px;text-align:center;border:1.5px solid #C6A43F;transition:all .3s}
-        .stat-card:hover{border-color:#C6A43F;box-shadow:0 8px 24px rgba(198,164,63,0.15);transform:translateY(-3px)}
-        .stat-number{font-size:32px;font-weight:700;color:#C6A43F;font-family:'Prata',serif}
-        .stat-label{color:#666;font-size:13px;margin-top:4px}
-        .approval-card{background:white;border-radius:18px;border:1px solid #E0E0E0;overflow:hidden;margin-bottom:24px;transition:all .3s}
-        .approval-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.08)}
-        .card-header{padding:18px 24px;background:#F8F8F8;border-bottom:1px solid #E0E0E0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
-        .card-header h3{font-family:'Prata',serif;font-size:18px;color:#0A0A0A}
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter',sans-serif;background:#F5F7FA}
+    .admin-layout{display:flex;min-height:100vh}
+    .admin-main{flex:1;padding:30px;background:#F5F7FA}
+    .page-header{margin-bottom:28px}
+    .page-header h1{font-family:'Prata',serif;font-size:28px;color:#0A0A0A;margin-bottom:6px}
+    .page-header p{color:#666;font-size:14px}
+    .flash{padding:14px 20px;border-radius:12px;margin-bottom:20px;font-weight:500;font-size:14px}
+    .flash.success{background:#E8F5E9;color:#2E7D32;border:1px solid #A7F3D0}
+    .flash.error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}
+    .flash.info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;margin-bottom:28px}
+    .stat-card{background:white;border-radius:14px;padding:20px;text-align:center;border:1.5px solid #C6A43F;transition:all .3s}
+    .stat-card:hover{border-color:#C6A43F;box-shadow:0 8px 24px rgba(198,164,63,0.15);transform:translateY(-3px)}
+    .stat-number{font-size:32px;font-weight:700;color:#C6A43F;font-family:'Prata',serif}
+    .stat-label{color:#666;font-size:13px;margin-top:4px}
+    .approval-card{background:white;border-radius:18px;border:1px solid #E0E0E0;overflow:hidden;margin-bottom:24px;transition:all .3s}
+    .approval-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.08)}
+    .card-header{padding:18px 24px;background:#F8F8F8;border-bottom:1px solid #E0E0E0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+    .card-header h3{font-family:'Prata',serif;font-size:18px;color:#0A0A0A}
         .status-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;background:#FFF3E0;color:#F57C00}
         .card-body{padding:24px}
         .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
@@ -197,9 +186,6 @@ require_once __DIR__ . '/../templates/header.php';
 }
 </style>
 
-</head>
-<body>
-<?php include __DIR__ . '/../includes/partials/header.php'; ?>
 <div class="je-dash-shell">
 <?php include __DIR__ . "/../includes/partials/admin-sidebar.php"; ?>
 <main class="je-dash-main">
