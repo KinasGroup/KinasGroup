@@ -768,6 +768,33 @@ a { color:inherit; text-decoration:none; }
   }
 }
 
+/* Narrower desktop/laptop widths (a very common range — 1366/1440px
+   screens land here after accounting for side padding and the logo):
+   5 nav links + cart icon + Dashboard/Sign Out buttons, all non-shrinking,
+   can add up to more width than is actually available, which is what was
+   squeezing the cart icon and pushing the buttons around. Tightening
+   sizes here (rather than letting anything overflow or wrap) is the
+   reliable fix regardless of the exact rendering edge case. */
+@media (min-width: 1201px) {
+  .header-nav {
+    gap: 0;
+  }
+  .header-nav a {
+    font-size: 11.5px;
+    padding: 8px 6px;
+  }
+  .header-nav a.header-cart-link {
+    width: 32px;
+    height: 32px;
+    margin: 0;
+    font-size: 14px;
+  }
+  .je3-header .header-nav .je2-button {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}
+
 /* BUTTONS */
 .je2-button {
   display: inline-block;
