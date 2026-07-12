@@ -1,4 +1,12 @@
 <?php
+// Authenticated, per-session content — never cache this page. Without
+// this, a browser or CDN (e.g. Cloudflare) could keep serving a stale
+// snapshot indefinitely after data changes (deletes, status updates,
+// etc.), which is exactly what made this dashboard look like it wasn't
+// updating.
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
 /**
  * Admin: Delete User
  */
