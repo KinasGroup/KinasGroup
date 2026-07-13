@@ -32,14 +32,14 @@ VHOST
 
 a2ensite roundcube 2>/dev/null || true
 
-# Check if config exists
-echo "=== Checking config file ==="
-ls -la /var/www/html/config/
-cat /var/www/html/config/config.inc.php | head -20
-
-# Check if Roundcube files exist
+# Verify Roundcube files exist
 echo "=== Checking Roundcube files ==="
-ls -la /var/www/html/index.php
+if [ -f /var/www/html/index.php ]; then
+    echo "✅ index.php exists"
+    ls -la /var/www/html/index.php
+else
+    echo "❌ index.php NOT FOUND! Roundcube not installed."
+fi
 
 # Enable PHP error logging
 echo "=== Enabling PHP error logging ==="

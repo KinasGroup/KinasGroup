@@ -1,5 +1,13 @@
 FROM roundcube/roundcubemail:latest
 
+# Download and extract Roundcube
+RUN apt-get update && apt-get install -y curl && \
+    curl -L https://github.com/roundcube/roundcubemail/releases/download/1.6.7/roundcubemail-1.6.7-complete.tar.gz -o /tmp/roundcube.tar.gz && \
+    tar -xzf /tmp/roundcube.tar.gz -C /var/www/html/ && \
+    mv /var/www/html/roundcubemail-1.6.7/* /var/www/html/ && \
+    rm -rf /var/www/html/roundcubemail-1.6.7 /tmp/roundcube.tar.gz && \
+    chown -R www-data:www-data /var/www/html
+
 # Copy start script
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
