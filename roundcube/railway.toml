@@ -1,5 +1,5 @@
 [deploy]
-startCommand = "/bin/bash -c 'a2dismod mpm_event 2>/dev/null; a2dismod mpm_worker 2>/dev/null; a2enmod mpm_prefork; echo \"ServerName localhost\" >> /etc/apache2/apache2.conf; sed -i \"s/Listen 80/Listen 8080/g\" /etc/apache2/ports.conf; rm -f /etc/apache2/sites-enabled/*; cat > /etc/apache2/sites-available/roundcube.conf << VHOST\n<VirtualHost *:8080>\n    DocumentRoot /var/www/html\n    <Directory /var/www/html>\n        Options Indexes FollowSymLinks\n        AllowOverride All\n        Require all granted\n    </Directory>\n</VirtualHost>\nVHOST\n; a2ensite roundcube; apache2-foreground'"
+startCommand = "/start.sh"
 
 [build]
 builder = "DOCKERFILE"
