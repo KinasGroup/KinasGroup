@@ -33,4 +33,4 @@ RUN chown -R www-data:www-data /var/www/html/config /var/www/html/logs /var/www/
 
 EXPOSE 8080
 
-CMD ["apache2-foreground"]
+# No CMD here - we'll use railway.toml startCommand
