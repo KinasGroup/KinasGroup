@@ -26,8 +26,8 @@ RUN echo '<?php' > /var/www/html/config/config.inc.php && \
     echo '$config["smtp_pass"] = "%p";' >> /var/www/html/config/config.inc.php && \
     echo '$config["product_name"] = "KINAS GROUP Webmail";' >> /var/www/html/config/config.inc.php && \
     echo '$config["skin"] = "elastic";' >> /var/www/html/config/config.inc.php && \
-    echo '$config["des_key"] = "lVRPVvUd3l5iYlmO1y8xGpuP";' >> /var/www/html/config/config.inc.php && \
-    echo '$config["enable_installer"] = false;' >> /var/www/html/config/config.inc.php && \
+    echo '$config["des_key"] = "qaorx6ok43z57CKVbYtWGwMW";' >> /var/www/html/config/config.inc.php && \
+    echo '$config["enable_installer"] = true;' >> /var/www/html/config/config.inc.php && \
     echo '$config["log_driver"] = "file";' >> /var/www/html/config/config.inc.php && \
     echo '$config["log_dir"] = "/var/www/html/logs/";' >> /var/www/html/config/config.inc.php && \
     echo '$config["auto_create_user"] = true;' >> /var/www/html/config/config.inc.php && \

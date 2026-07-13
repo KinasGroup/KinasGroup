@@ -12,9 +12,17 @@ a2enmod mpm_prefork
 echo "Setting ServerName..."
 echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
-# Configure port 8080
-echo "Configuring port 8080..."
-sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf
+# FIX: Completely rewrite ports.conf
+echo "Fixing ports.conf..."
+cat > /etc/apache2/ports.conf << 'PORTS'
+Listen 8080
+<IfModule ssl_module>
+    Listen 443
+</IfModule>
+<IfModule mod_gnutls.c>
+    Listen 443
+</IfModule>
+PORTS
 
 # Configure VirtualHost
 echo "Configuring VirtualHost..."
@@ -36,9 +44,8 @@ a2ensite roundcube 2>/dev/null || true
 echo "=== Checking Roundcube files ==="
 if [ -f /var/www/html/index.php ]; then
     echo "✅ index.php exists"
-    ls -la /var/www/html/index.php
 else
-    echo "❌ index.php NOT FOUND! Roundcube not installed."
+    echo "❌ index.php NOT FOUND!"
 fi
 
 # Enable PHP error logging
