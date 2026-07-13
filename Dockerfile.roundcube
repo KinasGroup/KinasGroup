@@ -1,6 +1,6 @@
 FROM roundcube/roundcubemail:latest
 
-# Create config directory
+# Create config directory and file
 RUN mkdir -p /var/www/html/config /var/www/html/logs /var/www/html/temp
 
 # Create config file
@@ -54,5 +54,6 @@ RUN rm -f /etc/apache2/sites-enabled/* && \
 
 EXPOSE 8080
 
-# Run Apache directly (no start script needed)
+# Override entrypoint and run Apache directly
+ENTRYPOINT []
 CMD ["apache2-foreground"]
