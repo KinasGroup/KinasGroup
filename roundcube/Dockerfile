@@ -1,5 +1,9 @@
 FROM roundcube/roundcubemail:latest
 
+# Copy start script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
 # Create config directory and file
 RUN mkdir -p /var/www/html/config /var/www/html/logs /var/www/html/temp
 
@@ -31,27 +35,6 @@ RUN echo '<?php' > /var/www/html/config/config.inc.php && \
 
 RUN chown -R www-data:www-data /var/www/html/config /var/www/html/logs /var/www/html/temp
 
-# Fix MPM
-RUN a2dismod mpm_event mpm_worker || true && a2enmod mpm_prefork
-
-# Set ServerName
-RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
-
-# Configure port 8080
-RUN sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf
-
-# Configure VirtualHost
-RUN rm -f /etc/apache2/sites-enabled/* && \
-    echo '<VirtualHost *:8080>' > /etc/apache2/sites-available/roundcube.conf && \
-    echo '    DocumentRoot /var/www/html' >> /etc/apache2/sites-available/roundcube.conf && \
-    echo '    <Directory /var/www/html>' >> /etc/apache2/sites-available/roundcube.conf && \
-    echo '        Options Indexes FollowSymLinks' >> /etc/apache2/sites-available/roundcube.conf && \
-    echo '        AllowOverride All' >> /etc/apache2/sites-available/roundcube.conf && \
-    echo '        Require all granted' >> /etc/apache2/sites-available/roundcube.conf && \
-    echo '    </Directory>' >> /etc/apache2/sites-available/roundcube.conf && \
-    echo '</VirtualHost>' >> /etc/apache2/sites-available/roundcube.conf && \
-    a2ensite roundcube
-
-EXPOSE 8080
-
-# Let railway.toml handle the start command
+# Override entrypoint to use our start script
+ENTRYPOINT []
+CMD ["/start.sh"]
