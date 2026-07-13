@@ -1,9 +1,5 @@
 FROM roundcube/roundcubemail:latest
 
-# Copy start script
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
-
 # Create config directory and file
 RUN mkdir -p /var/www/html/config /var/www/html/logs /var/www/html/temp
 
@@ -35,6 +31,6 @@ RUN echo '<?php' > /var/www/html/config/config.inc.php && \
 
 RUN chown -R www-data:www-data /var/www/html/config /var/www/html/logs /var/www/html/temp
 
-# Override entrypoint to use our start script
-ENTRYPOINT []
-CMD ["/start.sh"]
+EXPOSE 8080
+
+CMD ["apache2-foreground"]
