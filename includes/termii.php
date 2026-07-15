@@ -118,10 +118,24 @@ class TermiiService
         ];
         try {
             $res = $this->request('POST', '/api/sms/otp/verify', $payload);
+
+            // Termii's docs show `verified` as the JSON string "True", but
+            // real-world API responses have been observed to send back a
+            // native JSON boolean instead. Handle both — treating a bool
+            // as always-a-string here (PHP coerces true -> "1") silently
+            // makes every correct code look wrong.
+            $verifiedRaw = $res['verified'] ?? null;
+            $verified = $verifiedRaw === true
+                || (is_string($verifiedRaw) && strtoupper($verifiedRaw) === 'TRUE')
+                || ($res['code'] ?? null) === 'ok';
+
+            if (!$verified) {
+                error_log('Termii verifyOtp — not verified. Raw response: ' . json_encode($res));
+            }
+
             return [
                 'success'  => true,
-                'verified' => strtoupper($res['verified'] ?? '') === 'TRUE'
-                    || ($res['code'] ?? null) === 'ok',
+                'verified' => $verified,
                 'message'  => $res['message'] ?? '',
             ];
         } catch (Exception $e) {
