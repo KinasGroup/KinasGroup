@@ -237,7 +237,7 @@ if (!empty($code)) {
     <aside class="je-auth-aside">
         <a href="../index.php" class="je-auth-brand">
             <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
-            <span>KINAS GROUP</span>
+            <span></span>
         </a>
         <div>
             <h1 class="je-auth-headline">Verified. Trusted. Yours.</h1>
