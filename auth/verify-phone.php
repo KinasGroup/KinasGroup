@@ -1,4 +1,12 @@
 <?php
+// Authenticated, per-session content — never cache this page. Without
+// this, a browser or CDN (e.g. Cloudflare) could keep serving a stale
+// snapshot indefinitely after data changes (deletes, status updates,
+// etc.), which is exactly what made this dashboard look like it wasn't
+// updating.
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
 /**
  * KINAS GROUP — Phone verification page (post-registration or login)
  *
@@ -453,6 +461,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // OTP input handling
+    let autoSubmitTimer = null;
+
     otpCells.forEach((cell, idx) => {
         cell.addEventListener('input', (e) => {
             const v = e.target.value.replace(/\D/g, '');
@@ -474,6 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (e.key === 'Enter') {
                 e.preventDefault();
+                if (autoSubmitTimer) { clearTimeout(autoSubmitTimer); autoSubmitTimer = null; }
                 verifyBtn.click();
             }
         });
@@ -489,15 +500,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 otpCells[nextIdx].focus();
             }
             if (text.length === 6) {
-                setTimeout(() => verifyBtn.click(), 100);
+                // BUG FIX: this used to schedule an unconditional auto-submit
+                // 100ms later with no way to cancel it. If the person also
+                // pressed Enter or clicked "Verify" manually in that window,
+                // two verify requests went out for the same code. Termii's
+                // verify API is single-use per code (standard anti-replay),
+                // so the second request came back "incorrect" even though
+                // the code was right — tracking the timer lets a manual
+                // submit cancel this one instead of racing it.
+                if (autoSubmitTimer) clearTimeout(autoSubmitTimer);
+                autoSubmitTimer = setTimeout(() => { autoSubmitTimer = null; verifyBtn.click(); }, 100);
             }
         });
     });
 
     // Verify OTP
+    let verifyInFlight = false;
     otpForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
+        if (verifyInFlight) return;
+
         const code = Array.from(otpCells).map(c => c.value).join('');
         if (code.length !== 6) {
             showError('Please enter all 6 digits.');
@@ -509,6 +532,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        verifyInFlight = true;
         setButtonLoading(verifyBtn, true, 'Verifying...');
 
         try {
@@ -543,6 +567,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
             showError('Network error. Please check your connection and try again.');
         } finally {
+            verifyInFlight = false;
             setButtonLoading(verifyBtn, false, 'Verify Phone');
         }
     });
