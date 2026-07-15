@@ -42,87 +42,134 @@ $phone = trim($body['phone'] ?? '');
 
 $db = Database::getInstance()->getConnection();
 
-// Find the most recent unconsumed, unexpired OTP for this user+phone
-$sql = "SELECT id, code_hash, attempts, max_attempts, expires_at, phone, termii_message_id
-        FROM phone_otps
-        WHERE consumed_at IS NULL
-          AND expires_at > NOW()
-          " . ($userId ? "AND user_id = ?" : "AND user_id IS NULL") . "
-          " . ($phone ? "AND phone = ?" : "") . "
-        ORDER BY id DESC LIMIT 1";
-$stmt = $db->prepare($sql);
-$params = [];
-if ($userId) $params[] = $userId;
-if ($phone)  $params[] = $phone;
-$stmt->execute($params);
-$otp = $stmt->fetch(PDO::FETCH_ASSOC);
+$db->beginTransaction();
 
-if (!$otp) {
-    http_response_code(400);
-    echo json_encode(['error' => 'No active verification code. Please request a new one.']);
-    exit;
-}
+try {
+    // Find the most recent unconsumed, unexpired OTP for this user+phone.
+    // FOR UPDATE locks the row so a second, near-simultaneous verify
+    // request (e.g. triggered by both the paste auto-submit and a manual
+    // click/Enter) has to wait for this transaction to finish instead of
+    // racing it — see the note above for why that race mattered.
+    $sql = "SELECT id, code_hash, attempts, max_attempts, expires_at, phone, termii_message_id, consumed_at
+            FROM phone_otps
+            WHERE expires_at > NOW()
+              " . ($userId ? "AND user_id = ?" : "AND user_id IS NULL") . "
+              " . ($phone ? "AND phone = ?" : "") . "
+            ORDER BY id DESC LIMIT 1
+            FOR UPDATE";
+    $stmt = $db->prepare($sql);
+    $params = [];
+    if ($userId) $params[] = $userId;
+    if ($phone)  $params[] = $phone;
+    $stmt->execute($params);
+    $otp = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if ((int)$otp['attempts'] >= (int)$otp['max_attempts']) {
-    $db->prepare("UPDATE phone_otps SET consumed_at = NOW() WHERE id = ?")->execute([$otp['id']]);
-    http_response_code(429);
-    echo json_encode(['error' => 'Too many attempts. Please request a new code.']);
-    exit;
-}
+    if (!$otp) {
+        $db->rollBack();
+        http_response_code(400);
+        echo json_encode(['error' => 'No active verification code. Please request a new one.']);
+        exit;
+    }
 
-// Verify the code. If this OTP went out via Termii, Termii itself
-// generated the actual PIN that was texted — our code_hash is not the
-// real value the user received, so we must check with Termii directly.
-// If Termii wasn't used (disabled/dev mode) or its API call errors out,
-// fall back to the local hash so an outage doesn't lock the user out.
-$codeIsValid = false;
+    // Already consumed by an earlier request. Could be a genuine success
+    // (the race described above — a duplicate request for the same
+    // already-verified code should look like success, not "incorrect")
+    // or it could have been consumed because attempts ran out. Tell them
+    // apart by checking whether verification actually completed.
+    if ($otp['consumed_at'] !== null) {
+        $alreadyVerified = false;
+        if ($userId) {
+            $checkStmt = $db->prepare("SELECT phone_verified_at FROM users WHERE id = ?");
+            $checkStmt->execute([$userId]);
+            $alreadyVerified = (bool)$checkStmt->fetchColumn();
+        }
 
-if (!empty($otp['termii_message_id'])) {
-    require_once '../../includes/termii.php';
-    $termii = new TermiiService();
-    $tv = $termii->verifyOtp($otp['termii_message_id'], $code);
+        $db->commit();
+        if ($alreadyVerified) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Phone number verified successfully.',
+            ]);
+        } else {
+            http_response_code(429);
+            echo json_encode(['error' => 'Too many attempts. Please request a new code.']);
+        }
+        exit;
+    }
 
-    if ($tv['success']) {
-        $codeIsValid = (bool)$tv['verified'];
+    if ((int)$otp['attempts'] >= (int)$otp['max_attempts']) {
+        $db->prepare("UPDATE phone_otps SET consumed_at = NOW() WHERE id = ?")->execute([$otp['id']]);
+        $db->commit();
+        http_response_code(429);
+        echo json_encode(['error' => 'Too many attempts. Please request a new code.']);
+        exit;
+    }
+
+    // Verify the code. If this OTP went out via Termii, Termii itself
+    // generated the actual PIN that was texted — our code_hash is not the
+    // real value the user received, so we must check with Termii directly.
+    // If Termii wasn't used (disabled/dev mode) or its API call errors out,
+    // fall back to the local hash so an outage doesn't lock the user out.
+    $codeIsValid = false;
+
+    if (!empty($otp['termii_message_id'])) {
+        require_once '../../includes/termii.php';
+        $termii = new TermiiService();
+        $tv = $termii->verifyOtp($otp['termii_message_id'], $code);
+
+        if ($tv['success']) {
+            $codeIsValid = (bool)$tv['verified'];
+        } else {
+            // Termii's verify API itself failed (e.g. network/outage) — don't
+            // lock the user out; fall back to the local record.
+            $codeIsValid = password_verify($code, $otp['code_hash']);
+        }
     } else {
-        // Termii's verify API itself failed (e.g. network/outage) — don't
-        // lock the user out; fall back to the local record.
         $codeIsValid = password_verify($code, $otp['code_hash']);
     }
-} else {
-    $codeIsValid = password_verify($code, $otp['code_hash']);
-}
 
-if (!$codeIsValid) {
-    $db->prepare("UPDATE phone_otps SET attempts = attempts + 1 WHERE id = ?")->execute([$otp['id']]);
-    $left = (int)$otp['max_attempts'] - ((int)$otp['attempts'] + 1);
-    http_response_code(400);
-    echo json_encode(['error' => "Incorrect code. {$left} attempt" . ($left === 1 ? '' : 's') . ' left.']);
-    exit;
-}
+    if (!$codeIsValid) {
+        $db->prepare("UPDATE phone_otps SET attempts = attempts + 1 WHERE id = ?")->execute([$otp['id']]);
+        $left = (int)$otp['max_attempts'] - ((int)$otp['attempts'] + 1);
+        $db->commit();
+        http_response_code(400);
+        echo json_encode(['error' => "Incorrect code. {$left} attempt" . ($left === 1 ? '' : 's') . ' left.']);
+        exit;
+    }
 
-// Mark consumed
-$db->prepare("UPDATE phone_otps SET consumed_at = NOW() WHERE id = ?")->execute([$otp['id']]);
+    // Mark consumed
+    $db->prepare("UPDATE phone_otps SET consumed_at = NOW() WHERE id = ?")->execute([$otp['id']]);
 
-// Mark phone verified on the user
-if ($userId) {
-    if ($phone && $phone !== $otp['phone']) {
-        $db->prepare("UPDATE users SET phone = ?, phone_verified_at = NOW() WHERE id = ?")
-            ->execute([$phone, $userId]);
-    } else {
-        $db->prepare("UPDATE users SET phone_verified_at = COALESCE(phone_verified_at, NOW()) WHERE id = ?")
+    // Mark phone verified on the user
+    if ($userId) {
+        if ($phone && $phone !== $otp['phone']) {
+            $db->prepare("UPDATE users SET phone = ?, phone_verified_at = NOW() WHERE id = ?")
+                ->execute([$phone, $userId]);
+        } else {
+            $db->prepare("UPDATE users SET phone_verified_at = COALESCE(phone_verified_at, NOW()) WHERE id = ?")
+                ->execute([$userId]);
+        }
+
+        $db->prepare("UPDATE agent_profiles
+                      SET verification_status = 'phone_verified'
+                      WHERE user_id = ? AND verification_status = 'pending'")
             ->execute([$userId]);
     }
 
-    $db->prepare("UPDATE agent_profiles
-                  SET verification_status = 'phone_verified'
-                  WHERE user_id = ? AND verification_status = 'pending'")
-        ->execute([$userId]);
+    $db->commit();
 
-    Security::logActivity($userId, 'phone_verified', "Phone verified ending " . substr(preg_replace('/\D+/', '', $otp['phone']), -4));
+    if ($userId) {
+        Security::logActivity($userId, 'phone_verified', "Phone verified ending " . substr(preg_replace('/\D+/', '', $otp['phone']), -4));
+    }
+
+    echo json_encode([
+        'success' => true,
+        'message' => 'Phone number verified successfully.',
+    ]);
+
+} catch (Throwable $e) {
+    if ($db->inTransaction()) $db->rollBack();
+    error_log('verify-otp.php error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'Something went wrong. Please try again.']);
 }
-
-echo json_encode([
-    'success' => true,
-    'message' => 'Phone number verified successfully.',
-]);
