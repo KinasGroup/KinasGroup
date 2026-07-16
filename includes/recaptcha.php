@@ -1,91 +1,176 @@
 <?php
-require_once '../includes/dotenv.php';
-require_once '../includes/session.php';
-require_once '../includes/security.php';
-require_once '../includes/recaptcha.php';
+/**
+ * KINAS GROUP - Multi-Domain reCAPTCHA Helper
+ * 
+ * Supports multiple domains with separate reCAPTCHA keys.
+ * In development mode (when no keys are configured), CAPTCHA is bypassed.
+ */
 
-if (SessionManager::isLoggedIn()) {
-    $role = SessionManager::getUserRole();
-    header('Location: ' . ($role === 'admin' ? '../admin/dashboard.php' : ($role === 'agent' ? '../agent/dashboard.php' : '../user/dashboard.php')));
-    exit;
-}
-
-$csrfToken = Security::generateCSRFToken();
-$errorMessage = SessionManager::getFlash('error');
-$successMessage = SessionManager::getFlash('success');
-
-$divisions = [
-    'automobile'    => 'KINAS Automobile',
-    'real_estate'   => 'Williams Connect Home',
-    'marketplace'   => 'KINAS Marketplace',
-];
-
-$recaptcha = getRecaptchaKeys();
-?>
-<!DOCTYPE html>
-<html lang="en" style="color-scheme: light;">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
-    <title>Agent Registration - KINAS GROUP</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/james-edition.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Your existing styles ... -->
-</head>
-<body>
-
-<div class="je-auth-shell">
-    <!-- Your existing aside and form structure ... -->
-
-    <form id="registerForm" method="POST" action="../api/auth/register.php" novalidate>
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-
-        <!-- Your existing fields ... -->
-
-        <div class="je-form-group" id="captcha-group">
-            <div id="captcha-container"></div>
-            <input type="hidden" id="captcha-token" name="g-recaptcha-response">
-        </div>
-
-        <button type="submit" id="submitBtn" class="je-btn je-btn-gold je-btn-block je-btn-lg">
-            Create Account &amp; Continue
-        </button>
-    </form>
-
-    <!-- ... rest of your HTML ... -->
-</div>
-
-<script>
-const captchaSiteKey = '<?= htmlspecialchars($recaptcha['site']) ?>';
-const isCaptchaConfigured = captchaSiteKey && captchaSiteKey.length > 30;
-
-if (isCaptchaConfigured) {
-    var s = document.createElement('script');
-    s.src = 'https://www.google.com/recaptcha/api.js?onload=onCaptchaLoad&render=explicit';
-    s.async = true; s.defer = true;
-    document.head.appendChild(s);
-} else {
-    document.getElementById('captcha-group').style.display = 'none';
-}
-
-function onCaptchaLoad() {
-    if (!isCaptchaConfigured) return;
-    grecaptcha.render('captcha-container', {
-        sitekey: captchaSiteKey,
-        callback: function(token) {
-            document.getElementById('captcha-token').value = token;
+/**
+ * Get reCAPTCHA site and secret keys for the current domain
+ * 
+ * @return array{site: string, secret: string} Array with 'site' and 'secret' keys
+ */
+function getRecaptchaKeys(): array {
+    // Get host without port and www
+    $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
+    $host = explode(':', $host)[0]; // Remove port
+    $host = preg_replace('/^www\./', '', $host); // Remove www.
+    
+    // If no host (CLI, etc.), return default
+    if (empty($host)) {
+        return getDefaultRecaptchaKeys();
+    }
+    
+    // Domain-specific key mapping
+    $domainKeys = [
+        'kinasvolt.com' => [
+            'site' => $_ENV['CAPTCHA_SITE_KEY_KINASVOLT'] ?? null,
+            'secret' => $_ENV['CAPTCHA_SECRET_KEY_KINASVOLT'] ?? null,
+        ],
+        'kinasauto.com' => [
+            'site' => $_ENV['CAPTCHA_SITE_KEY_KINASAUTO'] ?? null,
+            'secret' => $_ENV['CAPTCHA_SECRET_KEY_KINASAUTO'] ?? null,
+        ],
+        'kinasstore.com' => [
+            'site' => $_ENV['CAPTCHA_SITE_KEY_KINASSTORE'] ?? null,
+            'secret' => $_ENV['CAPTCHA_SECRET_KEY_KINASSTORE'] ?? null,
+        ],
+        'williamsconnecthome.com' => [
+            'site' => $_ENV['CAPTCHA_SITE_KEY_WILLIAMS'] ?? null,
+            'secret' => $_ENV['CAPTCHA_SECRET_KEY_WILLIAMS'] ?? null,
+        ],
+    ];
+    
+    // Try exact match first
+    if (isset($domainKeys[$host])) {
+        $keys = $domainKeys[$host];
+        // If both keys are set, return them
+        if (!empty($keys['site']) && !empty($keys['secret'])) {
+            return $keys;
         }
-    });
+    }
+    
+    // Try matching by base domain (supports subdomains)
+    foreach ($domainKeys as $domain => $keys) {
+        if (strpos($host, $domain) !== false) {
+            if (!empty($keys['site']) && !empty($keys['secret'])) {
+                return $keys;
+            }
+        }
+    }
+    
+    // Fallback to default keys
+    return getDefaultRecaptchaKeys();
 }
 
-// Your existing form submit handler remains the same...
-</script>
+/**
+ * Get default reCAPTCHA keys from environment
+ */
+function getDefaultRecaptchaKeys(): array {
+    return [
+        'site' => $_ENV['CAPTCHA_SITE_KEY'] ?? '',
+        'secret' => $_ENV['CAPTCHA_SECRET_KEY'] ?? '',
+    ];
+}
 
-<?php require_once __DIR__ . '/../includes/kinas-ui.php'; ?>
-<?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
-</body>
-</html>
+/**
+ * Verify a reCAPTCHA token with Google's API
+ * 
+ * @param string $response The reCAPTCHA token from the client
+ * @return bool True if verified, false otherwise
+ */
+function verifyRecaptcha(string $response): bool {
+    $keys = getRecaptchaKeys();
+    
+    // Check if secret key is configured
+    if (empty($keys['secret'])) {
+        error_log('reCAPTCHA secret key not configured');
+        // In production, fail closed. In development, bypass.
+        if (isDevelopmentEnvironment()) {
+            return true; // Bypass in development only
+        }
+        return false;
+    }
+    
+    // Token is required
+    if (empty($response)) {
+        error_log('reCAPTCHA verification failed: No token provided');
+        return false;
+    }
+    
+    // Build verification request
+    $url = 'https://www.google.com/recaptcha/api/siteverify';
+    $data = http_build_query([
+        'secret' => $keys['secret'],
+        'response' => $response,
+        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
+    ]);
+    
+    $options = [
+        'http' => [
+            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method' => 'POST',
+            'content' => $data,
+            'timeout' => 5, // Add timeout
+            'ignore_errors' => true,
+        ],
+        'ssl' => [
+            'verify_peer' => true,
+            'verify_peer_name' => true,
+        ],
+    ];
+    
+    $context = stream_context_create($options);
+    
+    // Make the request with error handling
+    $result = @file_get_contents($url, false, $context);
+    
+    if ($result === false) {
+        error_log('reCAPTCHA verification network error');
+        return false; // Fail closed
+    }
+    
+    $result = json_decode($result, true);
+    
+    // Validate response
+    if (!is_array($result) || !isset($result['success'])) {
+        error_log('reCAPTCHA verification: Invalid response from Google');
+        return false;
+    }
+    
+    // Check if verification succeeded
+    if ($result['success'] !== true) {
+        $errorCodes = $result['error-codes'] ?? [];
+        error_log('reCAPTCHA verification failed: ' . implode(', ', $errorCodes));
+        return false;
+    }
+    
+    // Optional: Check the hostname matches
+    if (isset($result['hostname']) && !empty($_SERVER['HTTP_HOST'])) {
+        $expectedHost = strtolower($_SERVER['HTTP_HOST']);
+        $expectedHost = explode(':', $expectedHost)[0];
+        if ($result['hostname'] !== $expectedHost && 
+            $result['hostname'] !== 'www.' . $expectedHost) {
+            error_log('reCAPTCHA hostname mismatch: ' . $result['hostname'] . ' vs ' . $expectedHost);
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+/**
+ * Check if we're in a development environment
+ */
+function isDevelopmentEnvironment(): bool {
+    // Check for common development indicators
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    if (in_array($host, ['localhost', '127.0.0.1', '::1'])) {
+        return true;
+    }
+    if (strpos($host, '.test') !== false || strpos($host, '.dev') !== false) {
+        return true;
+    }
+    return (defined('ENVIRONMENT') && strtolower(ENVIRONMENT) === 'development');
+}
