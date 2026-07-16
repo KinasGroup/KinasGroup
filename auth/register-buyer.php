@@ -1,15 +1,12 @@
 <?php
-// Authenticated, per-session content — never cache this page. Without
-// this, a browser or CDN (e.g. Cloudflare) could keep serving a stale
-// snapshot indefinitely after data changes (deletes, status updates,
-// etc.), which is exactly what made this dashboard look like it wasn't
-// updating.
+// Authenticated, per-session content — never cache this page
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 
 require_once __DIR__ . '/../includes/dotenv.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
+require_once __DIR__ . '/../includes/recaptcha.php'; // ← ADDED
 
 if (SessionManager::isLoggedIn()) {
     $role = SessionManager::getUserRole();
@@ -20,16 +17,15 @@ if (SessionManager::isLoggedIn()) {
 $csrfToken = Security::generateCSRFToken();
 $errorMessage = SessionManager::getFlash('error');
 $successMessage = SessionManager::getFlash('success');
+
+// Get reCAPTCHA keys for this domain
+$recaptcha = getRecaptchaKeys();
 ?>
 <!DOCTYPE html>
 <html lang="en" style="color-scheme: light;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- ============================================================
-         FORCE LIGHT MODE - PERMANENT FIX
-         ============================================================ -->
     <meta name="color-scheme" content="only light">
     <meta name="theme-color" content="#ffffff">
     <style>
@@ -62,7 +58,6 @@ $successMessage = SessionManager::getFlash('success');
             }
         }
     </style>
-    <!-- ============================================================ -->
     
     <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
     <title>Buyer Registration - KINAS GROUP | Luxury Marketplace</title>
@@ -72,9 +67,6 @@ $successMessage = SessionManager::getFlash('success');
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- ============================================================
-         MOBILE RESPONSIVENESS FIXES
-         ============================================================ -->
     <style>
         .je-auth-shell {
             min-height: 100vh;
@@ -165,27 +157,18 @@ $successMessage = SessionManager::getFlash('success');
             min-height: 78px;
         }
 
-        /* Restore gold accents - the site-wide dark-mode override
-           (assets/css/style.css) blackens all text inside .je-auth-form,
-           which was silently killing the gold CTA button and links here. */
         @media (prefers-color-scheme: dark) {
             #submitBtn.je-btn-gold,
             .je-auth-form .je-text-gold {
                 color: #C6A43F !important;
             }
         }
-    
-/* ============================================================
-   DARK MODE — force this page's own styling to stay identical
-   to light mode. Auto-generated from every hardcoded
-   background/color/border-color rule already on this page.
-   ============================================================ */
-@media (prefers-color-scheme: dark) {
-    html, body { background: #ffffff !important; }
-    .je-password-toggle { color: #999 !important; }
-    .je-password-toggle:hover { color: #666 !important; }
-}
-</style>
+        @media (prefers-color-scheme: dark) {
+            html, body { background: #ffffff !important; }
+            .je-password-toggle { color: #999 !important; }
+            .je-password-toggle:hover { color: #666 !important; }
+        }
+    </style>
 </head>
 <body>
 
@@ -254,12 +237,19 @@ $successMessage = SessionManager::getFlash('success');
                     </div>
                 </div>
 
+                <!-- ============================================
+                     CAPTCHA - UPDATED to use $recaptcha['site']
+                     ============================================ -->
                 <div class="je-form-group" id="captcha-group">
                     <div id="captcha-container"></div>
                     <input type="hidden" id="captcha-token" name="captcha_token">
+                    <?php if (!empty($recaptcha['site']) && $recaptcha['site'] !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX'): ?>
                     <p style="font-size:11px; color:#888; margin-top:6px;">
                         <i class="fas fa-shield-alt"></i> Protected by reCAPTCHA.
+                        <a href="https://policies.google.com/privacy" target="_blank" style="color:#C6A43F;">Privacy</a> ·
+                        <a href="https://policies.google.com/terms" target="_blank" style="color:#C6A43F;">Terms</a>
                     </p>
+                    <?php endif; ?>
                 </div>
 
                 <p style="font-size:12px; color:#666; margin-bottom:20px; line-height:1.5;">
@@ -282,66 +272,50 @@ $successMessage = SessionManager::getFlash('success');
 </div>
 
 <script>
-const captchaSiteKey = '<?= htmlspecialchars($_ENV['CAPTCHA_SITE_KEY'] ?? getenv('CAPTCHA_SITE_KEY') ?? '') ?>';
+// ============================================
+// CAPTCHA - UPDATED to use $recaptcha['site']
+// ============================================
+const captchaSiteKey = '<?= htmlspecialchars($recaptcha['site'] ?? '') ?>';
 const isCaptchaConfigured = captchaSiteKey && captchaSiteKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX' && captchaSiteKey.length > 30;
+
 if (isCaptchaConfigured) {
     var s = document.createElement('script');
     s.src = 'https://www.google.com/recaptcha/api.js?onload=onCaptchaLoad&render=explicit';
     s.async = true; s.defer = true;
     document.head.appendChild(s);
 } else {
-    document.addEventListener('DOMContentLoaded', function() { const c = document.getElementById('captcha-group'); if (c) c.style.display = 'none'; });
+    document.addEventListener('DOMContentLoaded', function() { 
+        const c = document.getElementById('captcha-group'); 
+        if (c) c.style.display = 'none'; 
+    });
 }
+
 function onCaptchaLoad() {
     if (!isCaptchaConfigured) return;
     const c = document.getElementById('captcha-container');
-    if (c) grecaptcha.render('captcha-container', {
-        sitekey: captchaSiteKey,
-        callback: r => document.getElementById('captcha-token').value = r,
-        'expired-callback': () => document.getElementById('captcha-token').value = ''
-    });
+    if (c) {
+        grecaptcha.render('captcha-container', {
+            sitekey: captchaSiteKey,
+            callback: function(token) {
+                document.getElementById('captcha-token').value = token;
+            },
+            'expired-callback': function() {
+                document.getElementById('captcha-token').value = '';
+            }
+        });
+    }
 }
+
 document.getElementById('registerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const form = this, submitBtn = document.getElementById('submitBtn');
     const name = form.name.value.trim(), email = form.email.value.trim(), phone = form.phone.value.trim();
     const password = form.password.value, passwordConfirmation = form.password_confirmation.value;
     const captchaToken = document.getElementById('captcha-token')?.value || '';
-    if (!name || !email || !phone || !password || !passwordConfirmation) { kinasToast('Please fill in all required fields', 'error'); return; }
-    if (password !== passwordConfirmation) { kinasToast('Passwords do not match', 'error'); return; }
-    if (password.length < 8) { kinasToast('Password must be at least 8 characters', 'error'); return; }
-    if (isCaptchaConfigured && !captchaToken) { kinasToast('Please complete the CAPTCHA verification', 'warning'); return; }
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account…';
-    try {
-        const res = await fetch(form.action, {
-            method: 'POST', credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name, email, phone, password, password_confirmation: passwordConfirmation,
-                csrf_token: form.csrf_token.value, captcha_token: captchaToken
-            })
-        });
-        const result = await res.json();
-        if (res.ok && result.success) {
-            const successMessage = encodeURIComponent(result.message || 'Registration successful! Please login to continue.');
-            window.location.href = 'login.php?registered=1&message=' + successMessage;
-        } else {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Create Buyer Account';
-            if (result.errors && Array.isArray(result.errors)) kinasToast(result.errors.join(' · '), 'error');
-            else if (result.error) kinasToast(result.error, 'error');
-            else kinasToast('Registration failed', 'error');
-        }
-    } catch (err) {
-        console.error(err);
-        kinasToast('Network error. Please try again.', 'error');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Create Buyer Account';
+    
+    if (!name || !email || !phone || !password || !passwordConfirmation) { 
+        kinasToast('Please fill in all required fields', 'error'); 
+        return; 
     }
-});
-</script>
-<?php require_once __DIR__ . '/../includes/kinas-ui.php'; ?>
-<?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
-</body>
-</html>
+    if (password !== passwordConfirmation) { 
+        kinasToast('Passwords do
