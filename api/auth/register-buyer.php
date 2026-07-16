@@ -1,16 +1,15 @@
 <?php
 header('Content-Type: application/json');
 
-// Load environment variables from .env file
 require_once __DIR__ . '/../../includes/dotenv.php';
-
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/security.php';
 require_once __DIR__ . '/../../includes/email.php';
+require_once __DIR__ . '/../../includes/recaptcha.php'; // ← ADDED
 
-// CORS headers for API access
+// CORS headers
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
@@ -37,9 +36,7 @@ if (!$data) {
     exit;
 }
 
-// ============================================
-// CSRF TOKEN VALIDATION - ADDED
-// ============================================
+// CSRF token validation
 $csrfToken = $data['csrf_token'] ?? '';
 if (empty($csrfToken) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrfToken)) {
     http_response_code(403);
@@ -47,37 +44,18 @@ if (empty($csrfToken) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSI
     exit;
 }
 
-// Rotate CSRF token after successful validation
 unset($_SESSION['csrf_token']);
 
 // ============================================
-// CAPTCHA VERIFICATION - ADDED
+// CAPTCHA VERIFICATION - FIXED
 // ============================================
 $captchaToken = $data['captcha_token'] ?? '';
-$captchaSecretKey = $_ENV['CAPTCHA_SECRET_KEY'] ?? getenv('CAPTCHA_SECRET_KEY') ?? '';
-$captchaEnabled = !empty($captchaSecretKey) && $captchaSecretKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX';
-
-if ($captchaEnabled && empty($captchaToken)) {
-    http_response_code(422);
-    echo json_encode(['error' => 'CAPTCHA verification required']);
-    exit;
-}
-
-if ($captchaEnabled && !empty($captchaToken)) {
-    $verifyResponse = @file_get_contents(
-        'https://www.google.com/recaptcha/api/siteverify?' . http_build_query([
-            'secret' => $captchaSecretKey,
-            'response' => $captchaToken,
-            'remoteip' => $ip
-        ])
-    );
-    if ($verifyResponse !== false) {
-        $verifyData = json_decode($verifyResponse, true);
-        if (!$verifyData || !$verifyData['success']) {
-            http_response_code(422);
-            echo json_encode(['error' => 'CAPTCHA verification failed. Please try again.']);
-            exit;
-        }
+$keys = getRecaptchaKeys();
+if (!empty($keys['secret']) && $keys['secret'] !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX') {
+    if (!verifyRecaptcha($captchaToken)) {
+        http_response_code(422);
+        echo json_encode(['error' => 'CAPTCHA verification failed. Please try again.']);
+        exit;
     }
 }
 
@@ -125,13 +103,7 @@ if (!empty($errors)) {
     exit;
 }
 
-// DNS-based deliverability check: rejects addresses on domains that
-// have no MX and no A record. PHP's mail() returns true even for
-// undeliverable addresses (it hands off to the local MTA and lies), so
-// without this check we were creating accounts for any string that
-// passed filter_var(FILTER_VALIDATE_EMAIL) — the user could register
-// with `fake@thisdomainreallydoesnotexist.com` and the rollback guard
-// in the email-send path was never triggered.
+// DNS-based deliverability check
 $deliverableError = Security::checkEmailDeliverable($email);
 if ($deliverableError !== null) {
     http_response_code(422);
@@ -158,16 +130,12 @@ try {
         exit;
     }
 
-    // Generate verification code
     $verificationCode = Security::generateToken(32);
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
     $verificationExpiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
     $db->beginTransaction();
 
-    // Insert user as buyer (role = 'user').
-    // The 24h expiry is enforced server-side in auth/verify-email.php —
-    // the email body advertises "this link will expire in 24 hours".
     $stmt = $db->prepare("
         INSERT INTO users
             (name, email, phone, password, role, status,
@@ -186,7 +154,7 @@ try {
     ]);
     $userId = $db->lastInsertId();
 
-    // Send verification email (REQUIRED — registration only succeeds if delivery succeeds)
+    // Send verification email
     $emailSent = false;
     $emailError = 'Email service is unavailable. Please try again later.';
     try {
@@ -202,19 +170,15 @@ try {
     }
 
     if (!$emailSent) {
-        // Roll back the user insert so a fake/invalid email cannot create an account
         $db->rollBack();
         http_response_code(502);
         echo json_encode(['error' => $emailError]);
         exit;
     }
 
-    // Log registration
     Security::logActivity($userId, 'buyer_registration', "New buyer registered: $email from $ip");
-
     $db->commit();
 
-    // Generate new CSRF token
     $newCsrfToken = Security::generate_csrf_token();
 
     http_response_code(201);
