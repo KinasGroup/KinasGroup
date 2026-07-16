@@ -365,16 +365,91 @@ class Security {
 
     // ── HTTP security headers ───────────────────────────────────────────────
 
+    /**
+     * Set secure HTTP headers with CSP allowing all required resources
+     * including reCAPTCHA, Google Fonts, and CDN assets.
+     */
     public static function secureHeaders(): void {
+        // Basic security headers
         header('X-Frame-Options: SAMEORIGIN');
         header('X-Content-Type-Options: nosniff');
         header('X-XSS-Protection: 1; mode=block');
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header('Permissions-Policy: geolocation=(), camera=(), microphone=()');
-        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https:; frame-src https://www.google.com https://recaptcha.google.com;");
+        
+        // ============================================================
+        // COMPREHENSIVE CSP - Allows all required resources
+        // ============================================================
+        $csp = implode('; ', [
+            // Default: only same origin
+            "default-src 'self'",
+            
+            // Scripts: allow self, inline (for reCAPTCHA callbacks), eval (for some libraries), and CDN/Google domains
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' " .
+                "https://www.google.com " .
+                "https://www.gstatic.com " .
+                "https://www.recaptcha.net " .
+                "https://recaptcha.google.com " .
+                "https://www.googletagmanager.com " .
+                "https://cdn.jsdelivr.net " .
+                "https://unpkg.com " .
+                "https://cdnjs.cloudflare.com",
+            
+            // Styles: allow self, inline, Google Fonts, and CDN
+            "style-src 'self' 'unsafe-inline' " .
+                "https://fonts.googleapis.com " .
+                "https://www.gstatic.com " .
+                "https://cdnjs.cloudflare.com " .
+                "https://cdn.jsdelivr.net",
+            
+            // Fonts: allow self and Google Fonts + CDN
+            "font-src 'self' " .
+                "https://fonts.gstatic.com " .
+                "https://cdnjs.cloudflare.com " .
+                "https://cdn.jsdelivr.net",
+            
+            // Images: allow self, data URIs, and any HTTPS (plus Google)
+            "img-src 'self' data: https: " .
+                "https://www.google.com " .
+                "https://www.gstatic.com " .
+                "https://www.recaptcha.net",
+            
+            // Connections: allow self and any HTTPS (for reCAPTCHA API calls)
+            "connect-src 'self' https: " .
+                "https://www.google.com " .
+                "https://www.recaptcha.net " .
+                "https://www.gstatic.com",
+            
+            // Frames: allow Google reCAPTCHA iframes
+            "frame-src 'self' " .
+                "https://www.google.com " .
+                "https://recaptcha.google.com " .
+                "https://www.recaptcha.net " .
+                "https://www.gstatic.com",
+            
+            // Form actions: allow self
+            "form-action 'self'",
+            
+            // Object/embed: block all (prevents Flash, etc.)
+            "object-src 'none'",
+            
+            // Base URI: restrict to self
+            "base-uri 'self'",
+            
+            // Upgrade insecure requests (enforce HTTPS)
+            "upgrade-insecure-requests"
+        ]);
+        
+        header("Content-Security-Policy: " . $csp);
+        
+        // HSTS - only in production with HTTPS
         if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
             header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
         }
+        
+        // Additional security headers
+        header('Cross-Origin-Opener-Policy: same-origin');
+        header('Cross-Origin-Resource-Policy: same-origin');
     }
 
     // ── File upload validation ──────────────────────────────────────────────
@@ -514,4 +589,3 @@ class Security {
 
 // Apply security headers on every PHP request
 Security::secureHeaders();
-
