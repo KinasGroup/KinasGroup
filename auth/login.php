@@ -1,28 +1,22 @@
 <?php
-// Authenticated, per-session content — never cache this page
+// Authenticated, per-session content — never cache this page. Without
+// this, a browser or CDN (e.g. Cloudflare) could keep serving a stale
+// snapshot indefinitely after data changes (deletes, status updates,
+// etc.), which is exactly what made this dashboard look like it wasn't
+// updating.
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 
+// Load environment variables from .env file
 require_once __DIR__ . '/../includes/dotenv.php';
+
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
-require_once __DIR__ . '/../includes/recaptcha.php';
-$recaptcha = getRecaptchaKeys();
-
-// Debug output - REMOVE AFTER TESTING
-error_log("=== reCAPTCHA DEBUG ===");
-error_log("Host: " . ($_SERVER['HTTP_HOST'] ?? 'unknown'));
-error_log("Site Key: " . ($recaptcha['site'] ?? 'empty'));
-error_log("Secret Key: " . ($recaptcha['secret'] ? 'set' : 'empty'));
-error_log("======================");
-
-// Also output to screen for quick testing (remove in production)
-echo "<!-- DEBUG: Host=" . htmlspecialchars($_SERVER['HTTP_HOST'] ?? '') . 
-     ", SiteKey=" . htmlspecialchars($recaptcha['site'] ?? '') . " -->";
 
 // Redirect already-logged-in users away from auth pages
 if (SessionManager::isLoggedIn()) {
     $role = SessionManager::getUserRole();
+    // FIXED: Use correct paths for all roles
     if ($role === 'admin') {
         header('Location: /admin/dashboard.php');
     } elseif ($role === 'agent') {
@@ -41,18 +35,20 @@ $registrationSuccess = isset($_GET['registered']) && $_GET['registered'] == 1;
 if ($registrationSuccess) {
     $successMessage = isset($_GET['message']) ? urldecode($_GET['message']) : 'Registration successful! Please sign in below.';
 }
-
-// Get reCAPTCHA keys for this domain
-$recaptcha = getRecaptchaKeys();
 ?>
 <!DOCTYPE html>
 <html lang="en" style="color-scheme: light;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- ============================================================
+         FORCE LIGHT MODE - PERMANENT FIX
+         ============================================================ -->
     <meta name="color-scheme" content="only light">
     <meta name="theme-color" content="#ffffff">
     <style>
+        /* Force light mode immediately */
         html, body { 
             color-scheme: light !important; 
             background: #ffffff !important;
@@ -82,6 +78,7 @@ $recaptcha = getRecaptchaKeys();
             }
         }
     </style>
+    <!-- ============================================================ -->
     
     <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
     <title>Sign In - KINAS GROUP | Luxury Marketplace</title>
@@ -91,13 +88,18 @@ $recaptcha = getRecaptchaKeys();
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- ============================================================
+         MOBILE RESPONSIVENESS FIXES
+         ============================================================ -->
     <style>
+        /* Ensure auth shell is responsive */
         .je-auth-shell {
             min-height: 100vh;
             width: 100%;
             max-width: 100%;
             overflow-x: hidden;
         }
+        
         @media (max-width: 992px) {
             .je-auth-shell {
                 grid-template-columns: 1fr !important;
@@ -126,6 +128,7 @@ $recaptcha = getRecaptchaKeys();
                 gap: 0 !important;
             }
         }
+        
         @media (max-width: 480px) {
             .je-auth-aside {
                 padding: 20px 16px 24px !important;
@@ -156,6 +159,8 @@ $recaptcha = getRecaptchaKeys();
                 font-size: 12px !important;
             }
         }
+        
+        /* Fix password toggle on mobile */
         .je-password-wrap {
             display: flex;
             align-items: center;
@@ -179,22 +184,32 @@ $recaptcha = getRecaptchaKeys();
             color: #666;
         }
 
+        /* Restore gold accents - the site-wide dark-mode override
+           (assets/css/style.css) blackens all text inside .je-auth-form,
+           which was silently killing the gold CTA button and links here. */
         @media (prefers-color-scheme: dark) {
             #submitBtn.je-btn-gold,
             .je-auth-form .je-text-gold {
                 color: #C6A43F !important;
             }
         }
-        @media (prefers-color-scheme: dark) {
-            html, body { background: #ffffff !important; }
-            .je-password-toggle { color: #999 !important; }
-            .je-password-toggle:hover { color: #666 !important; }
-        }
-    </style>
+    
+/* ============================================================
+   DARK MODE — force this page's own styling to stay identical
+   to light mode. Auto-generated from every hardcoded
+   background/color/border-color rule already on this page.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    html, body { background: #ffffff !important; }
+    .je-password-toggle { color: #999 !important; }
+    .je-password-toggle:hover { color: #666 !important; }
+}
+</style>
 </head>
 <body>
 
 <div class="je-auth-shell">
+    <!-- ── Left aside ── -->
     <aside class="je-auth-aside">
         <a href="../index.php" class="je-auth-brand">
             <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
@@ -210,6 +225,7 @@ $recaptcha = getRecaptchaKeys();
         </blockquote>
     </aside>
 
+    <!-- ── Right form ── -->
     <main class="je-auth-main">
         <div class="je-auth-form">
             <h2>Welcome Back</h2>
@@ -246,19 +262,9 @@ $recaptcha = getRecaptchaKeys();
                     <a href="forgot-password.php" class="je-text-gold" style="color:#C6A43F; text-decoration:none; font-weight:500;">Forgot password?</a>
                 </div>
 
-                <!-- ============================================
-                     CAPTCHA - UPDATED to use $recaptcha['site']
-                     ============================================ -->
                 <div class="je-form-group" id="captcha-group">
                     <div id="login-captcha-container"></div>
                     <input type="hidden" id="login-captcha-token" name="captcha_token">
-                    <?php if (!empty($recaptcha['site']) && $recaptcha['site'] !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX'): ?>
-                    <p style="font-size:11px; color:#888; margin-top:6px;">
-                        <i class="fas fa-shield-alt"></i> Protected by reCAPTCHA.
-                        <a href="https://policies.google.com/privacy" target="_blank" style="color:#C6A43F;">Privacy</a> ·
-                        <a href="https://policies.google.com/terms" target="_blank" style="color:#C6A43F;">Terms</a>
-                    </p>
-                    <?php endif; ?>
                 </div>
 
                 <button type="submit" id="submitBtn" class="je-btn je-btn-gold je-btn-block je-btn-lg">
@@ -274,10 +280,7 @@ $recaptcha = getRecaptchaKeys();
 </div>
 
 <script>
-// ============================================
-// CAPTCHA - UPDATED to use $recaptcha['site']
-// ============================================
-const loginCaptchaSiteKey = '<?= htmlspecialchars($recaptcha['site'] ?? '') ?>';
+const loginCaptchaSiteKey = '<?= htmlspecialchars($_ENV['CAPTCHA_SITE_KEY'] ?? getenv('CAPTCHA_SITE_KEY') ?? '') ?>';
 const isLoginCaptchaConfigured = loginCaptchaSiteKey && loginCaptchaSiteKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX' && loginCaptchaSiteKey.length > 30;
 
 if (isLoginCaptchaConfigured) {
@@ -286,10 +289,8 @@ if (isLoginCaptchaConfigured) {
     s.async = true; s.defer = true;
     document.head.appendChild(s);
 } else {
-    document.addEventListener('DOMContentLoaded', function() {
-        const c = document.getElementById('captcha-group');
-        if (c) c.style.display = 'none';
-    });
+    const g = document.getElementById('captcha-group');
+    if (g) g.style.display = 'none';
 }
 
 function onLoginCaptchaLoad() {
@@ -298,17 +299,12 @@ function onLoginCaptchaLoad() {
     if (c) {
         grecaptcha.render('login-captcha-container', {
             sitekey: loginCaptchaSiteKey,
-            callback: function(token) {
-                document.getElementById('login-captcha-token').value = token;
-            },
-            'expired-callback': function() {
-                document.getElementById('login-captcha-token').value = '';
-            }
+            callback: r => document.getElementById('login-captcha-token').value = r,
+            'expired-callback': () => document.getElementById('login-captcha-token').value = ''
         });
     }
 }
 
-// Clean URL parameters
 if (window.location.search.includes('registered=1')) {
     const url = new URL(window.location.href);
     url.searchParams.delete('registered');
@@ -316,15 +312,17 @@ if (window.location.search.includes('registered=1')) {
     window.history.replaceState({}, document.title, url.pathname);
 }
 
-// Notification helper
+// ============================================================
+// NOTIFICATION — delegates to kinasToast (defined in kinas-ui.php)
+// ============================================================
 window.showNotification = function(message, type) {
     var typeMap = { error: 'error', success: 'success', warning: 'warning', info: 'info' };
     kinasToast(message, typeMap[type] || 'error', 5000);
 };
 
-// ============================================
+// ============================================================
 // LOGIN FORM HANDLER
-// ============================================
+// ============================================================
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const form = this;
@@ -362,6 +360,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         
         if (data.success) {
             localStorage.setItem('kinas_token', data.token);
+            // FIXED: Use absolute paths for redirects
             if (data.user.role === 'admin') {
                 window.location.href = '/admin/dashboard.php';
             } else if (data.user.role === 'agent') {
@@ -370,7 +369,10 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
                 window.location.href = '/user/dashboard.php';
             }
         } else {
-            // Special case: email not verified
+            // Special case: the account exists but the email hasn't been
+            // verified. Show a clear message and offer a "resend the
+            // verification link" action. The API tells us the user's email
+            // so we can re-issue the code without them re-typing it.
             if (data.error_code === 'email_not_verified') {
                 kinasConfirm(
                     (data.error || 'Please verify your email.') +
@@ -391,6 +393,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
                     { title: 'Resend Verification', confirm: 'Send Link', variant: 'gold', icon: 'fa-envelope', subtitle: 'We\'ll send a new verification link to your email.' }
                 );
             } else {
+                // REPLACED BROWSER ALERT WITH CUSTOM NOTIFICATION
                 showNotification(data.error || 'Login failed. Please check your credentials.', 'error');
             }
             submitBtn.disabled = false;
