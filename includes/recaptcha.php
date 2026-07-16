@@ -22,6 +22,9 @@ function getRecaptchaKeys(): array {
         return getDefaultRecaptchaKeys();
     }
     
+    // Log the host for debugging
+    error_log("reCAPTCHA: Detected host: " . $host);
+    
     // Domain-specific key mapping
     $domainKeys = [
         'kinasvolt.com' => [
@@ -45,6 +48,7 @@ function getRecaptchaKeys(): array {
     // Try exact match first
     if (isset($domainKeys[$host])) {
         $keys = $domainKeys[$host];
+        error_log("reCAPTCHA: Exact match found for: " . $host);
         // If both keys are set, return them
         if (!empty($keys['site']) && !empty($keys['secret'])) {
             return $keys;
@@ -55,13 +59,22 @@ function getRecaptchaKeys(): array {
     foreach ($domainKeys as $domain => $keys) {
         if (strpos($host, $domain) !== false) {
             if (!empty($keys['site']) && !empty($keys['secret'])) {
+                error_log("reCAPTCHA: Base domain match found: " . $domain . " for host: " . $host);
                 return $keys;
             }
         }
     }
     
-    // Fallback to default keys
-    return getDefaultRecaptchaKeys();
+    // If no domain-specific keys found, try default keys
+    $defaultKeys = getDefaultRecaptchaKeys();
+    if (!empty($defaultKeys['site']) && !empty($defaultKeys['secret'])) {
+        error_log("reCAPTCHA: Using default keys for host: " . $host);
+        return $defaultKeys;
+    }
+    
+    // No keys configured at all - return empty (CAPTCHA will be disabled)
+    error_log("reCAPTCHA: No keys configured for host: " . $host);
+    return ['site' => '', 'secret' => ''];
 }
 
 /**
@@ -69,8 +82,8 @@ function getRecaptchaKeys(): array {
  */
 function getDefaultRecaptchaKeys(): array {
     return [
-        'site' => $_ENV['CAPTCHA_SITE_KEY'] ?? '',
-        'secret' => $_ENV['CAPTCHA_SECRET_KEY'] ?? '',
+        'site' => $_ENV['CAPTCHA_SITE_KEY'] ?? getenv('CAPTCHA_SITE_KEY') ?? '',
+        'secret' => $_ENV['CAPTCHA_SECRET_KEY'] ?? getenv('CAPTCHA_SECRET_KEY') ?? '',
     ];
 }
 
