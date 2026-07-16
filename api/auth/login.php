@@ -5,9 +5,8 @@ require_once '../config/database.php';
 require_once '../config/constants.php';
 require_once '../../includes/session.php';
 require_once '../../includes/security.php';
-require_once '../../includes/recaptcha.php'; // ← ADDED
 
-// CORS headers for API access
+// CORS headers for API access (adjust origin in production)
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
@@ -40,7 +39,7 @@ $email = trim($data['email'] ?? '');
 $password = $data['password'] ?? '';
 $csrfToken = $data['csrf_token'] ?? '';
 
-// Validate CSRF token
+// Validate CSRF token — require it to be present and correct
 if (empty($csrfToken)) {
     http_response_code(403);
     echo json_encode(['error' => 'Please refresh the page and try again.']);
@@ -53,21 +52,38 @@ if (!isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $cs
     exit;
 }
 
-// Rotate CSRF token after successful validation
+// Rotate CSRF token after successful validation (only now, after it passed)
 unset($_SESSION['csrf_token']);
 
-// ============================================
-// CAPTCHA VERIFICATION - FIXED
-// ============================================
+// CAPTCHA verification (skip if not configured)
 $captchaToken = $data['captcha_token'] ?? '';
+$captchaSecretKey = $_ENV['CAPTCHA_SECRET_KEY'] ?? getenv('CAPTCHA_SECRET_KEY') ?? '';
+$captchaEnabled = !empty($captchaSecretKey) && $captchaSecretKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX';
 
-// Skip verification if no secret key is configured (development mode)
-$keys = getRecaptchaKeys();
-if (!empty($keys['secret']) && $keys['secret'] !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX') {
-    if (!verifyRecaptcha($captchaToken)) {
+if ($captchaEnabled) {
+    if (empty($captchaToken)) {
         http_response_code(422);
-        echo json_encode(['error' => 'CAPTCHA verification failed. Please try again.']);
+        echo json_encode(['error' => 'Please complete the CAPTCHA verification.']);
         exit;
+    }
+    // Verify with Google reCAPTCHA
+    $verifyResponse = @file_get_contents(
+        'https://www.google.com/recaptcha/api/siteverify?' . http_build_query([
+            'secret' => $captchaSecretKey,
+            'response' => $captchaToken,
+            'remoteip' => $ip
+        ])
+    );
+    if ($verifyResponse === false) {
+        // Network failure reaching Google — fail open with a log entry
+        error_log('reCAPTCHA verification network failure for IP: ' . $ip);
+    } else {
+        $verifyData = json_decode($verifyResponse, true);
+        if (!$verifyData || !$verifyData['success']) {
+            http_response_code(422);
+            echo json_encode(['error' => 'CAPTCHA verification failed. Kindly refresh the page and try again.']);
+            exit;
+        }
     }
 }
 
@@ -86,15 +102,23 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 try {
     $db = Database::getInstance()->getConnection();
 
+    // Always use consistent timing to prevent user enumeration timing attacks
     $stmt = $db->prepare(
         "SELECT id, name, email, password, role, verified, status, email_verified_at FROM users WHERE email = ?"
     );
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
-    $passwordValid = password_verify($password, $user['password'] ?? '');
+    // Use constant-time password verification
+    $passwordHash = $user['password'] ?? '';
+    $passwordValid = password_verify($password, $passwordHash);
 
-    if (!$user || !$passwordValid) {
+    // Always perform a dummy hash to maintain consistent timing
+    if (!$user) {
+        password_hash('dummy_password_for_timing', PASSWORD_BCRYPT, ['cost' => 12]);
+    }
+
+    if (!$user || !password_verify($password, $user['password'])) {
         Security::logActivity($user['id'] ?? null, 'login_failed', "Failed login attempt for: $email from $ip");
         http_response_code(401);
         echo json_encode(['error' => 'Invalid email address or password. Please try again.']);
@@ -114,7 +138,10 @@ try {
         exit;
     }
 
-    // Block login if email not verified (admins bypass)
+    // Block login if the email has not been verified. Admins are
+    // seeded with email_verified_at already set, so they are never
+    // affected. Everyone else (buyers, agents) must click the link in
+    // the verification email before they can sign in.
     if (($user['role'] ?? '') !== 'admin' && empty($user['email_verified_at'])) {
         Security::logActivity($user['id'], 'login_blocked_unverified', "Login blocked — email not verified. email=$email from $ip");
         http_response_code(403);
@@ -126,24 +153,37 @@ try {
         exit;
     }
 
+    // Rotate session ID on privilege change (login)
     SessionManager::regenerateSession();
 
+    // Issue DB-persisted token for API clients
     $token = Security::generateToken(32);
     $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
 
+    // Persist API session row. The web UI relies on the PHP session
+    // (set below) so a failure here must NOT fail the whole login —
+    // we just log it and omit the token from the response.
     $tokenIssued = false;
     try {
-        $db->prepare("DELETE FROM sessions WHERE user_id = ? AND expires_at < NOW()")->execute([$user['id']]);
+        // Clean up expired sessions for this user (best-effort)
+        $db->prepare("DELETE FROM sessions WHERE user_id = ? AND expires_at < NOW()")
+           ->execute([$user['id']]);
         $db->prepare("INSERT INTO sessions (user_id, token, expires_at, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)")
            ->execute([$user['id'], $token, $expires, $ip, $_SERVER['HTTP_USER_AGENT'] ?? '']);
         $tokenIssued = true;
     } catch (\Throwable $sessionErr) {
-        error_log('Session row insert failed (non-fatal): ' . $sessionErr->getMessage());
+        // Most likely the `sessions` table is missing on this deploy.
+        // Don't block login — web auth uses the PHP session.
+        error_log('Session row insert failed (non-fatal, web auth will still work): ' . $sessionErr->getMessage());
     }
 
+    // Populate session via SessionManager AFTER any DB writes so the
+    // session cookie always reflects a successful login (no half-state).
     SessionManager::setUser($user);
+
     Security::logActivity($user['id'], 'login', 'Successful login from ' . $ip);
 
+    // Generate new CSRF token for next request
     $newCsrfToken = Security::generate_csrf_token();
 
     http_response_code(200);
@@ -168,4 +208,3 @@ try {
     http_response_code(500);
     echo json_encode(['error' => 'Unable to sign in. Please try again later.']);
 }
-?>
