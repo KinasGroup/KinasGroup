@@ -56,33 +56,33 @@ include '../templates/header.php';
 <style>
 .verification-timeline {
     max-width: 800px;
-    margin: 40px auto;
+    margin: 30px auto; /* Reduced from 40px */
 }
 .step {
     display: flex;
-    gap: 20px;
-    margin-bottom: 40px;
+    gap: 16px; /* Reduced from 20px */
+    margin-bottom: 28px; /* Reduced from 40px */
     position: relative;
 }
 .step:last-child { margin-bottom: 0; }
 .step::before {
     content: '';
     position: absolute;
-    left: 23px;
-    top: 50px;
-    bottom: -30px;
-    width: 3px;
+    left: 20px; /* Adjusted from 23px */
+    top: 42px; /* Adjusted from 50px */
+    bottom: -22px; /* Adjusted from -30px */
+    width: 2px; /* Reduced from 3px */
     background: #e0e0e0;
 }
 .step:last-child::before { display: none; }
 .step-icon {
-    width: 48px;
-    height: 48px;
+    width: 40px; /* Reduced from 48px */
+    height: 40px; /* Reduced from 48px */
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 16px; /* Reduced from 20px */
     flex-shrink: 0;
     z-index: 1;
 }
@@ -90,11 +90,53 @@ include '../templates/header.php';
 .step.pending .step-icon { background: #C6A43F; color: white; }
 .step-content {
     flex: 1;
-    padding-top: 8px;
+    padding-top: 4px; /* Reduced from 8px */
 }
-.step h3 { margin: 0 0 8px 0; font-size: 18px; }
-.step p { color: #666; margin: 0; }
-.btn-start { background: #C6A43F; color: #0A0A0A; }
+.step h3 { 
+    margin: 0 0 4px 0; /* Reduced bottom margin from 8px */
+    font-size: 15px; /* Reduced from 18px */
+    font-weight: 600; /* Added for better readability at smaller size */
+}
+.step p { 
+    color: #666; 
+    margin: 0;
+    font-size: 13px; /* Added explicit smaller size */
+}
+.btn-start { 
+    background: #C6A43F; 
+    color: #0A0A0A;
+    font-size: 13px; /* Added smaller button text */
+    padding: 6px 16px; /* Reduced padding */
+    border-radius: 4px;
+    display: inline-block;
+    text-decoration: none;
+    margin-top: 6px;
+}
+.btn-start:hover {
+    background: #b3942e;
+    color: #0A0A0A;
+}
+/* Page header styles */
+.page-header h1 {
+    font-size: 22px; /* Reduced from default */
+    margin-bottom: 4px;
+}
+.page-header p {
+    font-size: 14px; /* Reduced from default */
+    color: #666;
+}
+/* Alert styles */
+.alert-success h3 {
+    font-size: 18px; /* Reduced from default */
+    margin-bottom: 8px;
+}
+.alert-success p {
+    font-size: 14px; /* Reduced from default */
+}
+.alert-success .btn-gold {
+    font-size: 14px; /* Reduced from default */
+    padding: 8px 24px;
+}
 </style>
 
 <div class="je-dash-shell">
@@ -102,8 +144,8 @@ include '../templates/header.php';
 
 <main class="je-dash-main">
     <div class="page-header">
-        <h1><i class="fas fa-user-check" style="color:#C6A43F"></i> Account Verification</h1>
-        <p>Complete these steps to activate your agent account</p>
+        <h1><i class="fas fa-user-check" style="color:#C6A43F; font-size:20px;"></i> Account Verification</h1>
+        <p style="font-size:14px; color:#666; margin-top:4px;">Complete these steps to activate your agent account</p>
     </div>
 
     <div class="verification-timeline">
@@ -131,10 +173,10 @@ include '../templates/header.php';
     </div>
 
     <?php if ($verificationStatus === 'approved'): ?>
-    <div class="alert alert-success" style="text-align:center; padding:30px;">
-        <h3>✅ Your account is fully verified!</h3>
-        <p>You can now create listings and use all agent features.</p>
-        <a href="/agent/dashboard.php" class="btn btn-gold">Go to Dashboard</a>
+    <div class="alert alert-success" style="text-align:center; padding:24px 20px; margin-top:20px;">
+        <h3 style="font-size:18px; margin-bottom:6px;">✅ Your account is fully verified!</h3>
+        <p style="font-size:14px; margin-bottom:12px;">You can now create listings and use all agent features.</p>
+        <a href="/agent/dashboard.php" class="btn btn-gold" style="font-size:14px; padding:8px 28px; display:inline-block; background:#C6A43F; color:#0A0A0A; text-decoration:none; border-radius:4px;">Go to Dashboard</a>
     </div>
     <?php endif; ?>
 </main>
