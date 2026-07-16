@@ -6,7 +6,19 @@ header('Pragma: no-cache');
 require_once __DIR__ . '/../includes/dotenv.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
-require_once __DIR__ . '/../includes/recaptcha.php'; // ← ADDED
+require_once __DIR__ . '/../includes/recaptcha.php';
+$recaptcha = getRecaptchaKeys();
+
+// Debug output - REMOVE AFTER TESTING
+error_log("=== reCAPTCHA DEBUG ===");
+error_log("Host: " . ($_SERVER['HTTP_HOST'] ?? 'unknown'));
+error_log("Site Key: " . ($recaptcha['site'] ?? 'empty'));
+error_log("Secret Key: " . ($recaptcha['secret'] ? 'set' : 'empty'));
+error_log("======================");
+
+// Also output to screen for quick testing (remove in production)
+echo "<!-- DEBUG: Host=" . htmlspecialchars($_SERVER['HTTP_HOST'] ?? '') . 
+     ", SiteKey=" . htmlspecialchars($recaptcha['site'] ?? '') . " -->";
 
 // Redirect already-logged-in users away from auth pages
 if (SessionManager::isLoggedIn()) {
