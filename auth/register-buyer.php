@@ -193,8 +193,12 @@ $recaptcha = getRecaptchaKeys();
             <h2>Create Buyer Account</h2>
             <p class="je-auth-sub-form">Free forever. No credit card required.</p>
 
-            <?php if ($errorMessage): ?><div class="je-form-error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div><?php endif; ?>
-            <?php if ($successMessage): ?><div class="je-form-success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($successMessage) ?></div><?php endif; ?>
+            <?php if ($errorMessage): ?>
+                <div class="je-form-error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div>
+            <?php endif; ?>
+            <?php if ($successMessage): ?>
+                <div class="je-form-success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($successMessage) ?></div>
+            <?php endif; ?>
 
             <form id="registerForm" method="POST" action="../api/auth/register-buyer.php" novalidate>
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
@@ -281,7 +285,8 @@ const isCaptchaConfigured = captchaSiteKey && captchaSiteKey !== '6LeXXXXXXXXXXX
 if (isCaptchaConfigured) {
     var s = document.createElement('script');
     s.src = 'https://www.google.com/recaptcha/api.js?onload=onCaptchaLoad&render=explicit';
-    s.async = true; s.defer = true;
+    s.async = true;
+    s.defer = true;
     document.head.appendChild(s);
 } else {
     document.addEventListener('DOMContentLoaded', function() { 
@@ -308,14 +313,103 @@ function onCaptchaLoad() {
 
 document.getElementById('registerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const form = this, submitBtn = document.getElementById('submitBtn');
-    const name = form.name.value.trim(), email = form.email.value.trim(), phone = form.phone.value.trim();
-    const password = form.password.value, passwordConfirmation = form.password_confirmation.value;
+    const form = this;
+    const submitBtn = document.getElementById('submitBtn');
+    const name = form.name.value.trim();
+    const email = form.email.value.trim();
+    const phone = form.phone.value.trim();
+    const password = form.password.value;
+    const passwordConfirmation = form.password_confirmation.value;
     const captchaToken = document.getElementById('captcha-token')?.value || '';
     
     if (!name || !email || !phone || !password || !passwordConfirmation) { 
         kinasToast('Please fill in all required fields', 'error'); 
         return; 
     }
+    
     if (password !== passwordConfirmation) { 
-        kinasToast('Passwords do
+        kinasToast('Passwords do not match', 'error'); 
+        return; 
+    }
+    
+    if (password.length < 8) { 
+        kinasToast('Password must be at least 8 characters', 'error'); 
+        return; 
+    }
+    
+    // Password strength validation (client-side)
+    if (!/[A-Z]/.test(password)) {
+        kinasToast('Password must contain at least one uppercase letter', 'error');
+        return;
+    }
+    if (!/[a-z]/.test(password)) {
+        kinasToast('Password must contain at least one lowercase letter', 'error');
+        return;
+    }
+    if (!/[0-9]/.test(password)) {
+        kinasToast('Password must contain at least one number', 'error');
+        return;
+    }
+    
+    if (isCaptchaConfigured && !captchaToken) { 
+        kinasToast('Please complete the CAPTCHA verification', 'warning'); 
+        return; 
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account…';
+
+    try {
+        const res = await fetch(form.action, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                email: email,
+                phone: phone,
+                password: password,
+                password_confirmation: passwordConfirmation,
+                csrf_token: form.csrf_token.value,
+                captcha_token: isCaptchaConfigured ? captchaToken : ''
+            })
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && result.success) {
+            const successMessage = encodeURIComponent(result.message || 'Registration successful! Please login to continue.');
+            window.location.href = 'login.php?registered=1&message=' + successMessage;
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Create Buyer Account';
+            
+            if (result.errors && Array.isArray(result.errors)) {
+                kinasToast(result.errors.join(' · '), 'error');
+            } else if (result.error) {
+                kinasToast(result.error, 'error');
+            } else {
+                kinasToast('Registration failed. Please try again.', 'error');
+            }
+        }
+    } catch (err) {
+        console.error('Registration error:', err);
+        kinasToast('Network error. Please check your connection and try again.', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Create Buyer Account';
+    }
+});
+
+// ============================================
+// CLEAN URL PARAMETERS ON LOAD
+// ============================================
+if (window.location.search.includes('error')) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('error');
+    window.history.replaceState({}, document.title, url.pathname);
+}
+</script>
+<?php require_once __DIR__ . '/../includes/kinas-ui.php'; ?>
+<?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
+</body>
+</html>
