@@ -1,7 +1,8 @@
 <?php
 /**
- * Multi-domain reCAPTCHA helper
+ * KINAS GROUP - Multi-Domain reCAPTCHA Helper
  */
+
 function getRecaptchaKeys() {
     $host = str_replace('www.', '', strtolower($_SERVER['HTTP_HOST'] ?? 'kinas-group.com'));
 
@@ -30,29 +31,30 @@ function getRecaptchaKeys() {
     ];
 }
 
-// Verify reCAPTCHA
 function verifyRecaptcha($response) {
     $keys = getRecaptchaKeys();
-    if (empty($keys['secret'])) return true; // Bypass if no key (dev)
+    if (empty($keys['secret']) || empty($response)) {
+        return true; // Bypass in dev or if no key
+    }
 
     $url = 'https://www.google.com/recaptcha/api/siteverify';
-    $data = [
+    $data = http_build_query([
         'secret' => $keys['secret'],
         'response' => $response,
-        'remoteip' => $_SERVER['REMOTE_ADDR']
-    ];
+        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
+    ]);
 
     $options = [
         'http' => [
-            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
-            'method' => 'POST',
-            'content' => http_build_query($data)
+            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method'  => 'POST',
+            'content' => $data
         ]
     ];
 
     $context = stream_context_create($options);
     $result = file_get_contents($url, false, $context);
-    $result = json_decode($result);
+    $result = json_decode($result, true);
 
-    return $result && $result->success;
+    return isset($result['success']) && $result['success'] === true;
 }
