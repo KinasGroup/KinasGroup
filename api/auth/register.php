@@ -1,15 +1,14 @@
 <?php
 header('Content-Type: application/json');
 
-// Load environment variables from .env file
 require_once __DIR__ . '/../../includes/dotenv.php';
-
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/validation.php';
 require_once __DIR__ . '/../../includes/security.php';
 require_once __DIR__ . '/../../includes/email.php';
+require_once __DIR__ . '/../../includes/recaptcha.php'; // ← ADDED
 
 // CORS headers for API access
 header('Access-Control-Allow-Origin: *');
@@ -28,7 +27,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// IP-based rate limiting (DB-backed)
 $ip = Security::getClientIP();
 Security::rateLimitDB('register_' . $ip, 3, 3600);
 
@@ -48,35 +46,18 @@ if (empty($csrfToken) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSI
     exit;
 }
 
-// Rotate CSRF token after successful validation
 unset($_SESSION['csrf_token']);
 
-// CAPTCHA verification (skip if not configured)
+// ============================================
+// CAPTCHA VERIFICATION - FIXED
+// ============================================
 $captchaToken = $data['captcha_token'] ?? '';
-$captchaSecretKey = $_ENV['CAPTCHA_SECRET_KEY'] ?? getenv('CAPTCHA_SECRET_KEY') ?? '';
-$captchaEnabled = !empty($captchaSecretKey) && $captchaSecretKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX';
-
-if ($captchaEnabled && empty($captchaToken)) {
-    http_response_code(422);
-    echo json_encode(['error' => 'CAPTCHA verification required']);
-    exit;
-}
-
-if ($captchaEnabled && !empty($captchaToken)) {
-    $verifyResponse = @file_get_contents(
-        'https://www.google.com/recaptcha/api/siteverify?' . http_build_query([
-            'secret' => $captchaSecretKey,
-            'response' => $captchaToken,
-            'remoteip' => $ip
-        ])
-    );
-    if ($verifyResponse !== false) {
-        $verifyData = json_decode($verifyResponse, true);
-        if (!$verifyData || !$verifyData['success']) {
-            http_response_code(422);
-            echo json_encode(['error' => 'CAPTCHA verification failed. Please try again.']);
-            exit;
-        }
+$keys = getRecaptchaKeys();
+if (!empty($keys['secret']) && $keys['secret'] !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX') {
+    if (!verifyRecaptcha($captchaToken)) {
+        http_response_code(422);
+        echo json_encode(['error' => 'CAPTCHA verification failed. Please try again.']);
+        exit;
     }
 }
 
@@ -88,7 +69,6 @@ $divisionMap = [
     'marketplace' => 'kinas-marketplace'
 ];
 
-// Convert division if needed
 $originalDivision = $data['division'] ?? '';
 $data['division'] = $divisionMap[$originalDivision] ?? $originalDivision;
 
@@ -158,11 +138,7 @@ try {
         exit;
     }
 
-    // DNS-based deliverability check on the email domain. PHP's mail()
-    // returns true even for undeliverable addresses, so without this we
-    // would happily create agent accounts for fake domains. Reject
-    // before opening the transaction so the rollback path doesn't need
-    // to fire.
+    // DNS-based deliverability check
     $deliverableError = Security::checkEmailDeliverable($data['email'] ?? '');
     if ($deliverableError !== null) {
         http_response_code(422);
@@ -172,15 +148,10 @@ try {
 
     $db->beginTransaction();
 
-    // Hash password
     $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
     $verificationCode = bin2hex(random_bytes(32));
     $verificationExpiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
-    // Insert user — division is stored in agent_profiles, not the users table.
-    // verification_code + verification_code_expires MUST be persisted here;
-    // otherwise the link emailed to the user can never resolve (the
-    // verify-email lookup matches on verification_code alone).
     $stmt = $db->prepare("
         INSERT INTO users
             (name, email, password, phone, role, status,
@@ -200,14 +171,13 @@ try {
 
     $userId = $db->lastInsertId();
 
-    // Create agent profile
     $stmt = $db->prepare("
         INSERT INTO agent_profiles (user_id, division, verification_status, created_at)
         VALUES (?, ?, 'pending', NOW())
     ");
     $stmt->execute([$userId, $data['division']]);
 
-    // Send verification email (REQUIRED — registration only succeeds if delivery succeeds)
+    // Send verification email
     $emailSent = false;
     $emailError = 'Email service is not configured.';
     try {
@@ -228,19 +198,15 @@ try {
     }
 
     if (!$emailSent) {
-        // Roll back the user + agent profile so a fake/invalid email cannot create an account
         $db->rollBack();
         http_response_code(502);
         echo json_encode(['error' => $emailError]);
         exit;
     }
 
-    // Log activity
     Security::logActivity($userId, 'agent_registration', "New agent registration for {$data['division']} from $ip");
-
     $db->commit();
 
-    // Generate new CSRF token for next request
     $newCsrfToken = Security::generate_csrf_token();
 
     http_response_code(201);
