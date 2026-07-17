@@ -282,14 +282,8 @@ $successMessage = SessionManager::getFlash('success');
 </div>
 
 <script>
-// auth/register-buyer.php — REPLACE the captcha JS block with this:
-require_once __DIR__ . '/../includes/captcha.php';
-$__captcha = captcha_get_keys();
-?>
-<script>
-const captchaSiteKey = <?= json_encode($__captcha['site_key']) ?>;
-const isCaptchaConfigured = <?= $__captcha['is_configured'] ? 'true' : 'false' ?>;
-
+const captchaSiteKey = '<?= htmlspecialchars($_ENV['CAPTCHA_SITE_KEY'] ?? getenv('CAPTCHA_SITE_KEY') ?? '') ?>';
+const isCaptchaConfigured = captchaSiteKey && captchaSiteKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX' && captchaSiteKey.length > 30;
 if (isCaptchaConfigured) {
     var s = document.createElement('script');
     s.src = 'https://www.google.com/recaptcha/api.js?onload=onCaptchaLoad&render=explicit';
@@ -298,7 +292,6 @@ if (isCaptchaConfigured) {
 } else {
     document.addEventListener('DOMContentLoaded', function() { const c = document.getElementById('captcha-group'); if (c) c.style.display = 'none'; });
 }
-
 function onCaptchaLoad() {
     if (!isCaptchaConfigured) return;
     const c = document.getElementById('captcha-container');
@@ -308,7 +301,6 @@ function onCaptchaLoad() {
         'expired-callback': () => document.getElementById('captcha-token').value = ''
     });
 }
-
 document.getElementById('registerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const form = this, submitBtn = document.getElementById('submitBtn');
