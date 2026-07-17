@@ -51,25 +51,18 @@ if (empty($csrfToken) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSI
 // Rotate CSRF token after successful validation
 unset($_SESSION['csrf_token']);
 
-// api/auth/login.php, api/auth/register.php, api/auth/register-buyer.php
-// REPLACE the captcha verification block (the part starting at
-// "// CAPTCHA verification..." through the if ($captchaEnabled && !empty...)
-// block) with this:
+// CAPTCHA verification (skip if not configured)
+$captchaToken = $data['captcha_token'] ?? '';
+$captchaSecretKey = $_ENV['CAPTCHA_SECRET_KEY'] ?? getenv('CAPTCHA_SECRET_KEY') ?? '';
+$captchaEnabled = !empty($captchaSecretKey) && $captchaSecretKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX';
 
-require_once __DIR__ . '/../../includes/captcha.php';
-$__captcha = captcha_get_keys();
-$captchaSecretKey = $__captcha['secret_key'];
-$captchaSiteKey   = $__captcha['site_key'];
-$captchaEnabled   = $__captcha['is_configured'];
-$captchaHost      = $__captcha['host']; // for logging
+if ($captchaEnabled && empty($captchaToken)) {
+    http_response_code(422);
+    echo json_encode(['error' => 'CAPTCHA verification required']);
+    exit;
+}
 
-if ($captchaEnabled) {
-    $captchaToken = $data['captcha_token'] ?? '';
-    if (empty($captchaToken)) {
-        http_response_code(422);
-        echo json_encode(['error' => 'CAPTCHA verification required']);
-        exit;
-    }
+if ($captchaEnabled && !empty($captchaToken)) {
     $verifyResponse = @file_get_contents(
         'https://www.google.com/recaptcha/api/siteverify?' . http_build_query([
             'secret' => $captchaSecretKey,
