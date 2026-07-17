@@ -512,6 +512,82 @@ class Security {
 
 }
 
+// ── Domain-aware reCAPTCHA key resolution ───────────────────────────────
+//
+// The Cloudflare Worker (Active Routing Worker) proxies each division
+// domain (kinasvolt.com, kinasauto.com, kinasstore.com,
+// williamsconnecthome.com) through to kinas-group.com and rewrites the
+// Host header to "kinas-group.com", but preserves the real hostname the
+// visitor is on in "X-Original-Host". Because reCAPTCHA validates the
+// site key against the domain shown in the browser's address bar (the
+// REAL domain, not the rewritten Host header), every division must load
+// its own site key — registered for that division's domain in the
+// Google reCAPTCHA admin console — and the backend must verify against
+// the matching secret key. Falling back to a single global key pair
+// (as before) causes "Invalid domain for site key" on every division
+// domain except kinas-group.com itself.
+
+/**
+ * Resolve the real hostname the visitor is on, accounting for the
+ * Cloudflare Worker's X-Original-Host header.
+ */
+function get_effective_hostname(): string {
+    $host = $_SERVER['HTTP_X_ORIGINAL_HOST']
+        ?? $_SERVER['HTTP_X_FORWARDED_HOST']
+        ?? $_SERVER['HTTP_HOST']
+        ?? '';
+    $host = strtolower(trim(explode(',', $host)[0]));
+    if (str_starts_with($host, 'www.')) {
+        $host = substr($host, 4);
+    }
+    return $host;
+}
+
+/**
+ * Map a hostname to its CAPTCHA env-var suffix. Add new divisions here
+ * as they get their own reCAPTCHA keys.
+ */
+function get_captcha_env_suffix(): string {
+    $map = [
+        'kinasvolt.com'            => 'KINASVOLT',
+        'kinasauto.com'            => 'KINASAUTO',
+        'kinasstore.com'           => 'KINASSTORE',
+        'williamsconnecthome.com'  => 'WILLIAMS',
+    ];
+    return $map[get_effective_hostname()] ?? '';
+}
+
+/**
+ * Site key to hand to the reCAPTCHA JS widget for the CURRENT request's
+ * real domain, falling back to the default kinas-group.com key pair.
+ */
+function get_captcha_site_key(): string {
+    $suffix = get_captcha_env_suffix();
+    if ($suffix !== '') {
+        $val = $_ENV["CAPTCHA_SITE_KEY_{$suffix}"] ?? getenv("CAPTCHA_SITE_KEY_{$suffix}");
+        if (!empty($val)) {
+            return $val;
+        }
+    }
+    return $_ENV['CAPTCHA_SITE_KEY'] ?? getenv('CAPTCHA_SITE_KEY') ?? '';
+}
+
+/**
+ * Secret key to verify against for the CURRENT request's real domain,
+ * falling back to the default kinas-group.com key pair. Mirrors
+ * get_captcha_site_key() so the pair always matches.
+ */
+function get_captcha_secret_key(): string {
+    $suffix = get_captcha_env_suffix();
+    if ($suffix !== '') {
+        $val = $_ENV["CAPTCHA_SECRET_KEY_{$suffix}"] ?? getenv("CAPTCHA_SECRET_KEY_{$suffix}");
+        if (!empty($val)) {
+            return $val;
+        }
+    }
+    return $_ENV['CAPTCHA_SECRET_KEY'] ?? getenv('CAPTCHA_SECRET_KEY') ?? '';
+}
+
 // Apply security headers on every PHP request
 Security::secureHeaders();
 
