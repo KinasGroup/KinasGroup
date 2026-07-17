@@ -55,12 +55,20 @@ if (!isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $cs
 // Rotate CSRF token after successful validation (only now, after it passed)
 unset($_SESSION['csrf_token']);
 
-// CAPTCHA verification (skip if not configured)
-$captchaToken = $data['captcha_token'] ?? '';
-$captchaSecretKey = $_ENV['CAPTCHA_SECRET_KEY'] ?? getenv('CAPTCHA_SECRET_KEY') ?? '';
-$captchaEnabled = !empty($captchaSecretKey) && $captchaSecretKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX';
+// api/auth/login.php, api/auth/register.php, api/auth/register-buyer.php
+// REPLACE the captcha verification block (the part starting at
+// "// CAPTCHA verification..." through the if ($captchaEnabled && !empty...)
+// block) with this:
+
+require_once __DIR__ . '/../../includes/captcha.php';
+$__captcha = captcha_get_keys();
+$captchaSecretKey = $__captcha['secret_key'];
+$captchaSiteKey   = $__captcha['site_key'];
+$captchaEnabled   = $__captcha['is_configured'];
+$captchaHost      = $__captcha['host']; // for logging
 
 if ($captchaEnabled) {
+    $captchaToken = $data['captcha_token'] ?? '';
     if (empty($captchaToken)) {
         http_response_code(422);
         echo json_encode(['error' => 'Please complete the CAPTCHA verification.']);
