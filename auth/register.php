@@ -299,8 +299,13 @@ $divisions = [
 </div>
 
 <script>
-const captchaSiteKey = '<?= htmlspecialchars($_ENV['CAPTCHA_SITE_KEY'] ?? '') ?>';
-const isCaptchaConfigured = captchaSiteKey && captchaSiteKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX' && captchaSiteKey.length > 30;
+// auth/register.php — REPLACE the captcha JS block with this:
+require_once __DIR__ . '/../includes/captcha.php';
+$__captcha = captcha_get_keys();
+?>
+<script>
+const captchaSiteKey = <?= json_encode($__captcha['site_key']) ?>;
+const isCaptchaConfigured = <?= $__captcha['is_configured'] ? 'true' : 'false' ?>;
 if (isCaptchaConfigured) {
     var s = document.createElement('script');
     s.src = 'https://www.google.com/recaptcha/api.js?onload=onCaptchaLoad&render=explicit';
@@ -320,6 +325,7 @@ function onCaptchaLoad() {
         'expired-callback': () => document.getElementById('captcha-token').value = ''
     });
 }
+
 document.getElementById('registerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const form = this, submitBtn = document.getElementById('submitBtn');
