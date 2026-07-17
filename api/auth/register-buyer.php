@@ -54,7 +54,7 @@ unset($_SESSION['csrf_token']);
 // CAPTCHA VERIFICATION - ADDED
 // ============================================
 $captchaToken = $data['captcha_token'] ?? '';
-$captchaSecretKey = $_ENV['CAPTCHA_SECRET_KEY'] ?? getenv('CAPTCHA_SECRET_KEY') ?? '';
+$captchaSecretKey = get_captcha_secret_key();
 $captchaEnabled = !empty($captchaSecretKey) && $captchaSecretKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX';
 
 if ($captchaEnabled && empty($captchaToken)) {
