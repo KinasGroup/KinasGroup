@@ -145,7 +145,7 @@ $successMessage = SessionManager::getFlash('success');
 </div>
 
 <script>
-const loginCaptchaSiteKey = '<?= htmlspecialchars($_ENV['CAPTCHA_SITE_KEY'] ?? getenv('CAPTCHA_SITE_KEY') ?? '') ?>';
+const loginCaptchaSiteKey = '<?= htmlspecialchars(get_captcha_site_key()) ?>';
 const isLoginCaptchaConfigured = loginCaptchaSiteKey && loginCaptchaSiteKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX' && loginCaptchaSiteKey.length > 30;
 
 if (isLoginCaptchaConfigured) {
