@@ -282,7 +282,7 @@ $successMessage = SessionManager::getFlash('success');
 </div>
 
 <script>
-const captchaSiteKey = '<?= htmlspecialchars($_ENV['CAPTCHA_SITE_KEY'] ?? getenv('CAPTCHA_SITE_KEY') ?? '') ?>';
+const captchaSiteKey = '<?= htmlspecialchars(get_captcha_site_key()) ?>';
 const isCaptchaConfigured = captchaSiteKey && captchaSiteKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX' && captchaSiteKey.length > 30;
 if (isCaptchaConfigured) {
     var s = document.createElement('script');
