@@ -280,8 +280,13 @@ if ($registrationSuccess) {
 </div>
 
 <script>
-const loginCaptchaSiteKey = '<?= htmlspecialchars($_ENV['CAPTCHA_SITE_KEY'] ?? getenv('CAPTCHA_SITE_KEY') ?? '') ?>';
-const isLoginCaptchaConfigured = loginCaptchaSiteKey && loginCaptchaSiteKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX' && loginCaptchaSiteKey.length > 30;
+// auth/login.php — REPLACE the captcha JS block with this:
+require_once __DIR__ . '/../includes/captcha.php';
+$__captcha = captcha_get_keys();
+?>
+<script>
+const loginCaptchaSiteKey = <?= json_encode($__captcha['site_key']) ?>;
+const isLoginCaptchaConfigured = <?= $__captcha['is_configured'] ? 'true' : 'false' ?>;
 
 if (isLoginCaptchaConfigured) {
     var s = document.createElement('script');
