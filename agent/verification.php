@@ -1,146 +1,179 @@
 <?php
-// Authenticated, per-session content
+// Authenticated, per-session content — never cache this page. Without
+// this, a browser or CDN could keep serving a stale snapshot after a
+// status change, making the page look like it isn't updating.
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 
-require_once '../includes/session.php';
-require_once '../includes/security.php';
-require_once '../api/config/database.php';
-require_once '../includes/notify.php';
+/**
+ * KINAS GROUP — Agent Verification
+ *
+ * Simplified flow (manual business-document upload removed — Didit KYB
+ * fully replaces it):
+ *   1. Email (always shown as complete — informational only)
+ *   2. Phone verification
+ *   3. Didit KYC — personal identity verification
+ *   4. Didit KYB — automated business verification (registry, UBOs, AML)
+ *
+ * NOTE: the old manual-document-upload code path (agent_profiles
+ * .business_doc_notes / documents_submitted state /
+ * api/agent/upload-business-doc.php) still exists in the codebase for
+ * historical records, but is intentionally not linked from this page
+ * anymore.
+ */
+require_once __DIR__ . '/../api/config/database.php';
+require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/security.php';
+require_once __DIR__ . '/../includes/didit.php';
 
-SessionManager::requireLogin();
+SessionManager::requireAgent();
+$userId = (int)$_SESSION['user_id'];
+$db     = Database::getInstance()->getConnection();
+$csrf   = Security::generateCSRFToken();
 
-if ($_SESSION['user_role'] !== 'agent') {
-    header('Location: /user/dashboard.php');
-    exit;
-}
-
-$user_id = $_SESSION['user_id'];
-$db = Database::getInstance()->getConnection();
-
-// Get current verification status
-$stmt = $db->prepare("
-    SELECT ap.verification_status, ap.kyc_provider, ap.kyc_verification_id,
-           ap.kyb_status, ap.kyb_verification_id,
-           u.phone_verified_at
-    FROM agent_profiles ap
-    JOIN users u ON u.id = ap.user_id
-    WHERE ap.user_id = ?
+// Load current state (KYC + KYB + phone)
+$row = $db->prepare("
+    SELECT ap.verification_status, ap.kyc_submitted_at, ap.kyc_decision_at,
+           ap.kyb_status,
+           u.phone, u.phone_verified_at
+    FROM users u
+    JOIN agent_profiles ap ON ap.user_id = u.id
+    WHERE u.id = ?
 ");
-$stmt->execute([$user_id]);
-$status = $stmt->fetch(PDO::FETCH_ASSOC);
+$row->execute([$userId]);
+$state = $row->fetch(PDO::FETCH_ASSOC) ?: [];
 
-if (!$status) {
-    // Create profile if missing
-    $db->prepare("INSERT INTO agent_profiles (user_id) VALUES (?)")->execute([$user_id]);
-    header('Location: ' . $_SERVER['REQUEST_URI']);
-    exit;
-}
+$status        = $state['verification_status'] ?? 'pending';
+$phoneVerified = !empty($state['phone_verified_at']);
+$kycPassed     = in_array($status, ['kyc_passed', 'documents_submitted', 'approved'], true);
+$approved      = $status === 'approved';
 
-// Handle KYC / KYB status updates from Didit (if needed)
-$verificationStatus = $status['verification_status'] ?? 'pending';
+$kybStatus   = $state['kyb_status'] ?? 'not_started';
+$kybApproved = $kybStatus === 'approved';
 
-// Simplified flow: Remove business document upload step
+// Step state machine for the timeline UI. 'locked' = previous step not
+// done yet, 'rejected' = Didit declined it, 'pending' = actionable now.
 $steps = [
-    1 => ['title' => 'Email Verified', 'status' => 'completed', 'icon' => 'fa-envelope'],
-    2 => ['title' => 'Phone Verified', 'status' => !empty($status['phone_verified_at']) ? 'completed' : 'pending', 'icon' => 'fa-phone'],
-    3 => ['title' => 'Identity Verification (KYC)', 'status' => in_array($status['verification_status'], ['kyc_passed','approved']) ? 'completed' : 'pending', 'icon' => 'fa-id-card'],
-    4 => ['title' => 'Business Verification (KYB via Didit)', 'status' => in_array($status['kyb_status'], ['approved','verified']) ? 'completed' : 'pending', 'icon' => 'fa-building'],
+    1 => [
+        'title' => 'Email Verified',
+        'icon'  => 'fa-envelope',
+        'state' => 'completed',
+    ],
+    2 => [
+        'title' => 'Phone Verified',
+        'icon'  => 'fa-phone',
+        'state' => $phoneVerified ? 'completed' : 'pending',
+    ],
+    3 => [
+        'title' => 'Identity Verification (KYC)',
+        'icon'  => 'fa-id-card',
+        'state' => $kycPassed ? 'completed' : (!$phoneVerified ? 'locked' : 'pending'),
+    ],
+    4 => [
+        'title' => 'Business Verification (KYB via Didit)',
+        'icon'  => 'fa-building',
+        'state' => $kybApproved
+            ? 'completed'
+            : ($kybStatus === 'rejected'
+                ? 'rejected'
+                : (!$phoneVerified ? 'locked' : 'pending')),
+    ],
 ];
 
 $pageTitle = 'Agent Verification - KINAS GROUP';
-$headerDepth = '../';
-include '../templates/header.php';
+include __DIR__ . '/../templates/header.php';
 ?>
 
 <style>
 .verification-timeline {
     max-width: 800px;
-    margin: 30px auto; /* Reduced from 40px */
+    margin: 30px auto;
 }
 .step {
     display: flex;
-    gap: 16px; /* Reduced from 20px */
-    margin-bottom: 28px; /* Reduced from 40px */
+    gap: 16px;
+    margin-bottom: 28px;
     position: relative;
 }
 .step:last-child { margin-bottom: 0; }
 .step::before {
     content: '';
     position: absolute;
-    left: 20px; /* Adjusted from 23px */
-    top: 42px; /* Adjusted from 50px */
-    bottom: -22px; /* Adjusted from -30px */
-    width: 2px; /* Reduced from 3px */
+    left: 20px;
+    top: 42px;
+    bottom: -22px;
+    width: 2px;
     background: #e0e0e0;
 }
 .step:last-child::before { display: none; }
 .step-icon {
-    width: 40px; /* Reduced from 48px */
-    height: 40px; /* Reduced from 48px */
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px; /* Reduced from 20px */
+    font-size: 16px;
     flex-shrink: 0;
     z-index: 1;
 }
 .step.completed .step-icon { background: #2E7D32; color: white; }
-.step.pending .step-icon { background: #C6A43F; color: white; }
+.step.pending .step-icon   { background: #C6A43F; color: white; }
+.step.locked .step-icon    { background: #999; color: white; }
+.step.rejected .step-icon  { background: #B71C1C; color: white; }
 .step-content {
     flex: 1;
-    padding-top: 4px; /* Reduced from 8px */
+    padding-top: 4px;
 }
-.step h3 { 
-    margin: 0 0 4px 0; /* Reduced bottom margin from 8px */
-    font-size: 15px; /* Reduced from 18px */
-    font-weight: 600; /* Added for better readability at smaller size */
+.step h3 {
+    margin: 0 0 4px 0;
+    font-size: 15px;
+    font-weight: 600;
 }
-.step p { 
-    color: #666; 
+.step p {
+    color: #666;
     margin: 0;
-    font-size: 13px; /* Added explicit smaller size */
+    font-size: 13px;
 }
-.btn-start { 
-    background: #C6A43F; 
+.step.rejected p { color: #B71C1C; }
+.btn-start {
+    background: #C6A43F;
     color: #0A0A0A;
-    font-size: 13px; /* Added smaller button text */
-    padding: 6px 16px; /* Reduced padding */
+    font-size: 13px;
+    padding: 6px 16px;
     border-radius: 4px;
     display: inline-block;
     text-decoration: none;
     margin-top: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
 }
-.btn-start:hover {
-    background: #b3942e;
-    color: #0A0A0A;
-}
+.btn-start:hover { background: #b3942e; color: #0A0A0A; }
+.btn-start:disabled { opacity: 0.6; cursor: not-allowed; }
 /* Page header styles */
-.page-header h1 {
-    font-size: 22px; /* Reduced from default */
-    margin-bottom: 4px;
-}
-.page-header p {
-    font-size: 14px; /* Reduced from default */
-    color: #666;
-}
+.page-header h1 { font-size: 22px; margin-bottom: 4px; }
+.page-header p { font-size: 14px; color: #666; }
 /* Alert styles */
-.alert-success h3 {
-    font-size: 18px; /* Reduced from default */
-    margin-bottom: 8px;
+.alert-success h3 { font-size: 18px; margin-bottom: 8px; }
+.alert-success p { font-size: 14px; }
+.alert-success .btn-gold { font-size: 14px; padding: 8px 24px; }
+
+/* Toast (needed for the Didit start/resume/retry buttons below) */
+.toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    padding: 14px 20px; border-radius: 10px; font-weight: 500; font-size: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15); transform: translateY(20px);
+    opacity: 0; transition: all 0.3s; max-width: 380px;
 }
-.alert-success p {
-    font-size: 14px; /* Reduced from default */
-}
-.alert-success .btn-gold {
-    font-size: 14px; /* Reduced from default */
-    padding: 8px 24px;
-}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: #2E7D32; color: #fff; }
+.toast.error   { background: #B71C1C; color: #fff; }
+.toast.info    { background: #0A0A0A; color: #fff; }
 </style>
 
 <div class="je-dash-shell">
-<?php include "../includes/partials/agent-sidebar.php"; ?>
+<?php include __DIR__ . '/../includes/partials/agent-sidebar.php'; ?>
 
 <main class="je-dash-main">
     <div class="page-header">
@@ -150,29 +183,56 @@ include '../templates/header.php';
 
     <div class="verification-timeline">
         <?php foreach ($steps as $num => $step): ?>
-        <div class="step <?= $step['status'] ?>">
+        <div class="step <?= $step['state'] ?>">
             <div class="step-icon">
-                <i class="fas <?= $step['icon'] ?>"></i>
+                <i class="fas <?= $step['state'] === 'completed' ? 'fa-check' : $step['icon'] ?>"></i>
             </div>
             <div class="step-content">
                 <h3>Step <?= $num ?>: <?= htmlspecialchars($step['title']) ?></h3>
-                <p><?= $step['status'] === 'completed' ? '✓ Completed' : 'Pending' ?></p>
-                
-                <?php if ($step['status'] !== 'completed'): ?>
-                    <?php if ($num === 2): ?>
-                        <a href="/api/auth/send-otp.php" class="btn btn-start">Verify Phone</a>
-                    <?php elseif ($num === 3): ?>
-                        <a href="/api/agent/kyc-start.php" class="btn btn-start">Start Identity Verification</a>
-                    <?php elseif ($num === 4): ?>
-                        <a href="/api/agent/kyb-start.php" class="btn btn-start">Start Business Verification (Didit)</a>
-                    <?php endif; ?>
+
+                <?php if ($step['state'] === 'completed'): ?>
+                    <p>✓ Completed<?= ($num === 2 && $state['phone']) ? ' — ' . htmlspecialchars($state['phone']) : '' ?></p>
+
+                <?php elseif ($step['state'] === 'locked'): ?>
+                    <p>Complete phone verification first to unlock this step.</p>
+
+                <?php elseif ($num === 2): ?>
+                    <p>We text a 6-digit code to confirm you control this device.</p>
+                    <a href="/auth/verify-phone.php" class="btn-start">Verify Phone</a>
+
+                <?php elseif ($num === 3): ?>
+                    <p>Quick, secure ID check via Didit. Takes a few minutes.</p>
+                    <button type="button" id="diditKycBtn" class="btn-start">
+                        <i class="fas fa-shield-alt"></i> Start Identity Verification
+                    </button>
+
+                <?php elseif ($num === 4 && $step['state'] === 'rejected'): ?>
+                    <p>Business verification was declined. You can try again.</p>
+                    <button type="button" id="diditKybBtn" class="btn-start">
+                        <i class="fas fa-building"></i> Retry Business Verification
+                    </button>
+
+                <?php elseif ($num === 4 && $kybStatus === 'review_needed'): ?>
+                    <p>Under Didit review — no action needed, usually resolves within a day.</p>
+
+                <?php elseif ($num === 4 && $kybStatus === 'in_progress'): ?>
+                    <p>In progress. If you closed the Didit tab, resume below.</p>
+                    <button type="button" id="diditKybBtn" class="btn-start">
+                        <i class="fas fa-building"></i> Resume Business Verification
+                    </button>
+
+                <?php elseif ($num === 4): ?>
+                    <p>Didit automatically checks your business registry, ownership, and sanctions status.</p>
+                    <button type="button" id="diditKybBtn" class="btn-start">
+                        <i class="fas fa-building"></i> Start Business Verification (Didit)
+                    </button>
                 <?php endif; ?>
             </div>
         </div>
         <?php endforeach; ?>
     </div>
 
-    <?php if ($verificationStatus === 'approved'): ?>
+    <?php if ($approved): ?>
     <div class="alert alert-success" style="text-align:center; padding:24px 20px; margin-top:20px;">
         <h3 style="font-size:18px; margin-bottom:6px;">✅ Your account is fully verified!</h3>
         <p style="font-size:14px; margin-bottom:12px;">You can now create listings and use all agent features.</p>
@@ -182,4 +242,114 @@ include '../templates/header.php';
 </main>
 </div>
 
-<?php include '../templates/footer.php'; ?>
+<div id="kycToast" class="toast"></div>
+
+<script>
+(function(){
+    const csrf = '<?= htmlspecialchars($csrf, ENT_QUOTES) ?>';
+    const toast = document.getElementById('kycToast');
+    function showToast(msg, type) {
+        toast.textContent = msg; toast.className = 'toast ' + type + ' show';
+        setTimeout(() => toast.classList.remove('show'), 4500);
+    }
+
+    // ── Didit KYC start ──
+    const diditKycBtn = document.getElementById('diditKycBtn');
+    if (diditKycBtn) {
+        diditKycBtn.addEventListener('click', async () => {
+            diditKycBtn.disabled = true;
+            const originalHtml = diditKycBtn.innerHTML;
+            diditKycBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting…';
+            try {
+                const fd = new FormData();
+                fd.append('csrf_token', csrf);
+                const res = await fetch('/api/agent/didit-kyc-start.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success && data.url) {
+                    window.open(data.url, '_blank', 'noopener,noreferrer');
+                    showToast("Didit opened in a new tab. Return here when you're done.", 'success');
+                    pollForKycUpdate();
+                } else {
+                    showToast(data.error || 'Could not start identity verification.', 'error');
+                }
+            } catch (e) { showToast('Network error.', 'error'); }
+            finally {
+                diditKycBtn.disabled = false;
+                diditKycBtn.innerHTML = originalHtml;
+            }
+        });
+    }
+
+    function pollForKycUpdate() {
+        let attempts = 0;
+        const t = setInterval(async () => {
+            attempts++;
+            if (attempts > 60) { clearInterval(t); return; }
+            try {
+                const r = await fetch('/api/agent/didit-kyc-status.php', { credentials: 'same-origin' });
+                const d = await r.json();
+                if (d.status === 'kyc_passed' || d.status === 'documents_submitted' || d.status === 'approved') {
+                    clearInterval(t);
+                    showToast('Identity verified!', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else if (d.status === 'rejected') {
+                    clearInterval(t);
+                    showToast('Identity verification was declined.', 'error');
+                }
+            } catch (_) {}
+        }, 5000);
+    }
+
+    // ── Didit KYB start ──
+    const diditKybBtn = document.getElementById('diditKybBtn');
+    if (diditKybBtn) {
+        diditKybBtn.addEventListener('click', async () => {
+            diditKybBtn.disabled = true;
+            const originalHtml = diditKybBtn.innerHTML;
+            diditKybBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting…';
+            try {
+                const fd = new FormData();
+                fd.append('csrf_token', csrf);
+                const res = await fetch('/api/agent/didit-kyb-start.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success && data.url) {
+                    window.open(data.url, '_blank', 'noopener,noreferrer');
+                    showToast("Didit opened in a new tab. Return here when you're done.", 'success');
+                    pollForKybUpdate();
+                } else {
+                    showToast(data.error || 'Could not start business verification.', 'error');
+                }
+            } catch (e) { showToast('Network error.', 'error'); }
+            finally {
+                diditKybBtn.disabled = false;
+                diditKybBtn.innerHTML = originalHtml;
+            }
+        });
+    }
+
+    function pollForKybUpdate() {
+        let attempts = 0;
+        const t = setInterval(async () => {
+            attempts++;
+            if (attempts > 60) { clearInterval(t); return; }
+            try {
+                const r = await fetch('/api/agent/didit-kyb-status.php', { credentials: 'same-origin' });
+                const d = await r.json();
+                if (d.status === 'approved') {
+                    clearInterval(t);
+                    showToast('Business verified!', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else if (d.status === 'rejected') {
+                    clearInterval(t);
+                    showToast('Business verification was declined.', 'error');
+                } else if (d.status === 'review_needed') {
+                    clearInterval(t);
+                    showToast('Business verification is under review.', 'info');
+                }
+            } catch (_) {}
+        }, 5000);
+    }
+})();
+</script>
+
+<?php require_once __DIR__ . '/../templates/footer.php'; ?>
