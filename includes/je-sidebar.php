@@ -94,6 +94,8 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
         ['type' => 'heading',     'label' => 'FEATURED MANAGEMENT'],
         ['key' => 'test_algo',    'icon' => 'chart-line',       'label' => 'Test Algorithm', 'href' => 'test-featured.php'],
         ['key' => 'update_feat',  'icon' => 'sync-alt',         'label' => 'Update Featured', 'href' => 'update-featured.php'],
+        ['type' => 'heading',     'label' => 'MARKETING'],
+        ['key' => 'newsletter',   'icon' => 'paper-plane',      'label' => 'Newsletter',     'href' => 'newsletter.php'],
         ['type' => 'heading',     'label' => 'SYSTEM'],
         ['key' => 'settings',     'icon' => 'cog',              'label' => 'Settings',       'href' => 'settings.php'],
     ];
