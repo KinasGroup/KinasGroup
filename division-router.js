@@ -2,38 +2,79 @@
 const DIVISIONS = {
   'kinasvolt.com': 'kinas-volt',
   'williamsconnecthome.com': 'williams-connect-home',
-  'kinasauto.com': 'kinas-auto',
-  'kinasstore.com': 'kinas-store'
+  'kinasauto.com': 'kinas-automobile',
+  'kinasstore.com': 'kinas-marketplace'
 };
 
-async function handleRequest(request) {
-  const url = new URL(request.url);
-  const hostname = url.hostname.toLowerCase();
-  
-  // Check if the domain is one of our divisions
-  if (DIVISIONS[hostname]) {
-    // Get the division folder name
-    const division = DIVISIONS[hostname];
-    
-    // Get the path (e.g., /about, /products, etc.)
-    let path = url.pathname;
-    
-    // If it's the root path, don't add extra slash
-    if (path === '/') {
-      path = '';
-    }
-    
-    // Build the new URL - preserve query strings (if any)
-    const redirectUrl = `https://kinas-group.com/divisions/${division}${path}${url.search}`;
-    
-    // Return 301 permanent redirect
-    return Response.redirect(redirectUrl, 301);
-  }
-  
-  // If domain not in our list, just pass through normally
-  return fetch(request);
-}
+const GLOBAL_PATHS = [
+  '/assets/', '/templates/', '/includes/', '/pages/', '/blog/',
+  '/auth/', '/api/', '/admin/', '/agent/', '/user/',
+  '/database/', '/generated-pdfs/', '/roundcube/', '/public/'
+];
 
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request));
-});
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    let hostname = url.hostname.toLowerCase();
+    if (hostname.startsWith('www.')) hostname = hostname.substring(4);
+
+    if (!DIVISIONS[hostname]) {
+      return fetch(request);
+    }
+
+    const division = DIVISIONS[hostname];
+    let path = url.pathname;
+
+    // === KEY FIX: Force division index with proper context ===
+    if (path === '/' || path === '/index.php' || path === '') {
+      path = `/divisions/${division}/index.php`;
+    }
+
+    const isGlobalAsset = GLOBAL_PATHS.some(prefix => path.startsWith(prefix));
+
+    const headers = new Headers(request.headers);
+    headers.set('Host', 'kinas-group.com');
+    headers.set('X-Original-Host', hostname);           // ← Tell PHP the real domain
+    headers.set('X-Forwarded-Proto', 'https');
+    headers.set('X-Forwarded-Host', hostname);
+
+    let targetUrl = `https://kinas-group.com:8080${path}${url.search}`;
+
+    try {
+      const response = await fetch(targetUrl, {
+        method: request.method,
+        headers: headers,
+        body: request.body,
+        redirect: 'follow'
+      });
+
+      let body = response.body;
+      const contentType = response.headers.get('Content-Type') || '';
+
+      if (contentType.includes('text/html')) {
+        // NOTE: previously this injected <base href="https://${hostname}/">
+        // into every page. That forced ALL directory-relative links
+        // (e.g. <a href="register.php"> on /auth/login.php) to resolve
+        // against the domain ROOT instead of the page's real directory,
+        // producing "File not found" for anything not living at "/".
+        // The browser is already on the correct real domain + real path
+        // (kinasauto.com/auth/login.php etc.), so no base tag is needed —
+        // default relative-link resolution already works correctly.
+        let html = await response.text();
+        return new Response(html, {
+          status: response.status,
+          headers: response.headers
+        });
+      }
+
+      return new Response(body, {
+        status: response.status,
+        headers: response.headers
+      });
+
+    } catch (error) {
+      console.error(`Proxy error for ${hostname}:`, error);
+      return new Response('Service temporarily unavailable', { status: 503 });
+    }
+  }
+};
