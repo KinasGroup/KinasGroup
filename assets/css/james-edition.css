@@ -1006,6 +1006,17 @@ body {
     color: rgba(255,255,255,0.4);
 }
 .je-footer-bottom .je-footer-payments i { font-size: 28px; }
+.je-footer-bottom .je-footer-payments .je-footer-verve {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 4px 7px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 3px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1;
+}
 
 /* ──────────────────────────────────────────────────────────
    UTILITIES
