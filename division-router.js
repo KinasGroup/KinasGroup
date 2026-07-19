@@ -45,8 +45,37 @@ export default {
         method: request.method,
         headers: headers,
         body: request.body,
-        redirect: 'follow'
+        // Was 'follow' — that made the Worker's OWN fetch() silently chase
+        // any 30x itself (e.g. cart.php's `header('Location: /auth/login.php')`
+        // when not logged in) and hand the browser a 200 with the login
+        // page's HTML — while the browser's address bar stayed on
+        // /divisions/kinas-marketplace/cart.php. login.php builds its
+        // asset paths relative to ITS real location (/auth/, one level
+        // deep); the browser resolved them relative to what it thought
+        // its own URL was (/divisions/kinas-marketplace/, two levels
+        // deep) instead, so every CSS/JS reference 404'd — bare,
+        // unstyled page. 'manual' + forwarding the 30x below makes the
+        // browser do a real navigation instead, landing it on the true
+        // URL with paths resolving correctly.
+        redirect: 'manual'
       });
+
+      // Backend issued a redirect (e.g. requireLogin() sending an
+      // unauthenticated visitor to /auth/login.php) — pass it straight
+      // through to the browser instead of following it ourselves.
+      if (response.status >= 300 && response.status < 400 && response.headers.has('Location')) {
+        const location = response.headers.get('Location');
+        const newHeaders = new Headers(response.headers);
+        // Location is already domain-relative (e.g. "/auth/login.php") in
+        // this codebase, so the browser resolves it against whichever
+        // division domain it's actually on — no rewriting needed. If a
+        // future redirect ever included the internal backend's own host
+        // (kinas-group.com), it would leak here, so guard against that.
+        if (location && location.includes('kinas-group.com')) {
+          newHeaders.set('Location', location.replace('kinas-group.com', hostname));
+        }
+        return new Response(null, { status: response.status, headers: newHeaders });
+      }
 
       let body = response.body;
       const contentType = response.headers.get('Content-Type') || '';
