@@ -73,7 +73,16 @@ class TermiiService
             'message_type' => 'NUMERIC',
             'to'           => $this->normalizePhone($phone),
             'from'         => $this->senderId,
-            'channel'      => 'generic',
+            // Was hardcoded to 'generic', ignoring TERMII_CHANNEL entirely.
+            // Numbers registered on Nigeria's NCC DND list silently drop
+            // 'generic'-channel SMS at the carrier level — Termii still
+            // reports "Message Sent" because it successfully submitted the
+            // message, it just has no visibility into the DND block
+            // downstream. This is the most common cause of an OTP that
+            // reports success but never arrives. Set TERMII_CHANNEL=dnd in
+            // your env to route through the DND-bypass channel (costs more
+            // per SMS, but actually reaches DND-registered lines).
+            'channel'      => $this->channel,
             'pin_attempts' => 5,
             'pin_time_to_live' => $ttlMinutes,
             'pin_length'   => $length,
