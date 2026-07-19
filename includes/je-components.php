@@ -107,6 +107,11 @@ function je_render_footer(string $variant = 'site'): void
                 <div>
                     &copy; <?= $year ?> KINAS GROUP OF COMPANY LIMITED. All rights reserved.
                 </div>
+                <div class="je-footer-payments" aria-label="Accepted payment methods">
+                    <i class="fab fa-cc-visa" title="Visa"></i>
+                    <i class="fab fa-cc-mastercard" title="Mastercard"></i>
+                    <span class="je-footer-verve" title="Verve">VERVE</span>
+                </div>
             </div>
         </div>
     </footer>
