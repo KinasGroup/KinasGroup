@@ -142,13 +142,49 @@ try {
 
     // Mark phone verified on the user
     if ($userId) {
-        if ($phone && $phone !== $otp['phone']) {
-            $db->prepare("UPDATE users SET phone = ?, phone_verified_at = NOW() WHERE id = ?")
-                ->execute([$phone, $userId]);
-        } else {
-            $db->prepare("UPDATE users SET phone_verified_at = COALESCE(phone_verified_at, NOW()) WHERE id = ?")
-                ->execute([$userId]);
+        // $otp['phone'] is the ground truth — it's the exact number Termii
+        // just cryptographically verified a code against. The old logic
+        // here trusted whatever the client's request body claimed ($phone)
+        // instead, and silently fell back to leaving users.phone untouched
+        // whenever that body param was omitted — meaning an account could
+        // end up "phone verified" while users.phone still showed a totally
+        // different, NEVER-verified number. Always sync to $otp['phone'].
+        $currentPhoneStmt = $db->prepare("SELECT phone FROM users WHERE id = ? FOR UPDATE");
+        $currentPhoneStmt->execute([$userId]);
+        $currentPhone = $currentPhoneStmt->fetchColumn();
+        $currentPhoneDigits = $currentPhone ? preg_replace('/\D+/', '', $currentPhone) : '';
+        $otpPhoneDigits = preg_replace('/\D+/', '', $otp['phone']);
+
+        if ($currentPhoneDigits !== '' && $currentPhoneDigits !== $otpPhoneDigits && $purpose !== 'change_phone') {
+            // Red flag: this OTP was requested for a DIFFERENT number than
+            // what's currently on the account, and this isn't an explicit
+            // "change my number" request from account settings. Reject —
+            // don't silently let phone verification double as an
+            // unauthorized number swap.
+            $db->rollBack();
+            http_response_code(409);
+            echo json_encode([
+                'error' => 'This code was sent to a different number than the one on your account. '
+                    . 'To verify a different phone number, update it in Account Settings first.',
+            ]);
+            exit;
         }
+
+        // Belt-and-suspenders: re-check no OTHER account has already
+        // claimed and verified this exact number in the meantime.
+        // Normalized comparison — see send-otp.php for why.
+        $dupDigits = preg_replace('/\D+/', '', $otp['phone']);
+        $dupStmt = $db->prepare("SELECT id FROM users WHERE REGEXP_REPLACE(phone, '[^0-9]', '') = ? AND phone_verified_at IS NOT NULL AND id != ? LIMIT 1");
+        $dupStmt->execute([$dupDigits, $userId]);
+        if ($dupStmt->fetchColumn()) {
+            $db->rollBack();
+            http_response_code(409);
+            echo json_encode(['error' => 'This phone number is already verified on another account.']);
+            exit;
+        }
+
+        $db->prepare("UPDATE users SET phone = ?, phone_verified_at = NOW() WHERE id = ?")
+            ->execute([$otp['phone'], $userId]);
 
         $db->prepare("UPDATE agent_profiles
                       SET verification_status = 'phone_verified'

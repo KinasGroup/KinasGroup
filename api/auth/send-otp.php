@@ -38,16 +38,31 @@ $db = Database::getInstance()->getConnection();
 
 // Resolve phone
 $phone = trim($body['phone'] ?? '');
-if (!$phone && $userId) {
+if ($userId) {
     $stmt = $db->prepare("SELECT phone, phone_verified_at FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$row || empty($row['phone'])) {
-        http_response_code(422);
-        echo json_encode(['error' => 'No phone number on file. Please update your profile.']);
+
+    if (!$phone) {
+        if (!$row || empty($row['phone'])) {
+            http_response_code(422);
+            echo json_encode(['error' => 'No phone number on file. Please update your profile.']);
+            exit;
+        }
+        $phone = $row['phone'];
+    } elseif ($row && !empty($row['phone']) && $phone !== $row['phone'] && $purpose !== 'change_phone') {
+        // Requesting an OTP for a DIFFERENT number than what's on the
+        // account is only legitimate through the explicit "change phone
+        // number" flow (account settings) — never as a side effect of
+        // register/login/reset. Red-flag it here instead of letting it
+        // silently drift, mirroring the check in verify-otp.php.
+        http_response_code(409);
+        echo json_encode([
+            'error' => 'This number is different from the one on your account. '
+                . 'To verify a different phone number, update it in Account Settings first.',
+        ]);
         exit;
     }
-    $phone = $row['phone'];
 }
 
 if (!$phone) {
@@ -61,6 +76,31 @@ $digits = preg_replace('/\D+/', '', $phone);
 if (strlen($digits) < 10 || strlen($digits) > 15) {
     http_response_code(422);
     echo json_encode(['error' => 'Please enter a valid phone number (e.g., 08012345678).']);
+    exit;
+}
+
+// Duplicate check: block if another account has already verified this
+// exact number. Previously there was no such check anywhere in the app —
+// registration, send-otp, and verify-otp all accepted the same number on
+// multiple accounts with zero warning, silently wasting OTP sends on a
+// number that could never actually succeed for this account.
+//
+// users.phone isn't stored in a normalized format (raw user input —
+// "08012345678" vs "+234 801 234 5678" are both valid as typed), so we
+// strip non-digits on both sides before comparing. REGEXP_REPLACE needs
+// MySQL 8.0+ / MariaDB 10.0.5+; if your DB predates that, this will error
+// — swap to a PHP-side loop over phone_verified_at IS NOT NULL rows instead.
+$dupCheck = $db->prepare("
+    SELECT id FROM users
+    WHERE phone_verified_at IS NOT NULL
+      AND REGEXP_REPLACE(phone, '[^0-9]', '') = ?
+      " . ($userId ? "AND id != ?" : "") . "
+    LIMIT 1
+");
+$dupCheck->execute($userId ? [$digits, $userId] : [$digits]);
+if ($dupCheck->fetchColumn()) {
+    http_response_code(409);
+    echo json_encode(['error' => 'This phone number is already verified on another account. Please use a different number.']);
     exit;
 }
 
