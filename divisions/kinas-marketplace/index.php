@@ -290,15 +290,15 @@ include '../../templates/header.php';
         <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Curated Luxury Goods</h1>
         <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">Premium products, Smart Security Solutions, Electronics, Lighting products, and Internationsl Merchandise.</p>
         <div class="je-flex" style="gap:14px;">
-            <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Items</a>
-            <a href="search.php?sort=price_high" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Most Expensive</a>
+            <a href="/divisions/kinas-marketplace/search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Items</a>
+            <a href="/divisions/kinas-marketplace/search.php?sort=price_high" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Most Expensive</a>
         </div>
     </div>
 </section>
 
 <section style="background:#0A0A0A; padding:24px 0;">
     <div class="je-container">
-        <form method="GET" action="search.php" id="searchForm" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <form method="GET" action="/divisions/kinas-marketplace/search.php" id="searchForm" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <input type="text" name="q" placeholder="Brand, item, category…" style="flex:1; min-width:240px; padding:14px 18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:3px; color:#fff; font-family:Inter,sans-serif; font-size:14px;">
             
             <div class="custom-dropdown" id="categoryDropdown">
@@ -334,7 +334,7 @@ include '../../templates/header.php';
                 <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">FEATURED ITEMS</div>
                 <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Exceptional pieces</h2>
             </div>
-            <a href="search.php" class="je-btn je-btn-outline">View all <i class="fas fa-arrow-right"></i></a>
+            <a href="/divisions/kinas-marketplace/search.php" class="je-btn je-btn-outline">View all <i class="fas fa-arrow-right"></i></a>
         </div>
 
         <?php
@@ -374,7 +374,7 @@ include '../../templates/header.php';
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
             <?php foreach ($categories as $c): ?>
-                <a href="search.php?category=<?= (int)$c['id'] ?>" style="background:#fff; border:1px solid #e8e8e8; padding:24px; text-align:center; border-radius:4px; text-decoration:none; transition:all 0.25s;">
+                <a href="/divisions/kinas-marketplace/search.php?category=<?= (int)$c['id'] ?>" style="background:#fff; border:1px solid #e8e8e8; padding:24px; text-align:center; border-radius:4px; text-decoration:none; transition:all 0.25s;">
                     <div style="font-family:'Prata',serif; font-size:16px; color:#0A0A0A; margin-bottom:4px;"><?= htmlspecialchars($c['name']) ?></div>
                     <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:1px;"><?= (int)$c['cnt'] ?> items</div>
                 </a>
