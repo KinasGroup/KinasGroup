@@ -160,7 +160,7 @@ try {
                 $listingAgent['email'],
                 $subject . " - Viewing Request",
                 $emailBody,
-                'no-reply@kinasgroup.com'
+                'no-reply@kinas-group.com'
             );
         }
 
@@ -185,7 +185,7 @@ try {
             $superAgent['email'],
             $superSubject,
             $emailBody,
-            'no-reply@kinasgroup.com'
+            'no-reply@kinas-group.com'
         );
 
         // SMS to super agent
@@ -285,8 +285,8 @@ try {
 function send_email($to, $subject, $message, $from = null) {
     $headers = "MIME-Version: 1.0" . "\r\n";
     $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-    $headers .= 'From: ' . ($from ?? 'noreply@kinasgroup.com') . "\r\n";
-    $headers .= 'Reply-To: ' . ($from ?? 'noreply@kinasgroup.com') . "\r\n";
+    $headers .= 'From: ' . ($from ?? 'noreply@kinas-group.com') . "\r\n";
+    $headers .= 'Reply-To: ' . ($from ?? 'noreply@kinas-group.com') . "\r\n";
     return mail($to, $subject, $message, $headers);
 }
 ?>
