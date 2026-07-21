@@ -88,7 +88,12 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
                 $searchFields = ['title', 'address', 'city', 'state', 'description'];
                 break;
             case 'marketplace_listings':
-                $searchFields = ['title', 'category', 'brand', 'description', 'city', 'state'];
+                // NOTE: marketplace_listings has no 'category' text column — only
+                // category_id (FK to marketplace_categories). Searching a
+                // nonexistent 'category' column threw a SQL error on every
+                // request, which the catch block silently swallowed, making
+                // Marketplace search always return zero results.
+                $searchFields = ['title', 'brand', 'description', 'city', 'state'];
                 break;
             default:
                 $searchFields = ['title'];
@@ -100,6 +105,12 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
         }
         $whereSQL = implode(' OR ', $whereClauses);
         
+        // property_listings has no 'brand' column (only car/solar/marketplace
+        // do). Selecting it unconditionally threw a SQL error on every
+        // Homes search, which the catch block silently swallowed, making
+        // Homes search always return zero results.
+        $brandColumn = ($table === 'property_listings') ? 'NULL' : 'brand';
+        
         $stmt = $db->prepare("
             SELECT 
                 id, 
@@ -110,7 +121,7 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
                 created_at,
                 '$divisionName' as division,
                 '" . str_replace('_listings', '', $table) . "' as type,
-                brand,
+                $brandColumn as brand,
                 city,
                 state
             FROM $table 
@@ -180,10 +191,25 @@ foreach ($divisionsToSearch as $table => $divName) {
         // Add the correct folder path for the link
         $item['folder'] = $divisionFolders[$item['division']] ?? $item['division'];
     }
+    // Break the reference from the loop above — leaving it dangling means
+    // the next foreach() that reuses the $item variable name (by value)
+    // would silently write through this reference and corrupt whichever
+    // array element it's still bound to.
+    unset($item);
     
     $allResults = array_merge($allResults, $result['results']);
     $totalCount += $result['count'];
 }
+
+// Safety net: de-duplicate by division+id in case the same listing was
+// ever picked up more than once (e.g. a stray duplicate row).
+$seen = [];
+$allResults = array_values(array_filter($allResults, function ($r) use (&$seen) {
+    $key = $r['division'] . ':' . $r['id'];
+    if (isset($seen[$key])) return false;
+    $seen[$key] = true;
+    return true;
+}));
 
 usort($allResults, function($a, $b) {
     return strtotime($b['created_at']) - strtotime($a['created_at']);

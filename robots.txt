@@ -8,12 +8,18 @@ Disallow: /includes/
 Disallow: /templates/
 Disallow: /database/
 Disallow: /uploads/kyc-documents/
-Disallow: /*.php$
 Disallow: /*.sql$
 Disallow: /auth/agent-verification.html
 
 # Crawl delay
 Crawl-delay: 5
 
-# Sitemap
-Sitemap: https://kinasgroup.com/sitemap.xml
+# Sitemaps — robots.txt is served identically on every domain (this is a
+# single static file, not generated per-request), so all five are listed
+# here. Each domain's own sitemap only contains URLs on that same domain;
+# crawlers ignore the ones that don't apply to the host they're currently on.
+Sitemap: https://kinas-group.com/sitemap.xml
+Sitemap: https://kinasauto.com/sitemap.xml
+Sitemap: https://williamsconnecthome.com/sitemap.xml
+Sitemap: https://kinasvolt.com/sitemap.xml
+Sitemap: https://kinasstore.com/sitemap.xml

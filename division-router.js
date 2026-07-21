@@ -30,6 +30,16 @@ export default {
       path = `/divisions/${division}/index.php`;
     }
 
+    // Each division domain gets its own sitemap (its real, self-contained
+    // set of URLs on ITS OWN domain) rather than the shared corporate one —
+    // a division's sitemap.xml should only ever list URLs that live on that
+    // same domain, which the old shared file never did (it hardcoded a
+    // different domain entirely). kinas-group.com continues to serve its
+    // own separate corporate-only sitemap unchanged.
+    if (path === '/sitemap.xml') {
+      path = `/divisions/${division}/sitemap.xml`;
+    }
+
     const isGlobalAsset = GLOBAL_PATHS.some(prefix => path.startsWith(prefix));
 
     const headers = new Headers(request.headers);
@@ -77,28 +87,29 @@ export default {
         return new Response(null, { status: response.status, headers: newHeaders });
       }
 
-      let body = response.body;
-      const contentType = response.headers.get('Content-Type') || '';
+      const newHeaders = new Headers(response.headers);
 
-      if (contentType.includes('text/html')) {
-        // NOTE: previously this injected <base href="https://${hostname}/">
-        // into every page. That forced ALL directory-relative links
-        // (e.g. <a href="register.php"> on /auth/login.php) to resolve
-        // against the domain ROOT instead of the page's real directory,
-        // producing "File not found" for anything not living at "/".
-        // The browser is already on the correct real domain + real path
-        // (kinasauto.com/auth/login.php etc.), so no base tag is needed —
-        // default relative-link resolution already works correctly.
-        let html = await response.text();
-        return new Response(html, {
-          status: response.status,
-          headers: response.headers
-        });
+      // Shared static assets (css/js/images/fonts under the paths in
+      // GLOBAL_PATHS) are byte-identical no matter which of the 4 division
+      // domains requested them and don't change on every deploy. Letting
+      // the browser (and Cloudflare's edge) cache them long-term instead of
+      // re-fetching from the origin on every visit cuts load time and
+      // origin bandwidth. Only applied to successful, cacheable asset
+      // responses — never to PHP pages, which can be logged-in/dynamic.
+      if (isGlobalAsset && response.ok && !path.endsWith('.php')) {
+        newHeaders.set('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
       }
 
-      return new Response(body, {
+      // Response body is streamed straight through untouched — this used
+      // to buffer the entire HTML into a string (via response.text()) to
+      // inject a <base> tag; that injection was removed since it broke
+      // relative links on pages served from their true directory (see the
+      // login.php note above), but the buffering step was accidentally
+      // left behind, adding latency and memory overhead on every HTML
+      // response for no remaining benefit.
+      return new Response(response.body, {
         status: response.status,
-        headers: response.headers
+        headers: newHeaders
       });
 
     } catch (error) {
