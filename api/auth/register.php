@@ -170,6 +170,10 @@ try {
         exit;
     }
 
+    // Non-blocking: flags the account for admin review if the phone or IP
+    // matches an existing user, rather than rejecting the registration.
+    $duplicateReason = Security::checkDuplicateAccount($db, $data['phone'], $ip);
+
     $db->beginTransaction();
 
     // Hash password
@@ -183,10 +187,10 @@ try {
     // verify-email lookup matches on verification_code alone).
     $stmt = $db->prepare("
         INSERT INTO users
-            (name, email, password, phone, role, status,
+            (name, email, password, phone, registration_ip, duplicate_flag_reason, role, status,
              verification_code, verification_code_expires, created_at)
         VALUES
-            (?, ?, ?, ?, 'agent', 'active',
+            (?, ?, ?, ?, ?, ?, 'agent', 'active',
              ?, ?, NOW())
     ");
     $stmt->execute([
@@ -194,6 +198,8 @@ try {
         strtolower(trim($data['email'])),
         $hashedPassword,
         Security::sanitizeInput($data['phone']),
+        $ip,
+        $duplicateReason,
         $verificationCode,
         $verificationExpiry,
     ]);
@@ -237,6 +243,9 @@ try {
 
     // Log activity
     Security::logActivity($userId, 'agent_registration', "New agent registration for {$data['division']} from $ip");
+    if ($duplicateReason !== null) {
+        Security::logActivity($userId, 'duplicate_account_suspected', $duplicateReason);
+    }
 
     $db->commit();
 

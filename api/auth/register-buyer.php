@@ -163,6 +163,10 @@ try {
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
     $verificationExpiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
+    // Non-blocking: flags the account for admin review if the phone or IP
+    // matches an existing user, rather than rejecting the registration.
+    $duplicateReason = Security::checkDuplicateAccount($db, $phone, $ip);
+
     $db->beginTransaction();
 
     // Insert user as buyer (role = 'user').
@@ -170,16 +174,18 @@ try {
     // the email body advertises "this link will expire in 24 hours".
     $stmt = $db->prepare("
         INSERT INTO users
-            (name, email, phone, password, role, status,
+            (name, email, phone, registration_ip, duplicate_flag_reason, password, role, status,
              verification_code, verification_code_expires, created_at)
         VALUES
-            (?, ?, ?, ?, 'user', 'active',
+            (?, ?, ?, ?, ?, ?, 'user', 'active',
              ?, ?, NOW())
     ");
     $stmt->execute([
         $name,
         strtolower($email),
         $phone,
+        $ip,
+        $duplicateReason,
         $passwordHash,
         $verificationCode,
         $verificationExpiry,
@@ -211,6 +217,9 @@ try {
 
     // Log registration
     Security::logActivity($userId, 'buyer_registration', "New buyer registered: $email from $ip");
+    if ($duplicateReason !== null) {
+        Security::logActivity($userId, 'duplicate_account_suspected', $duplicateReason);
+    }
 
     $db->commit();
 
