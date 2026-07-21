@@ -609,6 +609,90 @@ console.log('=== WILLIAMS CONNECT HOME detail page loaded ===');
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
+
+        <h2 style="margin-top:32px;">Virtual Tour</h2>
+        <div style="background:#f5f5f5;border:1px dashed #ccc;border-radius:8px;padding:48px 24px;text-align:center;color:#888;">
+            <i class="fas fa-street-view" style="font-size:32px;margin-bottom:12px;display:block;color:#bbb;"></i>
+            <p style="margin:0;font-weight:600;">Virtual tour coming soon</p>
+            <p style="margin:6px 0 0;font-size:13px;">Contact the agent below to arrange an in-person or video viewing.</p>
+        </div>
+
+        <?php if (!empty($item['latitude']) && !empty($item['longitude'])): ?>
+        <h2 style="margin-top:32px;">Location</h2>
+        <div id="listing-map"
+             data-lat="<?= htmlspecialchars($item['latitude']) ?>"
+             data-lng="<?= htmlspecialchars($item['longitude']) ?>"
+             data-title="<?= htmlspecialchars($item['title'] ?? '') ?>"
+             style="height:360px;border-radius:8px;overflow:hidden;border:1px solid #e8e8e8;"></div>
+        <script src="/assets/js/map.js"></script>
+        <?php endif; ?>
+
+        <h2 style="margin-top:32px;">Mortgage Calculator</h2>
+        <div class="je-finance-calc" style="background:#f9f8f5;border:1px solid #e8e8e8;border-radius:8px;padding:24px;max-width:520px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Property Price (₦)</label>
+                    <input type="number" id="mcPrice" value="<?= (int)($item['price'] ?? 0) ?>" min="0" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;">
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Down Payment (%)</label>
+                    <input type="number" id="mcDown" value="25" min="0" max="100" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;">
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Interest Rate (% / yr)</label>
+                    <input type="number" id="mcRate" value="21" min="0" max="100" step="0.1" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;">
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Loan Term (years)</label>
+                    <select id="mcTerm" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="15">15</option>
+                        <option value="20">20</option>
+                        <option value="25">25</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top:20px;padding-top:20px;border-top:1px solid #e0ddd3;display:flex;justify-content:space-between;align-items:baseline;">
+                <span style="font-size:13px;color:#666;">Estimated monthly payment</span>
+                <span id="mcMonthly" style="font-size:24px;font-weight:700;color:#151515;">₦0</span>
+            </div>
+            <p style="margin:10px 0 0;font-size:11px;color:#999;">Estimate only. Actual mortgage terms are set by your chosen lender and subject to approval.</p>
+        </div>
+        <script>
+        (function () {
+            const price = document.getElementById('mcPrice');
+            const down = document.getElementById('mcDown');
+            const rate = document.getElementById('mcRate');
+            const term = document.getElementById('mcTerm');
+            const out = document.getElementById('mcMonthly');
+            if (!price || !out) return;
+
+            function fmt(n) {
+                return '₦' + Math.round(n).toLocaleString('en-NG');
+            }
+
+            function calc() {
+                const p = Math.max(0, parseFloat(price.value) || 0);
+                const downPct = Math.min(100, Math.max(0, parseFloat(down.value) || 0));
+                const principal = p * (1 - downPct / 100);
+                const annualRate = Math.max(0, parseFloat(rate.value) || 0) / 100;
+                const months = (parseInt(term.value, 10) || 10) * 12;
+                const monthlyRate = annualRate / 12;
+
+                let monthly;
+                if (monthlyRate === 0) {
+                    monthly = principal / months;
+                } else {
+                    monthly = principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+                }
+                out.textContent = fmt(monthly > 0 ? monthly : 0);
+            }
+
+            [price, down, rate, term].forEach(el => el.addEventListener('input', calc));
+            calc();
+        })();
+        </script>
     </section>
 
     <?php if (!empty($similar)): ?>
