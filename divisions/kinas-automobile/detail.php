@@ -312,6 +312,83 @@ $agentVerified = !empty($item['agent_verified']);
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
+
+        <?php if (!empty($item['latitude']) && !empty($item['longitude'])): ?>
+        <h2 style="margin-top:32px;">Location</h2>
+        <div id="listing-map"
+             data-lat="<?= htmlspecialchars($item['latitude']) ?>"
+             data-lng="<?= htmlspecialchars($item['longitude']) ?>"
+             data-title="<?= htmlspecialchars($item['title'] ?? '') ?>"
+             style="height:360px;border-radius:8px;overflow:hidden;border:1px solid #e8e8e8;"></div>
+        <script src="/assets/js/map.js"></script>
+        <?php endif; ?>
+
+        <h2 style="margin-top:32px;">Finance Calculator</h2>
+        <div class="je-finance-calc" style="background:#f9f8f5;border:1px solid #e8e8e8;border-radius:8px;padding:24px;max-width:520px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Vehicle Price (₦)</label>
+                    <input type="number" id="fcPrice" value="<?= (int)($item['price'] ?? 0) ?>" min="0" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;">
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Down Payment (%)</label>
+                    <input type="number" id="fcDown" value="20" min="0" max="100" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;">
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Interest Rate (% / yr)</label>
+                    <input type="number" id="fcRate" value="18" min="0" max="100" step="0.1" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;">
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Loan Term (months)</label>
+                    <select id="fcTerm" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;">
+                        <option value="12">12</option>
+                        <option value="24" selected>24</option>
+                        <option value="36">36</option>
+                        <option value="48">48</option>
+                        <option value="60">60</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top:20px;padding-top:20px;border-top:1px solid #e0ddd3;display:flex;justify-content:space-between;align-items:baseline;">
+                <span style="font-size:13px;color:#666;">Estimated monthly payment</span>
+                <span id="fcMonthly" style="font-size:24px;font-weight:700;color:#151515;">₦0</span>
+            </div>
+            <p style="margin:10px 0 0;font-size:11px;color:#999;">Estimate only. Actual financing terms are set by your chosen lender and subject to approval.</p>
+        </div>
+        <script>
+        (function () {
+            const price = document.getElementById('fcPrice');
+            const down = document.getElementById('fcDown');
+            const rate = document.getElementById('fcRate');
+            const term = document.getElementById('fcTerm');
+            const out = document.getElementById('fcMonthly');
+            if (!price || !out) return;
+
+            function fmt(n) {
+                return '₦' + Math.round(n).toLocaleString('en-NG');
+            }
+
+            function calc() {
+                const p = Math.max(0, parseFloat(price.value) || 0);
+                const downPct = Math.min(100, Math.max(0, parseFloat(down.value) || 0));
+                const principal = p * (1 - downPct / 100);
+                const annualRate = Math.max(0, parseFloat(rate.value) || 0) / 100;
+                const months = parseInt(term.value, 10) || 24;
+                const monthlyRate = annualRate / 12;
+
+                let monthly;
+                if (monthlyRate === 0) {
+                    monthly = principal / months;
+                } else {
+                    monthly = principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+                }
+                out.textContent = fmt(monthly > 0 ? monthly : 0);
+            }
+
+            [price, down, rate, term].forEach(el => el.addEventListener('input', calc));
+            calc();
+        })();
+        </script>
     </section>
 
     <!-- ── Similar listings ── -->

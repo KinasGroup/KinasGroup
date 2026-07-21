@@ -224,4 +224,6 @@ $current = compact('brand','model','min_year','max_year','min_price','max_price'
 
 </div>
 
+<script src="compare-widget.js"></script>
+
 <?php include '../../templates/footer.php'; ?>

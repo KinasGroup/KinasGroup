@@ -294,8 +294,8 @@ include '../../templates/header.php';
         <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Finest Luxury &amp; Exotic Vehicles</h1>
         <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">Premium Automobile sales, Vehicle sourcing and Automotive-related Services.</p>
         <div class="je-flex" style="gap:14px;">
-            <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Inventory</a>
-            <a href="rental-search.php?sort=price_high" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Car Rentals</a>
+            <a href="/divisions/kinas-automobile/search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Inventory</a>
+            <a href="/divisions/kinas-automobile/rental-search.php?sort=price_high" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Car Rentals</a>
         </div>
     </div>
 </section>
@@ -303,7 +303,7 @@ include '../../templates/header.php';
 <!-- Search strip with custom dropdown -->
 <section style="background:#0A0A0A; padding:24px 0;">
     <div class="je-container">
-        <form method="GET" action="search.php" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <form method="GET" action="/divisions/kinas-automobile/search.php" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <input type="text" name="q" placeholder="Search by make, model, keyword…" style="flex:1; min-width:240px; padding:14px 18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:3px; color:#fff; font-family:Inter,sans-serif; font-size:14px;">
             
             <!-- Custom Dropdown for Brands -->
@@ -341,7 +341,7 @@ include '../../templates/header.php';
                 <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">FEATURED COLLECTION</div>
                 <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Exceptional vehicles</h2>
             </div>
-            <a href="search.php" class="je-btn je-btn-outline">View all <i class="fas fa-arrow-right"></i></a>
+            <a href="/divisions/kinas-automobile/search.php" class="je-btn je-btn-outline">View all <i class="fas fa-arrow-right"></i></a>
         </div>
 
         <?php
@@ -376,7 +376,7 @@ include '../../templates/header.php';
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
             <?php foreach ($brands as $b): ?>
-                <a href="search.php?brand=<?= urlencode($b['brand']) ?>" style="background:#fff; border:1px solid #e8e8e8; padding:24px; text-align:center; border-radius:4px; text-decoration:none; transition:all 0.25s;">
+                <a href="/divisions/kinas-automobile/search.php?brand=<?= urlencode($b['brand']) ?>" style="background:#fff; border:1px solid #e8e8e8; padding:24px; text-align:center; border-radius:4px; text-decoration:none; transition:all 0.25s;">
                     <div style="font-family:'Prata',serif; font-size:16px; color:#0A0A0A; margin-bottom:4px;"><?= htmlspecialchars($b['brand']) ?></div>
                     <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:1px;"><?= (int)$b['cnt'] ?> vehicles</div>
                 </a>
