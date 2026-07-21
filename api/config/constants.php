@@ -4,7 +4,7 @@
 // Site Configuration
 define('SITE_NAME', getenv('APP_NAME') ?: 'KINAS GROUP');
 define('SITE_URL',  rtrim(getenv('APP_URL') ?: 'https://kinas-group.com', '/'));
-define('ADMIN_EMAIL',   getenv('ADMIN_EMAIL')   ?: 'admin@kinasgroup.com');
+define('ADMIN_EMAIL',   getenv('ADMIN_EMAIL')   ?: 'admin@kinas-group.com');
 define('SUPPORT_EMAIL', getenv('SUPPORT_EMAIL') ?: 'support@kinas-group.com');
 
 // Division Configuration
