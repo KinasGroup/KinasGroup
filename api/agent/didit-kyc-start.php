@@ -42,7 +42,7 @@ try {
 
     if (!$didit->isKycEnabled()) {
         http_response_code(503);
-        echo json_encode(['error' => 'Identity verification is temporarily unavailable. Please contact support@kinasgroup.com if this persists.']);
+        echo json_encode(['error' => 'Identity verification is temporarily unavailable. Please contact support@kinas-group.com if this persists.']);
         exit;
     }
 

@@ -45,7 +45,7 @@ try {
 
     if (!$didit->isKybEnabled()) {
         http_response_code(503);
-        echo json_encode(['error' => 'Business verification is temporarily unavailable. Please contact support@kinasgroup.com if this persists.']);
+        echo json_encode(['error' => 'Business verification is temporarily unavailable. Please contact support@kinas-group.com if this persists.']);
         exit;
     }
 

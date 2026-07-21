@@ -50,7 +50,7 @@ try {
     if (!$metamap->isEnabled()) {
         http_response_code(503);
         echo json_encode([
-            'error' => 'KYC is temporarily unavailable. Please contact support@kinasgroup.com if this persists.'
+            'error' => 'KYC is temporarily unavailable. Please contact support@kinas-group.com if this persists.'
         ]);
         exit;
     }
