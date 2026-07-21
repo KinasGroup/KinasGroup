@@ -60,7 +60,7 @@ $user = $stmt->fetch();
 if (!$user) { session_destroy(); header('Location: /auth/login.php'); exit; }
 
 // Stats
-$savedCount = $db->prepare("SELECT COUNT(*) FROM saved_listings WHERE user_id = ?");
+$savedCount = $db->prepare("SELECT COUNT(*) FROM favorites WHERE user_id = ?");
 $savedCount->execute([$user_id]);
 $saved = $savedCount->fetchColumn();
 
