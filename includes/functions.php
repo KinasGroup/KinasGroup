@@ -142,7 +142,7 @@ function send_email($to, $subject, $message, $from = null) {
     // Email sending logic preserved
     $headers = "MIME-Version: 1.0" . "\r\n";
     $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-    $headers .= 'From: ' . ($from ?? 'noreply@kinasgroup.com') . "\r\n";
+    $headers .= 'From: ' . ($from ?? 'noreply@kinas-group.com') . "\r\n";
     
     return mail($to, $subject, $message, $headers);
 }

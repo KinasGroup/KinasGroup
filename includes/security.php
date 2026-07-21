@@ -251,6 +251,39 @@ class Security {
         return $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
     }
 
+    // ── Duplicate account detection ─────────────────────────────────────────
+
+    /**
+     * Checks whether a new registration's phone number or IP address is
+     * already associated with an existing account. Does NOT block
+     * registration — shared IPs (offices, NAT'd mobile networks, family
+     * members) and shared phone numbers can be entirely legitimate. Instead
+     * returns a short reason string to store on the new account for admin
+     * review (see admin/user-management.php), or null if no match found.
+     */
+    public static function checkDuplicateAccount(PDO $db, string $phone, string $ip): ?string {
+        $reasons = [];
+
+        $phone = trim($phone);
+        if ($phone !== '') {
+            $stmt = $db->prepare("SELECT id FROM users WHERE phone = ? LIMIT 1");
+            $stmt->execute([$phone]);
+            if ($stmt->fetch()) {
+                $reasons[] = 'phone number already registered to another account';
+            }
+        }
+
+        if ($ip !== '' && $ip !== 'UNKNOWN') {
+            $stmt = $db->prepare("SELECT id FROM users WHERE registration_ip = ? LIMIT 1");
+            $stmt->execute([$ip]);
+            if ($stmt->fetch()) {
+                $reasons[] = 'registration IP matches another account';
+            }
+        }
+
+        return $reasons ? ucfirst(implode('; ', $reasons)) : null;
+    }
+
     // ── Path traversal prevention ───────────────────────────────────────────
 
     /**

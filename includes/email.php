@@ -19,6 +19,22 @@ class EmailService
         $this->fromEmail = getenv('MAIL_FROM_ADDRESS') ?: 'noreply@kinas-group.com';
         $this->fromName = getenv('MAIL_FROM_NAME') ?: 'KINAS GROUP OF COMPANIES LIMITED';
         $this->siteUrl = rtrim(getenv('APP_URL') ?: 'https://kinas-group.com', '/');
+
+        // Prefer the domain the visitor is actually on. division-router.js
+        // sets X-Original-Host on every request using the hostname it
+        // resolved server-side (it overwrites any client-supplied value of
+        // the same name, so this isn't attacker-controlled) — the same
+        // header includes/security.php already trusts for reCAPTCHA. Without
+        // this, every email (verification, password reset, agent approval,
+        // etc.) always linked back to kinas-group.com even when someone
+        // registered through kinasauto.com/kinasvolt.com/etc., bouncing them
+        // to a different-looking site mid-flow.
+        $originalHost = strtolower((string)($_SERVER['HTTP_X_ORIGINAL_HOST'] ?? ''));
+        $originalHost = preg_replace('/^www\./', '', $originalHost);
+        $allowedHosts = ['kinas-group.com', 'kinasauto.com', 'williamsconnecthome.com', 'kinasvolt.com', 'kinasstore.com'];
+        if ($originalHost !== '' && in_array($originalHost, $allowedHosts, true)) {
+            $this->siteUrl = 'https://' . $originalHost;
+        }
         
         // Check for Resend API key first
         $this->apiKey = getenv('RESEND_API_KEY') ?: '';
