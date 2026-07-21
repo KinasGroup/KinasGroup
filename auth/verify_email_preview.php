@@ -9,7 +9,7 @@ header('Pragma: no-cache');
 
 // STATIC PREVIEW FILE - Delete after design approval
 // This file shows what the verification page looks like
-// Access at: https://kinasgroup.com/auth/verify-email-preview.php
+// Access at: https://kinas-group.com/auth/verify-email-preview.php
 
 $pageTitle = 'Email Verification Preview - KINAS GROUP';
 ?>

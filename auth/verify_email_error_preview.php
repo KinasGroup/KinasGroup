@@ -8,7 +8,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 
 // STATIC PREVIEW FILE - Error State
-// Access at: https://kinasgroup.com/auth/verify-email-error-preview.php
+// Access at: https://kinas-group.com/auth/verify-email-error-preview.php
 
 $pageTitle = 'Email Verification Error - KINAS GROUP';
 ?>
