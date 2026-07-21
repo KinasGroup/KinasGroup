@@ -360,7 +360,7 @@ require_once __DIR__ . '/../templates/header.php';
                     }
                 ?>
                 <tr>
-                    <td><div class="user-cell"><div class="user-avatar"><?= htmlspecialchars($initials) ?></div><strong><?= htmlspecialchars($u['name']) ?></strong></div></td>
+                    <td><div class="user-cell"><div class="user-avatar"><?= htmlspecialchars($initials) ?></div><strong><?= htmlspecialchars($u['name']) ?></strong><?php if (!empty($u['duplicate_flag_reason'])): ?> <i class="fas fa-user-friends" style="color:#F57C00;" title="Possible duplicate account: <?= htmlspecialchars($u['duplicate_flag_reason']) ?>"></i><?php endif; ?></div></td>
                     <td><?= htmlspecialchars($u['email']) ?></td>
                     <td><span class="role-badge <?= $u['role'] ?>"><?= ucfirst($u['role']) ?></span></td>
                     <td><?= $isAgent ? htmlspecialchars($divisionLabels[$u['agent_division']] ?? $u['agent_division'] ?? '—') : '—' ?></td>
