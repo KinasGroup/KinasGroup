@@ -184,6 +184,27 @@ try {
     // Set listing status: 'active' for verified agents, 'pending' for unverified
     $listingStatus = $agentVerified ? 'active' : 'pending';
 
+    // ── Duplicate-submission guard ───────────────────────────────────────────────
+    // Client-side JS disables the submit button, but that can still be beaten
+    // by things outside its control (a slow/retried network request, the
+    // browser re-POSTing on back-navigation, etc.). If this exact agent
+    // already created a listing with the same title+price in this table in
+    // the last 60 seconds, treat this request as a duplicate of that one
+    // instead of inserting a second identical row.
+    $dupStmt = $db->prepare(
+        "SELECT id FROM $table
+         WHERE agent_id = ? AND title = ? AND price = ?
+           AND created_at >= (NOW() - INTERVAL 60 SECOND)
+         ORDER BY id DESC LIMIT 1"
+    );
+    $dupStmt->execute([$agentId, $title, $price]);
+    $existingId = $dupStmt->fetchColumn();
+    if ($existingId) {
+        $_SESSION['flash_success'] = $agentVerified ? 'Listing published successfully!' : 'Listing submitted for review.';
+        header('Location: /agent/listings.php');
+        exit;
+    }
+
     if ($listingType === 'car') {
         // Extract mileage as integer if possible
         $mileageRaw = $s('mileage', 100);
