@@ -22,13 +22,13 @@ include __DIR__ . '/../templates/header.php';
     <p>Application data is stored on secure cloud infrastructure. ID images are stored exclusively with MetaMap under their privacy policy.</p>
 
     <h2 style="font-family:'Prata',serif; font-size:22px; color:#0A0A0A; margin:32px 0 12px;">Your rights</h2>
-    <p>You can access, correct, or delete your account at any time. Email <a href="mailto:privacy@kinasgroup.com" style="color:#C6A43F;">privacy@kinasgroup.com</a> to exercise these rights.</p>
+    <p>You can access, correct, or delete your account at any time. Email <a href="mailto:privacy@kinas-group.com" style="color:#C6A43F;">privacy@kinas-group.com</a> to exercise these rights.</p>
 
     <h2 style="font-family:'Prata',serif; font-size:22px; color:#0A0A0A; margin:32px 0 12px;">Cookies</h2>
     <p>We use cookies for session management, analytics, and advertising measurement. You can manage preferences in your browser settings.</p>
 
     <h2 style="font-family:'Prata',serif; font-size:22px; color:#0A0A0A; margin:32px 0 12px;">Contact</h2>
-    <p>For any privacy-related questions, contact our Data Protection Officer at <a href="mailto:privacy@kinasgroup.com" style="color:#C6A43F;">privacy@kinasgroup.com</a>.</p>
+    <p>For any privacy-related questions, contact our Data Protection Officer at <a href="mailto:privacy@kinas-group.com" style="color:#C6A43F;">privacy@kinas-group.com</a>.</p>
 </section>
 
 <?php include __DIR__ . '/../templates/footer.php'; ?>

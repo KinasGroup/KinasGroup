@@ -213,7 +213,7 @@ include __DIR__ . '/../templates/header.php';
     <!-- Press -->
     <h2 style="font-family:'Prata',serif; font-size:28px; color:#0A0A0A; margin:48px 0 20px;">Press &amp; partnerships</h2>
     <p style="font-size:15px; color:#555; line-height:1.9; margin-bottom:24px;">
-        For press inquiries, partnership opportunities, or to discuss being featured in our editorial, please contact <a href="mailto:press@kinas-group.com" style="color:#C6A43F;">press@kinasgroup.com</a>.
+        For press inquiries, partnership opportunities, or to discuss being featured in our editorial, please contact <a href="mailto:press@kinas-group.com" style="color:#C6A43F;">press@kinas-group.com</a>.
     </p>
 </section>
 

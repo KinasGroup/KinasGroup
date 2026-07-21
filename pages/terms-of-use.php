@@ -34,7 +34,7 @@ include __DIR__ . '/../templates/header.php';
     <p>These Terms are governed by the laws of the Federal Republic of Nigeria. Disputes shall be resolved in the courts of Lagos, Nigeria.</p>
 
     <h2 style="font-family:'Prata',serif; font-size:22px; color:#0A0A0A; margin:32px 0 12px;">8. Contact</h2>
-    <p>For questions about these Terms, contact <a href="mailto:legal@kinasgroup.com" style="color:#C6A43F;">legal@kinasgroup.com</a>.</p>
+    <p>For questions about these Terms, contact <a href="mailto:legal@kinas-group.com" style="color:#C6A43F;">legal@kinas-group.com</a>.</p>
 </section>
 
 <?php include __DIR__ . '/../templates/footer.php'; ?>
