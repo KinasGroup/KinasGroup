@@ -382,10 +382,17 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('listingForm');
     const submitBtn = document.getElementById('submitBtn');
+    let isSubmitting = false;
     
     if (form && submitBtn) {
-        submitBtn.addEventListener('click', function(e) {
+        // Listens on the FORM's submit event (not just the button's click)
+        // so pressing Enter in a text field is caught too — previously that
+        // bypassed validation, the disabled-state guard, and could fire a
+        // second POST alongside a click, creating a duplicate listing.
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            if (isSubmitting) return; // guards against any re-entrant submit
             
             // Validate required fields
             const division = document.getElementById('division').value;
@@ -420,10 +427,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Show loading state
+            isSubmitting = true;
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
             
-            // Submit the form
+            // Submit the form (bypasses this same listener — .submit() does
+            // not re-fire the 'submit' event)
             form.submit();
         });
     }
