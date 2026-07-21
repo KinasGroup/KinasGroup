@@ -26,7 +26,7 @@ $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$post) {
     http_response_code(404);
-    include __DIR__ . '/../../pages/404.php';
+    include __DIR__ . '/../pages/404.php';
     exit;
 }
 
