@@ -138,7 +138,7 @@ function ok(string $label, bool $cond, string $detail = ''): void {
     }
 }
 
-function header(string $title): void {
+function section(string $title): void {
     echo "\n\033[1m── $title ──\033[0m\n";
 }
 
@@ -215,7 +215,7 @@ function runRole(string $role, array $conf, array $cred, string $base): void {
     $jar = sys_get_temp_dir() . "/kinas_test_{$role}_" . posix_getpid() . ".cookies";
     @unlink($jar);
 
-    header("Role: $role");
+    section("Role: $role");
 
     // 1) Login page is reachable
     [$html, $status] = http('GET', $base . $conf['login_path'], [], $jar);
@@ -284,7 +284,7 @@ function runRole(string $role, array $conf, array $cred, string $base): void {
 }
 
 function runLoggedOutHomepage(string $base): void {
-    header('Role: anonymous (logged out)');
+    section('Role: anonymous (logged out)');
     $jar = sys_get_temp_dir() . '/kinas_test_anon_' . posix_getpid() . '.cookies';
     @unlink($jar);
 
@@ -302,7 +302,7 @@ function runLoginAsAdminEndsOnAdminDashboard(string $base): void {
     // this in runRole('admin', ...).  This is a placeholder for any extra
     // role-mismatch assertions (e.g. an agent trying to log in via the
     // admin form should be rejected, not silently dropped to a 500).
-    header('Role: role-mismatch guards');
+    section('Role: role-mismatch guards');
     $jar = sys_get_temp_dir() . '/kinas_test_mismatch_' . posix_getpid() . '.cookies';
     @unlink($jar);
 
@@ -315,7 +315,7 @@ function runLoginAsAdminEndsOnAdminDashboard(string $base): void {
 
 // ── Run ─────────────────────────────────────────────────────────────────────
 
-header('Smoke: server reachable');
+section('Smoke: server reachable');
 [$_, $ping] = http('GET', $BASE_URL . '/', [], null);
 ok("Server at $BASE_URL is reachable", $ping > 0, "got $ping");
 if ($ping === 0 || $ping >= 500) {
