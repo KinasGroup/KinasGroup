@@ -437,6 +437,9 @@ class Security {
             'pdf'  => 'application/pdf',
             'doc'  => 'application/msword',
             'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'mp4'  => 'video/mp4',
+            'mov'  => 'video/quicktime',
+            'webm' => 'video/webm',
         ];
         if (!isset($allowedMimes[$extension]) || $mimeType !== $allowedMimes[$extension]) {
             return ['valid' => false, 'error' => 'Invalid file content'];

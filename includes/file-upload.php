@@ -42,13 +42,13 @@ class FileUpload {
         'application/pdf' => 'pdf'
     ];
 
-    public function __construct(string $subDir = 'general') {
+    public function __construct(string $subDir = 'general', array $extraMimes = [], ?int $maxSizeOverride = null) {
         // Check if R2 should be used
         $this->useR2 = R2Upload::isConfigured() && (getenv('R2_ENABLED') !== 'false');
         
         if ($this->useR2) {
             try {
-                $this->r2Uploader = new R2Upload($subDir);
+                $this->r2Uploader = new R2Upload($subDir, $extraMimes, $maxSizeOverride);
                 $this->uploadDir = ''; // Not used for R2
                 error_log('FileUpload: Using R2 storage');
             } catch (RuntimeException $e) {
@@ -66,8 +66,10 @@ class FileUpload {
             error_log('FileUpload: Using local storage at ' . $this->uploadDir);
         }
         
-        $this->allowedTypes = self::MIME_TO_EXTENSION;
-        $this->maxSize = 10 * 1024 * 1024; // 10MB
+        // See R2Upload's constructor for why $extraMimes is additive rather
+        // than replacing the default image/PDF whitelist.
+        $this->allowedTypes = $extraMimes + self::MIME_TO_EXTENSION;
+        $this->maxSize = $maxSizeOverride ?? (10 * 1024 * 1024); // 10MB default
     }
 
     /**
@@ -136,7 +138,7 @@ class FileUpload {
 
         // Check file size
         if ($file['size'] > $this->maxSize) {
-            return ['success' => false, 'error' => 'File exceeds maximum size of 10MB'];
+            return ['success' => false, 'error' => 'File exceeds maximum size of ' . round($this->maxSize / 1048576) . 'MB'];
         }
 
         // Verify MIME type using finfo (more reliable than relying on client-provided type)

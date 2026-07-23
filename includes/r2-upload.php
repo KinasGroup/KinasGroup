@@ -59,7 +59,7 @@ class R2Upload {
         'application/pdf' => 'pdf'
     ];
     
-    public function __construct(string $subDir = 'general') {
+    public function __construct(string $subDir = 'general', array $extraMimes = [], ?int $maxSizeOverride = null) {
         global $awsSdkLoaded;
         
         // Validate subdirectory
@@ -79,8 +79,12 @@ class R2Upload {
             $this->publicUrl = "https://pub-{$this->accountId}.r2.dev/{$this->bucket}";
         }
         
-        $this->allowedTypes = self::MIME_TO_EXTENSION;
-        $this->maxSize = 10 * 1024 * 1024; // 10MB
+        // $extraMimes lets specific call sites (e.g. virtual tour video
+        // upload) accept additional MIME types beyond the image/PDF
+        // default, without loosening validation for every other uploader
+        // (listing photos, KYC documents, etc.) that constructs this class.
+        $this->allowedTypes = $extraMimes + self::MIME_TO_EXTENSION;
+        $this->maxSize = $maxSizeOverride ?? (10 * 1024 * 1024); // 10MB default
         $this->useAwsSdk = $awsSdkLoaded && class_exists('Aws\S3\S3Client');
         
         // Initialize AWS SDK if available
@@ -126,7 +130,7 @@ class R2Upload {
         
         // Check file size
         if ($file['size'] > $this->maxSize) {
-            return ['success' => false, 'error' => 'File exceeds maximum size of 10MB'];
+            return ['success' => false, 'error' => 'File exceeds maximum size of ' . round($this->maxSize / 1048576) . 'MB'];
         }
         
         // Verify MIME type
