@@ -97,7 +97,33 @@ if ($decision === null) {
 
 $internalStatus = DiditService::mapStatus($diditStatus);
 $now            = date('Y-m-d H:i:s');
-$isFinal        = in_array($internalStatus, ['approved', 'rejected'], true);
+
+// Identity cross-check — see DiditService::namesLikelyMatch() for why
+// this exists. Must happen BEFORE $isFinal / the DB writes below, so a
+// mismatch consistently downgrades the status everywhere (both tables),
+// not just in agent_profiles.
+$documentName = null;
+$nameMismatch = 0;
+if ($sessionType === 'kyc' && $internalStatus === 'approved' && is_array($decision)) {
+    $documentName = DiditService::extractDocumentName($decision);
+
+    $userRow = $db->prepare("SELECT name FROM users WHERE id = ?");
+    $userRow->execute([$userId]);
+    $registeredName = (string)($userRow->fetchColumn() ?: '');
+
+    // Can't confirm the name matches (either it couldn't be read off the
+    // document, or the tokens don't sufficiently overlap) — hold for
+    // manual review rather than assume it's fine. This is what actually
+    // closes the bug: a genuine mismatch (or an unreadable name) no
+    // longer auto-approves.
+    if ($documentName === null || $registeredName === '' || !DiditService::namesLikelyMatch($registeredName, $documentName)) {
+        $nameMismatch = 1;
+        $internalStatus = 'review_needed';
+        error_log("Didit KYC identity mismatch: user_id=$userId registered_name=\"$registeredName\" document_name=\"" . ($documentName ?? 'UNREADABLE') . "\" session=$sessionId");
+    }
+}
+
+$isFinal = in_array($internalStatus, ['approved', 'rejected'], true);
 
 $db->beginTransaction();
 try {
@@ -116,13 +142,16 @@ try {
     ]);
 
     if ($sessionType === 'kyc') {
+
         $db->prepare("
             UPDATE agent_profiles
             SET verification_status = ?,
                 kyc_decision_at     = CASE WHEN ? THEN ? ELSE kyc_decision_at END,
-                kyc_submitted_at    = COALESCE(kyc_submitted_at, ?)
+                kyc_submitted_at    = COALESCE(kyc_submitted_at, ?),
+                kyc_document_name   = COALESCE(?, kyc_document_name),
+                kyc_name_mismatch   = ?
             WHERE user_id = ?
-        ")->execute([$internalStatus, $isFinal ? 1 : 0, $isFinal ? $now : null, $now, $userId]);
+        ")->execute([$internalStatus, $isFinal ? 1 : 0, $isFinal ? $now : null, $now, $documentName, $nameMismatch, $userId]);
 
         if ($internalStatus === 'approved') {
             $db->prepare("UPDATE users SET verified = 1, status = 'active' WHERE id = ?")->execute([$userId]);
@@ -132,6 +161,9 @@ try {
         } elseif ($internalStatus === 'rejected') {
             $db->prepare("UPDATE users SET verified = 0 WHERE id = ?")->execute([$userId]);
         }
+        // 'review_needed' deliberately does NOT touch users.verified —
+        // it stays whatever it was (normally unverified) until an admin
+        // makes the call.
     } else { // kyb
         // Didit's KYB status vocabulary maps onto our internal set the
         // same way KYC does, except our column uses 'not_started'
