@@ -26,6 +26,10 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Upload limit overrides (see docker/uploads.ini for why) — PHP-FPM loads
+# every *.ini in this directory automatically on startup.
+COPY docker/uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
+
 # Set working directory
 WORKDIR /var/www/html
 
