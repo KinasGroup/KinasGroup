@@ -164,7 +164,10 @@ function notifyOrderPaid(PDO $db, array $order, array $items): void
         Notify::email(
             $order['email'],
             'Your KINAS Marketplace order is confirmed',
-            "Thank you for your purchase!\n\nOrder reference: {$order['reference']}\n\n{$itemList}\n\nTotal paid: ₦{$total}\n\nThe seller(s) have been notified and will be in touch about handover/shipping."
+            "Thank you for your purchase!\n\nOrder reference: {$order['reference']}\n\n{$itemList}\n\nTotal paid: ₦{$total}\n\nThe seller(s) have been notified and will be in touch about handover/shipping.",
+            null,
+            SALES_EMAIL,
+            'KINAS Marketplace Sales'
         );
 
         // Group items by agent so each seller gets one message.

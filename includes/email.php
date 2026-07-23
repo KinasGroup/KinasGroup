@@ -16,7 +16,7 @@ class EmailService
     
     public function __construct()
     {
-        $this->fromEmail = getenv('MAIL_FROM_ADDRESS') ?: 'noreply@kinas-group.com';
+        $this->fromEmail = getenv('MAIL_FROM_ADDRESS') ?: 'info@kinas-group.com';
         $this->fromName = getenv('MAIL_FROM_NAME') ?: 'KINAS GROUP OF COMPANIES LIMITED';
         $this->siteUrl = rtrim(getenv('APP_URL') ?: 'https://kinas-group.com', '/');
 
@@ -178,29 +178,41 @@ HTML;
     /**
      * Send email using Resend API or fallback
      */
-    public function send($to, $name, $subject, $htmlBody, $plainText = '')
+    /**
+     * The domain-aware site URL (see constructor) — for callers building
+     * their own links (e.g. a password reset URL) rather than using one
+     * of EmailService's own template methods.
+     */
+    public function getSiteUrl(): string
+    {
+        return $this->siteUrl;
+    }
+
+    public function send($to, $name, $subject, $htmlBody, $plainText = '', $fromEmail = null, $fromName = null)
     {
         $htmlBody = $this->wrapEmailDocument($htmlBody, $subject);
+        $fromEmail = $fromEmail ?: $this->fromEmail;
+        $fromName = $fromName ?: $this->fromName;
 
         // Try Resend first
         if ($this->useResend) {
-            $result = $this->sendViaResend($to, $name, $subject, $htmlBody, $plainText);
+            $result = $this->sendViaResend($to, $name, $subject, $htmlBody, $plainText, $fromEmail, $fromName);
             if ($result) {
                 return true;
             }
         }
         
         // Fallback to PHPMailer
-        return $this->sendViaPHPMailer($to, $name, $subject, $htmlBody, $plainText);
+        return $this->sendViaPHPMailer($to, $name, $subject, $htmlBody, $plainText, $fromEmail, $fromName);
     }
     
     /**
      * Send email via Resend API
      */
-    private function sendViaResend($to, $name, $subject, $htmlBody, $plainText = '')
+    private function sendViaResend($to, $name, $subject, $htmlBody, $plainText = '', $fromEmail = null, $fromName = null)
     {
         $payload = [
-            'from' => $this->fromName . ' <' . $this->fromEmail . '>',
+            'from' => ($fromName ?: $this->fromName) . ' <' . ($fromEmail ?: $this->fromEmail) . '>',
             'to' => [$to],
             'subject' => $subject,
             'html' => $htmlBody,
@@ -245,8 +257,16 @@ HTML;
     
     /**
      * Send email via PHPMailer (fallback)
+     *
+     * $fromEmail/$fromName let a caller present a different verified
+     * address (e.g. sales@kinas-group.com for an order confirmation)
+     * while still authenticating over SMTP as the one mailbox configured
+     * in setupPHPMailer() (SMTP_USERNAME/SMTP_PASSWORD) — this is exactly
+     * what Zoho's "Send Mail As" delegation expects: the authenticated
+     * account differs from the visible From address, and Zoho accepts it
+     * because that address was added as a verified alias on their side.
      */
-    private function sendViaPHPMailer($to, $name, $subject, $htmlBody, $plainText = '')
+    private function sendViaPHPMailer($to, $name, $subject, $htmlBody, $plainText = '', $fromEmail = null, $fromName = null)
     {
         if (!$this->usePHPMailer) {
             error_log('PHPMailer not available');
@@ -256,6 +276,7 @@ HTML;
         try {
             $this->mailer->clearAddresses();
             $this->mailer->addAddress($to, $name);
+            $this->mailer->setFrom($fromEmail ?: $this->fromEmail, $fromName ?: $this->fromName);
             $this->mailer->Subject = $subject;
             $this->mailer->Body = $htmlBody;
             $this->mailer->AltBody = $plainText ?: strip_tags($htmlBody);

@@ -30,8 +30,13 @@ class Notify
 
     /**
      * Send an email if the email service is configured.
+     *
+     * $fromEmail/$fromName optionally override the default sender identity
+     * (e.g. sales@kinas-group.com for an order confirmation) — see
+     * EmailService::send() for how this coexists with a single
+     * authenticated SMTP mailbox.
      */
-    public static function email(string $to, string $subject, string $body, ?string $altBody = null): bool
+    public static function email(string $to, string $subject, string $body, ?string $altBody = null, ?string $fromEmail = null, ?string $fromName = null): bool
     {
         try {
             $svc = new EmailService();
@@ -40,7 +45,7 @@ class Notify
             // turned into a safe HTML fragment before being used as htmlBody.
             $htmlBody = nl2br(htmlspecialchars($body, ENT_QUOTES));
             $plainText = $altBody ?? $body;
-            return $svc->send($to, '', $subject, $htmlBody, $plainText);
+            return $svc->send($to, '', $subject, $htmlBody, $plainText, $fromEmail, $fromName);
         } catch (Throwable $e) {
             error_log('Notify::email failed: ' . $e->getMessage());
             return false;
