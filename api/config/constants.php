@@ -6,6 +6,9 @@ define('SITE_NAME', getenv('APP_NAME') ?: 'KINAS GROUP');
 define('SITE_URL',  rtrim(getenv('APP_URL') ?: 'https://kinas-group.com', '/'));
 define('ADMIN_EMAIL',   getenv('ADMIN_EMAIL')   ?: 'admin@kinas-group.com');
 define('SUPPORT_EMAIL', getenv('SUPPORT_EMAIL') ?: 'support@kinas-group.com');
+define('INFO_EMAIL',    getenv('INFO_EMAIL')    ?: 'info@kinas-group.com');
+define('SALES_EMAIL',   getenv('SALES_EMAIL')   ?: 'sales@kinas-group.com');
+define('ACCOUNTS_EMAIL', getenv('ACCOUNTS_EMAIL') ?: 'accounts@kinas-group.com');
 
 // Division Configuration
 define('DIVISION_AUTOMOBILE', 'kinas-automobile');
