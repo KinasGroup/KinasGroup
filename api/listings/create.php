@@ -425,6 +425,53 @@ try {
         error_log('Image upload errors for listing ' . $listingId . ': ' . implode(', ', $imageErrors));
     }
 
+    // Virtual tour (Homes only): either a pasted link, or an uploaded
+    // video file. Same R2-vs-local URL handling as images above.
+    if ($listingType === 'property') {
+        $vtType = ($data['virtual_tour_type'] ?? 'link') === 'video' ? 'video' : 'link';
+        $vtUrl = null;
+        $vtError = null;
+
+        if ($vtType === 'link') {
+            $link = trim($s('virtual_tour_url', 500) ?? '');
+            if ($link !== '' && filter_var($link, FILTER_VALIDATE_URL)) {
+                $vtUrl = $link;
+            }
+        } elseif (!empty($_FILES['virtual_tour_video']['name']) && $_FILES['virtual_tour_video']['error'] !== UPLOAD_ERR_NO_FILE) {
+            if ($_FILES['virtual_tour_video']['error'] === UPLOAD_ERR_OK) {
+                $videoUploader = new FileUpload(
+                    'properties',
+                    ['video/mp4' => 'mp4', 'video/quicktime' => 'mov', 'video/webm' => 'webm'],
+                    150 * 1024 * 1024 // 150MB — a walkthrough clip is far larger than a photo
+                );
+                $videoResult = $videoUploader->upload([
+                    'name'     => $_FILES['virtual_tour_video']['name'],
+                    'type'     => $_FILES['virtual_tour_video']['type'],
+                    'tmp_name' => $_FILES['virtual_tour_video']['tmp_name'],
+                    'error'    => $_FILES['virtual_tour_video']['error'],
+                    'size'     => $_FILES['virtual_tour_video']['size'],
+                ], ['prefix' => "listing_{$listingId}_tour_"]);
+
+                if ($videoResult['success']) {
+                    $vtUrl = isset($videoResult['key'])
+                        ? $videoResult['filepath']
+                        : '/uploads/properties/' . $videoResult['filename'];
+                } else {
+                    $vtError = $videoResult['error'] ?? 'Unknown upload error';
+                }
+            } else {
+                $vtError = 'Video upload failed (error code ' . $_FILES['virtual_tour_video']['error'] . ')';
+            }
+        }
+
+        if ($vtUrl !== null) {
+            $db->prepare("UPDATE property_listings SET virtual_tour_url = ?, virtual_tour_type = ? WHERE id = ?")
+               ->execute([$vtUrl, $vtType, $listingId]);
+        } elseif ($vtError !== null) {
+            error_log("Virtual tour upload error for listing $listingId: $vtError");
+        }
+    }
+
     if (!empty($data['featured'])) {
         $db->prepare("UPDATE $table SET featured = 1 WHERE id = ?")->execute([$listingId]);
     }

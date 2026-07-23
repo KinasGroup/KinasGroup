@@ -95,6 +95,11 @@ try {
         // NEW AUTOMOBILE FIELDS (only update if column exists):
         'engine', 'gearbox', 'car_type', 'drive', 'drive_train', 
         'interior_color'
+        // NOTE: virtual_tour_url / virtual_tour_type are intentionally NOT
+        // in this list — both the "link" and "video" cases are handled
+        // together in one dedicated block below (alongside image uploads),
+        // so there's a single place deciding what goes in these two
+        // columns instead of two code paths racing to write them.
     ];
 
     // Only include text fields that exist in the table
@@ -274,6 +279,62 @@ try {
         } catch (Exception $e) {
             error_log('listing image upload error: ' . $e->getMessage());
         }
+    }
+
+    // Virtual tour (Homes only): either a pasted link, or an uploaded video
+    // file. Handled as one block (not the generic $allTextFields loop above)
+    // so switching between link/video mode can't leave a stale value in the
+    // other column — see the note above $allTextFields for why.
+    if ($listingType === 'property' && isset($data['virtual_tour_type'])) {
+        $vtType = $data['virtual_tour_type'] === 'video' ? 'video' : 'link';
+        $vtUrl = null;
+        $vtError = null;
+
+        if ($vtType === 'link') {
+            $link = trim($data['virtual_tour_url'] ?? '');
+            if ($link !== '' && filter_var($link, FILTER_VALIDATE_URL)) {
+                $vtUrl = $link;
+            }
+            // Blank/invalid link on purpose clears the field (agent removed it).
+        } elseif (!empty($_FILES['virtual_tour_video']['name']) && $_FILES['virtual_tour_video']['error'] !== UPLOAD_ERR_NO_FILE) {
+            if ($_FILES['virtual_tour_video']['error'] === UPLOAD_ERR_OK) {
+                $videoUploader = new FileUpload(
+                    'properties',
+                    ['video/mp4' => 'mp4', 'video/quicktime' => 'mov', 'video/webm' => 'webm'],
+                    150 * 1024 * 1024
+                );
+                $videoResult = $videoUploader->upload([
+                    'name'     => $_FILES['virtual_tour_video']['name'],
+                    'type'     => $_FILES['virtual_tour_video']['type'],
+                    'tmp_name' => $_FILES['virtual_tour_video']['tmp_name'],
+                    'error'    => $_FILES['virtual_tour_video']['error'],
+                    'size'     => $_FILES['virtual_tour_video']['size'],
+                ], ['prefix' => "listing_{$listingId}_tour_"]);
+
+                if ($videoResult['success']) {
+                    $vtUrl = isset($videoResult['key'])
+                        ? $videoResult['filepath']
+                        : '/uploads/properties/' . $videoResult['filename'];
+                } else {
+                    $vtError = $videoResult['error'] ?? 'Unknown upload error';
+                }
+            } else {
+                $vtError = 'Video upload failed (error code ' . $_FILES['virtual_tour_video']['error'] . ')';
+            }
+        } else {
+            // "video" mode selected but no new file uploaded — keep whatever
+            // video URL is already saved (the edit form does this: "leave
+            // blank to keep the current video").
+            $existing = $db->prepare("SELECT virtual_tour_url FROM property_listings WHERE id = ? AND virtual_tour_type = 'video'");
+            $existing->execute([$listingId]);
+            $vtUrl = $existing->fetchColumn() ?: null;
+        }
+
+        if ($vtError !== null) {
+            error_log("Virtual tour upload error for listing $listingId: $vtError");
+        }
+        $db->prepare("UPDATE property_listings SET virtual_tour_url = ?, virtual_tour_type = ? WHERE id = ?")
+           ->execute([$vtUrl, $vtUrl !== null ? $vtType : null, $listingId]);
     }
 
     Security::logActivity($_SESSION['user_id'], 'listing_updated', "Updated $listingType listing $listingId");
