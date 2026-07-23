@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once '../config/database.php';
+require_once '../config/constants.php';
 require_once '../../includes/session.php';
 require_once '../../includes/email.php';
 
@@ -26,8 +27,9 @@ try {
     $stmt->execute([$agentId]);
     $agent = $stmt->fetch();
     
-    $emailService = new EmailService();
-    $emailService->sendAgentRejected($agent['email'], $agent['name'], $reason);
+    $svc = new EmailService();
+    $rejectBody = "Hi {$agent['name']},\n\nThank you for applying to become a KINAS GROUP agent. After review, we're unable to approve your application at this time.\n\nReason: {$reason}\n\nIf you believe this was a mistake or would like to reapply with updated information, please contact us at " . SUPPORT_EMAIL . ".";
+    $svc->send($agent['email'], $agent['name'], 'Your KINAS GROUP agent application', nl2br(htmlspecialchars($rejectBody)), $rejectBody, INFO_EMAIL, 'KINAS GROUP');
     
     echo json_encode(['success' => true, 'message' => 'Agent rejected']);
 } catch (Exception $e) {

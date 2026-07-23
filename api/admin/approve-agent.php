@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once '../config/database.php';
+require_once '../config/constants.php';
 require_once '../../includes/session.php';
 require_once '../../includes/email.php';
 
@@ -28,8 +29,9 @@ try {
     $stmt->execute([$agentId]);
     $agent = $stmt->fetch();
     
-    $emailService = new EmailService();
-    $emailService->sendAgentApproved($agent['email'], $agent['name']);
+    $svc = new EmailService();
+    $approveBody = "Hi {$agent['name']},\n\nGreat news — your KINAS GROUP agent account has been approved. You can now log in and start listing.\n\n" . $svc->getSiteUrl() . "/auth/login.php";
+    $svc->send($agent['email'], $agent['name'], 'Your KINAS GROUP agent account has been approved', nl2br(htmlspecialchars($approveBody)), $approveBody, INFO_EMAIL, 'KINAS GROUP');
     
     echo json_encode(['success' => true, 'message' => 'Agent approved']);
 } catch (Exception $e) {
