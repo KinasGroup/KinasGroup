@@ -33,6 +33,7 @@ if (!empty($orders)) {
     $in = implode(',', array_fill(0, count($orderIds), '?'));
     $itemsStmt = $db->prepare("
         SELECT oi.order_id, oi.title, oi.price, oi.listing_id,
+               oi.shipping_status, oi.tracking_number,
                (SELECT url FROM listing_images WHERE listing_id = oi.listing_id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) AS thumbnail
         FROM order_items oi
         WHERE oi.order_id IN ($in)
@@ -134,6 +135,14 @@ include __DIR__ . '/../templates/header.php';
                         <?php endif; ?>
                     </div>
                     <a href="/divisions/kinas-marketplace/detail.php?id=<?= (int)$it['listing_id'] ?>" class="order-item-title" style="text-decoration:none;color:#333;"><?= htmlspecialchars($it['title']) ?></a>
+                    <?php
+                        $shipBadges = ['pending' => ['#FFF3E0', '#E65100', 'Preparing'], 'shipped' => ['#E3F2FD', '#1565C0', 'Shipped'], 'delivered' => ['#E8F5E9', '#2E7D32', 'Delivered']];
+                        [$bg, $fg, $label] = $shipBadges[$it['shipping_status'] ?? 'pending'] ?? $shipBadges['pending'];
+                    ?>
+                    <span style="background:<?= $bg ?>;color:<?= $fg ?>;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-right:10px;"><?= $label ?></span>
+                    <?php if (!empty($it['tracking_number'])): ?>
+                        <span style="font-size:11px;color:#888;margin-right:10px;">Tracking: <?= htmlspecialchars($it['tracking_number']) ?></span>
+                    <?php endif; ?>
                     <span class="order-item-price"><?= formatPrice((float)$it['price']) ?></span>
                 </div>
                 <?php endforeach; ?>
