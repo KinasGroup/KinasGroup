@@ -144,14 +144,17 @@ try {
     // SEND TO LISTING AGENT
     // ============================================================
     if ($listingAgent) {
-        $emailService = new EmailService();
-        $emailService->sendNewInquiry(
-            $listingAgent['email'], 
-            $listingAgent['name'],
-            $listing['title'], 
-            $name, 
-            $email, 
-            $message
+        // sendNewInquiry() was never a real method on EmailService — this
+        // call fatal-errored (Error, not Exception, so the catch below
+        // never even caught it) before the message was saved, on every
+        // single inquiry/viewing request across all 4 divisions.
+        Notify::email(
+            $listingAgent['email'],
+            $subject,
+            strip_tags(str_replace(['<br>', '</p>'], ["\n", "\n"], $emailBody)),
+            null,
+            SUPPORT_EMAIL,
+            'KINAS GROUP Notifications'
         );
 
         // Also send the detailed email with date/time if viewing
@@ -172,6 +175,20 @@ try {
             Notify::sms($listingAgent['phone'], $smsMsg, 'NEW_INQUIRY');
         }
     }
+
+    // ============================================================
+    // CONFIRMATION EMAIL TO THE REQUESTER
+    // ============================================================
+    // Previously nothing was ever sent back to the person who submitted
+    // the inquiry/viewing request — they had no way of knowing it went
+    // through at all beyond the on-page success message.
+    $confirmSubject = $isViewing
+        ? "Your viewing request for {$listing['title']} has been received"
+        : "Your inquiry about {$listing['title']} has been received";
+    $confirmBody = $isViewing
+        ? "Hi {$name},\n\nYour request to view \"{$listing['title']}\" on {$preferredDate} at {$preferredTime} has been sent to the listing agent.\n\nThey'll be in touch shortly to confirm the appointment. If the requested time doesn't work for them, they may suggest an alternative.\n\nYour message:\n{$message}"
+        : "Hi {$name},\n\nYour inquiry about \"{$listing['title']}\" has been sent to the listing agent, who will respond directly to this email address.\n\nYour message:\n{$message}";
+    Notify::email($email, $confirmSubject, $confirmBody, null, INFO_EMAIL, 'KINAS GROUP');
 
     // ============================================================
     // SEND TO SUPER AGENT (if exists and is different from listing agent)
