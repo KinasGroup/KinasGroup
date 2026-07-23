@@ -254,6 +254,85 @@ $agentVerified = !empty($item['agent_verified']);
                 </dl>
             </div>
 
+            <?php if (($item['listing_type'] ?? 'sale') === 'rental'): ?>
+            <!-- Rental Booking Widget -->
+            <div class="je-agent-card" style="display:block;margin-bottom:16px;">
+                <h3 style="margin:0 0 12px;font-size:16px;"><i class="fas fa-key"></i> Book This Rental</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div>
+                        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Start Date</label>
+                        <input type="date" id="rbStartDate" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">End Date</label>
+                        <input type="date" id="rbEndDate" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+                    </div>
+                </div>
+                <div id="rbEstimate" style="font-size:13px;color:#666;margin-bottom:10px;"></div>
+                <button type="button" class="je-cta-primary" style="width:100%;" onclick="submitRentalBooking(<?= $listingId ?>)">
+                    <i class="fas fa-calendar-check"></i> Request Booking
+                </button>
+                <div id="rbMsg" style="margin-top:10px;font-size:13px;display:none;"></div>
+            </div>
+            <script>
+            (function () {
+                const pricePerDay = <?= (float)($item['price'] ?? 0) ?>;
+                const startEl = document.getElementById('rbStartDate');
+                const endEl = document.getElementById('rbEndDate');
+                const estEl = document.getElementById('rbEstimate');
+                const today = new Date().toISOString().split('T')[0];
+                startEl.min = today;
+                endEl.min = today;
+
+                function updateEstimate() {
+                    if (!startEl.value || !endEl.value) { estEl.textContent = ''; return; }
+                    const start = new Date(startEl.value);
+                    const end = new Date(endEl.value);
+                    const days = Math.round((end - start) / 86400000);
+                    if (days <= 0) { estEl.textContent = 'End date must be after start date.'; return; }
+                    const total = days * pricePerDay;
+                    estEl.textContent = days + ' day' + (days === 1 ? '' : 's') + ' × ₦' + pricePerDay.toLocaleString('en-NG') + ' = ₦' + total.toLocaleString('en-NG') + ' (estimate)';
+                }
+                startEl.addEventListener('change', function () { endEl.min = startEl.value; updateEstimate(); });
+                endEl.addEventListener('change', updateEstimate);
+            })();
+
+            async function submitRentalBooking(carId) {
+                if (!isUserLoggedIn()) { showLoginRequired(); return; }
+                const start = document.getElementById('rbStartDate').value;
+                const end = document.getElementById('rbEndDate').value;
+                const msgEl = document.getElementById('rbMsg');
+                if (!start || !end) {
+                    msgEl.style.display = 'block';
+                    msgEl.style.background = '#FFEBEE'; msgEl.style.color = '#C62828'; msgEl.style.padding = '10px'; msgEl.style.borderRadius = '6px';
+                    msgEl.textContent = 'Please select both a start and end date.';
+                    return;
+                }
+                try {
+                    const res = await fetch('/api/rental/book.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ car_id: carId, start_date: start, end_date: end })
+                    });
+                    const data = await res.json();
+                    msgEl.style.display = 'block';
+                    msgEl.style.padding = '10px'; msgEl.style.borderRadius = '6px';
+                    if (res.ok && data.success) {
+                        msgEl.style.background = '#E8F5E9'; msgEl.style.color = '#2E7D32';
+                        msgEl.textContent = data.message || 'Booking request sent! The agent will confirm shortly.';
+                    } else {
+                        msgEl.style.background = '#FFEBEE'; msgEl.style.color = '#C62828';
+                        msgEl.textContent = data.error || 'Something went wrong. Please try again.';
+                    }
+                } catch (e) {
+                    msgEl.style.display = 'block';
+                    msgEl.style.background = '#FFEBEE'; msgEl.style.color = '#C62828'; msgEl.style.padding = '10px'; msgEl.style.borderRadius = '6px';
+                    msgEl.textContent = 'Network error. Please try again.';
+                }
+            }
+            </script>
+            <?php endif; ?>
+
             <!-- ============================================================ -->
             <!-- BUTTONS - Fully Working -->
             <!-- ============================================================ -->
