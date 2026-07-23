@@ -92,7 +92,7 @@ $rejectedCount  = (int)$db->query("SELECT COUNT(*) FROM agent_profiles WHERE ver
 $agents = $db->query("
     SELECT u.id, u.name, u.email, u.phone, u.created_at,
            ap.division, ap.verification_status, ap.company_name, ap.license_number, ap.bio, ap.website, ap.kyc_submitted_at,
-           ap.kyc_provider, ap.kyc_verification_id,
+           ap.kyc_provider, ap.kyc_verification_id, ap.kyc_document_name, ap.kyc_name_mismatch,
            ap.kyb_status, ap.kyb_verification_id, ap.kyb_registry_snapshot,
            mv.mati_status, mv.completed_at AS mv_completed,
            dv.didit_status, dv.completed_at AS dv_completed
@@ -234,6 +234,18 @@ require_once __DIR__ . '/../templates/header.php';
         $ph = $ph->fetch(PDO::FETCH_ASSOC);
     ?>
     <div class="approval-card">
+        <?php if (!empty($agent['kyc_name_mismatch'])): ?>
+        <div style="background:#FFEBEE;border:1px solid #EF9A9A;border-radius:8px;padding:12px 16px;margin-bottom:16px;">
+            <strong style="color:#C62828;"><i class="fas fa-triangle-exclamation"></i> Identity mismatch — needs your judgment</strong>
+            <p style="margin:6px 0 0;font-size:13px;color:#5a2020;">
+                This account registered as <strong><?= htmlspecialchars($agent['name']) ?></strong>,
+                but the ID document scanned during KYC reads as
+                <strong><?= htmlspecialchars($agent['kyc_document_name'] ?: 'unreadable / not extracted') ?></strong>.
+                Didit confirmed the live face matched that document's photo — it does not know these are supposed to be the same person.
+                Verify manually before approving (could be a legitimate name change, a nickname on the account, or someone else's ID).
+            </p>
+        </div>
+        <?php endif; ?>
         <div class="card-header">
             <h3><i class="fas fa-user" style="color:#C6A43F;margin-right:8px"></i><?= htmlspecialchars($agent['name']) ?></h3>
             <span class="status-badge"><i class="fas fa-clock"></i> <?= !empty($agent['kyc_submitted_at']) ? 'Submitted ' . date('M j, Y', strtotime($agent['kyc_submitted_at'])) : 'Applied ' . date('M j, Y', strtotime($agent['created_at'])) ?></span>
