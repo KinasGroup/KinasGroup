@@ -254,4 +254,82 @@ class DiditService
         }
         return ($val === null || $val === '') ? $default : (string)$val;
     }
+
+    // ──────────────────────────────────────────────────────────
+    // Identity cross-check (registered name vs. scanned ID document)
+    // ──────────────────────────────────────────────────────────
+    //
+    // Didit's decision confirms the LIVE FACE matches the ID DOCUMENT's
+    // photo — it says nothing about whether that document belongs to the
+    // person our records say is registering. Without this check, someone
+    // could register as "Alpha Delta" and complete KYC by scanning
+    // "Tango Delta"'s real ID (their own, a family member's, a stolen
+    // one) and — as long as the live face matched THAT document's photo —
+    // Didit would report "Approved", and the account would get marked
+    // fully verified under the wrong name entirely.
+
+    /**
+     * Best-effort extraction of the full name Didit read off the scanned
+     * ID document. Tries the shapes Didit's decision payload is known to
+     * use, most specific first. Returns null if no name field is found
+     * anywhere — callers must treat null as "cannot confirm", not as a
+     * pass.
+     */
+    public static function extractDocumentName(array $decision): ?string
+    {
+        $idv = $decision['id_verification'] ?? $decision['ID_VERIFICATION'] ?? null;
+
+        $candidates = [];
+        if (is_array($idv)) {
+            $candidates[] = $idv['full_name'] ?? null;
+            $candidates[] = $idv['fullName'] ?? null;
+            if (!empty($idv['first_name']) || !empty($idv['last_name'])) {
+                $candidates[] = trim(($idv['first_name'] ?? '') . ' ' . ($idv['last_name'] ?? ''));
+            }
+        }
+        $candidates[] = $decision['full_name'] ?? null;
+        if (!empty($decision['first_name']) || !empty($decision['last_name'])) {
+            $candidates[] = trim(($decision['first_name'] ?? '') . ' ' . ($decision['last_name'] ?? ''));
+        }
+
+        foreach ($candidates as $c) {
+            if (is_string($c) && trim($c) !== '') {
+                return trim(preg_replace('/\s+/', ' ', $c));
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Loose name match: tolerant of reordering, extra middle names,
+     * common honorifics, and punctuation/case differences, but strict
+     * about the actual name tokens differing (an "Alpha Delta" vs.
+     * "Tango Delta" case is a real mismatch, not a formatting quirk).
+     *
+     * Compares normalized token sets — matches if the overlap covers at
+     * least 70% of the shorter name's tokens. False positives here just
+     * mean one more account admin has to glance at during manual review
+     * (see 'review_needed' in the webhook); false negatives mean a
+     * genuine identity mismatch sails through unnoticed, which is the
+     * bug being fixed — so this deliberately errs strict.
+     */
+    public static function namesLikelyMatch(string $registeredName, string $documentName): bool
+    {
+        $normalize = function (string $name): array {
+            $name = strtolower($name);
+            $name = preg_replace('/\b(mr|mrs|ms|miss|dr|engr|chief|prince|princess|alhaji|alhaja|barr|prof)\b\.?/', '', $name);
+            $name = preg_replace('/[^a-z\s]/', '', $name);
+            $tokens = array_filter(explode(' ', $name));
+            return array_values(array_unique($tokens));
+        };
+
+        $a = $normalize($registeredName);
+        $b = $normalize($documentName);
+        if (empty($a) || empty($b)) return false;
+
+        $overlap = count(array_intersect($a, $b));
+        $shorter = min(count($a), count($b));
+
+        return ($overlap / $shorter) >= 0.7;
+    }
 }
