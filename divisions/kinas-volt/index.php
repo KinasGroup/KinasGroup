@@ -284,7 +284,7 @@ include '../../templates/header.php';
         <h1 style="font-family:'Prata',serif; font-size:42px; font-weight:400; line-height:1.15; max-width:680px; margin-bottom:18px;">Premium Solar &amp; Energy Solutions</h1>
         <p style="font-size:17px; color:rgba(255,255,255,0.85); max-width:560px; line-height:1.6; margin-bottom:32px;">Solar energy Syatems, Inverters, Lithium-ion Batteries, Solar Street Lights, Solar Security Cameras, Backup Power Solutions.</p>
         <div class="je-flex" style="gap:14px;">
-            <a href="search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Systems</a>
+            <a href="/divisions/kinas-volt/search.php" class="je-btn je-btn-gold je-btn-lg"><i class="fas fa-search"></i> Browse Systems</a>
             <a href="/divisions/kinas-volt/calculator.php" class="solar-calculator-green-btn">
                 <i class="fas fa-calculator"></i> Solar Calculator
             </a>
@@ -295,7 +295,7 @@ include '../../templates/header.php';
 <!-- Search strip with custom dropdown -->
 <section style="background:#0A0A0A; padding:24px 0;">
     <div class="je-container">
-        <form method="GET" action="search.php" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <form method="GET" action="/divisions/kinas-volt/search.php" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <input type="text" name="q" placeholder="Brand, system type, keyword…" style="flex:1; min-width:240px; padding:14px 18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:3px; color:#fff; font-family:Inter,sans-serif; font-size:14px;">
             
             <!-- Custom Dropdown for Service Types -->
@@ -333,7 +333,7 @@ include '../../templates/header.php';
                 <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">FEATURED SYSTEMS</div>
                 <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Reliable energy solutions</h2>
             </div>
-            <a href="search.php" class="je-btn je-btn-outline">View all <i class="fas fa-arrow-right"></i></a>
+            <a href="/divisions/kinas-volt/search.php" class="je-btn je-btn-outline">View all <i class="fas fa-arrow-right"></i></a>
         </div>
 
         <?php
@@ -405,7 +405,7 @@ include '../../templates/header.php';
     <div class="je-container">
         <h2 style="font-family:'Prata',serif; font-size:36px; margin-bottom:14px;">Power the future with KINAS Volt</h2>
         <p style="color:rgba(255,255,255,0.7); font-size:15px; max-width:560px; margin:0 auto 28px;">Discover our range of premium solar products and solutions.</p>
-        <a href="search.php" class="je-btn je-btn-gold je-btn-lg">Explore Our Products</a>
+        <a href="/divisions/kinas-volt/search.php" class="je-btn je-btn-gold je-btn-lg">Explore Our Products</a>
     </div>
 </section>
 
