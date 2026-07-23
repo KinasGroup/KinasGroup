@@ -316,6 +316,25 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                             <select name="property_type"><option value="">Select Type</option><option value="Villa">Villa</option><option value="Apartment">Apartment</option><option value="Land">Land</option><option value="House">House</option><option value="Condo">Condo</option><option value="Townhouse">Townhouse</option></select>
                         </div>
                     </div>
+
+                    <div style="margin-top:20px;">
+                        <label style="display:block;font-weight:600;margin-bottom:8px;"><i class="fas fa-street-view"></i> Virtual Tour <span style="font-weight:400;color:#888;">(optional)</span></label>
+                        <div style="display:flex;gap:20px;margin-bottom:12px;">
+                            <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;">
+                                <input type="radio" name="virtual_tour_type" value="link" id="vtTypeLink" checked> Paste a link (YouTube, Vimeo, Matterport)
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;">
+                                <input type="radio" name="virtual_tour_type" value="video" id="vtTypeVideo"> Upload a video file
+                            </label>
+                        </div>
+                        <div id="vtLinkField" class="form-group">
+                            <input type="url" name="virtual_tour_url" id="vtUrlInput" placeholder="https://youtube.com/watch?v=...">
+                        </div>
+                        <div id="vtVideoField" class="form-group" style="display:none;">
+                            <input type="file" name="virtual_tour_video" id="vtVideoInput" accept="video/mp4,video/quicktime,video/webm">
+                            <span style="display:block;font-size:12px;color:#888;margin-top:4px;">MP4, MOV, or WebM — up to 150MB.</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- SOLAR DETAILS SECTION -->
@@ -373,6 +392,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const divisionSelect = document.getElementById('division');
     if (divisionSelect) {
         divisionSelect.addEventListener('change', syncListingType);
+    }
+
+    // Virtual tour: toggle between "paste a link" and "upload a video" —
+    // only one of the two fields should actually submit, so the inactive
+    // one's inputs are cleared/disabled rather than just hidden.
+    const vtTypeLink = document.getElementById('vtTypeLink');
+    const vtTypeVideo = document.getElementById('vtTypeVideo');
+    const vtLinkField = document.getElementById('vtLinkField');
+    const vtVideoField = document.getElementById('vtVideoField');
+    const vtUrlInput = document.getElementById('vtUrlInput');
+    const vtVideoInput = document.getElementById('vtVideoInput');
+
+    function syncVirtualTourMode() {
+        if (!vtTypeLink || !vtTypeVideo) return;
+        const isLink = vtTypeLink.checked;
+        vtLinkField.style.display = isLink ? '' : 'none';
+        vtVideoField.style.display = isLink ? 'none' : '';
+        if (isLink && vtVideoInput) vtVideoInput.value = '';
+        if (!isLink && vtUrlInput) vtUrlInput.value = '';
+    }
+    if (vtTypeLink && vtTypeVideo) {
+        vtTypeLink.addEventListener('change', syncVirtualTourMode);
+        vtTypeVideo.addEventListener('change', syncVirtualTourMode);
+        syncVirtualTourMode();
     }
 });
 

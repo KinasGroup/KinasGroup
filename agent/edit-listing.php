@@ -629,6 +629,29 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                             </select>
                         </div>
                     </div>
+
+                    <div style="margin-top:20px;">
+                        <label style="display:block;font-weight:600;margin-bottom:8px;"><i class="fas fa-street-view"></i> Virtual Tour <span style="font-weight:400;color:#888;">(optional)</span></label>
+                        <?php $vtType = $listing['virtual_tour_type'] ?? 'link'; $vtUrl = $listing['virtual_tour_url'] ?? ''; ?>
+                        <div style="display:flex;gap:20px;margin-bottom:12px;">
+                            <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;">
+                                <input type="radio" name="virtual_tour_type" value="link" id="vtTypeLink" <?php echo $vtType !== 'video' ? 'checked' : ''; ?>> Paste a link (YouTube, Vimeo, Matterport)
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;">
+                                <input type="radio" name="virtual_tour_type" value="video" id="vtTypeVideo" <?php echo $vtType === 'video' ? 'checked' : ''; ?>> Upload a video file
+                            </label>
+                        </div>
+                        <div id="vtLinkField" class="form-group" style="display:<?php echo $vtType !== 'video' ? '' : 'none'; ?>;">
+                            <input type="url" name="virtual_tour_url" id="vtUrlInput" placeholder="https://youtube.com/watch?v=..." value="<?php echo $vtType !== 'video' ? htmlspecialchars($vtUrl) : ''; ?>">
+                        </div>
+                        <div id="vtVideoField" class="form-group" style="display:<?php echo $vtType === 'video' ? '' : 'none'; ?>;">
+                            <?php if ($vtType === 'video' && $vtUrl): ?>
+                                <p style="font-size:13px;color:#555;margin-bottom:8px;">Current: <a href="<?php echo htmlspecialchars($vtUrl); ?>" target="_blank" rel="noopener">view uploaded video</a></p>
+                            <?php endif; ?>
+                            <input type="file" name="virtual_tour_video" id="vtVideoInput" accept="video/mp4,video/quicktime,video/webm">
+                            <span style="display:block;font-size:12px;color:#888;margin-top:4px;">MP4, MOV, or WebM — up to 150MB. <?php echo $vtType === 'video' && $vtUrl ? 'Leave blank to keep the current video.' : ''; ?></span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- SOLAR DETAILS SECTION -->
@@ -1132,5 +1155,23 @@ function showToast(message, type) {
 <!-- Image Optimization - Client-side compression -->
 <?php $__imgUploadJsV = @filemtime(__DIR__ . '/../assets/js/image-upload.js') ?: time(); ?>
 <script src="/assets/js/image-upload.js?v=<?= $__imgUploadJsV ?>"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const vtTypeLink = document.getElementById('vtTypeLink');
+    const vtTypeVideo = document.getElementById('vtTypeVideo');
+    const vtLinkField = document.getElementById('vtLinkField');
+    const vtVideoField = document.getElementById('vtVideoField');
+    if (!vtTypeLink || !vtTypeVideo) return;
+
+    function syncVirtualTourMode() {
+        const isLink = vtTypeLink.checked;
+        vtLinkField.style.display = isLink ? '' : 'none';
+        vtVideoField.style.display = isLink ? 'none' : '';
+    }
+    vtTypeLink.addEventListener('change', syncVirtualTourMode);
+    vtTypeVideo.addEventListener('change', syncVirtualTourMode);
+});
+</script>
 
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
