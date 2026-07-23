@@ -52,10 +52,16 @@ try {
         // Log activity
         Security::logActivity($user['id'], 'password_reset_request', 'Password reset requested from ' . $ip);
 
-        // Send reset email (in production, this would use SMTP)
+        // Send reset email
         try {
-            $emailService = new EmailService();
-            $emailService->sendPasswordReset($user['email'], $user['name'], $resetToken);
+            $svc = new EmailService();
+            $resetLink = $svc->getSiteUrl() . '/auth/reset-password.php?token=' . urlencode($resetToken);
+            $body = "Hi {$user['name']},\n\nWe received a request to reset your KINAS GROUP password. Click the link below to choose a new one:\n\n{$resetLink}\n\nThis link expires in 1 hour. If you didn't request this, you can safely ignore this email — your password won't be changed.";
+            // sendPasswordReset() was never a real method on EmailService —
+            // this call fatal-errored (an Error, not an Exception, so the
+            // catch below never actually caught it) on every single
+            // password reset request.
+            $svc->send($user['email'], $user['name'], 'Reset your KINAS GROUP password', nl2br(htmlspecialchars($body)), $body, INFO_EMAIL, 'KINAS GROUP');
         } catch (Exception $e) {
             error_log('Email send failed: ' . $e->getMessage());
             // Continue - don't expose email failure
