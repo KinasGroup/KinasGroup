@@ -9,6 +9,23 @@ require_once '../../api/config/database.php';
 require_once '../../includes/je-components.php';
 require_once '../../includes/security.php';
 
+/**
+ * Converts a YouTube or Vimeo "watch" URL into its embeddable iframe form.
+ * Returns null if the URL doesn't match either pattern — the caller falls
+ * back to a plain "watch tour" link for those (Matterport, direct video
+ * links hosted elsewhere, etc.), since embedding arbitrary third-party
+ * pages isn't reliable or safe to assume will work.
+ */
+function virtual_tour_embed_url(string $url): ?string {
+    if (preg_match('~(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{6,})~', $url, $m)) {
+        return 'https://www.youtube.com/embed/' . $m[1];
+    }
+    if (preg_match('~vimeo\.com/(\d+)~', $url, $m)) {
+        return 'https://player.vimeo.com/video/' . $m[1];
+    }
+    return null;
+}
+
 $id = (int)($_GET['id'] ?? 0);
 $db = Database::getInstance()->getConnection();
 
@@ -611,11 +628,31 @@ console.log('=== WILLIAMS CONNECT HOME detail page loaded ===');
         <?php endif; ?>
 
         <h2 style="margin-top:32px;">Virtual Tour</h2>
-        <div style="background:#f5f5f5;border:1px dashed #ccc;border-radius:8px;padding:48px 24px;text-align:center;color:#888;">
-            <i class="fas fa-street-view" style="font-size:32px;margin-bottom:12px;display:block;color:#bbb;"></i>
-            <p style="margin:0;font-weight:600;">Virtual tour coming soon</p>
-            <p style="margin:6px 0 0;font-size:13px;">Contact the agent below to arrange an in-person or video viewing.</p>
-        </div>
+        <?php
+        $tourUrl = $item['virtual_tour_url'] ?? '';
+        $tourType = $item['virtual_tour_type'] ?? '';
+        $embedUrl = ($tourType === 'link' && $tourUrl) ? virtual_tour_embed_url($tourUrl) : null;
+        ?>
+        <?php if ($tourType === 'video' && $tourUrl): ?>
+            <video controls preload="metadata" style="width:100%;max-height:480px;border-radius:8px;background:#000;">
+                <source src="<?= htmlspecialchars($tourUrl) ?>">
+                Your browser doesn't support embedded video. <a href="<?= htmlspecialchars($tourUrl) ?>" target="_blank" rel="noopener">Watch it directly</a> instead.
+            </video>
+        <?php elseif ($embedUrl): ?>
+            <div style="position:relative;padding-top:56.25%;border-radius:8px;overflow:hidden;background:#000;">
+                <iframe src="<?= htmlspecialchars($embedUrl) ?>" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+        <?php elseif ($tourType === 'link' && $tourUrl): ?>
+            <a href="<?= htmlspecialchars($tourUrl) ?>" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#151515;color:#fff;border-radius:8px;padding:20px;text-decoration:none;font-weight:600;">
+                <i class="fas fa-street-view"></i> Watch Virtual Tour
+            </a>
+        <?php else: ?>
+            <div style="background:#f5f5f5;border:1px dashed #ccc;border-radius:8px;padding:48px 24px;text-align:center;color:#888;">
+                <i class="fas fa-street-view" style="font-size:32px;margin-bottom:12px;display:block;color:#bbb;"></i>
+                <p style="margin:0;font-weight:600;">Virtual tour coming soon</p>
+                <p style="margin:6px 0 0;font-size:13px;">Contact the agent below to arrange an in-person or video viewing.</p>
+            </div>
+        <?php endif; ?>
 
         <?php if (!empty($item['latitude']) && !empty($item['longitude'])): ?>
         <h2 style="margin-top:32px;">Location</h2>
