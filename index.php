@@ -112,13 +112,13 @@ $featuredProperty = $db->query("
     LIMIT 2
 ")->fetchAll();
 
-// SOLAR - does NOT have featured column, get latest 2 instead
+// SOLAR - now has a featured column, same as the other divisions
 $featuredSolar = $db->query("
-    SELECT s.id, s.title, s.price, s.service_type,
+    SELECT s.id, s.title, s.price, s.service_type, s.featured,
            'solar' as listing_type, 'KINAS Volt' as division,
            (SELECT url FROM listing_images WHERE listing_id = s.id AND listing_type = 'solar' ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM solar_listings s
-    WHERE s.status = 'active'
+    WHERE s.status = 'active' AND s.featured = 1
     ORDER BY s.created_at DESC
     LIMIT 2
 ")->fetchAll();
