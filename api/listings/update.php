@@ -337,6 +337,30 @@ try {
            ->execute([$vtUrl, $vtUrl !== null ? $vtType : null, $listingId]);
     }
 
+    // Car rental gating: only a verified registered business (company
+    // name on file AND KYB approved) may set a vehicle to Rental — same
+    // rule and re-check as api/listings/create.php. The edit form only
+    // hides the option in the UI, which isn't enforcement on its own.
+    if ($listingType === 'car' && isset($data['car_listing_type'])) {
+        $requestedCarType = $data['car_listing_type'] === 'rental' ? 'rental' : 'sale';
+        if ($requestedCarType === 'rental') {
+            $bizCheck = $db->prepare("
+                SELECT ap.company_name, ap.kyb_status
+                FROM agent_profiles ap
+                JOIN car_listings c ON c.agent_id = ap.user_id
+                WHERE c.id = ?
+            ");
+            $bizCheck->execute([$listingId]);
+            $bizRow = $bizCheck->fetch(PDO::FETCH_ASSOC) ?: [];
+            $isVerifiedBusiness = trim((string)($bizRow['company_name'] ?? '')) !== '' && ($bizRow['kyb_status'] ?? '') === 'approved';
+            if (!$isVerifiedBusiness) {
+                $requestedCarType = 'sale';
+                error_log("Rejected rental listing_type on edit for listing $listingId — non-business/non-KYB agent, saved as 'sale' instead");
+            }
+        }
+        $db->prepare("UPDATE car_listings SET listing_type = ? WHERE id = ?")->execute([$requestedCarType, $listingId]);
+    }
+
     Security::logActivity($_SESSION['user_id'], 'listing_updated', "Updated $listingType listing $listingId");
 
     $isJson = strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false;

@@ -209,7 +209,23 @@ try {
         // Extract mileage as integer if possible
         $mileageRaw = $s('mileage', 100);
         $mileageValue = extractMileage($mileageRaw);
-        
+
+        // Rental is restricted to verified registered businesses (company
+        // name on file AND KYB approved) — re-checked here server-side
+        // regardless of what the form submitted, since agent/add-listing.php
+        // only hides the option in the UI, which isn't enforcement.
+        $requestedCarType = ($data['car_listing_type'] ?? 'sale') === 'rental' ? 'rental' : 'sale';
+        if ($requestedCarType === 'rental') {
+            $bizCheck = $db->prepare("SELECT company_name, kyb_status FROM agent_profiles WHERE user_id = ?");
+            $bizCheck->execute([$agentId]);
+            $bizRow = $bizCheck->fetch(PDO::FETCH_ASSOC) ?: [];
+            $isVerifiedBusiness = trim((string)($bizRow['company_name'] ?? '')) !== '' && ($bizRow['kyb_status'] ?? '') === 'approved';
+            if (!$isVerifiedBusiness) {
+                $requestedCarType = 'sale'; // silently fall back rather than reject the whole listing
+                error_log("Rejected rental listing_type from non-business/non-KYB agent_id=$agentId — created as 'sale' instead");
+            }
+        }
+
         $stmt = $db->prepare("
             INSERT INTO car_listings
                 (agent_id, title, brand, model, year, price, mileage,
@@ -217,8 +233,8 @@ try {
                  body_type, drivetrain, doors,
                  engine, gearbox, car_type, drive, drive_train, vin,
                  interior_color, seats, features, country,
-                 description, city, state, status, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?, NOW(), NOW())
+                 description, city, state, listing_type, status, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?, NOW(), NOW())
         ");
         $stmt->execute([
             $agentId,
@@ -248,6 +264,7 @@ try {
             $description,
             $s('city', 100),
             $s('state', 100),
+            $requestedCarType,
             $listingStatus, // 'active' for verified, 'pending' for unverified
         ]);
     } elseif ($listingType === 'property') {
