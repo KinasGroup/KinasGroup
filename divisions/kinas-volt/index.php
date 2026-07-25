@@ -27,14 +27,14 @@ $db->exec("
 ");
 
 $systems = $db->query("
-    SELECT s.id, s.title, s.service_type, s.price, s.brand, s.capacity_kw, s.warranty_years, s.views,
+    SELECT s.id, s.title, s.service_type, s.price, s.brand, s.capacity_kw, s.warranty_years, s.views, s.featured,
            s.city, s.state, s.country,
            a.verified as agent_verified,
            (SELECT url FROM listing_images WHERE listing_id = s.id AND listing_type = 'solar' ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM solar_listings s
     LEFT JOIN users a ON s.agent_id = a.id
     WHERE s.status = 'active'
-    ORDER BY s.created_at DESC
+    ORDER BY s.featured DESC, s.created_at DESC
     LIMIT 12
 ")->fetchAll();
 
@@ -347,7 +347,7 @@ include '../../templates/header.php';
                 'location' => implode(', ', $locParts),
                 // FIXED: Full path to detail page
                 'detail_url' => '/divisions/kinas-volt/detail.php?id=' . (int)$s['id'],
-                'featured' => false, 'verified' => !empty($s['agent_verified']),
+                'featured' => !empty($s['featured']), 'verified' => !empty($s['agent_verified']),
                 'views' => $s['views'] ?? 0,
             ];
         }, array_slice($systems, 0, 9));
