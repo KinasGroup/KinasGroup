@@ -34,7 +34,7 @@ $csrf   = Security::generateCSRFToken();
 // Load current state (KYC + KYB + phone)
 $row = $db->prepare("
     SELECT ap.verification_status, ap.kyc_submitted_at, ap.kyc_decision_at,
-           ap.kyb_status,
+           ap.kyb_status, ap.company_name,
            u.phone, u.phone_verified_at
     FROM users u
     JOIN agent_profiles ap ON ap.user_id = u.id
@@ -45,8 +45,12 @@ $state = $row->fetch(PDO::FETCH_ASSOC) ?: [];
 
 $status        = $state['verification_status'] ?? 'pending';
 $phoneVerified = !empty($state['phone_verified_at']);
+// 'kyc_passed' now means "identity confirmed" for BOTH individuals and
+// businesses — for a business it's an intermediate state (KYB still
+// pending), not yet a full pass. See api/webhooks/didit.php.
 $kycPassed     = in_array($status, ['kyc_passed', 'documents_submitted', 'approved'], true);
 $approved      = $status === 'approved';
+$isBusiness    = trim((string)($state['company_name'] ?? '')) !== '';
 
 $kybStatus   = $state['kyb_status'] ?? 'not_started';
 $kybApproved = $kybStatus === 'approved';
@@ -70,7 +74,9 @@ $steps = [
         'state' => $kycPassed ? 'completed' : (!$phoneVerified ? 'locked' : 'pending'),
     ],
     4 => [
-        'title' => 'Business Verification (KYB via Didit)',
+        'title' => $isBusiness
+            ? 'Business Verification (KYB via Didit) — Required'
+            : 'Business Verification (KYB via Didit) — Optional',
         'icon'  => 'fa-building',
         'state' => $kybApproved
             ? 'completed'
@@ -180,6 +186,14 @@ include __DIR__ . '/../templates/header.php';
         <h1><i class="fas fa-user-check" style="color:#C6A43F; font-size:20px;"></i> Account Verification</h1>
         <p style="font-size:14px; color:#666; margin-top:4px;">Complete these steps to activate your agent account</p>
     </div>
+
+    <?php if ($isBusiness && !$approved): ?>
+    <div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#5d4a00;">
+        <i class="fas fa-building"></i> Your account has a business name on file, so both identity verification (KYC)
+        <strong>and</strong> business verification (KYB) are required before you're fully verified — KYC alone isn't
+        enough for a business account. If this should be an individual account instead, remove the company name from your profile.
+    </div>
+    <?php endif; ?>
 
     <div class="verification-timeline">
         <?php foreach ($steps as $num => $step): ?>
