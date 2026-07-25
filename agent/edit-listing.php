@@ -71,13 +71,19 @@ $existingImages = $imageStmt->fetchAll();
 
 // KYC soft-guard
 $kycStatus = 'pending';
+$isBusinessAgent = false;
+$kybApprovedAgent = false;
 try {
-    $st = $db->prepare("SELECT verification_status FROM agent_profiles WHERE user_id = ?");
+    $st = $db->prepare("SELECT verification_status, company_name, kyb_status FROM agent_profiles WHERE user_id = ?");
     $st->execute([$agentId]);
-    $kycStatus = $st->fetchColumn() ?: 'pending';
+    $agentRow = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+    $kycStatus = $agentRow['verification_status'] ?? 'pending';
+    $isBusinessAgent = trim((string)($agentRow['company_name'] ?? '')) !== '';
+    $kybApprovedAgent = ($agentRow['kyb_status'] ?? '') === 'approved';
 } catch (Exception $e) {
     // Table not migrated yet — allow
 }
+$canOfferRental = $isBusinessAgent && $kybApprovedAgent;
 
 $flashSuccess = $_SESSION['flash_success'] ?? null;
 $flashError   = $_SESSION['flash_error']   ?? null;
@@ -436,6 +442,19 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 <div id="automobileFields" style="display:<?php echo $divisionParam === 'car' ? 'block' : 'none'; ?>; margin-top:24px;">
                     <h3 style="margin-bottom:16px;"><i class="fas fa-car"></i> Automobile Details</h3>
                     <div class="automobile-fields-grid">
+                        <div class="form-group"><label><i class="fas fa-key"></i> Listing Purpose *</label>
+                            <select name="car_listing_type" id="carListingType" required>
+                                <option value="sale" <?php echo ($listing['listing_type'] ?? 'sale') === 'sale' ? 'selected' : ''; ?>>For Sale</option>
+                                <?php if ($canOfferRental || ($listing['listing_type'] ?? '') === 'rental'): ?>
+                                <option value="rental" <?php echo ($listing['listing_type'] ?? '') === 'rental' ? 'selected' : ''; ?>>For Rental</option>
+                                <?php endif; ?>
+                            </select>
+                            <?php if (!$canOfferRental): ?>
+                            <span style="display:block;font-size:12px;color:#888;margin-top:4px;">
+                                Rental listings are only available to verified registered businesses.
+                            </span>
+                            <?php endif; ?>
+                        </div>
                         <div class="form-group"><label><i class="fas fa-tag"></i> Make *</label>
                             <select name="brand" required>
                                 <option value="">Select Make</option>

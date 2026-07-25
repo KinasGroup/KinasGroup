@@ -12,12 +12,21 @@ require_once __DIR__ . '/../includes/security.php';
 
 // KYC soft-guard: unverified agents are warned but can still view the page
 $kycStatus = 'pending';
+$isBusinessAgent = false;
+$kybApprovedAgent = false;
 try {
     $st = Database::getInstance()->getConnection()
-        ->prepare("SELECT verification_status FROM agent_profiles WHERE user_id = ?");
+        ->prepare("SELECT verification_status, company_name, kyb_status FROM agent_profiles WHERE user_id = ?");
     $st->execute([(int)$_SESSION['user_id']]);
-    $kycStatus = $st->fetchColumn() ?: 'pending';
+    $agentRow = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+    $kycStatus = $agentRow['verification_status'] ?? 'pending';
+    $isBusinessAgent = trim((string)($agentRow['company_name'] ?? '')) !== '';
+    $kybApprovedAgent = ($agentRow['kyb_status'] ?? '') === 'approved';
 } catch (Exception $e) { /* table not migrated yet — allow */ }
+// Only a verified business (company name on file AND KYB approved) may
+// list a vehicle for rental — individuals and unverified businesses are
+// restricted to Sale.
+$canOfferRental = $isBusinessAgent && $kybApprovedAgent;
 
 // Division + super-agent flag (set on login by SessionManager::setUser).
 // Super agents can list across all 4 divisions; regular agents are
@@ -214,6 +223,20 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                 <div id="automobileFields" style="display:none; margin-top:24px;">
                     <h3 style="margin-bottom:16px;"><i class="fas fa-car"></i> Automobile Details</h3>
                     <div class="automobile-fields-grid">
+                        <div class="form-group"><label><i class="fas fa-key"></i> Listing Purpose *</label>
+                            <select name="car_listing_type" id="carListingType" required>
+                                <option value="sale">For Sale</option>
+                                <?php if ($canOfferRental): ?>
+                                <option value="rental">For Rental</option>
+                                <?php endif; ?>
+                            </select>
+                            <?php if (!$canOfferRental): ?>
+                            <span style="display:block;font-size:12px;color:#888;margin-top:4px;">
+                                Rental listings are only available to verified registered businesses.
+                                <?= $isBusinessAgent ? 'Your business KYB verification is still pending.' : 'Add a business name and complete KYB verification in your profile to unlock this.' ?>
+                            </span>
+                            <?php endif; ?>
+                        </div>
                         <!-- Make (Brand) -->
                         <div class="form-group"><label><i class="fas fa-tag"></i> Make *</label>
                             <select name="brand" required>
