@@ -155,7 +155,6 @@ class FeaturedAlgorithm {
      * Get featured listings across all divisions
      */
     public function getFeaturedListings($limit = 8) {
-        $allListings = [];
         $divisions = ['car', 'solar', 'property', 'marketplace'];
         $tableMap = [
             'car' => 'car_listings',
@@ -163,11 +162,18 @@ class FeaturedAlgorithm {
             'property' => 'property_listings',
             'marketplace' => 'marketplace_listings'
         ];
-        
+
+        // Score every division's own pool separately, so a division that
+        // scores lower overall (e.g. fewer views platform-wide) still
+        // gets its own top performers featured — previously all four
+        // divisions were pooled together and ranked as one list, so a
+        // division that scored well across the board could sweep every
+        // slot, leaving other divisions with nothing featured on their
+        // own index page at all.
+        $perDivision = [];
         foreach ($divisions as $division) {
             $table = $tableMap[$division];
             try {
-                // Get active listings for this division
                 $stmt = $this->db->prepare("
                     SELECT 
                         id, title, price, views, created_at, 
@@ -181,24 +187,45 @@ class FeaturedAlgorithm {
                 ");
                 $stmt->execute();
                 $listings = $stmt->fetchAll();
-                
+
                 foreach ($listings as &$listing) {
                     $listing['score'] = $this->calculateScore($listing, $division);
                 }
-                
-                $allListings = array_merge($allListings, $listings);
+                unset($listing);
+
+                usort($listings, function($a, $b) { return $b['score'] - $a['score']; });
+                $perDivision[$division] = $listings;
             } catch (Exception $e) {
                 // Table might not exist or have no data
+                $perDivision[$division] = [];
             }
         }
-        
-        // Sort by score descending
-        usort($allListings, function($a, $b) {
-            return $b['score'] - $a['score'];
-        });
-        
-        // Return top listings
-        return array_slice($allListings, 0, $limit);
+
+        // Fair allocation: each division gets an equal base share of the
+        // slots (rounded down), then any leftover slots (from the limit
+        // not dividing evenly, or a division not having enough listings
+        // to fill its share) are handed out to the next-highest-scoring
+        // listings across all divisions, so the total still adds up to
+        // $limit when enough listings exist overall.
+        $activeDivisions = array_filter($divisions, fn($d) => !empty($perDivision[$d]));
+        $divisionCount = count($activeDivisions);
+        $baseShare = $divisionCount > 0 ? intdiv($limit, $divisionCount) : 0;
+
+        $result = [];
+        $leftoverPool = [];
+        foreach ($activeDivisions as $division) {
+            $take = array_slice($perDivision[$division], 0, $baseShare);
+            $result = array_merge($result, $take);
+            $leftoverPool = array_merge($leftoverPool, array_slice($perDivision[$division], $baseShare));
+        }
+
+        $remaining = $limit - count($result);
+        if ($remaining > 0 && !empty($leftoverPool)) {
+            usort($leftoverPool, function($a, $b) { return $b['score'] - $a['score']; });
+            $result = array_merge($result, array_slice($leftoverPool, 0, $remaining));
+        }
+
+        return $result;
     }
     
     /**

@@ -52,7 +52,7 @@ function je_render_footer(string $variant = 'site'): void
                             KINAS GROUP OF COMPANIES LIMITED<br>
                             RC: 7997266<br>
                             Gwarinpa, 900108, Federal Capital Territory, Nigeria<br>
-                            Phone: <a href="tel:+2348107576042" style="color:rgba(255,255,255,0.6); text-decoration:none;">+234 810 757 6042</a><br>
+                            Phone: <a href="tel:+2349137175523" style="color:rgba(255,255,255,0.6); text-decoration:none;">+234 913 717 5523</a><br>
                             Email: <a href="mailto:support@kinas-group.com" style="color:rgba(255,255,255,0.6); text-decoration:none;">support@kinas-group.com</a>
                         </p>
                     </div>

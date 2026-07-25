@@ -89,7 +89,7 @@ class EmailService
             <img src="https://kinas-group.com/assets/images/logos/kinas-email-header.jpg" 
                  style="max-height:60px; width:auto;" alt="KINAS GROUP" onerror="this.style.display=\'none\'">
             <div style="font-size:10px; color:#666666 !important; letter-spacing:2px; margin-top:4px; font-family: Arial, sans-serif;">BUILDING EXCELLENCE ACROSS INDUSTRIES</div>
-            <div style="font-size:8px; color:#999999 !important; margin-top:2px; font-family: Arial, sans-serif;">Gwarinpa, Abuja &bull; +234 810 757 6042</div>
+            <div style="font-size:8px; color:#999999 !important; margin-top:2px; font-family: Arial, sans-serif;">Gwarinpa, Abuja &bull; +234 913 717 5523</div>
         </div>';
     }
     
@@ -363,7 +363,7 @@ RC Number: 7997266
 Gwarinpa, 900108, Federal Capital Territory, Nigeria
 Website: https://kinas-group.com
 Email: support@kinas-group.com
-Phone: +234 810 757 6042
+Phone: +234 913 717 5523
 TEXT;
     }
     
