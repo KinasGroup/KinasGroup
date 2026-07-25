@@ -45,7 +45,7 @@ include dirname(__DIR__) . '/templates/header.php';
 
         <div style="margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 25px;">
             <h4 style="font-size:17px; color:#0A0A0A; margin-bottom:10px;">How can I contact customer support?</h4>
-            <p style="color:#444; line-height:1.8; font-size:15px;">Phone: <a href="tel:+2348107576042" style="color:#C6A43F; text-decoration:none;">+234 810 757 6042</a></p>
+            <p style="color:#444; line-height:1.8; font-size:15px;">Phone: <a href="tel:+2349137175523" style="color:#C6A43F; text-decoration:none;">+234 913 717 5523</a></p>
             <p style="color:#444; line-height:1.8; font-size:15px;">Email: <a href="mailto:support@kinas-group.com" style="color:#C6A43F; text-decoration:none;">support@kinas-group.com</a></p>
             <p style="color:#444; line-height:1.8; font-size:15px;">Business Hours: 24 Hours / 7 Days</p>
         </div>

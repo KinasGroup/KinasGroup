@@ -76,7 +76,7 @@ include dirname(__DIR__) . '/templates/header.php';
                 <div style="width: 44px; height: 44px; background: rgba(198,164,63,0.1); color: #C6A43F; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-phone"></i></div>
                 <div>
                     <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px;">Phone</h4>
-                    <p style="font-size: 14px; color: #0A0A0A;"><a href="tel:+2348107576042" style="color: #C6A43F; text-decoration: none;">+234-810-757-6042</a></p>
+                    <p style="font-size: 14px; color: #0A0A0A;"><a href="tel:+2349137175523" style="color: #C6A43F; text-decoration: none;">+234-913-717-5523</a></p>
                 </div>
             </div>
 

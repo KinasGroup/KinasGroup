@@ -165,7 +165,7 @@ include dirname(__DIR__) . '/templates/header.php';
             <p style="color:#0A0A0A; line-height:1.8; font-size:15px; font-weight:600;">KINAS GROUP OF COMPANIES LIMITED</p>
             <p style="color:#444; line-height:1.8; font-size:15px;">RC Number: 7997266</p>
             <p style="color:#444; line-height:1.8; font-size:15px;">Gwarinpa, 900108, Federal Capital Territory, Nigeria</p>
-            <p style="color:#444; line-height:1.8; font-size:15px;">Phone: <a href="tel:+2348107576042" style="color:#C6A43F; text-decoration:none;">+234 810 757 6042</a></p>
+            <p style="color:#444; line-height:1.8; font-size:15px;">Phone: <a href="tel:+2349137175523" style="color:#C6A43F; text-decoration:none;">+234 913 717 5523</a></p>
             <p style="color:#444; line-height:1.8; font-size:15px;">Email: <a href="mailto:support@kinas-group.com" style="color:#C6A43F; text-decoration:none;">support@kinas-group.com</a></p>
             <p style="color:#444; line-height:1.8; font-size:15px;">Website: <a href="https://kinas-group.com" style="color:#C6A43F; text-decoration:none;">https://kinas-group.com</a></p>
         </div>
