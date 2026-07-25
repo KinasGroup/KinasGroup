@@ -143,6 +143,28 @@ try {
 
     if ($sessionType === 'kyc') {
 
+        $profileRow = $db->prepare("SELECT company_name, kyb_status FROM agent_profiles WHERE user_id = ?");
+        $profileRow->execute([$userId]);
+        $profile = $profileRow->fetch(PDO::FETCH_ASSOC) ?: [];
+        $isBusiness = trim((string)($profile['company_name'] ?? '')) !== '';
+        $kybAlreadyApproved = ($profile['kyb_status'] ?? '') === 'approved';
+
+        // A business registration (company_name set) does not get the
+        // verified badge from KYC alone — KYB (registry/UBO/AML check)
+        // must also pass. 'kyc_passed' here means "identity confirmed,
+        // still waiting on business verification" — distinct from
+        // 'approved', which now only applies once both are done for a
+        // business, or immediately for an individual.
+        $kycStatusToStore = $internalStatus;
+        $grantsVerified = false;
+        if ($internalStatus === 'approved') {
+            if ($isBusiness && !$kybAlreadyApproved) {
+                $kycStatusToStore = 'kyc_passed';
+            } else {
+                $grantsVerified = true; // individual, or business whose KYB already cleared
+            }
+        }
+
         $db->prepare("
             UPDATE agent_profiles
             SET verification_status = ?,
@@ -151,9 +173,9 @@ try {
                 kyc_document_name   = COALESCE(?, kyc_document_name),
                 kyc_name_mismatch   = ?
             WHERE user_id = ?
-        ")->execute([$internalStatus, $isFinal ? 1 : 0, $isFinal ? $now : null, $now, $documentName, $nameMismatch, $userId]);
+        ")->execute([$kycStatusToStore, $isFinal ? 1 : 0, $isFinal ? $now : null, $now, $documentName, $nameMismatch, $userId]);
 
-        if ($internalStatus === 'approved') {
+        if ($grantsVerified) {
             $db->prepare("UPDATE users SET verified = 1, status = 'active' WHERE id = ?")->execute([$userId]);
             if (isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] === $userId) {
                 $_SESSION['user_verified'] = true;
@@ -163,7 +185,8 @@ try {
         }
         // 'review_needed' deliberately does NOT touch users.verified —
         // it stays whatever it was (normally unverified) until an admin
-        // makes the call.
+        // makes the call. Same for a business's 'kyc_passed' state above
+        // — verified stays 0 until KYB also clears, below.
     } else { // kyb
         // Didit's KYB status vocabulary maps onto our internal set the
         // same way KYC does, except our column uses 'not_started'
@@ -184,6 +207,24 @@ try {
                 kyb_registry_snapshot = COALESCE(?, kyb_registry_snapshot)
             WHERE user_id = ?
         ")->execute([$kybStatus, $isFinal ? 1 : 0, $isFinal ? $now : null, $now, $registrySnapshot, $userId]);
+
+        // KYB just cleared — if identity (KYC) already passed too, this
+        // business account is now fully approved. (The reverse order —
+        // KYC finishing after KYB — is handled in the KYC branch above
+        // via $kybAlreadyApproved.)
+        if ($kybStatus === 'approved') {
+            $kycRow = $db->prepare("SELECT verification_status FROM agent_profiles WHERE user_id = ?");
+            $kycRow->execute([$userId]);
+            $kycState = $kycRow->fetchColumn();
+
+            if ($kycState === 'kyc_passed') {
+                $db->prepare("UPDATE agent_profiles SET verification_status = 'approved' WHERE user_id = ?")->execute([$userId]);
+                $db->prepare("UPDATE users SET verified = 1, status = 'active' WHERE id = ?")->execute([$userId]);
+                if (isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] === $userId) {
+                    $_SESSION['user_verified'] = true;
+                }
+            }
+        }
     }
 
     Security::logActivity($userId, $sessionType . '_' . $internalStatus, "Didit " . strtoupper($sessionType) . " $sessionId → $diditStatus → $internalStatus");
