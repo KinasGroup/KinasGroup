@@ -176,7 +176,7 @@ try {
                 <li>Receive your final quotation</li>
             </ol>
             
-            <p>If you have any questions, feel free to reply to this email or call us at <strong>+234 810 757 6042</strong>.</p>
+            <p>If you have any questions, feel free to reply to this email or call us at <strong>+234 913 717 5523</strong>.</p>
             
             <hr style="border: none; border-top: 2px solid #C6A43F; margin: 20px 0;">
             
@@ -186,7 +186,7 @@ try {
                         <strong>KINAS GROUP OF COMPANIES LIMITED</strong><br>
                         RC Number: 7997266<br>
                         Gwarinpa, 900108, Federal Capital Territory, Nigeria<br>
-                        Phone: <a href="tel:+2348107576042" style="color: #C6A43F; text-decoration: none;">+234 810 757 6042</a><br>
+                        Phone: <a href="tel:+2349137175523" style="color: #C6A43F; text-decoration: none;">+234 913 717 5523</a><br>
                         Email: <a href="mailto:support@kinas-group.com" style="color: #C6A43F; text-decoration: none;">support@kinas-group.com</a>
                     </td>
                 </tr>
@@ -257,7 +257,7 @@ try {
                         <strong>KINAS GROUP OF COMPANIES LIMITED</strong><br>
                         RC Number: 7997266<br>
                         Gwarinpa, 900108, Federal Capital Territory, Nigeria<br>
-                        Phone: <a href="tel:+2348107576042" style="color: #C6A43F; text-decoration: none;">+234 810 757 6042</a>
+                        Phone: <a href="tel:+2349137175523" style="color: #C6A43F; text-decoration: none;">+234 913 717 5523</a>
                     </td>
                 </tr>
                 <tr>
