@@ -237,6 +237,10 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                             </span>
                             <?php endif; ?>
                         </div>
+                        <div class="form-group"><label><i class="fas fa-clipboard-check"></i> Inspection Fee (₦) <span style="font-weight:400;color:#888;">(optional)</span></label>
+                            <input type="number" name="inspection_fee" min="0" step="0.01" placeholder="Leave blank for free inspections">
+                            <span style="display:block;font-size:12px;color:#888;margin-top:4px;">If set, buyers pay this online before an inspection appointment is confirmed. 10% goes to KINAS GROUP.</span>
+                        </div>
                         <!-- Make (Brand) -->
                         <div class="form-group"><label><i class="fas fa-tag"></i> Make *</label>
                             <select name="brand" required>
@@ -337,6 +341,10 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                         <div class="form-group"><label>Area (sq ft)</label><input type="text" name="area" placeholder="e.g., 2500"></div>
                         <div class="form-group"><label>Property Type</label>
                             <select name="property_type"><option value="">Select Type</option><option value="Villa">Villa</option><option value="Apartment">Apartment</option><option value="Land">Land</option><option value="House">House</option><option value="Condo">Condo</option><option value="Townhouse">Townhouse</option></select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-clipboard-check"></i> Inspection Fee (₦) <span style="font-weight:400;color:#888;">(optional)</span></label>
+                            <input type="number" name="inspection_fee" min="0" step="0.01" placeholder="Leave blank for free inspections">
+                            <span style="display:block;font-size:12px;color:#888;margin-top:4px;">If set, buyers pay this online before an inspection appointment is confirmed. 10% goes to KINAS GROUP.</span>
                         </div>
                     </div>
 

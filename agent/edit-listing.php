@@ -455,6 +455,9 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                             </span>
                             <?php endif; ?>
                         </div>
+                        <div class="form-group"><label><i class="fas fa-clipboard-check"></i> Inspection Fee (₦) <span style="font-weight:400;color:#888;">(optional)</span></label>
+                            <input type="number" name="inspection_fee" min="0" step="0.01" value="<?php echo htmlspecialchars($listing['inspection_fee'] ?? ''); ?>" placeholder="Leave blank for free inspections">
+                        </div>
                         <div class="form-group"><label><i class="fas fa-tag"></i> Make *</label>
                             <select name="brand" required>
                                 <option value="">Select Make</option>
@@ -646,6 +649,9 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                                 <option value="Condo" <?php echo ($listing['property_type'] ?? '') === 'Condo' ? 'selected' : ''; ?>>Condo</option>
                                 <option value="Townhouse" <?php echo ($listing['property_type'] ?? '') === 'Townhouse' ? 'selected' : ''; ?>>Townhouse</option>
                             </select>
+                        </div>
+                        <div class="form-group"><label><i class="fas fa-clipboard-check"></i> Inspection Fee (₦) <span style="font-weight:400;color:#888;">(optional)</span></label>
+                            <input type="number" name="inspection_fee" min="0" step="0.01" value="<?php echo htmlspecialchars($listing['inspection_fee'] ?? ''); ?>" placeholder="Leave blank for free inspections">
                         </div>
                     </div>
 
