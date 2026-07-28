@@ -338,7 +338,7 @@ $agentVerified = !empty($item['agent_verified']);
             <!-- ============================================================ -->
             <div class="je-cta-row">
                 <!-- Schedule Viewing -->
-                <button class="je-cta-primary" id="scheduleBtn" onclick="openScheduleViewing(<?= $listingId ?>, 'car', <?= $agentId ?>);">
+                <button class="je-cta-primary" id="scheduleBtn" onclick="openScheduleViewing(<?= $listingId ?>, 'car', <?= $agentId ?>, <?= (float)($item['inspection_fee'] ?? 0) ?>);">
                     <i class="far fa-calendar-alt"></i> Schedule Viewing
                 </button>
                 
@@ -545,8 +545,9 @@ function showLoginRequired() {
 // SCHEDULE VIEWING
 // ============================================================
 
-function openScheduleViewing(listingId, listingType, agentId) {
-    console.log('Schedule Viewing clicked!', listingId, listingType, agentId);
+function openScheduleViewing(listingId, listingType, agentId, inspectionFee) {
+    inspectionFee = inspectionFee || 0;
+    console.log('Schedule Viewing clicked!', listingId, listingType, agentId, inspectionFee);
     
     if (!isUserLoggedIn()) {
         showLoginRequired();
@@ -555,6 +556,13 @@ function openScheduleViewing(listingId, listingType, agentId) {
     
     const old = document.getElementById('schedule-modal');
     if (old) old.remove();
+
+    if (inspectionFee > 0 && !document.getElementById('paystack-inline-js')) {
+        const s = document.createElement('script');
+        s.id = 'paystack-inline-js';
+        s.src = 'https://js.paystack.co/v2/inline.js';
+        document.head.appendChild(s);
+    }
     
     const html = `
     <div id="schedule-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;">
@@ -566,6 +574,9 @@ function openScheduleViewing(listingId, listingType, agentId) {
             <div style="padding:12px;background:#f5f5f5;border-radius:8px;margin-bottom:20px;">
                 <strong><?= $agentName ?></strong> · <?= $listingTitle ?>
             </div>
+            ${inspectionFee > 0 ? `<div style="padding:12px;background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;margin-bottom:20px;font-size:13px;color:#5d4a00;">
+                <i class="fas fa-clipboard-check"></i> This listing requires a ₦${Math.round(inspectionFee).toLocaleString('en-NG')} inspection fee, paid online. Your appointment is confirmed automatically once payment succeeds.
+            </div>` : ''}
             <form id="scheduleForm">
                 <input type="hidden" name="listing_id" value="${listingId}">
                 <input type="hidden" name="listing_type" value="${listingType}">
@@ -609,7 +620,7 @@ function openScheduleViewing(listingId, listingType, agentId) {
                     <textarea name="message" rows="3" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;resize:vertical;"></textarea>
                 </div>
                 <button type="submit" style="width:100%;padding:12px;background:#0A0A0A;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;">
-                    <i class="fas fa-calendar-check"></i> Request Viewing
+                    <i class="fas fa-calendar-check"></i> ${inspectionFee > 0 ? 'Pay ₦' + Math.round(inspectionFee).toLocaleString('en-NG') + ' & Request Inspection' : 'Request Viewing'}
                 </button>
                 <div id="scheduleMsg" style="margin-top:12px;padding:10px;border-radius:6px;display:none;"></div>
             </form>
@@ -645,11 +656,80 @@ function openScheduleViewing(listingId, listingType, agentId) {
         const btn = this.querySelector('button[type="submit"]');
         const msg = document.getElementById('scheduleMsg');
         const original = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
         btn.disabled = true;
         msg.style.display = 'none';
-        
+
         const formData = new FormData(this);
+
+        if (inspectionFee > 0) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting payment...';
+            try {
+                const res = await fetch('../../../api/inspection/request.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        listing_id: listingId,
+                        listing_type: listingType,
+                        preferred_date: formData.get('preferred_date'),
+                        preferred_time: formData.get('preferred_time'),
+                    })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    msg.style.display = 'block';
+                    msg.style.background = '#f8d7da';
+                    msg.style.color = '#721c24';
+                    msg.textContent = data.error || 'Unable to start payment.';
+                    btn.innerHTML = original;
+                    btn.disabled = false;
+                    return;
+                }
+
+                const popup = new PaystackPop();
+                popup.resumeTransaction(data.access_code, {
+                    onSuccess: function(transaction) {
+                        fetch('../../../api/inspection/verify.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ reference: transaction.reference || data.reference })
+                        })
+                        .then(r => r.json())
+                        .then(v => {
+                            const modal = document.getElementById('schedule-modal');
+                            if (modal) modal.remove();
+                            if (v.success) {
+                                showSuccessBanner('✅ Payment received — your inspection is confirmed! Check your email for details.', false);
+                            } else {
+                                showSuccessBanner('Payment received, but confirmation is still processing. We will email you shortly — contact support if you do not hear back soon.', false);
+                            }
+                        });
+                    },
+                    onCancel: function() {
+                        btn.innerHTML = original;
+                        btn.disabled = false;
+                    },
+                    onError: function(error) {
+                        msg.style.display = 'block';
+                        msg.style.background = '#f8d7da';
+                        msg.style.color = '#721c24';
+                        msg.textContent = 'Payment error: ' + (error && error.message ? error.message : 'please try again');
+                        btn.innerHTML = original;
+                        btn.disabled = false;
+                    }
+                });
+            } catch (error) {
+                msg.style.display = 'block';
+                msg.style.background = '#f8d7da';
+                msg.style.color = '#721c24';
+                msg.textContent = 'Network error. Please try again.';
+                btn.innerHTML = original;
+                btn.disabled = false;
+            }
+            return;
+        }
+
+        // Free viewing — unchanged existing path
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
         const notes = formData.get('message') || '';
         if (!notes.trim()) {
             formData.set('message', 'I would like to schedule a viewing for this car.');
