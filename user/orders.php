@@ -13,13 +13,18 @@ header('Pragma: no-cache');
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../api/config/database.php';
+require_once __DIR__ . '/../includes/security.php';
 SessionManager::requireLogin();
 
 $db      = Database::getInstance()->getConnection();
 $user_id = $_SESSION['user_id'];
+$csrf    = Security::generateCSRFToken();
+
+$flash = $_SESSION['orders_flash'] ?? null;
+unset($_SESSION['orders_flash']);
 
 $orders = $db->prepare("
-    SELECT id, reference, amount, currency, status, paid_at, created_at
+    SELECT id, reference, amount, currency, status, shipping_address, paid_at, created_at
     FROM orders
     WHERE buyer_id = ?
     ORDER BY created_at DESC
@@ -32,7 +37,7 @@ if (!empty($orders)) {
     $orderIds = array_column($orders, 'id');
     $in = implode(',', array_fill(0, count($orderIds), '?'));
     $itemsStmt = $db->prepare("
-        SELECT oi.order_id, oi.title, oi.price, oi.listing_id,
+        SELECT oi.order_id, oi.title, oi.price, oi.quantity, oi.listing_id,
                oi.shipping_status, oi.tracking_number,
                (SELECT url FROM listing_images WHERE listing_id = oi.listing_id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) AS thumbnail
         FROM order_items oi
@@ -109,6 +114,12 @@ include __DIR__ . '/../templates/header.php';
         <span style="color:#666;font-size:14px"><?= count($orders) ?> order<?= count($orders) !== 1 ? 's' : '' ?></span>
     </div>
 
+    <?php if ($flash): ?>
+        <div style="padding:12px 16px;border-radius:8px;margin-bottom:18px;font-size:13px;background:<?= $flash['type'] === 'success' ? '#E8F5E9' : '#FFEBEE' ?>;color:<?= $flash['type'] === 'success' ? '#2E7D32' : '#C62828' ?>;">
+            <?= htmlspecialchars($flash['message']) ?>
+        </div>
+    <?php endif; ?>
+
     <?php if (empty($orders)): ?>
     <div class="empty-state">
         <i class="fas fa-shopping-bag"></i>
@@ -143,14 +154,45 @@ include __DIR__ . '/../templates/header.php';
                     <?php if (!empty($it['tracking_number'])): ?>
                         <span style="font-size:11px;color:#888;margin-right:10px;">Tracking: <?= htmlspecialchars($it['tracking_number']) ?></span>
                     <?php endif; ?>
-                    <span class="order-item-price"><?= formatPrice((float)$it['price']) ?></span>
+                    <span class="order-item-price"><?php
+                        $qty = max(1, (int)($it['quantity'] ?? 1));
+                        echo $qty > 1 ? formatPrice((float)$it['price']) . " × {$qty} = " . formatPrice((float)$it['price'] * $qty) : formatPrice((float)$it['price']);
+                    ?></span>
                 </div>
                 <?php endforeach; ?>
             </div>
+            <?php
+                $allDelivered = !empty($items) && count(array_filter($items, fn($i) => ($i['shipping_status'] ?? 'pending') === 'delivered')) === count($items);
+                $canDelete = in_array($order['status'], ['failed', 'abandoned'], true) || $allDelivered;
+            ?>
+            <?php if ($order['status'] === 'paid' && !$allDelivered): ?>
+            <div style="padding:14px 20px;background:#FAFAFA;border-top:1px solid #E0E0E0;font-size:13px;color:#555;">
+                <strong><i class="fas fa-truck"></i> Delivery Details</strong>
+                <div style="margin-top:6px;">Shipping to: <?= htmlspecialchars($order['shipping_address']) ?></div>
+                <?php
+                    $trackingLines = array_filter(array_map(fn($i) => !empty($i['tracking_number']) ? htmlspecialchars($i['title']) . ': ' . htmlspecialchars($i['tracking_number']) : null, $items));
+                ?>
+                <?php if (!empty($trackingLines)): ?>
+                    <div style="margin-top:4px;">Tracking: <?= implode(' · ', $trackingLines) ?></div>
+                <?php else: ?>
+                    <div style="margin-top:4px;color:#888;">Tracking number(s) will appear here once the seller ships your item(s).</div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
             <div class="order-total">
                 <span>Total</span>
                 <span><?= formatPrice((float)$order['amount']) ?></span>
             </div>
+            <?php if ($canDelete): ?>
+            <form method="POST" action="/api/user/delete-order.php" style="padding:0 20px 16px;text-align:right;"
+                  data-kinas-confirm="Remove this order from your history? This cannot be undone." data-kinas-title="Remove Order" data-kinas-warning="This only removes it from your view — it does not affect any completed transaction records.">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                <input type="hidden" name="order_id" value="<?= (int)$order['id'] ?>">
+                <button type="submit" style="background:none;border:1px solid #ddd;color:#888;padding:6px 14px;border-radius:20px;font-size:12px;cursor:pointer;">
+                    <i class="fas fa-trash-alt"></i> Remove
+                </button>
+            </form>
+            <?php endif; ?>
         </div>
         <?php endforeach; ?>
     <?php endif; ?>
