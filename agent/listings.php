@@ -397,6 +397,12 @@ include '../templates/header.php';
                                            class="action-btn action-btn-edit">
                                             <i class="fas fa-edit"></i> Edit
                                         </a>
+                                        <?php if (in_array($item['division'], ['car', 'property'], true) && $item['status'] === 'active'): ?>
+                                        <button type="button" class="action-btn action-btn-restore"
+                                                onclick="markListingSold(<?php echo (int)$item['id']; ?>, '<?php echo $item['division']; ?>', <?php echo (float)$item['price']; ?>)">
+                                            <i class="fas fa-handshake"></i> Mark Sold
+                                        </button>
+                                        <?php endif; ?>
                                         <a href="delete-listing.php?id=<?php echo $item['id']; ?>&division=<?php echo $item['division']; ?>&csrf_token=<?php echo Security::generateCSRFToken(); ?>" 
                                            class="action-btn action-btn-delete" 
                                            data-kinas-confirm="Delete this listing? It will be permanently removed." data-kinas-title="Delete Listing" data-kinas-warning="This cannot be undone.">
@@ -446,6 +452,43 @@ include '../templates/header.php';
         input.focus();
     });
 })();
+
+const agentListingsCsrf = <?php echo json_encode(Security::generateCSRFToken()); ?>;
+
+function markListingSold(listingId, division, listedPrice) {
+    const finalPriceStr = prompt('Enter the FINAL agreed sale price (₦) for this ' + division + ' listing:', listedPrice);
+    if (finalPriceStr === null) return; // cancelled
+
+    const finalPrice = parseFloat(finalPriceStr);
+    if (isNaN(finalPrice) || finalPrice <= 0) {
+        alert('Please enter a valid sale price greater than zero.');
+        return;
+    }
+
+    const commissionPct = division === 'car' ? 1.7 : 1;
+    const commission = Math.round(finalPrice * commissionPct) / 100;
+    if (!confirm('Confirm sale at ₦' + finalPrice.toLocaleString('en-NG') + '.\n\nKINAS GROUP commission (' + commissionPct + '%): ₦' + commission.toLocaleString('en-NG') + '\n\nThis will mark the listing as sold and cannot be undone from this screen.')) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('csrf_token', agentListingsCsrf);
+    formData.append('listing_id', listingId);
+    formData.append('division', division);
+    formData.append('final_price', finalPrice);
+
+    fetch('/api/agent/mark-listing-sold.php', { method: 'POST', body: formData, credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Listing marked as sold. Commission recorded.');
+                window.location.reload();
+            } else {
+                alert(data.error || 'Failed to mark as sold.');
+            }
+        })
+        .catch(() => alert('Network error. Please try again.'));
+}
 </script>
 
     </main>
