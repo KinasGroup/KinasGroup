@@ -36,6 +36,7 @@ $hardwareTypes = [
     'battery'            => 'Battery',
     'charge_controller'  => 'Charge Controller',
     'mounting_structure' => 'Mounting Structure',
+    'power_station'      => 'Power Station',
 ];
 
 $errors  = [];
