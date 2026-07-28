@@ -94,6 +94,18 @@ try {
            ->execute([$listingId, $listingType]);
     } catch (Exception $ignored) { /* table may not be reachable in all setups */ }
 
+    // Remove any cart/favorites rows pointing at this listing — otherwise
+    // they become orphaned: the cart badge (a bare COUNT) keeps counting
+    // them, but the actual cart/saved-listings pages (which JOIN to the
+    // listing table) silently exclude them, showing "1 item" in the
+    // header and "empty" on the page itself.
+    try {
+        $db->prepare("DELETE FROM cart_items WHERE listing_id = ? AND listing_type = ?")
+           ->execute([$listingId, $listingType]);
+        $db->prepare("DELETE FROM favorites WHERE listing_id = ? AND listing_type = ?")
+           ->execute([$listingId, $listingType]);
+    } catch (Exception $ignored) { /* tables may not exist on older deployments mid-migration */ }
+
     // Delete the listing
     $db->prepare("DELETE FROM $table WHERE id = ? AND agent_id = ?")
        ->execute([$listingId, $_SESSION['user_id']]);
