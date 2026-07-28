@@ -12,7 +12,8 @@ RUN apk add --no-cache \
     oniguruma-dev \
     libxml2-dev \
     zip \
-    libzip-dev
+    libzip-dev \
+    ffmpeg
 
 # Install GD extension (required for mPDF)
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
