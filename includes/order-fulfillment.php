@@ -105,7 +105,13 @@ function finalizeMarketplaceOrder(PDO $db, string $reference): array
                    ->execute([$item['listing_id']]);
             }
 
-            $commission = round($item['price'] * $commissionPct / 100, 2);
+            // Line total, not unit price — price is a per-unit snapshot,
+            // quantity is stored separately (see 2026_07_26 migration).
+            // Using price alone here would under-report both the agent's
+            // recorded earnings and the platform commission for any
+            // quantity > 1 line.
+            $lineTotal = (float)$item['price'] * max(1, (int)($item['quantity'] ?? 1));
+            $commission = round($lineTotal * $commissionPct / 100, 2);
 
             $db->prepare("
                 INSERT INTO transactions
@@ -118,7 +124,7 @@ function finalizeMarketplaceOrder(PDO $db, string $reference): array
                      ?, ?, 'paid', NOW())
             ")->execute([
                 $item['agent_id'], $item['listing_id'], $order['id'], $order['buyer_id'],
-                $reference, $order['settlement_mode'], $buyerName, $order['email'], $item['price'], $commissionPct,
+                $reference, $order['settlement_mode'], $buyerName, $order['email'], $lineTotal, $commissionPct,
                 $commission, $order['currency'],
             ]);
         }
@@ -158,7 +164,13 @@ function notifyOrderPaid(PDO $db, array $order, array $items): void
 {
     try {
         $total = number_format((float)$order['amount'], 0);
-        $lines = array_map(fn($i) => '• ' . $i['title'] . ' — ₦' . number_format((float)$i['price'], 0), $items);
+        $lines = array_map(function ($i) {
+            $qty = max(1, (int)($i['quantity'] ?? 1));
+            $unit = (float)$i['price'];
+            $qtyLabel = $qty > 1 ? " × {$qty}" : '';
+            $lineTotal = number_format($unit * $qty, 0);
+            return '• ' . $i['title'] . $qtyLabel . ' — ₦' . $lineTotal;
+        }, $items);
         $itemList = implode("\n", $lines);
 
         Notify::email(
