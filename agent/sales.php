@@ -79,7 +79,10 @@ require_once __DIR__ . '/../templates/header.php';
                     <div class="sl-info">
                         <div class="title"><?= htmlspecialchars($it['title']) ?> <span class="sl-badge <?= htmlspecialchars($it['shipping_status']) ?>"><?= ucfirst($it['shipping_status']) ?></span></div>
                         <div class="meta">
-                            Order <?= htmlspecialchars($it['reference']) ?> · <?= formatPrice((float)$it['price']) ?> ·
+                            Order <?= htmlspecialchars($it['reference']) ?> · <?php
+                                $qty = max(1, (int)($it['quantity'] ?? 1));
+                                echo $qty > 1 ? formatPrice((float)$it['price']) . " × {$qty} = " . formatPrice((float)$it['price'] * $qty) : formatPrice((float)$it['price']);
+                            ?> ·
                             Ship to: <?= htmlspecialchars($it['shipping_address']) ?>
                             <?php if (!empty($it['tracking_number'])): ?> · Tracking: <?= htmlspecialchars($it['tracking_number']) ?><?php endif; ?>
                         </div>
