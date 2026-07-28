@@ -329,7 +329,13 @@ include '../templates/header.php';
                                         <?php echo $config['label']; ?>
                                     </span>
                                 </td>
-                                <td>₦<?php echo number_format($listing['price']); ?></td>
+                                <td>
+                                    <span class="price-display" id="price-display-<?php echo $listing['id']; ?>-<?php echo $listing['division']; ?>">₦<?php echo number_format($listing['price']); ?></span>
+                                    <button type="button" class="action-btn" style="padding:2px 8px;font-size:11px;margin-left:6px;"
+                                            onclick="editListingPrice(<?php echo (int)$listing['id']; ?>, '<?php echo $listing['division']; ?>', <?php echo (float)$listing['price']; ?>)">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                </td>
                                 <td>
                                     <span class="status-badge status-badge-<?php echo $listing['status']; ?>">
                                         <?php echo ucfirst($listing['status']); ?>
@@ -400,6 +406,37 @@ include '../templates/header.php';
         input.focus();
     });
 })();
+
+const adminPriceCsrf = <?php echo json_encode(Security::generateCSRFToken()); ?>;
+
+function editListingPrice(listingId, division, currentPrice) {
+    const newPriceStr = prompt('Enter new price (₦) for this listing:', currentPrice);
+    if (newPriceStr === null) return; // cancelled
+
+    const newPrice = parseFloat(newPriceStr);
+    if (isNaN(newPrice) || newPrice <= 0) {
+        alert('Please enter a valid price greater than zero.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('csrf_token', adminPriceCsrf);
+    formData.append('listing_id', listingId);
+    formData.append('division', division);
+    formData.append('price', newPrice);
+
+    fetch('/api/admin/update-price.php', { method: 'POST', body: formData, credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const el = document.getElementById('price-display-' + listingId + '-' + division);
+                if (el) el.textContent = '₦' + Math.round(newPrice).toLocaleString('en-NG');
+            } else {
+                alert(data.error || 'Failed to update price.');
+            }
+        })
+        .catch(() => alert('Network error. Please try again.'));
+}
 </script>
 
     </main>
