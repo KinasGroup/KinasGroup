@@ -56,10 +56,22 @@ try {
         exit;
     }
 
-    $db->prepare("INSERT IGNORE INTO cart_items (buyer_id, listing_id, listing_type) VALUES (?, ?, 'marketplace')")
-       ->execute([$userId, $listingId]);
+    // Cap per-line quantity to prevent one buyer from hoarding/abusing a
+    // single listing's stock via repeated add calls.
+    $maxQtyPerItem = 20;
 
-    $countStmt = $db->prepare("SELECT COUNT(*) FROM cart_items WHERE buyer_id = ?");
+    $db->prepare("
+        INSERT INTO cart_items (buyer_id, listing_id, listing_type, quantity)
+        VALUES (?, ?, 'marketplace', 1)
+        ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + 1, $maxQtyPerItem)
+    ")->execute([$userId, $listingId]);
+
+    $countStmt = $db->prepare("
+        SELECT COALESCE(SUM(ci.quantity), 0)
+        FROM cart_items ci
+        JOIN marketplace_listings m ON m.id = ci.listing_id
+        WHERE ci.buyer_id = ? AND ci.listing_type = 'marketplace'
+    ");
     $countStmt->execute([$userId]);
     $count = (int)$countStmt->fetchColumn();
 

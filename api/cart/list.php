@@ -31,7 +31,7 @@ try {
     $db = Database::getInstance()->getConnection();
 
     $stmt = $db->prepare("
-        SELECT m.id AS listing_id, m.title, m.price, m.status, m.agent_id,
+        SELECT m.id AS listing_id, m.title, m.price, m.status, m.agent_id, ci.quantity,
                u.name AS agent_name,
                (SELECT url FROM listing_images WHERE listing_id = m.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) AS thumbnail
         FROM cart_items ci
@@ -49,20 +49,26 @@ try {
 
     foreach ($rows as $row) {
         $available = $row['status'] === 'active';
+        $qty = max(1, (int)$row['quantity']);
+        $unitPrice = marketplaceBuyerPrice((float)$row['price']);
+        $lineTotal = $unitPrice * $qty;
+
         if (!$available) {
             $hasUnavailable = true;
         } else {
-            $subtotal += marketplaceBuyerPrice((float)$row['price']);
+            $subtotal += $lineTotal;
         }
 
         $items[] = [
-            'listing_id'  => (int)$row['listing_id'],
-            'title'       => $row['title'],
-            'thumbnail'   => $row['thumbnail'] ?: null,
-            'agent_name'  => $row['agent_name'] ?: 'Seller',
-            'price_label' => formatPrice(marketplaceBuyerPrice((float)$row['price'])),
-            'available'   => $available,
-            'detail_url'  => '/divisions/kinas-marketplace/detail.php?id=' . (int)$row['listing_id'],
+            'listing_id'     => (int)$row['listing_id'],
+            'title'          => $row['title'],
+            'thumbnail'      => $row['thumbnail'] ?: null,
+            'agent_name'     => $row['agent_name'] ?: 'Seller',
+            'quantity'       => $qty,
+            'price_label'    => formatPrice($unitPrice),
+            'line_total_label' => formatPrice($lineTotal),
+            'available'      => $available,
+            'detail_url'     => '/divisions/kinas-marketplace/detail.php?id=' . (int)$row['listing_id'],
         ];
     }
 

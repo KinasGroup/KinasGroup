@@ -20,7 +20,12 @@ $userId = (int)($_SESSION['user_id'] ?? 0);
 
 try {
     $db = Database::getInstance()->getConnection();
-    $stmt = $db->prepare("SELECT COUNT(*) FROM cart_items WHERE buyer_id = ?");
+    $stmt = $db->prepare("
+        SELECT COALESCE(SUM(ci.quantity), 0)
+        FROM cart_items ci
+        JOIN marketplace_listings m ON m.id = ci.listing_id
+        WHERE ci.buyer_id = ? AND ci.listing_type = 'marketplace'
+    ");
     $stmt->execute([$userId]);
     $count = (int)$stmt->fetchColumn();
 
