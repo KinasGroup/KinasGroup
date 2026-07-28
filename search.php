@@ -20,6 +20,7 @@ $perPage = 12;
 $offset = ($page - 1) * $perPage;
 
 $searchTerm = '%' . $query . '%';
+$hasFilter = ($query !== '' || $division !== 'all');
 $results = [];
 $totalCount = 0;
 
@@ -71,12 +72,13 @@ function getListingImage($db, $listingId, $divisionName) {
 }
 
 // Function to search a specific table
-function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage) {
+function searchTable($db, $table, $divisionName, $searchTerm, $rawQuery, $offset, $perPage) {
     $results = [];
     $count = 0;
     
     try {
         $searchFields = [];
+        $categoryJoin = '';
         switch ($table) {
             case 'car_listings':
                 $searchFields = ['title', 'brand', 'model', 'body_type', 'fuel_type', 'transmission', 'city', 'state'];
@@ -88,12 +90,11 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
                 $searchFields = ['title', 'address', 'city', 'state', 'description'];
                 break;
             case 'marketplace_listings':
-                // NOTE: marketplace_listings has no 'category' text column — only
-                // category_id (FK to marketplace_categories). Searching a
-                // nonexistent 'category' column threw a SQL error on every
-                // request, which the catch block silently swallowed, making
-                // Marketplace search always return zero results.
-                $searchFields = ['title', 'brand', 'description', 'city', 'state'];
+                // category_id is a FK (no text column on this table itself),
+                // so category name search needs a join to marketplace_categories
+                // rather than a plain field like the others below.
+                $searchFields = ['title', 'brand', 'description', 'city', 'state', 'mc.name'];
+                $categoryJoin = 'LEFT JOIN marketplace_categories mc ON mc.id = t.category_id';
                 break;
             default:
                 $searchFields = ['title'];
@@ -101,7 +102,8 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
         
         $whereClauses = [];
         foreach ($searchFields as $field) {
-            $whereClauses[] = "$field LIKE ?";
+            $col = str_contains($field, '.') ? $field : "t.$field";
+            $whereClauses[] = "$col LIKE ?";
         }
         $whereSQL = implode(' OR ', $whereClauses);
         
@@ -109,29 +111,43 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
         // do). Selecting it unconditionally threw a SQL error on every
         // Homes search, which the catch block silently swallowed, making
         // Homes search always return zero results.
-        $brandColumn = ($table === 'property_listings') ? 'NULL' : 'brand';
+        $brandColumn = ($table === 'property_listings') ? 'NULL' : 't.brand';
+
+        // Relevance ranking: an exact title match ranks highest, then a
+        // title that STARTS WITH the query, then any other field match.
+        // Without this, results were ordered purely by recency — a
+        // perfect title match could rank below an unrelated newer
+        // listing that only loosely matched on a description field.
+        $relevanceSQL = "
+            CASE
+                WHEN t.title = ? THEN 0
+                WHEN t.title LIKE ? THEN 1
+                ELSE 2
+            END
+        ";
         
         $stmt = $db->prepare("
             SELECT 
-                id, 
-                title, 
-                price, 
-                status,
-                views,
-                created_at,
+                t.id, 
+                t.title, 
+                t.price, 
+                t.status,
+                t.views,
+                t.created_at,
                 '$divisionName' as division,
                 '" . str_replace('_listings', '', $table) . "' as type,
                 $brandColumn as brand,
-                city,
-                state
-            FROM $table 
+                t.city,
+                t.state
+            FROM $table t
+            $categoryJoin
             WHERE ($whereSQL) 
-              AND status = 'active'
-            ORDER BY created_at DESC
+              AND t.status = 'active'
+            ORDER BY $relevanceSQL ASC, t.created_at DESC
             LIMIT ? OFFSET ?
         ");
         
-        $params = [];
+        $params = [$rawQuery, $rawQuery . '%'];
         foreach ($searchFields as $field) {
             $params[] = $searchTerm;
         }
@@ -143,9 +159,10 @@ function searchTable($db, $table, $divisionName, $searchTerm, $offset, $perPage)
         
         $countStmt = $db->prepare("
             SELECT COUNT(*) as total 
-            FROM $table 
+            FROM $table t
+            $categoryJoin
             WHERE ($whereSQL) 
-              AND status = 'active'
+              AND t.status = 'active'
         ");
         $countParams = [];
         foreach ($searchFields as $field) {
@@ -184,7 +201,7 @@ if ($division === 'all') {
 
 $allResults = [];
 foreach ($divisionsToSearch as $table => $divName) {
-    $result = searchTable($db, $table, $divName, $searchTerm, $offset, $perPage);
+    $result = searchTable($db, $table, $divName, $searchTerm, $query, $offset, $perPage);
     
     foreach ($result['results'] as &$item) {
         $item['image'] = getListingImage($db, $item['id'], $item['division']);
@@ -217,6 +234,42 @@ usort($allResults, function($a, $b) {
 
 $paginatedResults = array_slice($allResults, $offset, $perPage);
 $totalPages = ceil($totalCount / $perPage);
+
+// No matches — suggest something rather than a dead end. Pulls a small
+// spread of popular (most-viewed) active listings across divisions, or
+// just the selected division if one was chosen, so the person isn't
+// left with nothing to do but retype their search.
+$suggestions = [];
+if ($totalCount === 0 && $hasFilter) {
+    $suggestDivisions = ($division !== 'all' && isset($tableMap[$division]))
+        ? [$tableMap[$division] => $division]
+        : $divisionsToSearch;
+    foreach ($suggestDivisions as $sTable => $sDivName) {
+        try {
+            $categoryJoin = $sTable === 'marketplace_listings' ? 'LEFT JOIN marketplace_categories mc ON mc.id = t.category_id' : '';
+            $stmt = $db->prepare("
+                SELECT t.id, t.title, t.price, t.views, t.created_at,
+                       '$sDivName' as division,
+                       '" . str_replace('_listings', '', $sTable) . "' as type
+                FROM $sTable t
+                $categoryJoin
+                WHERE t.status = 'active'
+                ORDER BY t.views DESC, t.created_at DESC
+                LIMIT 3
+            ");
+            $stmt->execute();
+            foreach ($stmt->fetchAll() as $row) {
+                $row['image'] = getListingImage($db, $row['id'], $row['division']);
+                $row['folder'] = $divisionFolders[$row['division']] ?? $row['division'];
+                $suggestions[] = $row;
+            }
+        } catch (Exception $e) {
+            // Skip this division's suggestions on error rather than fail the page
+        }
+    }
+    // Cap total suggestions shown regardless of how many divisions contributed
+    $suggestions = array_slice($suggestions, 0, 8);
+}
 
 $pageTitle = 'Search Results - KINAS GROUP';
 include 'templates/header.php';
@@ -414,10 +467,7 @@ include 'templates/header.php';
         </button>
     </form>
     
-    <?php 
-    $hasFilter = ($query !== '' || $division !== 'all');
-    if ($hasFilter): 
-    ?>
+    <?php if ($hasFilter): ?>
         <p style="color: #666; margin-bottom: 30px;">
             <?php if ($query): ?>
                 <strong><?php echo $totalCount; ?></strong> result<?php echo $totalCount !== 1 ? 's' : ''; ?> for
@@ -538,9 +588,37 @@ include 'templates/header.php';
             <div class="no-results">
                 <i class="fas fa-search"></i>
                 <h3>No results found</h3>
-                <p style="color: #666;">Try adjusting your search terms or filters.</p>
+                <p style="color: #666;">We couldn't find anything matching "<?php echo htmlspecialchars($query); ?>". Try different keywords, or check out these popular listings instead.</p>
                 <a href="search.php" style="color: #C6A43F; text-decoration: none; font-weight: 600;">Clear all filters</a>
             </div>
+
+            <?php if (!empty($suggestions)): ?>
+            <div style="margin-top:32px;">
+                <h3 style="font-size:16px;color:#333;margin-bottom:16px;">You might like these</h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;">
+                    <?php
+                    $folderMap = ['car' => 'kinas-automobile', 'solar' => 'kinas-volt', 'property' => 'williams-connect-home', 'marketplace' => 'kinas-marketplace'];
+                    $displayNames = ['car' => 'Automobile', 'solar' => 'Volt', 'property' => 'Homes', 'marketplace' => 'Marketplace'];
+                    ?>
+                    <?php foreach ($suggestions as $sug): $sFolder = $folderMap[$sug['division']] ?? $sug['division']; ?>
+                    <a href="/divisions/<?php echo $sFolder; ?>/detail.php?id=<?php echo (int)$sug['id']; ?>" style="display:block;border:1px solid #eee;border-radius:8px;overflow:hidden;text-decoration:none;color:inherit;transition:box-shadow .15s;">
+                        <div style="height:130px;background:#f5f5f5;">
+                            <?php if (!empty($sug['image'])): ?>
+                                <img src="<?php echo htmlspecialchars($sug['image']); ?>" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
+                            <?php endif; ?>
+                        </div>
+                        <div style="padding:10px 12px;">
+                            <div style="font-size:13px;font-weight:600;color:#151515;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($sug['title']); ?></div>
+                            <div style="font-size:11px;color:#999;margin-top:2px;"><?php echo $displayNames[$sug['division']] ?? ucfirst($sug['division']); ?></div>
+                            <?php if (!empty($sug['price'])): ?>
+                                <div style="font-size:13px;color:#C6A43F;font-weight:700;margin-top:4px;">₦<?php echo number_format((float)$sug['price']); ?></div>
+                            <?php endif; ?>
+                        </div>
+                    </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
         <?php endif; ?>
         
     <?php else: ?>
