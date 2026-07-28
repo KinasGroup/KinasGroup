@@ -96,10 +96,11 @@ try {
         $stmt = $db->prepare("SELECT id, agent_id, title, price, status FROM marketplace_listings WHERE id = ?");
         $stmt->execute([$listingId]);
         $row = $stmt->fetch();
+        if ($row) { $row['quantity'] = 1; } // buy_now is always a single unit
         $listings = $row ? [$row] : [];
     } else {
         $stmt = $db->prepare("
-            SELECT m.id, m.agent_id, m.title, m.price, m.status
+            SELECT m.id, m.agent_id, m.title, m.price, m.status, ci.quantity
             FROM cart_items ci
             JOIN marketplace_listings m ON m.id = ci.listing_id
             WHERE ci.buyer_id = ? AND ci.listing_type = 'marketplace'
@@ -131,7 +132,7 @@ try {
         exit;
     }
 
-    $subtotal = array_sum(array_map(fn($l) => (float)$l['price'], $listings));
+    $subtotal = array_sum(array_map(fn($l) => (float)$l['price'] * max(1, (int)$l['quantity']), $listings));
     if ($subtotal <= 0) {
         http_response_code(422);
         echo json_encode(['error' => 'Invalid order total']);
@@ -183,12 +184,15 @@ try {
     ]);
     $orderId = (int)$db->lastInsertId();
 
+    // price stays a unit-price snapshot; quantity is stored separately
+    // rather than baked into price, so order history/receipts can show
+    // "₦5,000 × 3" instead of just a lump ₦15,000 with no explanation.
     $itemStmt = $db->prepare("
-        INSERT INTO order_items (order_id, listing_id, listing_type, agent_id, title, price)
-        VALUES (?, ?, 'marketplace', ?, ?, ?)
+        INSERT INTO order_items (order_id, listing_id, listing_type, agent_id, title, price, quantity)
+        VALUES (?, ?, 'marketplace', ?, ?, ?, ?)
     ");
     foreach ($listings as $l) {
-        $itemStmt->execute([$orderId, $l['id'], $l['agent_id'], $l['title'], $l['price']]);
+        $itemStmt->execute([$orderId, $l['id'], $l['agent_id'], $l['title'], $l['price'], max(1, (int)$l['quantity'])]);
     }
 
     $db->commit();
