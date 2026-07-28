@@ -102,7 +102,10 @@ define('OTP_EXPIRY', 600); // 10 minutes
 define('CSRF_TOKEN_LENGTH', 32);
 
 // Commission
-define('COMMISSION_RATE', 5); // 5%
+define('COMMISSION_RATE', 5); // 5% — Marketplace
+define('COMMISSION_RATE_VEHICLE', 1.7); // 1.7% — Automobile sales
+define('COMMISSION_RATE_PROPERTY', 1);  // 1% — Property sales
+define('INSPECTION_FEE_COMMISSION_RATE', 10); // 10% — Platform cut of every paid inspection fee
 define('FEATURED_LISTING_PRICE', 49.99);
 define('LISTING_DURATION_DAYS', 90);
 
