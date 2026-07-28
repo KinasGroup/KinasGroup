@@ -24,6 +24,7 @@
 require_once '../config/database.php';
 require_once '../../includes/paystack.php';
 require_once '../../includes/order-fulfillment.php';
+require_once '../../includes/inspection-fulfillment.php';
 
 // Read the raw body BEFORE anything else touches it — needed for an
 // exact-byte HMAC comparison.
@@ -55,9 +56,17 @@ $reference = (string)($event['data']['reference'] ?? '');
 if ($eventName === 'charge.success' && $reference !== '') {
     try {
         $db = Database::getInstance()->getConnection();
-        $result = finalizeMarketplaceOrder($db, $reference);
-        if (!$result['success']) {
-            error_log("Paystack webhook: finalize failed for ref={$reference}: " . ($result['error'] ?? 'unknown'));
+
+        if (str_starts_with($reference, 'INSPECT-')) {
+            $result = finalizeInspectionBooking($db, $reference);
+            if (!$result['success']) {
+                error_log("Paystack webhook: inspection finalize failed for ref={$reference}: " . ($result['error'] ?? 'unknown'));
+            }
+        } else {
+            $result = finalizeMarketplaceOrder($db, $reference);
+            if (!$result['success']) {
+                error_log("Paystack webhook: finalize failed for ref={$reference}: " . ($result['error'] ?? 'unknown'));
+            }
         }
     } catch (Throwable $e) {
         error_log('Paystack webhook processing error: ' . $e->getMessage());
