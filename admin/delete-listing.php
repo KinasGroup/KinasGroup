@@ -71,6 +71,14 @@ try {
         // Table might not exist, continue
     }
 
+    // Same orphan-prevention as agent-side deletion — see api/listings/delete.php
+    try {
+        $db->prepare("DELETE FROM cart_items WHERE listing_id = ? AND listing_type = ?")->execute([$listingId, $division]);
+        $db->prepare("DELETE FROM favorites WHERE listing_id = ? AND listing_type = ?")->execute([$listingId, $division]);
+    } catch (Exception $e) {
+        // Table might not exist, continue
+    }
+
     // 🔧 FIX: Clear featured flag for this listing
     try {
         // Reset featured flag in the listing table

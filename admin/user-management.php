@@ -123,7 +123,7 @@ $users = $usersStmt->fetchAll();
 $totalPages = max(1, ceil($total/$limit));
 
 // Summary stats
-$sTotal   = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+$sTotal   = $db->query("SELECT COUNT(*) FROM users WHERE status != 'deleted'")->fetchColumn();
 $sAgents  = $db->query("SELECT COUNT(*) FROM users WHERE role='agent' AND status='active'")->fetchColumn();
 $sPending = $db->query("SELECT COUNT(*) FROM users WHERE status='pending'")->fetchColumn();
 $sSuspend = $db->query("SELECT COUNT(*) FROM users WHERE status='suspended'")->fetchColumn();
