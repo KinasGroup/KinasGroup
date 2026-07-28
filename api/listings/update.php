@@ -7,6 +7,7 @@ require_once '../config/database.php';
 require_once '../../includes/session.php';
 require_once '../../includes/security.php';
 require_once '../../includes/file-upload.php';
+require_once '../../includes/video-compress.php';
 
 if (!in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'PATCH'], true)) {
     http_response_code(405);
@@ -94,7 +95,7 @@ try {
         'specialties', 'property_type', 'view_type',
         // NEW AUTOMOBILE FIELDS (only update if column exists):
         'engine', 'gearbox', 'car_type', 'drive', 'drive_train', 
-        'interior_color'
+        'interior_color', 'inspection_fee'
         // NOTE: virtual_tour_url / virtual_tour_type are intentionally NOT
         // in this list — both the "link" and "video" cases are handled
         // together in one dedicated block below (alongside image uploads),
@@ -298,6 +299,16 @@ try {
             // Blank/invalid link on purpose clears the field (agent removed it).
         } elseif (!empty($_FILES['virtual_tour_video']['name']) && $_FILES['virtual_tour_video']['error'] !== UPLOAD_ERR_NO_FILE) {
             if ($_FILES['virtual_tour_video']['error'] === UPLOAD_ERR_OK) {
+                $detectedMime = @mime_content_type($_FILES['virtual_tour_video']['tmp_name']) ?: $_FILES['virtual_tour_video']['type'];
+                $compression = compressVideoIfPossible($_FILES['virtual_tour_video']['tmp_name'], $detectedMime);
+                if ($compression['compressed']) {
+                    error_log(sprintf(
+                        'Virtual tour video compressed for listing %d: %s -> %s (%.0f%% smaller)',
+                        $listingId, formatBytes($compression['original_size']), formatBytes($compression['new_size']),
+                        (1 - $compression['new_size'] / max(1, $compression['original_size'])) * 100
+                    ));
+                }
+
                 $videoUploader = new FileUpload(
                     'properties',
                     ['video/mp4' => 'mp4', 'video/quicktime' => 'mov', 'video/webm' => 'webm'],
@@ -305,11 +316,15 @@ try {
                 );
                 $videoResult = $videoUploader->upload([
                     'name'     => $_FILES['virtual_tour_video']['name'],
-                    'type'     => $_FILES['virtual_tour_video']['type'],
-                    'tmp_name' => $_FILES['virtual_tour_video']['tmp_name'],
+                    'type'     => $compression['compressed'] ? 'video/mp4' : $_FILES['virtual_tour_video']['type'],
+                    'tmp_name' => $compression['path'],
                     'error'    => $_FILES['virtual_tour_video']['error'],
-                    'size'     => $_FILES['virtual_tour_video']['size'],
+                    'size'     => $compression['compressed'] ? $compression['new_size'] : $_FILES['virtual_tour_video']['size'],
                 ], ['prefix' => "listing_{$listingId}_tour_"]);
+
+                if ($compression['compressed']) {
+                    @unlink($compression['path']);
+                }
 
                 if ($videoResult['success']) {
                     $vtUrl = isset($videoResult['key'])

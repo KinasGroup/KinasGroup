@@ -16,6 +16,7 @@ require_once '../../includes/session.php';
 require_once '../../includes/security.php';
 require_once '../../includes/validation.php';
 require_once '../../includes/file-upload.php';
+require_once '../../includes/video-compress.php';
 
 // Check if this is a form submission (multipart/form-data) or JSON
 $isFormSubmit = !empty($_POST) || !empty($_FILES);
@@ -233,8 +234,8 @@ try {
                  body_type, drivetrain, doors,
                  engine, gearbox, car_type, drive, drive_train, vin,
                  interior_color, seats, features, country,
-                 description, city, state, listing_type, status, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?, NOW(), NOW())
+                 description, city, state, listing_type, inspection_fee, status, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?, ?, NOW(), NOW())
         ");
         $stmt->execute([
             $agentId,
@@ -265,6 +266,7 @@ try {
             $s('city', 100),
             $s('state', 100),
             $requestedCarType,
+            $num('inspection_fee'),
             $listingStatus, // 'active' for verified, 'pending' for unverified
         ]);
     } elseif ($listingType === 'property') {
@@ -274,8 +276,8 @@ try {
                  beds, baths, sqft, lot_size, year_built,
                  address, city, state, zip_code, country,
                  latitude, longitude, description, features, amenities, view_type, hoa_fees,
-                 status, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?, NOW(), NOW())
+                 inspection_fee, status, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?, ?, NOW(), NOW())
         ");
         $stmt->execute([
             $agentId,
@@ -300,6 +302,7 @@ try {
             !empty($data['amenities']) ? json_encode($data['amenities']) : null,
             $s('view_type', 100),
             $num('hoa_fees'),
+            $num('inspection_fee'),
             $listingStatus, // 'active' for verified, 'pending' for unverified
         ]);
     } elseif ($listingType === 'solar') {
@@ -456,6 +459,16 @@ try {
             }
         } elseif (!empty($_FILES['virtual_tour_video']['name']) && $_FILES['virtual_tour_video']['error'] !== UPLOAD_ERR_NO_FILE) {
             if ($_FILES['virtual_tour_video']['error'] === UPLOAD_ERR_OK) {
+                $detectedMime = @mime_content_type($_FILES['virtual_tour_video']['tmp_name']) ?: $_FILES['virtual_tour_video']['type'];
+                $compression = compressVideoIfPossible($_FILES['virtual_tour_video']['tmp_name'], $detectedMime);
+                if ($compression['compressed']) {
+                    error_log(sprintf(
+                        'Virtual tour video compressed for listing %d: %s -> %s (%.0f%% smaller)',
+                        $listingId, formatBytes($compression['original_size']), formatBytes($compression['new_size']),
+                        (1 - $compression['new_size'] / max(1, $compression['original_size'])) * 100
+                    ));
+                }
+
                 $videoUploader = new FileUpload(
                     'properties',
                     ['video/mp4' => 'mp4', 'video/quicktime' => 'mov', 'video/webm' => 'webm'],
@@ -463,11 +476,15 @@ try {
                 );
                 $videoResult = $videoUploader->upload([
                     'name'     => $_FILES['virtual_tour_video']['name'],
-                    'type'     => $_FILES['virtual_tour_video']['type'],
-                    'tmp_name' => $_FILES['virtual_tour_video']['tmp_name'],
+                    'type'     => $compression['compressed'] ? 'video/mp4' : $_FILES['virtual_tour_video']['type'],
+                    'tmp_name' => $compression['path'],
                     'error'    => $_FILES['virtual_tour_video']['error'],
-                    'size'     => $_FILES['virtual_tour_video']['size'],
+                    'size'     => $compression['compressed'] ? $compression['new_size'] : $_FILES['virtual_tour_video']['size'],
                 ], ['prefix' => "listing_{$listingId}_tour_"]);
+
+                if ($compression['compressed']) {
+                    @unlink($compression['path']); // clean up the temp compressed file now that it's uploaded
+                }
 
                 if ($videoResult['success']) {
                     $vtUrl = isset($videoResult['key'])
