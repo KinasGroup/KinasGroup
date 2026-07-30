@@ -55,6 +55,63 @@ echo "error_reporting = E_ALL" >> /usr/local/etc/php/conf.d/errors.ini
 echo "log_errors = On" >> /usr/local/etc/php/conf.d/errors.ini
 echo "error_log = /var/www/html/logs/php_errors.log" >> /usr/local/etc/php/conf.d/errors.ini
 
+# ============================================
+# DATABASE CONNECTION TEST (NEW)
+# ============================================
+echo "=== Testing Database Connection ==="
+php -r "
+try {
+    \$pdo = new PDO('mysql:host=mysql-geov.railway.internal;dbname=railway', 'root', 'xFpLpHtZgWqiNPVGBGJGYPexiLCznkft');
+    \$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    echo '✅ Database connection successful!\\n';
+    
+    // Check if tables exist
+    \$tables = \$pdo->query('SHOW TABLES');
+    \$tableCount = \$tables->rowCount();
+    echo \"✅ Found \$tableCount tables in database.\\n\";
+    
+    // Check rc_users table
+    \$result = \$pdo->query(\"SELECT COUNT(*) FROM rc_users\");
+    \$userCount = \$result->fetchColumn();
+    echo \"✅ rc_users table has \$userCount users.\\n\";
+    
+} catch (Exception \$e) {
+    echo '❌ Database connection failed: ' . \$e->getMessage() . \"\\n\";
+}
+"
+
+# ============================================
+# CONFIG FILE CHECK (NEW)
+# ============================================
+echo "=== Checking Config File ==="
+if [ -f /var/www/html/config/config.inc.php ]; then
+    echo "✅ config.inc.php exists"
+    echo "=== Config contents (database line) ==="
+    grep -i "db_dsnw" /var/www/html/config/config.inc.php
+else
+    echo "❌ config.inc.php NOT FOUND!"
+fi
+
+# ============================================
+# IMAP/SMTP CONNECTION TEST (NEW)
+# ============================================
+echo "=== Testing IMAP Connection ==="
+php -r "
+try {
+    \$imap = imap_open('{imappro.zoho.com:993/imap/ssl/novalidate-cert}', 'admin@kinas-group.com', 'Company@4421');
+    if (\$imap) {
+        echo '✅ IMAP connection successful!\\n';
+        imap_close(\$imap);
+    } else {
+        echo '❌ IMAP connection failed: ' . imap_last_error() . \"\\n\";
+    }
+} catch (Exception \$e) {
+    echo '❌ IMAP test error: ' . \$e->getMessage() . \"\\n\";
+}
+"
+
+# ============================================
+# START APACHE
+# ============================================
 echo "=== Setup Complete. Starting Apache ==="
-# Start Apache
 exec apache2-foreground
