@@ -103,10 +103,20 @@ try {
         // columns instead of two code paths racing to write them.
     ];
 
+    // Numeric/nullable columns where a blank form field ('' — submitted
+    // whenever the input is left empty, not absent) must become NULL
+    // rather than being passed through as-is. MySQL's strict mode
+    // rejects '' for DECIMAL/INT columns outright (this is exactly what
+    // broke leaving Inspection Fee blank on the edit form).
+    $numericNullableFields = ['mileage', 'inspection_fee', 'category_id'];
+
     // Only include text fields that exist in the table
     foreach ($allTextFields as $f) {
         if (array_key_exists($f, $data) && in_array($f, $existingColumns)) {
             $val = is_string($data[$f]) ? trim($data[$f]) : $data[$f];
+            if (in_array($f, $numericNullableFields, true) && $val === '') {
+                $val = null;
+            }
             $updates[] = "`$f` = ?";
             $params[] = $val;
         }
