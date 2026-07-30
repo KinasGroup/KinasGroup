@@ -15,19 +15,19 @@ RUN chmod +x /start.sh
 # Create config directory and file
 RUN mkdir -p /var/www/html/config /var/www/html/logs /var/www/html/temp
 
-# Create config file
+# Create config file with ZOHO MAIL settings
 RUN echo '<?php' > /var/www/html/config/config.inc.php && \
     echo '$config = array();' >> /var/www/html/config/config.inc.php && \
     echo '$config["db_dsnw"] = "mysql://root:xFpLpHtZgWqiNPVGBGJGYPexiLCznkft@mysql-geov.railway.internal/railway";' >> /var/www/html/config/config.inc.php && \
-    echo '$config["default_host"] = "imaps://imap.gmail.com:993";' >> /var/www/html/config/config.inc.php && \
-    echo '$config["smtp_server"] = "tls://smtp.resend.com";' >> /var/www/html/config/config.inc.php && \
-    echo '$config["smtp_port"] = 587;' >> /var/www/html/config/config.inc.php && \
+    echo '$config["imap_host"] = "imaps://imappro.zoho.com:993";' >> /var/www/html/config/config.inc.php && \
+    echo '$config["smtp_host"] = "ssl://smtppro.zoho.com";' >> /var/www/html/config/config.inc.php && \
+    echo '$config["smtp_port"] = 465;' >> /var/www/html/config/config.inc.php && \
     echo '$config["smtp_user"] = "%u";' >> /var/www/html/config/config.inc.php && \
     echo '$config["smtp_pass"] = "%p";' >> /var/www/html/config/config.inc.php && \
     echo '$config["product_name"] = "KINAS GROUP Webmail";' >> /var/www/html/config/config.inc.php && \
     echo '$config["skin"] = "elastic";' >> /var/www/html/config/config.inc.php && \
     echo '$config["des_key"] = "qaorx6ok43z57CKVbYtWGwMW";' >> /var/www/html/config/config.inc.php && \
-    echo '$config["enable_installer"] = true;' >> /var/www/html/config/config.inc.php && \
+    echo '$config["enable_installer"] = false;' >> /var/www/html/config/config.inc.php && \
     echo '$config["log_driver"] = "file";' >> /var/www/html/config/config.inc.php && \
     echo '$config["log_dir"] = "/var/www/html/logs/";' >> /var/www/html/config/config.inc.php && \
     echo '$config["auto_create_user"] = true;' >> /var/www/html/config/config.inc.php && \
@@ -39,6 +39,20 @@ RUN echo '<?php' > /var/www/html/config/config.inc.php && \
     echo '$config["timezone"] = "Africa/Lagos";' >> /var/www/html/config/config.inc.php && \
     echo '$config["enable_spellcheck"] = true;' >> /var/www/html/config/config.inc.php && \
     echo '$config["spellcheck_engine"] = "pspell";' >> /var/www/html/config/config.inc.php && \
+    echo '$config["imap_conn_options"] = array(' >> /var/www/html/config/config.inc.php && \
+    echo '    "ssl" => array(' >> /var/www/html/config/config.inc.php && \
+    echo '        "verify_peer" => false,' >> /var/www/html/config/config.inc.php && \
+    echo '        "verify_peer_name" => false,' >> /var/www/html/config/config.inc.php && \
+    echo '        "allow_self_signed" => true' >> /var/www/html/config/config.inc.php && \
+    echo '    )' >> /var/www/html/config/config.inc.php && \
+    echo ');' >> /var/www/html/config/config.inc.php && \
+    echo '$config["smtp_conn_options"] = array(' >> /var/www/html/config/config.inc.php && \
+    echo '    "ssl" => array(' >> /var/www/html/config/config.inc.php && \
+    echo '        "verify_peer" => false,' >> /var/www/html/config/config.inc.php && \
+    echo '        "verify_peer_name" => false,' >> /var/www/html/config/config.inc.php && \
+    echo '        "allow_self_signed" => true' >> /var/www/html/config/config.inc.php && \
+    echo '    )' >> /var/www/html/config/config.inc.php && \
+    echo ');' >> /var/www/html/config/config.inc.php && \
     echo '?>' >> /var/www/html/config/config.inc.php
 
 RUN chown -R www-data:www-data /var/www/html/config /var/www/html/logs /var/www/html/temp
