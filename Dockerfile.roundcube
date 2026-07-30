@@ -3,13 +3,13 @@ FROM roundcube/roundcubemail:latest
 # Create config directory and file
 RUN mkdir -p /var/www/html/config /var/www/html/logs /var/www/html/temp
 
-# Create config file
+# Create config file with Zoho Mail settings
 RUN echo '<?php' > /var/www/html/config/config.inc.php && \
     echo '$config = array();' >> /var/www/html/config/config.inc.php && \
     echo '$config["db_dsnw"] = "mysql://root:xFpLpHtZgWqiNPVGBGJGYPexiLCznkft@mysql-geov.railway.internal/railway";' >> /var/www/html/config/config.inc.php && \
-    echo '$config["default_host"] = "imaps://imap.gmail.com:993";' >> /var/www/html/config/config.inc.php && \
-    echo '$config["smtp_server"] = "tls://smtp.resend.com";' >> /var/www/html/config/config.inc.php && \
-    echo '$config["smtp_port"] = 587;' >> /var/www/html/config/config.inc.php && \
+    echo '$config["default_host"] = "imaps://imappro.zoho.com:993";' >> /var/www/html/config/config.inc.php && \
+    echo '$config["smtp_server"] = "ssl://smtppro.zoho.com";' >> /var/www/html/config/config.inc.php && \
+    echo '$config["smtp_port"] = 465;' >> /var/www/html/config/config.inc.php && \
     echo '$config["smtp_user"] = "%u";' >> /var/www/html/config/config.inc.php && \
     echo '$config["smtp_pass"] = "%p";' >> /var/www/html/config/config.inc.php && \
     echo '$config["product_name"] = "KINAS GROUP Webmail";' >> /var/www/html/config/config.inc.php && \
@@ -27,6 +27,20 @@ RUN echo '<?php' > /var/www/html/config/config.inc.php && \
     echo '$config["timezone"] = "Africa/Lagos";' >> /var/www/html/config/config.inc.php && \
     echo '$config["enable_spellcheck"] = true;' >> /var/www/html/config/config.inc.php && \
     echo '$config["spellcheck_engine"] = "pspell";' >> /var/www/html/config/config.inc.php && \
+    echo '$config["imap_conn_options"] = array(' >> /var/www/html/config/config.inc.php && \
+    echo '    "ssl" => array(' >> /var/www/html/config/config.inc.php && \
+    echo '        "verify_peer" => false,' >> /var/www/html/config/config.inc.php && \
+    echo '        "verify_peer_name" => false,' >> /var/www/html/config/config.inc.php && \
+    echo '        "allow_self_signed" => true' >> /var/www/html/config/config.inc.php && \
+    echo '    )' >> /var/www/html/config/config.inc.php && \
+    echo ');' >> /var/www/html/config/config.inc.php && \
+    echo '$config["smtp_conn_options"] = array(' >> /var/www/html/config/config.inc.php && \
+    echo '    "ssl" => array(' >> /var/www/html/config/config.inc.php && \
+    echo '        "verify_peer" => false,' >> /var/www/html/config/config.inc.php && \
+    echo '        "verify_peer_name" => false,' >> /var/www/html/config/config.inc.php && \
+    echo '        "allow_self_signed" => true' >> /var/www/html/config/config.inc.php && \
+    echo '    )' >> /var/www/html/config/config.inc.php && \
+    echo ');' >> /var/www/html/config/config.inc.php && \
     echo '?>' >> /var/www/html/config/config.inc.php
 
 RUN chown -R www-data:www-data /var/www/html/config /var/www/html/logs /var/www/html/temp
