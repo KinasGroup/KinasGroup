@@ -1,45 +1,44 @@
 <?php
 
 // ========================
-// KINAS GROUP - Roundcube Configuration
+// KINAS GROUP - Roundcube Configuration (FIXED)
 // ========================
 
-// Database
-$config['db_dsnw'] = 'mysql://roundcube:YOUR_DB_PASSWORD_HERE@localhost/roundcube_db';
+// Database - USING YOUR ACTUAL RAILWAY DATABASE
+$config['db_dsnw'] = 'mysql://root:xFpLpHtZgWqiNPVGBGJGYPexiLCznkft@mysql-geov.railway.internal/railway';
 
-// IMAP (Incoming Mail)
-$config['default_host'] = 'ssl://imap.gmail.com';        // Change to your IMAP server
-$config['default_port'] = 993;
+// IMAP (Incoming Mail) - Using your email provider
+$config['default_host'] = 'imaps://imap.gmail.com:993';
 $config['imap_conn_options'] = [
     'ssl' => [
-        'verify_peer' => true,
-        'verify_peer_name' => true,
-        'allow_self_signed' => false
+        'verify_peer' => false,
+        'verify_peer_name' => false,
+        'allow_self_signed' => true
     ]
 ];
 
-// SMTP (Sending) - Using Resend Relay / API-friendly
-$config['smtp_server'] = 'smtp.resend.com';   // Or your provider
+// SMTP (Sending) - Using Resend
+$config['smtp_server'] = 'tls://smtp.resend.com';
 $config['smtp_port'] = 587;
-$config['smtp_user'] = '%u';                  // Use full email address
+$config['smtp_user'] = '%u';
 $config['smtp_pass'] = '%p';
 $config['smtp_conn_options'] = [
     'ssl' => [
-        'verify_peer' => true,
-        'verify_peer_name' => true,
-        'allow_self_signed' => false
+        'verify_peer' => false,
+        'verify_peer_name' => false,
+        'allow_self_signed' => true
     ]
 ];
 
 // General Settings
 $config['product_name'] = 'KINAS GROUP Mail';
 $config['support_url'] = 'https://kinas-group.com/support';
-$config['skin'] = 'elastic';                    // Modern responsive skin
+$config['skin'] = 'elastic';
 $config['language'] = 'en_US';
-$config['timezone'] = 'Africa/Lagos';           // Nigeria timezone
+$config['timezone'] = 'Africa/Lagos';
 
 // Security
-$config['des_key'] = '2f9851c4263fd15f80b5e840'; // Generate a strong one
+$config['des_key'] = 'qaorx6ok43z57CKVbYtWGwMW';
 $config['cipher_method'] = 'AES-256-CBC';
 
 // Features
@@ -47,19 +46,19 @@ $config['enable_spellcheck'] = true;
 $config['plugins'] = [
     'archive',
     'zipdownload',
-    'managesieve',     // For email filters
-    'password',        // Optional: allow password change
+    'managesieve',
+    'password',
     'markasjunk'
 ];
 
-// Logging
+// Logging - USING THE CORRECT DIRECTORY
 $config['log_driver'] = 'file';
-$config['log_dir'] = '/var/log/roundcube/';   // Ensure this folder exists and is writable
+$config['log_dir'] = '/var/www/html/logs/';
 
 // Session & Security
-$config['session_lifetime'] = 60;             // minutes
+$config['session_lifetime'] = 60;
 $config['ip_check'] = true;
-$config['double_auth'] = false;               // Set true if using 2FA
+$config['double_auth'] = false;
 
 // Mime & Attachments
 $config['max_message_size'] = '50M';
@@ -74,5 +73,5 @@ $config['enable_caching'] = true;
 $config['messages_sort_col'] = 'date';
 $config['messages_sort_order'] = 'DESC';
 
-// Prevent installer access after setup
-$config['enable_installer'] = false;          // IMPORTANT: Set to false after installation
+// Disable installer
+$config['enable_installer'] = false;
