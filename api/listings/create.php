@@ -474,17 +474,21 @@ try {
                     ['video/mp4' => 'mp4', 'video/quicktime' => 'mov', 'video/webm' => 'webm'],
                     150 * 1024 * 1024 // 150MB — a walkthrough clip is far larger than a photo
                 );
+                // tmp_name is always the ORIGINAL upload path — compression
+                // (if it ran) already overwrote its bytes in place. Passing
+                // any other path here fails FileUpload's is_uploaded_file()
+                // check, which only recognizes paths PHP itself registered
+                // during the actual HTTP upload — this silently dropped
+                // every compressed video before this fix.
                 $videoResult = $videoUploader->upload([
-                    'name'     => $_FILES['virtual_tour_video']['name'],
+                    'name'     => $compression['compressed']
+                        ? preg_replace('/\.[a-zA-Z0-9]+$/', '.mp4', $_FILES['virtual_tour_video']['name'])
+                        : $_FILES['virtual_tour_video']['name'],
                     'type'     => $compression['compressed'] ? 'video/mp4' : $_FILES['virtual_tour_video']['type'],
-                    'tmp_name' => $compression['path'],
+                    'tmp_name' => $_FILES['virtual_tour_video']['tmp_name'],
                     'error'    => $_FILES['virtual_tour_video']['error'],
                     'size'     => $compression['compressed'] ? $compression['new_size'] : $_FILES['virtual_tour_video']['size'],
                 ], ['prefix' => "listing_{$listingId}_tour_"]);
-
-                if ($compression['compressed']) {
-                    @unlink($compression['path']); // clean up the temp compressed file now that it's uploaded
-                }
 
                 if ($videoResult['success']) {
                     $vtUrl = isset($videoResult['key'])
@@ -517,6 +521,9 @@ try {
         $message .= $imagesSaved === 0
             ? ' Note: none of your photos could be saved — please try re-uploading them from Edit Listing.'
             : " Note: only {$imagesSaved} of {$imagesAttempted} photos were saved — you can add the rest from Edit Listing.";
+    }
+    if (isset($vtError) && $vtError !== null) {
+        $message .= ' Note: the virtual tour video could not be saved — please try re-uploading it from Edit Listing.';
     }
 
     // Redirect to listings page with success message
