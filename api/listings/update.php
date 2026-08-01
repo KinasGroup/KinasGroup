@@ -324,17 +324,22 @@ try {
                     ['video/mp4' => 'mp4', 'video/quicktime' => 'mov', 'video/webm' => 'webm'],
                     150 * 1024 * 1024
                 );
+                // tmp_name is always the ORIGINAL upload path — compression
+                // (if it ran) already overwrote its bytes in place. Passing
+                // any other path here fails FileUpload's is_uploaded_file()
+                // check, which only recognizes paths PHP itself registered
+                // during the actual HTTP upload — this silently dropped
+                // every compressed video before this fix.
                 $videoResult = $videoUploader->upload([
-                    'name'     => $_FILES['virtual_tour_video']['name'],
+                    'name'     => $compression['compressed']
+                        ? preg_replace('/\.[a-zA-Z0-9]+$/', '.mp4', $_FILES['virtual_tour_video']['name'])
+                        : $_FILES['virtual_tour_video']['name'],
                     'type'     => $compression['compressed'] ? 'video/mp4' : $_FILES['virtual_tour_video']['type'],
-                    'tmp_name' => $compression['path'],
+                    'tmp_name' => $_FILES['virtual_tour_video']['tmp_name'],
                     'error'    => $_FILES['virtual_tour_video']['error'],
                     'size'     => $compression['compressed'] ? $compression['new_size'] : $_FILES['virtual_tour_video']['size'],
                 ], ['prefix' => "listing_{$listingId}_tour_"]);
 
-                if ($compression['compressed']) {
-                    @unlink($compression['path']);
-                }
 
                 if ($videoResult['success']) {
                     $vtUrl = isset($videoResult['key'])
@@ -388,12 +393,17 @@ try {
 
     Security::logActivity($_SESSION['user_id'], 'listing_updated', "Updated $listingType listing $listingId");
 
+    $updateMessage = 'Listing updated successfully.';
+    if (isset($vtError) && $vtError !== null) {
+        $updateMessage = 'Listing updated, but the virtual tour video could not be saved — please try re-uploading it.';
+    }
+
     $isJson = strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false;
     if ($isJson) {
         header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'message' => 'Listing updated']);
+        echo json_encode(['success' => true, 'message' => $updateMessage]);
     } else {
-        $_SESSION['flash_success'] = 'Listing updated successfully.';
+        $_SESSION['flash_success'] = $updateMessage;
         header('Location: ' . $redirectAfter);
         exit;
     }
