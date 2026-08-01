@@ -25,12 +25,12 @@ function formatBytes(int $bytes): string
 }
 
 /**
- * @return array{path: string, compressed: bool, original_size: int, new_size: ?int}
+ * @return array{compressed: bool, original_size: int, new_size: ?int, error: ?string}
  */
 function compressVideoIfPossible(string $tmpPath, string $mimeType): array
 {
     $originalSize = @filesize($tmpPath) ?: 0;
-    $result = ['path' => $tmpPath, 'compressed' => false, 'original_size' => $originalSize, 'new_size' => null];
+    $result = ['compressed' => false, 'original_size' => $originalSize, 'new_size' => null, 'error' => null];
 
     // Only handle the video types this feature actually accepts.
     if (!in_array($mimeType, ['video/mp4', 'video/quicktime', 'video/webm'], true)) {
@@ -110,7 +110,7 @@ function compressVideoIfPossible(string $tmpPath, string $mimeType): array
     $newSize = filesize($outputPath);
 
     // Only actually use the compressed version if it's genuinely
-    // smaller — a already-efficient source file re-encoded at CRF 28
+    // smaller — an already-efficient source file re-encoded at CRF 28
     // could theoretically come out larger for unusual footage; no
     // reason to swap in a worse result.
     if ($newSize >= $originalSize) {
@@ -118,10 +118,21 @@ function compressVideoIfPossible(string $tmpPath, string $mimeType): array
         return $result;
     }
 
+    // Overwrite the ORIGINAL upload's bytes in place, then discard the
+    // temp output file. is_uploaded_file() checks the PATH against
+    // PHP's internal upload registry, not the file's current content —
+    // so the caller can keep passing the same tmp_name it always did.
+    if (!@copy($outputPath, $tmpPath)) {
+        error_log('compressVideoIfPossible: failed to copy compressed output back to original path — using original file.');
+        @unlink($outputPath);
+        return $result;
+    }
+    @unlink($outputPath);
+
     return [
-        'path' => $outputPath,
         'compressed' => true,
         'original_size' => $originalSize,
         'new_size' => $newSize,
+        'error' => null,
     ];
 }
