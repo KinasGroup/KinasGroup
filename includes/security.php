@@ -404,7 +404,19 @@ class Security {
         header('X-XSS-Protection: 1; mode=block');
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header('Permissions-Policy: geolocation=(), camera=(), microphone=()');
-        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https:; frame-src https://www.google.com https://recaptcha.google.com;");
+        // NOTE on media-src: uploaded virtual-tour videos are served from
+        // Cloudflare R2 / the CDN (R2_PUBLIC_URL), a different origin from
+        // this site. Without an explicit media-src, <video>/<audio> sources
+        // fall back to default-src 'self' and the browser silently blocks
+        // the cross-origin video — the player renders but never loads
+        // anything (the "empty media player" bug). img-src already uses
+        // the same https: pattern for R2-hosted photos, so we mirror that.
+        //
+        // frame-src also needs the YouTube/Vimeo embed origins used by
+        // virtual_tour_embed_url() (divisions/williams-connect-home/detail.php)
+        // for pasted-link virtual tours — previously only Google/reCAPTCHA
+        // were allowed, so those iframes were blocked too.
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https:; frame-src https://www.google.com https://recaptcha.google.com https://www.youtube.com https://player.vimeo.com;");
         if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
             header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
         }

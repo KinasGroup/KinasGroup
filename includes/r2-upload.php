@@ -30,6 +30,19 @@ class R2Upload {
     private int $maxSize;
     private $s3Client;
     private bool $useAwsSdk;
+    // FIX: this used to be validated in the constructor and then thrown
+    // away — every call to upload()/uploadGeneratedFile() independently
+    // defaulted to $options['subDir'] ?? 'general', and since no caller in
+    // this codebase ever actually passes 'subDir' in $options, EVERY
+    // upload (listing photos, KYC docs, tour videos, all of it) was
+    // silently landing in R2's general/ folder regardless of the
+    // subdirectory ('properties', 'cars', etc.) requested at construction
+    // time. Files still worked — the returned URL always reflected
+    // wherever they actually landed — this was purely an organizational
+    // bug, not a broken-link one. Storing it here makes the constructor's
+    // subDir the real default, while $options['subDir'] can still
+    // override it per-call if a future caller needs to.
+    private string $subDir;
     
     /** @var array Whitelist of allowed upload subdirectories */
     private const ALLOWED_SUBDIRS = [
@@ -66,6 +79,7 @@ class R2Upload {
         if (!in_array($subDir, self::ALLOWED_SUBDIRS, true)) {
             $subDir = 'general';
         }
+        $this->subDir = $subDir;
         
         // Load R2 configuration from environment
         $this->bucket = getenv('R2_BUCKET') ?: $_ENV['R2_BUCKET'] ?? '';
@@ -153,7 +167,7 @@ class R2Upload {
         }
         
         // Generate unique filename
-        $subDir = $options['subDir'] ?? 'general';
+        $subDir = $options['subDir'] ?? $this->subDir;
         if (!in_array($subDir, self::ALLOWED_SUBDIRS, true)) {
             $subDir = 'general';
         }
@@ -398,6 +412,51 @@ class R2Upload {
         ];
     }
     
+    /**
+     * Upload a file that already exists on disk but was NOT part of the
+     * current HTTP request — e.g. a poster-frame JPEG ffmpeg just
+     * generated from an uploaded tour video. upload() rejects these via
+     * its is_uploaded_file() check, which only recognizes paths PHP's
+     * own multipart parser registered this request; that check doesn't
+     * apply here, but everything else (MIME whitelist, key generation,
+     * SDK/cURL upload) should still be identical to a normal upload.
+     */
+    public function uploadGeneratedFile(string $filePath, string $mimeType, array $options = []): array {
+        if (!is_file($filePath)) {
+            return ['success' => false, 'error' => 'Source file not found'];
+        }
+
+        if (!array_key_exists($mimeType, $this->allowedTypes)) {
+            return ['success' => false, 'error' => 'Invalid file type'];
+        }
+
+        $extension = $this->allowedTypes[$mimeType];
+
+        $subDir = $options['subDir'] ?? $this->subDir;
+        if (!in_array($subDir, self::ALLOWED_SUBDIRS, true)) {
+            $subDir = 'general';
+        }
+
+        $filename = $this->generateFilename($extension, $options);
+        $r2Key = $subDir . '/' . $filename;
+
+        $uploadResult = $this->useAwsSdk
+            ? $this->uploadWithSdk($filePath, $r2Key, $mimeType)
+            : $this->uploadWithCurl($filePath, $r2Key, $mimeType);
+
+        if (!$uploadResult['success']) {
+            return $uploadResult;
+        }
+
+        return [
+            'success' => true,
+            'filename' => $filename,
+            'filepath' => $uploadResult['url'],
+            'mime_type' => $mimeType,
+            'key' => $r2Key,
+        ];
+    }
+
     /**
      * Upload multiple files to R2
      */

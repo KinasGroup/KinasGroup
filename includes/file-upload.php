@@ -192,6 +192,50 @@ class FileUpload {
         ];
     }
 
+    /**
+     * Upload a file that already exists on disk but wasn't part of the
+     * current HTTP request — e.g. a poster-frame JPEG ffmpeg generated
+     * from an uploaded tour video. See R2Upload::uploadGeneratedFile()
+     * for why this needs to be separate from upload().
+     */
+    public function uploadGeneratedFile(string $filePath, string $mimeType, array $options = []): array {
+        if ($this->useR2 && $this->r2Uploader) {
+            $result = $this->r2Uploader->uploadGeneratedFile($filePath, $mimeType, $options);
+            if ($result['success']) {
+                return $result;
+            }
+            error_log('R2 generated-file upload failed, falling back to local: ' . ($result['error'] ?? 'unknown'));
+        }
+
+        return $this->uploadGeneratedFileLocal($filePath, $mimeType, $options);
+    }
+
+    private function uploadGeneratedFileLocal(string $filePath, string $mimeType, array $options = []): array {
+        if (!is_file($filePath)) {
+            return ['success' => false, 'error' => 'Source file not found'];
+        }
+
+        $normalizedMime = $mimeType === 'image/jpg' ? 'image/jpeg' : $mimeType;
+        if (!array_key_exists($normalizedMime, $this->allowedTypes)) {
+            return ['success' => false, 'error' => 'Invalid file type'];
+        }
+
+        $extension = $this->allowedTypes[$normalizedMime];
+        $filename = $this->generateFilename($extension, $options);
+        $destination = $this->uploadDir . '/' . $filename;
+
+        if (!copy($filePath, $destination)) {
+            return ['success' => false, 'error' => 'Failed to save file'];
+        }
+
+        return [
+            'success' => true,
+            'filename' => $filename,
+            'filepath' => $destination,
+            'mime_type' => $normalizedMime,
+        ];
+    }
+
     public function uploadMultiple(array $files, array $options = []): array {
         if ($this->useR2 && $this->r2Uploader) {
             return $this->r2Uploader->uploadMultiple($files, $options);

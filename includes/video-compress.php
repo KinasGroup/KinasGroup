@@ -136,3 +136,94 @@ function compressVideoIfPossible(string $tmpPath, string $mimeType): array
         'error' => null,
     ];
 }
+
+/**
+ * Extract a single poster-frame JPEG from an uploaded tour video, so the
+ * agent dashboard has something to show besides a bare text link (and
+ * something to click on to remove the video). Call this AFTER
+ * compressVideoIfPossible() — $tmpPath's bytes may have been swapped for
+ * the compressed version by then, but a frame grab works the same either
+ * way.
+ *
+ * Same fail-open contract as compressVideoIfPossible(): any failure
+ * (ffmpeg missing, video unreadable, timeout) returns null rather than
+ * throwing, so a thumbnail miss never blocks the actual video upload —
+ * it's a nice-to-have, not a requirement.
+ *
+ * @return string|null Path to a temporary JPEG file (caller must unlink
+ *                      it once uploaded), or null if none could be made.
+ */
+function generateVideoThumbnail(string $tmpPath): ?string
+{
+    $ffmpegPath = trim((string)@shell_exec('command -v ffmpeg 2>/dev/null'));
+    if ($ffmpegPath === '') {
+        return null;
+    }
+
+    $outputPath = $tmpPath . '_poster.jpg';
+
+    // Try grabbing the frame at 1s in first (skips a possible black/blank
+    // opening frame at 0:00 on handheld walkthrough clips); if that lands
+    // past the end of a very short clip and produces nothing, fall back
+    // to 0:00, which every valid video file has a frame for.
+    $seekOffsets = ['00:00:01', '00:00:00'];
+
+    foreach ($seekOffsets as $seek) {
+        if (_runFfmpegFrameGrab($ffmpegPath, $tmpPath, $outputPath, $seek)) {
+            return $outputPath;
+        }
+    }
+
+    error_log('generateVideoThumbnail: ffmpeg produced no output — skipping thumbnail.');
+    @unlink($outputPath);
+    return null;
+}
+
+/**
+ * Runs a single ffmpeg single-frame-grab attempt and waits (synchronously,
+ * with a hard timeout) for it to finish. Internal helper for
+ * generateVideoThumbnail() — not for direct use elsewhere.
+ */
+function _runFfmpegFrameGrab(string $ffmpegPath, string $tmpPath, string $outputPath, string $seek): bool
+{
+    @unlink($outputPath);
+
+    // -vf scale=400:-1 matches R2_THUMBNAIL_WIDTH used for image
+    // thumbnails elsewhere (see R2Upload::generateAndUploadThumbnail),
+    // so tour-video and photo thumbnails render at a consistent size.
+    $cmd = sprintf(
+        '%s -y -ss %s -i %s -vframes 1 -vf "scale=400:-1" -q:v 4 %s 2>&1',
+        escapeshellcmd($ffmpegPath),
+        escapeshellarg($seek),
+        escapeshellarg($tmpPath),
+        escapeshellarg($outputPath)
+    );
+
+    $descriptors = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+    $process = @proc_open($cmd, $descriptors, $pipes);
+
+    if (!is_resource($process)) {
+        error_log('generateVideoThumbnail: failed to start ffmpeg process.');
+        return false;
+    }
+
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+
+    $start = time();
+    $timeoutSeconds = 30; // a single-frame grab should be near-instant
+    while (true) {
+        $status = proc_get_status($process);
+        if (!$status['running']) break;
+        if (time() - $start > $timeoutSeconds) {
+            proc_terminate($process, 9);
+            error_log('generateVideoThumbnail: ffmpeg timed out — skipping thumbnail.');
+            @unlink($outputPath);
+            return false;
+        }
+        usleep(100000); // 100ms
+    }
+    proc_close($process);
+
+    return is_file($outputPath) && filesize($outputPath) > 0;
+}
