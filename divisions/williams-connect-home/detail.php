@@ -710,10 +710,11 @@ console.log('=== WILLIAMS CONNECT HOME detail page loaded ===');
         <?php
         $tourUrl = $item['virtual_tour_url'] ?? '';
         $tourType = $item['virtual_tour_type'] ?? '';
+        $tourThumbnail = $item['virtual_tour_thumbnail'] ?? '';
         $embedUrl = ($tourType === 'link' && $tourUrl) ? virtual_tour_embed_url($tourUrl) : null;
         ?>
         <?php if ($tourType === 'video' && $tourUrl): ?>
-            <video controls preload="metadata" style="width:100%;max-height:480px;border-radius:8px;background:#000;">
+            <video controls preload="metadata" <?= $tourThumbnail ? 'poster="' . htmlspecialchars($tourThumbnail) . '"' : '' ?> style="width:100%;max-height:480px;border-radius:8px;background:#000;">
                 <source src="<?= htmlspecialchars($tourUrl) ?>">
                 Your browser doesn't support embedded video. <a href="<?= htmlspecialchars($tourUrl) ?>" target="_blank" rel="noopener">Watch it directly</a> instead.
             </video>
