@@ -657,7 +657,11 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
                     <div style="margin-top:20px;">
                         <label style="display:block;font-weight:600;margin-bottom:8px;"><i class="fas fa-street-view"></i> Virtual Tour <span style="font-weight:400;color:#888;">(optional)</span></label>
-                        <?php $vtType = $listing['virtual_tour_type'] ?? 'link'; $vtUrl = $listing['virtual_tour_url'] ?? ''; ?>
+                        <?php
+                        $vtType = $listing['virtual_tour_type'] ?? 'link';
+                        $vtUrl = $listing['virtual_tour_url'] ?? '';
+                        $vtThumbnail = $listing['virtual_tour_thumbnail'] ?? '';
+                        ?>
                         <div style="display:flex;gap:20px;margin-bottom:12px;">
                             <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;">
                                 <input type="radio" name="virtual_tour_type" value="link" id="vtTypeLink" <?php echo $vtType !== 'video' ? 'checked' : ''; ?>> Paste a link (YouTube, Vimeo, Matterport)
@@ -671,7 +675,22 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                         </div>
                         <div id="vtVideoField" class="form-group" style="display:<?php echo $vtType === 'video' ? '' : 'none'; ?>;">
                             <?php if ($vtType === 'video' && $vtUrl): ?>
-                                <p style="font-size:13px;color:#555;margin-bottom:8px;">Current: <a href="<?php echo htmlspecialchars($vtUrl); ?>" target="_blank" rel="noopener">view uploaded video</a></p>
+                                <div style="display:flex;align-items:center;gap:12px;background:#f9f9f9;border:1px solid #eee;border-radius:8px;padding:10px;margin-bottom:10px;">
+                                    <?php if ($vtThumbnail): ?>
+                                        <img src="<?php echo htmlspecialchars($vtThumbnail); ?>" alt="Video preview" style="width:96px;height:64px;object-fit:cover;border-radius:6px;background:#000;flex-shrink:0;">
+                                    <?php else: ?>
+                                        <div style="width:96px;height:64px;border-radius:6px;background:#151515;color:#888;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                            <i class="fas fa-video"></i>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div style="flex:1;min-width:0;">
+                                        <p style="margin:0 0 4px;font-size:13px;font-weight:600;">Current video attached</p>
+                                        <a href="<?php echo htmlspecialchars($vtUrl); ?>" target="_blank" rel="noopener" style="font-size:13px;">View full video</a>
+                                    </div>
+                                    <button type="submit" name="remove_virtual_tour" value="1" class="btn-cancel" style="padding:6px 14px;font-size:13px;flex-shrink:0;" onclick="return confirm('Remove the uploaded virtual tour video? This can\'t be undone.');">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                </div>
                             <?php endif; ?>
                             <input type="file" name="virtual_tour_video" id="vtVideoInput" accept="video/mp4,video/quicktime,video/webm">
                             <span style="display:block;font-size:12px;color:#888;margin-top:4px;">MP4, MOV, or WebM — up to 150MB. <?php echo $vtType === 'video' && $vtUrl ? 'Leave blank to keep the current video.' : ''; ?></span>
