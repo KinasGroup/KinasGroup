@@ -72,6 +72,26 @@ try {
         exit;
     }
 
+    // "Remove video" action from the edit-listing dashboard's virtual
+    // tour section. Handled as its own early action — deliberately BEFORE
+    // the empty($updates) guard below, since this button submits on its
+    // own (just listing_id/listing_type/csrf/remove_virtual_tour), with
+    // no other field changed; if it were folded into the generic
+    // text-field update flow it would hit "No changes to save" and never
+    // actually run. Only clears the DB reference: the underlying R2/local
+    // file is left in place, same as this codebase does for listing
+    // photos on delete (see agent/delete-listing.php) — no storage
+    // cleanup happens there either.
+    if ($listingType === 'property' && !empty($data['remove_virtual_tour'])) {
+        $db->prepare("UPDATE property_listings SET virtual_tour_url = NULL, virtual_tour_type = NULL, virtual_tour_thumbnail = NULL WHERE id = ? AND agent_id = ?")
+           ->execute([$listingId, $_SESSION['user_id']]);
+        Security::logActivity($_SESSION['user_id'], 'listing_updated', "Removed virtual tour video from listing $listingId");
+        $isJson = strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false;
+        if ($isJson) { header('Content-Type: application/json'); echo json_encode(['success' => true, 'message' => 'Virtual tour video removed.']); }
+        else { $_SESSION['flash_success'] = 'Virtual tour video removed.'; header('Location: ' . $redirectAfter); }
+        exit;
+    }
+
     // Get existing columns in the table
     $colStmt = $db->query("SHOW COLUMNS FROM $table");
     $existingColumns = [];
@@ -295,10 +315,13 @@ try {
     // Virtual tour (Homes only): either a pasted link, or an uploaded video
     // file. Handled as one block (not the generic $allTextFields loop above)
     // so switching between link/video mode can't leave a stale value in the
-    // other column — see the note above $allTextFields for why.
+    // other column — see the note above $allTextFields for why. (The
+    // explicit "remove video" action is handled earlier, before the
+    // empty($updates) guard — see that block for why.)
     if ($listingType === 'property' && isset($data['virtual_tour_type'])) {
         $vtType = $data['virtual_tour_type'] === 'video' ? 'video' : 'link';
         $vtUrl = null;
+        $vtThumbnail = null;
         $vtError = null;
 
         if ($vtType === 'link') {
@@ -307,6 +330,7 @@ try {
                 $vtUrl = $link;
             }
             // Blank/invalid link on purpose clears the field (agent removed it).
+            // $vtThumbnail stays null — link-type tours never had a poster frame.
         } elseif (!empty($_FILES['virtual_tour_video']['name']) && $_FILES['virtual_tour_video']['error'] !== UPLOAD_ERR_NO_FILE) {
             if ($_FILES['virtual_tour_video']['error'] === UPLOAD_ERR_OK) {
                 $detectedMime = @mime_content_type($_FILES['virtual_tour_video']['tmp_name']) ?: $_FILES['virtual_tour_video']['type'];
@@ -345,6 +369,26 @@ try {
                     $vtUrl = isset($videoResult['key'])
                         ? $videoResult['filepath']
                         : '/uploads/properties/' . $videoResult['filename'];
+
+                    // Poster-frame thumbnail for the new video (best-effort
+                    // — see includes/video-compress.php::generateVideoThumbnail).
+                    // A replaced video should get a replaced thumbnail, not
+                    // keep showing a frame from the old one.
+                    $posterPath = generateVideoThumbnail($_FILES['virtual_tour_video']['tmp_name']);
+                    if ($posterPath !== null) {
+                        $posterUploader = new FileUpload('properties');
+                        $posterResult = $posterUploader->uploadGeneratedFile(
+                            $posterPath,
+                            'image/jpeg',
+                            ['prefix' => "listing_{$listingId}_tour_thumb_"]
+                        );
+                        if ($posterResult['success']) {
+                            $vtThumbnail = isset($posterResult['key'])
+                                ? $posterResult['filepath']
+                                : '/uploads/properties/' . $posterResult['filename'];
+                        }
+                        @unlink($posterPath);
+                    }
                 } else {
                     $vtError = $videoResult['error'] ?? 'Unknown upload error';
                 }
@@ -353,18 +397,20 @@ try {
             }
         } else {
             // "video" mode selected but no new file uploaded — keep whatever
-            // video URL is already saved (the edit form does this: "leave
-            // blank to keep the current video").
-            $existing = $db->prepare("SELECT virtual_tour_url FROM property_listings WHERE id = ? AND virtual_tour_type = 'video'");
+            // video URL (and its thumbnail) is already saved (the edit form
+            // does this: "leave blank to keep the current video").
+            $existing = $db->prepare("SELECT virtual_tour_url, virtual_tour_thumbnail FROM property_listings WHERE id = ? AND virtual_tour_type = 'video'");
             $existing->execute([$listingId]);
-            $vtUrl = $existing->fetchColumn() ?: null;
+            $existingRow = $existing->fetch(PDO::FETCH_ASSOC) ?: [];
+            $vtUrl = $existingRow['virtual_tour_url'] ?: null;
+            $vtThumbnail = $existingRow['virtual_tour_thumbnail'] ?: null;
         }
 
         if ($vtError !== null) {
             error_log("Virtual tour upload error for listing $listingId: $vtError");
         }
-        $db->prepare("UPDATE property_listings SET virtual_tour_url = ?, virtual_tour_type = ? WHERE id = ?")
-           ->execute([$vtUrl, $vtUrl !== null ? $vtType : null, $listingId]);
+        $db->prepare("UPDATE property_listings SET virtual_tour_url = ?, virtual_tour_type = ?, virtual_tour_thumbnail = ? WHERE id = ?")
+           ->execute([$vtUrl, $vtUrl !== null ? $vtType : null, $vtUrl !== null ? $vtThumbnail : null, $listingId]);
     }
 
     // Car rental gating: only a verified registered business (company

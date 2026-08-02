@@ -450,6 +450,7 @@ try {
     if ($listingType === 'property') {
         $vtType = ($data['virtual_tour_type'] ?? 'link') === 'video' ? 'video' : 'link';
         $vtUrl = null;
+        $vtThumbnail = null;
         $vtError = null;
 
         if ($vtType === 'link') {
@@ -494,6 +495,27 @@ try {
                     $vtUrl = isset($videoResult['key'])
                         ? $videoResult['filepath']
                         : '/uploads/properties/' . $videoResult['filename'];
+
+                    // Poster-frame thumbnail (best-effort — see
+                    // includes/video-compress.php::generateVideoThumbnail).
+                    // Gives the agent dashboard something to show besides a
+                    // bare text link. A miss here never fails the upload:
+                    // the video itself already succeeded above.
+                    $posterPath = generateVideoThumbnail($_FILES['virtual_tour_video']['tmp_name']);
+                    if ($posterPath !== null) {
+                        $posterUploader = new FileUpload('properties');
+                        $posterResult = $posterUploader->uploadGeneratedFile(
+                            $posterPath,
+                            'image/jpeg',
+                            ['prefix' => "listing_{$listingId}_tour_thumb_"]
+                        );
+                        if ($posterResult['success']) {
+                            $vtThumbnail = isset($posterResult['key'])
+                                ? $posterResult['filepath']
+                                : '/uploads/properties/' . $posterResult['filename'];
+                        }
+                        @unlink($posterPath);
+                    }
                 } else {
                     $vtError = $videoResult['error'] ?? 'Unknown upload error';
                 }
@@ -503,8 +525,8 @@ try {
         }
 
         if ($vtUrl !== null) {
-            $db->prepare("UPDATE property_listings SET virtual_tour_url = ?, virtual_tour_type = ? WHERE id = ?")
-               ->execute([$vtUrl, $vtType, $listingId]);
+            $db->prepare("UPDATE property_listings SET virtual_tour_url = ?, virtual_tour_type = ?, virtual_tour_thumbnail = ? WHERE id = ?")
+               ->execute([$vtUrl, $vtType, $vtThumbnail, $listingId]);
         } elseif ($vtError !== null) {
             error_log("Virtual tour upload error for listing $listingId: $vtError");
         }
