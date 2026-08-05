@@ -4,6 +4,42 @@
 // Calling session_start() twice is a PHP warning; we guard it.
 
 if (session_status() === PHP_SESSION_NONE) {
+    // Harden the session cookie before starting the session — this cookie
+    // gates agent/admin dashboards, KYC, and payment flows, so it needs
+    // more than PHP's bare defaults (which are HttpOnly=off, Secure=off,
+    // no SameSite unless the host's php.ini happens to set them, which
+    // nothing in this project's docker/*.ini did).
+    //
+    //   - httponly: true    — JS (including any third-party script that
+    //                         ever gets added) can't read the cookie via
+    //                         document.cookie, cutting off session-token
+    //                         theft via XSS.
+    //   - secure: conditional on the request actually being HTTPS. Hardcoding
+    //             true would silently break local/dev environments running
+    //             plain http:// (the browser drops Secure cookies over
+    //             non-HTTPS entirely) — checked the same way as
+    //             templates/header.php's canonical-URL scheme detection,
+    //             since Railway sits behind a proxy that terminates TLS and
+    //             forwards X-Forwarded-Proto rather than setting $_SERVER['HTTPS'].
+    //   - samesite: 'Lax', not 'Strict'. Strict would drop the session
+    //               cookie on the top-level redirect back from Paystack
+    //               after payment — that return trip is a cross-site
+    //               navigation from paystack.co. Lax still blocks the
+    //               cross-site cases that actually matter (CSRF via
+    //               background requests, embedded iframes, etc.) while
+    //               keeping normal top-level link navigation working.
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path'     => '/',
+        'domain'   => '', // current host only — this app serves 5 different domains, a hardcoded one would break the others
+        'secure'   => $isHttps,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+
     session_start();
 }
 
