@@ -55,6 +55,15 @@ $similar = $similar->fetchAll();
 $features = !empty($item['features']) ? (is_array($item['features']) ? $item['features'] : (json_decode($item['features'], true) ?: [])) : [];
 
 $pageTitle = ($item['title'] ?? 'Solar System') . ' - KINAS VOLT';
+$pageDescription = !empty($item['description'])
+    ? substr(strip_tags($item['description']), 0, 160)
+    : trim(($item['service_type'] ?? 'Solar solution') . ' from ' . ($item['brand'] ?? 'KINAS VOLT')) . '.';
+// Link-preview thumbnail (WhatsApp/Facebook/Twitter/etc): the listing's
+// own first photo when it has one, falling back to header.php's default
+// group logo (via $pageImage staying unset) otherwise.
+if (!empty($images[0]['url'])) {
+    $pageImage = $images[0]['url'];
+}
 $division = 'solar';
 include '../../templates/header.php';
 
