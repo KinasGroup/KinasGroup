@@ -56,6 +56,15 @@ $similar->execute([$id, $item['category_id'] ?? 0, $item['brand'] ?? '']);
 $similar = $similar->fetchAll();
 
 $pageTitle = ($item['title'] ?? 'Item') . ' - KINAS Marketplace';
+$pageDescription = !empty($item['description'])
+    ? substr(strip_tags($item['description']), 0, 160)
+    : 'Shop ' . ($item['title'] ?? 'this item') . ' on KINAS Marketplace.';
+// Link-preview thumbnail (WhatsApp/Facebook/Twitter/etc): the listing's
+// own first photo when it has one, falling back to header.php's default
+// group logo (via $pageImage staying unset) otherwise.
+if (!empty($images[0]['url'])) {
+    $pageImage = $images[0]['url'];
+}
 $division = 'marketplace';
 include '../../templates/header.php';
 
