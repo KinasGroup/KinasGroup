@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../api/config/database.php';
+require_once __DIR__ . '/../api/config/constants.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 $isLoggedIn = isset($_SESSION['user_id']);
@@ -29,6 +30,43 @@ if ($scriptName === 'about.php'
 }
 
 $transparentClass = $isHeroPage ? 'transparent' : 'solid';
+
+// ---------------------------------------------------------------------
+// Open Graph / Twitter Card / canonical URL data — this is what lets
+// WhatsApp, Slack, Twitter/X, Telegram, Discord, iMessage, LinkedIn etc.
+// build a link-preview card (title + description + thumbnail) when a
+// page URL is pasted in. Any page can opt in to a specific title,
+// description, or image by setting $pageTitle / $pageDescription /
+// $pageImage / $pageType before including this template — division
+// detail.php pages set $pageImage to the listing's first photo, for
+// example. Every page still falls back to sane group-wide defaults
+// below, so nothing shares with a blank/broken preview even if it was
+// never updated.
+//
+// The origin is built from the CURRENT request's own host rather than
+// the SITE_URL constant, because this single codebase serves five
+// different domains (kinas-group.com, kinasauto.com,
+// williamsconnecthome.com, kinasvolt.com, kinasstore.com) — hardcoding
+// SITE_URL would put the wrong domain in og:url/canonical for four of
+// the five divisions.
+$ogScheme = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') ? 'https' : 'http';
+$ogHost = $_SERVER['HTTP_HOST'] ?? parse_url(SITE_URL, PHP_URL_HOST);
+$ogOrigin = $ogScheme . '://' . $ogHost;
+
+$ogTitle = $pageTitle ?? (SITE_NAME . ' | The World\'s Luxury Marketplace');
+$ogDescription = $pageDescription ?? 'KINAS GROUP - The World\'s Luxury Marketplace: Homes, Cars, Solar & Products for Sale';
+
+// Default share image falls back to the group logo. Division detail
+// pages pass their listing's own photo (already an absolute R2/CDN
+// URL) via $pageImage; relative paths — like this fallback — get
+// resolved against the current request's own origin above.
+$ogImageRaw = $pageImage ?? '/assets/images/logos/kinas-group-logo.jpg';
+$ogImage = (stripos($ogImageRaw, 'http://') === 0 || stripos($ogImageRaw, 'https://') === 0)
+    ? $ogImageRaw
+    : $ogOrigin . $ogImageRaw;
+
+$canonicalUrl = $pageUrl ?? ($ogOrigin . ($_SERVER['REQUEST_URI'] ?? '/'));
 ?>
 <!DOCTYPE html>
 <html lang="en" style="color-scheme: light;">
@@ -73,6 +111,27 @@ $transparentClass = $isHeroPage ? 'transparent' : 'solid';
     
     <meta name="description" content="<?php echo $pageDescription ?? 'KINAS GROUP - The World\'s Luxury Marketplace: Homes, Cars, Solar & Products for Sale'; ?>">
     <title><?php echo $pageTitle ?? 'KINAS GROUP | The World\'s Luxury Marketplace'; ?></title>
+
+    <link rel="canonical" href="<?php echo htmlspecialchars($canonicalUrl); ?>">
+
+    <!-- ============================================================
+         OPEN GRAPH / TWITTER CARD — link-preview thumbnails for
+         WhatsApp, Facebook, Twitter/X, LinkedIn, Slack, Telegram,
+         Discord, iMessage, etc. See the PHP block above for how
+         $ogTitle/$ogDescription/$ogImage/$canonicalUrl are derived.
+         ============================================================ -->
+    <meta property="og:type" content="<?php echo htmlspecialchars($pageType ?? 'website'); ?>">
+    <meta property="og:site_name" content="<?php echo htmlspecialchars(SITE_NAME); ?>">
+    <meta property="og:title" content="<?php echo htmlspecialchars($ogTitle); ?>">
+    <meta property="og:description" content="<?php echo htmlspecialchars($ogDescription); ?>">
+    <meta property="og:image" content="<?php echo htmlspecialchars($ogImage); ?>">
+    <meta property="og:url" content="<?php echo htmlspecialchars($canonicalUrl); ?>">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?php echo htmlspecialchars($ogTitle); ?>">
+    <meta name="twitter:description" content="<?php echo htmlspecialchars($ogDescription); ?>">
+    <meta name="twitter:image" content="<?php echo htmlspecialchars($ogImage); ?>">
+    <!-- ============================================================ -->
 
     <!-- ============================================================ -->
     <!-- USER DATA - Pass session data to JavaScript -->
