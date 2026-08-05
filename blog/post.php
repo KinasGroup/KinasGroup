@@ -74,6 +74,23 @@ $flashError   = $_SESSION['flash_error'] ?? null;
 unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 
 $csrf = Security::generateCSRFToken();
+
+// Link-preview data (WhatsApp/Facebook/Twitter/etc): this page already
+// has social share buttons below assuming a rich preview card, but never
+// actually set the meta tags those platforms scrape for one — sharing a
+// post previously showed a blank/generic card no matter which post it
+// was. $pageType = 'article' is the correct Open Graph type for a blog
+// post (vs the 'website' default).
+$pageTitle = $post['title'] . ' - KINAS GROUP Blog';
+$pageDescription = mb_strimwidth(
+    strip_tags((string)($post['excerpt'] ?: $post['body'])),
+    0, 160, '…'
+);
+if (!empty($post['featured_image'])) {
+    $pageImage = $post['featured_image'];
+}
+$pageType = 'article';
+
 require_once __DIR__ . '/../templates/header.php';
 ?>
 
