@@ -65,6 +65,12 @@ if (!empty($item['features'])) {
 
 $pageTitle = trim(($item['brand'] ?? '') . ' ' . ($item['model'] ?? '') . ' ' . ($item['year'] ?? '')) . ' - KINAS AUTOMOBILE';
 $pageDescription = substr(strip_tags($item['description'] ?? ''), 0, 160);
+// Link-preview thumbnail (WhatsApp/Facebook/Twitter/etc): the listing's
+// own first photo when it has one, falling back to header.php's default
+// group logo (via $pageImage staying unset) otherwise.
+if (!empty($images[0]['url'])) {
+    $pageImage = $images[0]['url'];
+}
 
 $division = 'car'; // Used for JavaScript functions
 
