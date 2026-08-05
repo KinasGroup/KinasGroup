@@ -147,6 +147,15 @@ if (!empty($_SESSION['recently_viewed'])) {
 }
 
 $pageTitle = $listing['title'] . ' - ' . $config['title'];
+$pageDescription = !empty($listing['description'])
+    ? substr(strip_tags($listing['description']), 0, 160)
+    : $listing['title'] . ' on ' . $config['title'] . '.';
+// Link-preview thumbnail (WhatsApp/Facebook/Twitter/etc): the listing's
+// own first photo when it has one, falling back to header.php's default
+// group logo (via $pageImage staying unset) otherwise.
+if (!empty($images[0]['url'])) {
+    $pageImage = $images[0]['url'];
+}
 include '../templates/header.php';
 ?>
 
