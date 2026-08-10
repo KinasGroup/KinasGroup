@@ -64,7 +64,7 @@ $successMessage = SessionManager::getFlash('success');
         }
     </style>
     <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
-    <title>Admin Portal - KINAS GROUP | Luxury Marketplace</title>
+    <title>Admin Portal - KINAS GROUP | One Company, Multiple Solutions, One Trusted Ecosystem</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
