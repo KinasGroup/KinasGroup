@@ -6,7 +6,7 @@ require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 $pageTitle = 'About Us - KINAS GROUP';
-$pageDescription = 'The story behind the world\'s luxury marketplace.';
+$pageDescription = 'The story behind the KINAS GROUP.';
 include __DIR__ . '/../templates/header.php';
 ?>
 
