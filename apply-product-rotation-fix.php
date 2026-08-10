@@ -56,7 +56,7 @@ function kpf_backup_file(string $file): void
     }
 
     if (!copy($file, $destination)) {
-        throw new RuntimeException("Could not backup {$relative}");
+        throw new RuntimeException('Could not backup ' . $relative);
     }
 }
 
@@ -65,19 +65,19 @@ function kpf_write_file(string $file, string $content): void
     global $root;
 
     if (!file_exists($file)) {
-        throw new RuntimeException("File not found: {$file}");
+        throw new RuntimeException('File not found: ' . $file);
     }
 
     if (!is_writable($file)) {
         $relative = ltrim(str_replace($root, '', $file), '/');
-        throw new RuntimeException("{$relative} is not writable. Check file permissions.");
+        throw new RuntimeException($relative . ' is not writable. Check file permissions.');
     }
 
     kpf_backup_file($file);
 
     if (file_put_contents($file, $content) === false) {
         $relative = ltrim(str_replace($root, '', $file), '/');
-        throw new RuntimeException("Could not write {$relative}.");
+        throw new RuntimeException('Could not write ' . $relative . '.');
     }
 }
 
@@ -90,7 +90,7 @@ function kpf_add_require(string &$content, string $needle, string $require, stri
     $pos = strpos($content, $needle);
 
     if ($pos === false) {
-        throw new RuntimeException("Could not find insertion point for {$label}.");
+        throw new RuntimeException('Could not find insertion point for ' . $label . '.');
     }
 
     $content = substr($content, 0, $pos + strlen($needle))
@@ -101,7 +101,7 @@ function kpf_add_require(string &$content, string $needle, string $require, stri
     return true;
 }
 
-function kpf_preg_replace_once(string $pattern, string $replacement, string $subject): ?string
+function kpf_replace_once(string $pattern, string $replacement, string $subject): ?string
 {
     if (!preg_match($pattern, $subject)) {
         return null;
@@ -117,24 +117,26 @@ function kpf_preg_replace_once(string $pattern, string $replacement, string $sub
     );
 }
 
-function kpf_patch_division(string $file, string $label, string $var, string $functionName): void
+function kpf_patch_standard_division(string $file, string $label, string $var, string $functionName): void
 {
     if (!file_exists($file)) {
-        throw new RuntimeException("{$label} index file was not found.");
+        throw new RuntimeException($label . ' index file was not found.');
     }
 
     $content = file_get_contents($file);
 
     if ($content === false) {
-        throw new RuntimeException("Could not read {$label} index file.");
+        throw new RuntimeException('Could not read ' . $label . ' index file.');
     }
 
     $changed = false;
 
+    $require = "require_once '../../includes/kinas-rotation.php';";
+
     if (kpf_add_require(
         $content,
         '$db = Database::getInstance()->getConnection();',
-        "require_once '../../includes/kinas-rotation.php';",
+        $require,
         $label . ' rotation include'
     )) {
         $changed = true;
@@ -146,12 +148,12 @@ function kpf_patch_division(string $file, string $label, string $var, string $fu
         $replacement = "// ============================================================\n"
             . "// PRODUCT ROTATION / FAIR VISIBILITY\n"
             . "// ============================================================\n"
-            . "\$" . $var . " = " . $functionName . "(\$db, 12);";
+            . '$' . $var . ' = ' . $functionName . '($db, 12);';
 
-        $newContent = kpf_preg_replace_once($pattern, $replacement, $content);
+        $newContent = kpf_replace_once($pattern, $replacement, $content);
 
         if ($newContent === null) {
-            throw new RuntimeException("Could not find the listing query in {$label}.");
+            throw new RuntimeException('Could not find the listing query in ' . $label . '.');
         }
 
         $content = $newContent;
@@ -167,16 +169,82 @@ function kpf_patch_division(string $file, string $label, string $var, string $fu
 
     if ($changed) {
         kpf_write_file($file, $content);
-        kpf_message("{$label} updated with product rotation.", 'success');
+        kpf_message($label . ' updated with product rotation.', 'success');
     } else {
-        kpf_message("{$label} already appears to have product rotation.", 'info');
+        kpf_message($label . ' already appears to have product rotation.', 'info');
+    }
+}
+
+function kpf_patch_williams(string $file): void
+{
+    $label = 'Williams Connect Home';
+
+    if (!file_exists($file)) {
+        throw new RuntimeException($label . ' index file was not found.');
+    }
+
+    $content = file_get_contents($file);
+
+    if ($content === false) {
+        throw new RuntimeException('Could not read ' . $label . ' index file.');
+    }
+
+    $changed = false;
+
+    $require = "require_once '../../includes/kinas-rotation.php';";
+
+    if (kpf_add_require(
+        $content,
+        '$db = Database::getInstance()->getConnection();',
+        $require,
+        $label . ' rotation include'
+    )) {
+        $changed = true;
+    }
+
+    if (strpos($content, 'kinas_get_rotated_properties') === false) {
+        $pattern = '/\$(\w+)\s*=\s*\$db->query\(".*?FROM property_listings.*?"\)\s*->fetchAll\(\);/is';
+
+        if (!preg_match($pattern, $content, $matches)) {
+            throw new RuntimeException('Could not find the Williams Connect Home property query. Send that file if you need a precise manual patch.');
+        }
+
+        $williamsVariable = $matches[1];
+
+        $replacement = "// ============================================================\n"
+            . "// PRODUCT ROTATION / FAIR VISIBILITY\n"
+            . "// ============================================================\n"
+            . '$' . $williamsVariable . ' = kinas_get_rotated_properties($db, 12);';
+
+        $newContent = kpf_replace_once($pattern, $replacement, $content);
+
+        if ($newContent === null) {
+            throw new RuntimeException('Could not replace the Williams Connect Home property query.');
+        }
+
+        $content = $newContent;
+
+        $content = preg_replace(
+            '/array_slice\(\s*\$' . preg_quote($williamsVariable, '/') . '\s*,\s*0\s*,\s*9\s*\)/',
+            'array_slice($' . $williamsVariable . ', 0, 12)',
+            $content
+        );
+
+        $changed = true;
+    }
+
+    if ($changed) {
+        kpf_write_file($file, $content);
+        kpf_message($label . ' updated with product rotation.', 'success');
+    } else {
+        kpf_message($label . ' already appears to have product rotation.', 'info');
     }
 }
 
 if (!$apply) {
     kpf_header();
-    kpf_message('This script will patch the homepage and division pages to enable product rotation.', 'info');
-    kpf_message('Make sure includes/kinas-rotation.php has been uploaded first.', 'warning');
+    kpf_message('This script will patch the homepage and all division pages to enable product rotation.', 'info');
+    kpf_message('Make sure includes/kinas-rotation.php has already been uploaded.', 'warning');
     kpf_message('Then open: /apply-product-rotation-fix.php?apply=1', 'success');
     kpf_footer();
     exit;
@@ -209,82 +277,7 @@ try {
 
     $homepageChanged = false;
 
+    $homepageRequire = "require_once 'includes/kinas-rotation.php';";
+
     if (kpf_add_require(
         $homepageContent,
-        '$db = Database::getInstance()->getConnection();',
-        "require_once 'includes/kinas-rotation.php';",
-        'homepage rotation include'
-    )) {
-        $homepageChanged = true;
-    }
-
-    if (strpos($homepageContent, 'kinas_get_home_rotated_listings') === false) {
-        $homepagePattern = '/\/\/ Get featured listings from all divisions.*?\$featuredListings = array_slice\(\$featuredListings,\s*0,\s*8\);/s';
-
-        $homepageReplacement = "// ============================================================\n"
-            . "// PRODUCT ROTATION / FAIR VISIBILITY\n"
-            . "// ============================================================\n"
-            . "\$featuredListings = kinas_get_home_rotated_listings(\$db, 12, 6);";
-
-        $patchedHomepage = kpf_preg_replace_once($homepagePattern, $homepageReplacement, $homepageContent);
-
-        if ($patchedHomepage === null) {
-            throw new RuntimeException('Could not find the homepage featured listings block.');
-        }
-
-        $homepageContent = $patchedHomepage;
-        $homepageChanged = true;
-    }
-
-    if ($homepageChanged) {
-        kpf_write_file($homepageFile, $homepageContent);
-        kpf_message('Main homepage updated with product rotation.', 'success');
-    } else {
-        kpf_message('Main homepage already appears to have product rotation.', 'info');
-    }
-
-    // ============================================================
-    // PATCH DIVISION PAGES
-    // ============================================================
-
-    kpf_patch_division(
-        $root . '/divisions/kinas-automobile/index.php',
-        'KINAS Automobile',
-        'cars',
-        'kinas_get_rotated_cars'
-    );
-
-    kpf_patch_division(
-        $root . '/divisions/kinas-volt/index.php',
-        'KINAS Volt',
-        'systems',
-        'kinas_get_rotated_solar'
-    );
-
-    kpf_patch_division(
-        $root . '/divisions/kinas-marketplace/index.php',
-        'KINAS Marketplace',
-        'items',
-        'kinas_get_rotated_marketplace'
-    );
-
-    // ============================================================
-    // PATCH WILLIAMS CONNECT HOME
-    // ============================================================
-
-    $williamsFile = $root . '/divisions/williams-connect-home/index.php';
-
-    if (file_exists($williamsFile)) {
-        $williamsContent = file_get_contents($williamsFile);
-
-        if ($williamsContent === false) {
-            throw new RuntimeException('Could not read Williams Connect Home index file.');
-        }
-
-        $williamsChanged = false;
-
-        if (kpf_add_require(
-            $williamsContent,
-            '$db = Database::getInstance()->getConnection();',
-            "require_once '../../includes/kinas-rotation.php';",
-            'Williams
