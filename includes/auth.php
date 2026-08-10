@@ -193,7 +193,7 @@ function register_user($name, $email, $password, $phone, $pdo) {
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
                 <h2 style='color: #d4af37;'>Welcome to KINAS GROUP! 🎉</h2>
                 <p>Dear {$name},</p>
-                <p>Thank you for joining KINAS GROUP - your premier luxury marketplace platform.</p>
+                <p>Thank you for joining KINAS GROUP - your premier exotic platform.</p>
                 <p>Start exploring our premium listings and connect with verified agents today!</p>
                 <a href='https://kinas-group.com' style='display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #d4af37, #f4e4a1); color: #1a1a2e; text-decoration: none; border-radius: 8px; margin-top: 20px;'>Explore Now</a>
                 <hr style='margin: 30px 0;'>
