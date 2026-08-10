@@ -452,18 +452,27 @@ $canonicalUrl = $pageUrl ?? ($ogOrigin . ($_SERVER['REQUEST_URI'] ?? '/'));
                 <span id="jeCartBadge" class="header-cart-badge"></span>
             </a>
             
-            <!-- ============================================================ -->
-            <!-- NOTIFICATION BELL - Desktop -->
-            <!-- ============================================================ -->
-            <?php if ($isLoggedIn): ?>
-            <div class="notification-container">
-                <a href="/messages.php" class="notification-icon" aria-label="Messages">
-                    <i class="fas fa-envelope"></i>
-                    <span id="notificationBadge" class="notification-badge">0</span>
-                </a>
-            </div>
-            <?php endif; ?>
-            <!-- ============================================================ -->
+			<!-- ============================================================ -->
+			<!-- NOTIFICATION BELL - Desktop -->
+			<!-- ============================================================ -->
+			<?php if ($isLoggedIn): ?>
+			<div class="notification-container">
+				<?php 
+				// Route to the correct messages page based on user role
+				$messagesLink = '/user/messages.php';
+				if ($userRole === 'agent') {
+					$messagesLink = '/agent/messages.php';
+				} elseif ($userRole === 'admin') {
+					$messagesLink = '/admin/messages.php';
+				}
+				?>
+				<a href="<?php echo $messagesLink; ?>" class="notification-icon" aria-label="Messages">
+					<i class="fas fa-envelope"></i>
+					<span id="notificationBadge" class="notification-badge">0</span>
+				</a>
+			</div>
+			<?php endif; ?>
+			<!-- ============================================================ -->
 
             <?php if ($isLoggedIn): ?>
                 <?php if ($userRole === 'admin'): ?>
