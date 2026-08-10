@@ -314,7 +314,7 @@ HTML;
         <div class="email-card" style="padding: 20px 0; font-family: Arial, sans-serif; background-color:#FFFFFF !important; color:#0A0A0A !important;">
             <h2 style="color: #0A0A0A !important; margin:0 0 16px;">Welcome to KINAS GROUP!</h2>
             <p style="color:#0A0A0A !important;">Hello <strong style="color:#0A0A0A !important;">{$name}</strong>,</p>
-            <p style="color:#0A0A0A !important;">Thank you for joining KINAS GROUP OF COMPANIES LIMITED. We're excited to have you as part of our luxury marketplace ecosystem.</p>
+            <p style="color:#0A0A0A !important;">Thank you for joining KINAS GROUP OF COMPANIES LIMITED. We're excited to have you as part of our exotic ecosystem.</p>
             
             <p style="margin: 20px 0; color:#0A0A0A !important;">Please verify your email address to complete your registration:</p>
             
