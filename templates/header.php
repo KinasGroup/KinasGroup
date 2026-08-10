@@ -54,11 +54,12 @@ $ogScheme = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
 $ogHost = $_SERVER['HTTP_HOST'] ?? parse_url(SITE_URL, PHP_URL_HOST);
 $ogOrigin = $ogScheme . '://' . $ogHost;
 
-$ogTitle = $pageTitle ?? (SITE_NAME . ' | The World\'s Luxury Marketplace');
-$ogDescription = $pageDescription ?? 'KINAS GROUP - The World\'s Luxury Marketplace: Homes, Cars, Solar & Products for Sale';
+// BRANDING UPDATE: Replaced "The World's Luxury Marketplace" with "One Company, Multiple Solutions, One Trusted Ecosystem"
+$ogTitle = $pageTitle ?? (SITE_NAME . ' | One Company, Multiple Solutions, One Trusted Ecosystem');
+$ogDescription = $pageDescription ?? 'KINAS GROUP - One Company, Multiple Solutions, One Trusted Ecosystem';
 
 // Default share image falls back to the group logo. Division detail
-// pages pass their listing's own photo (already an absolute R2/CDN
+// pages pass their own listing's photo (already an absolute R2/CDN
 // URL) via $pageImage; relative paths — like this fallback — get
 // resolved against the current request's own origin above.
 $ogImageRaw = $pageImage ?? '/assets/images/logos/kinas-group-logo.jpg';
@@ -109,8 +110,9 @@ $canonicalUrl = $pageUrl ?? ($ogOrigin . ($_SERVER['REQUEST_URI'] ?? '/'));
     </style>
     <!-- ============================================================ -->
     
-    <meta name="description" content="<?php echo $pageDescription ?? 'KINAS GROUP - The World\'s Luxury Marketplace: Homes, Cars, Solar & Products for Sale'; ?>">
-    <title><?php echo $pageTitle ?? 'KINAS GROUP | The World\'s Luxury Marketplace'; ?></title>
+    <!-- BRANDING UPDATE: Replaced "The World's Luxury Marketplace" with "One Company, Multiple Solutions, One Trusted Ecosystem" -->
+    <meta name="description" content="<?php echo $pageDescription ?? 'KINAS GROUP - One Company, Multiple Solutions, One Trusted Ecosystem'; ?>">
+    <title><?php echo $pageTitle ?? 'KINAS GROUP | One Company, Multiple Solutions, One Trusted Ecosystem'; ?></title>
 
     <link rel="canonical" href="<?php echo htmlspecialchars($canonicalUrl); ?>">
 
@@ -292,6 +294,100 @@ $canonicalUrl = $pageUrl ?? ($ogOrigin . ($_SERVER['REQUEST_URI'] ?? '/'));
             color: #0A0A0A !important;
         }
 
+        /* ============================================================
+           NOTIFICATION BADGE STYLES
+           ============================================================ */
+        .notification-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+        .notification-icon {
+            font-size: 20px;
+            text-decoration: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 2px;
+            color: #0A0A0A;
+            transition: color 0.2s;
+            position: relative;
+        }
+        .je3-header.transparent .notification-icon {
+            color: #ffffff;
+        }
+        .je3-header.solid .notification-icon {
+            color: #0A0A0A;
+        }
+        .notification-icon:hover {
+            color: #C6A43F !important;
+        }
+        .notification-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #dc3545;
+            color: #ffffff !important;
+            border-radius: 50%;
+            padding: 1px 6px;
+            font-size: 10px;
+            font-weight: 700;
+            min-width: 18px;
+            height: 18px;
+            text-align: center;
+            border: 2px solid #ffffff;
+            z-index: 1000;
+            line-height: 14px;
+            display: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-family: 'Inter', Arial, sans-serif;
+            pointer-events: none;
+        }
+        .notification-badge.show {
+            display: inline-block;
+            animation: notificationPulse 0.5s ease-in-out 2;
+        }
+        @keyframes notificationPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        /* Mobile notification badge */
+        .mobile-nav-drawer .notification-mobile-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #e0e0e0;
+            text-decoration: none;
+            padding: 14px 0;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            transition: color 0.3s;
+        }
+        .mobile-nav-drawer .notification-mobile-link:hover {
+            color: #C6A43F;
+        }
+        .mobile-nav-drawer .notification-mobile-badge {
+            background: #dc3545;
+            color: #ffffff;
+            border-radius: 50%;
+            padding: 1px 8px;
+            font-size: 12px;
+            font-weight: 700;
+            min-width: 22px;
+            height: 22px;
+            text-align: center;
+            line-height: 22px;
+            display: none;
+        }
+        .mobile-nav-drawer .notification-mobile-badge.show {
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -311,6 +407,13 @@ $canonicalUrl = $pageUrl ?? ($ogOrigin . ($_SERVER['REQUEST_URI'] ?? '/'));
         <i class="fas fa-cart-shopping" style="margin-right:8px;"></i>Cart
         <span id="jeCartBadgeMobile" style="display:none;background:#C6A43F;color:#0A0A0A;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:999px;padding:0 5px;line-height:18px;text-align:center;margin-left:8px;"></span>
     </a>
+    <!-- NOTIFICATION LINK IN MOBILE MENU -->
+    <?php if ($isLoggedIn): ?>
+    <a href="/messages.php" class="notification-mobile-link">
+        <span><i class="fas fa-envelope" style="margin-right:8px;"></i>Messages</span>
+        <span id="notificationMobileBadge" class="notification-mobile-badge">0</span>
+    </a>
+    <?php endif; ?>
     <hr>
     <?php if ($isLoggedIn): ?>
         <?php if ($userRole === 'admin'): ?>
@@ -348,6 +451,20 @@ $canonicalUrl = $pageUrl ?? ($ogOrigin . ($_SERVER['REQUEST_URI'] ?? '/'));
                 <i class="fas fa-cart-shopping"></i>
                 <span id="jeCartBadge" class="header-cart-badge"></span>
             </a>
+            
+            <!-- ============================================================ -->
+            <!-- NOTIFICATION BELL - Desktop -->
+            <!-- ============================================================ -->
+            <?php if ($isLoggedIn): ?>
+            <div class="notification-container">
+                <a href="/messages.php" class="notification-icon" aria-label="Messages">
+                    <i class="fas fa-envelope"></i>
+                    <span id="notificationBadge" class="notification-badge">0</span>
+                </a>
+            </div>
+            <?php endif; ?>
+            <!-- ============================================================ -->
+
             <?php if ($isLoggedIn): ?>
                 <?php if ($userRole === 'admin'): ?>
                     <a href="/admin/dashboard.php" class="je2-button nav-btn-outline">Admin Panel</a>
@@ -482,5 +599,130 @@ $canonicalUrl = $pageUrl ?? ($ogOrigin . ($_SERVER['REQUEST_URI'] ?? '/'));
     if (menuIcon) menuIcon.style.display = 'block';
 
     console.log('Mobile menu initialized successfully');
+})();
+
+// ============================================================
+// NOTIFICATION SYSTEM - Real-time unread message count
+// ============================================================
+(function() {
+    'use strict';
+
+    var isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
+    if (!isLoggedIn) return;
+
+    var CONFIG = {
+        refreshInterval: 30000,
+        apiEndpoint: '/api/messages/unread-count.php',
+    };
+
+    var timeout = null;
+    var lastCount = -1;
+
+    function getAuthToken() {
+        return localStorage.getItem('auth_token') || 
+               localStorage.getItem('jwt_token') || 
+               sessionStorage.getItem('auth_token') ||
+               null;
+    }
+
+    function updateBadges() {
+        var token = getAuthToken();
+        if (!token) return;
+
+        fetch(CONFIG.apiEndpoint, {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(function(response) {
+            if (!response.ok) throw new Error('Failed to fetch');
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                var count = data.unread_count || 0;
+                var badge = document.getElementById('notificationBadge');
+                var mobileBadge = document.getElementById('notificationMobileBadge');
+
+                if (badge) {
+                    if (count > 0) {
+                        badge.textContent = count > 99 ? '99+' : count;
+                        badge.style.display = 'inline-block';
+                        badge.classList.add('show');
+                    } else {
+                        badge.style.display = 'none';
+                        badge.classList.remove('show');
+                    }
+                }
+
+                if (mobileBadge) {
+                    if (count > 0) {
+                        mobileBadge.textContent = count > 99 ? '99+' : count;
+                        mobileBadge.style.display = 'inline-block';
+                        mobileBadge.classList.add('show');
+                    } else {
+                        mobileBadge.style.display = 'none';
+                        mobileBadge.classList.remove('show');
+                    }
+                }
+
+                // Play sound if new messages arrived
+                if (lastCount !== -1 && count > lastCount) {
+                    playNotificationSound();
+                }
+                lastCount = count;
+            }
+        })
+        .catch(function(error) {
+            console.error('Notification error:', error);
+        });
+    }
+
+    function playNotificationSound() {
+        try {
+            var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            var oscillator = audioCtx.createOscillator();
+            var gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            gainNode.gain.value = 0.1;
+            oscillator.start();
+            setTimeout(function() { oscillator.stop(); }, 200);
+        } catch (e) {
+            // Silently fail if audio not available
+        }
+    }
+
+    // Initialize
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            updateBadges();
+            timeout = setInterval(updateBadges, CONFIG.refreshInterval);
+        });
+    } else {
+        updateBadges();
+        timeout = setInterval(updateBadges, CONFIG.refreshInterval);
+    }
+
+    // Clean up
+    window.addEventListener('beforeunload', function() {
+        if (timeout) {
+            clearInterval(timeout);
+            timeout = null;
+        }
+    });
+
+    // Update when tab becomes visible
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            updateBadges();
+        }
+    });
+
+    console.log('Notification system initialized');
 })();
 </script>
