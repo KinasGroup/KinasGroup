@@ -40,7 +40,7 @@ function je_render_footer(string $variant = 'site'): void
                 <!-- Column 1: Brand, Social, Address -->
                 <div>
                     <div class="je-footer-brand">KINAS GROUP</div>
-                    <div class="je-footer-tag">The World's Luxury Marketplace — Homes, Cars, Solar &amp; Curated Goods.</div>
+                    <div class="je-footer-tag">One Company, Multiple Solutions, One Trusted Ecosystem — Homes, Cars, Solar &amp; Curated Goods.</div>
                     <div class="je-footer-social" aria-label="Social media">
                         <a href="<?= htmlspecialchars($socials['tiktok'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
                         <a href="<?= htmlspecialchars($socials['instagram'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
