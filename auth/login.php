@@ -81,7 +81,7 @@ if ($registrationSuccess) {
     <!-- ============================================================ -->
     
     <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
-    <title>Sign In - KINAS GROUP | Luxury Marketplace</title>
+    <title>Sign In - KINAS GROUP | One Company, Multiple Solutions, One Trusted Ecosystem</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
@@ -216,7 +216,7 @@ if ($registrationSuccess) {
             <span></span>
         </a>
         <div>
-            <h1 class="je-auth-headline">A Luxurious Marketplace.</h1>
+            <h1 class="je-auth-headline">One Company, Multiple Solutions, One Trusted Ecosystem.</h1>
             <p class="je-auth-sub"></p>
         </div>
         <blockquote class="je-auth-quote">
