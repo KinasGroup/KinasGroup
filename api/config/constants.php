@@ -117,6 +117,10 @@ define('CURRENCY_SYMBOL', '₦');
 define('API_RATE_LIMIT', 100); // requests per minute
 define('API_RATE_WINDOW', 60); // seconds
 
+// WhatsApp Configuration
+define('WHATSAPP_NUMBER', '2349137175523'); // CHANGE THIS - Format: countrycode + number (no + sign)
+define('SITE_URL', 'https://kinas-roup.com'); // CHANGE THIS TO YOUR ACTUAL DOMAIN
+
 // Email Templates
 define('EMAIL_TEMPLATES', [
     'welcome' => 'Welcome to KINAS GROUP',
