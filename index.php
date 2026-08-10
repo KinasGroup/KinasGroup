@@ -143,7 +143,7 @@ shuffle($featuredListings);
 // Limit to 8 featured items
 $featuredListings = array_slice($featuredListings, 0, 8);
 
-$pageTitle = 'KINAS GROUP — The World\'s Luxury Marketplace';
+$pageTitle = 'KINAS GROUP — One Company, Multiple Solutions, One Trusted Ecosystem';
 include 'templates/header.php';
 ?>
 
