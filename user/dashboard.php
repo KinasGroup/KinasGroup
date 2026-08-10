@@ -517,7 +517,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     <div class="welcome-banner">
         <div>
             <h1>Welcome back, <?php echo htmlspecialchars($user['name']); ?>! 👋</h1>
-            <p>Your luxury marketplace journey continues here</p>
+            <p>Your exortic journey continues here</p>
             <div class="member-since">
                 <i class="fas fa-calendar-alt"></i> Member since <?php echo date('F Y', strtotime($user['created_at'])); ?>
             </div>
