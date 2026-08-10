@@ -71,7 +71,7 @@ $divisions = [
     <!-- ============================================================ -->
     
     <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
-    <title>Agent Registration - KINAS GROUP | Luxury Marketplace</title>
+    <title>Agent Registration - KINAS GROUP | One Company, Multiple Solutions, One Trusted Ecosystem</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/james-edition.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
