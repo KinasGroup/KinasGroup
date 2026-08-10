@@ -2,34 +2,20 @@
 // /api/messages/mark-read.php
 // Mark all messages as read
 
-require_once '../config/database.php';
-require_once '../config/auth.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../includes/session.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Methods: POST');
 
-$headers = getallheaders();
-$authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
-
-$token = null;
-if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-    $token = $matches[1];
-}
-
-if (!$token) {
+// Use your secure SessionManager class instead of JWT tokens
+if (!SessionManager::isLoggedIn()) {
     http_response_code(401);
     echo json_encode(['error' => 'Unauthorized']);
     exit;
 }
 
-$userData = validateToken($token);
-if (!$userData) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Invalid token']);
-    exit;
-}
-
-$userId = $userData['user_id'];
+$userId = SessionManager::getUserId();
 
 try {
     $db = Database::getInstance()->getConnection();
