@@ -2,40 +2,26 @@
 // /api/messages/unread-count.php
 // Get Unread Message Count
 
-require_once '../config/database.php';
-require_once '../config/auth.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../includes/session.php';
 
 header('Content-Type: application/json');
 
-$headers = getallheaders();
-$authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
-
-$token = null;
-if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-    $token = $matches[1];
-}
-
-if (!$token) {
+// Use your secure SessionManager class instead of JWT tokens
+if (!SessionManager::isLoggedIn()) {
     http_response_code(401);
     echo json_encode(['error' => 'Unauthorized']);
     exit;
 }
 
-$userData = validateToken($token);
-if (!$userData) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Invalid token']);
-    exit;
-}
-
-$userId = $userData['user_id'];
+$userId = SessionManager::getUserId();
 
 try {
     $db = Database::getInstance()->getConnection();
     $query = "SELECT COUNT(*) as unread_count FROM messages WHERE receiver_id = ? AND is_read = 0";
     $stmt = $db->prepare($query);
     $stmt->execute([$userId]);
-    $row = $stmt->fetch();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
     
     echo json_encode([
         'success' => true,
