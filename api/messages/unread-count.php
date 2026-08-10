@@ -1,12 +1,11 @@
 <?php
-// /api/messages/mark-read.php
-// Mark all messages as read
+// /api/messages/unread-count.php
+// Get Unread Message Count
 
 require_once '../config/database.php';
 require_once '../config/auth.php';
 
 header('Content-Type: application/json');
-header('Access-Control-Allow-Methods: POST');
 
 $headers = getallheaders();
 $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
@@ -33,16 +32,16 @@ $userId = $userData['user_id'];
 
 try {
     $db = Database::getInstance()->getConnection();
-    $query = "UPDATE messages SET is_read = 1 WHERE receiver_id = ? AND is_read = 0";
+    $query = "SELECT COUNT(*) as unread_count FROM messages WHERE receiver_id = ? AND is_read = 0";
     $stmt = $db->prepare($query);
     $stmt->execute([$userId]);
-    $affectedRows = $stmt->rowCount();
+    $row = $stmt->fetch();
     
     echo json_encode([
         'success' => true,
-        'marked_count' => $affectedRows
+        'unread_count' => (int)($row['unread_count'] ?? 0)
     ]);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Failed to mark messages as read']);
+    echo json_encode(['error' => 'Failed to fetch unread count']);
 }
