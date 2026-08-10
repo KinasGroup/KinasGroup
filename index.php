@@ -1,13 +1,13 @@
 <?php
 /**
- * KINAS GROUP — Homepage
- * 
- * This file serves as the entry point for ALL domains:
- * - kinasauto.com → Shows /divisions/kinas-automobile/index.php
- * - williamsconnecthome.com → Shows /divisions/williams-connect-home/index.php
- * - kinasvolt.com → Shows /divisions/kinas-volt/index.php
- * - kinasstore.com → Shows /divisions/kinas-marketplace/index.php
- */
+* KINAS GROUP — Homepage
+*
+* This file serves as the entry point for ALL domains:
+* - kinasauto.com → Shows /divisions/kinas-automobile/index.php
+* - williamsconnecthome.com → Shows /divisions/williams-connect-home/index.php
+* - kinasvolt.com → Shows /divisions/kinas-volt/index.php
+* - kinasstore.com → Shows /divisions/kinas-marketplace/index.php
+*/
 
 // ============================================================
 // DOMAIN ROUTER - Detect which domain is being accessed
@@ -23,16 +23,17 @@ $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 // ============================================================
 // DOMAIN TO DIVISION MAPPING
 // ============================================================
+
 $divisionMap = [
     // Automobile Division
     'kinasauto.com' => '/divisions/kinas-automobile',
-    
+
     // Real Estate Division
     'williamsconnecthome.com' => '/divisions/williams-connect-home',
-    
+
     // Solar Division
     'kinasvolt.com' => '/divisions/kinas-volt',
-    
+
     // Marketplace Division (kinasstore.com is the main store/marketplace)
     'kinasstore.com' => '/divisions/kinas-marketplace',
 ];
@@ -40,31 +41,32 @@ $divisionMap = [
 // ============================================================
 // CHECK IF THIS IS A DIVISION DOMAIN
 // ============================================================
+
 if (isset($divisionMap[$host])) {
     // This is a division domain!
     $divisionPath = $divisionMap[$host];
-    
+
     // Determine which file to serve
     if ($requestUri === '/' || $requestUri === '/index.php') {
         // Root of the division domain → show division index
         require_once __DIR__ . $divisionPath . '/index.php';
         exit;
     }
-    
+
     // For other pages (e.g., /detail.php, /search.php)
     // Remove query string for file check
     $requestFile = strtok($requestUri, '?');
-    
+
     // Build the full file path
     $fullPath = __DIR__ . $divisionPath . $requestFile;
-    
+
     // Check if the file exists in the division folder
     if (file_exists($fullPath) && is_file($fullPath)) {
         // Include the requested file
         require_once $fullPath;
         exit;
     }
-    
+
     // If file doesn't exist, show the division index (fallback)
     require_once __DIR__ . $divisionPath . '/index.php';
     exit;
@@ -80,6 +82,7 @@ require_once 'includes/helpers.php';
 require_once 'api/config/database.php';
 require_once 'includes/je-components.php';
 require_once 'includes/security.php';
+require_once 'includes/featured-algorithm.php';
 
 $db = Database::getInstance()->getConnection();
 
@@ -89,379 +92,330 @@ $propertyCount = (int)$db->query("SELECT COUNT(*) FROM property_listings WHERE s
 $solarCount = (int)$db->query("SELECT COUNT(*) FROM solar_listings WHERE status = 'active'")->fetchColumn();
 $marketplaceCount = (int)$db->query("SELECT COUNT(*) FROM marketplace_listings WHERE status = 'active'")->fetchColumn();
 
-// Get featured listings from all divisions
-// CAR - has featured column
-$featuredCar = $db->query("
-    SELECT c.id, c.title, c.brand, c.model, c.year, c.price, c.featured,
-           'car' as listing_type, 'KINAS Automobile' as division,
-           (SELECT url FROM listing_images WHERE listing_id = c.id AND listing_type = 'car' ORDER BY sort_order LIMIT 1) AS thumbnail
-    FROM car_listings c
-    WHERE c.status = 'active' AND c.featured = 1
-    ORDER BY c.created_at DESC
-    LIMIT 2
-")->fetchAll();
+// ============================================================
+// PRODUCT ROTATION / FAIR VISIBILITY
+// ============================================================
+// Instead of showing the same featured products forever, rotate
+// through all active listings across all divisions.
+// ============================================================
+$featuredListings = kinas_get_home_rotated_listings($db, 12, 6);
 
-// PROPERTY - has featured column
-$featuredProperty = $db->query("
-    SELECT p.id, p.title, p.price, p.featured, p.property_type,
-           'property' as listing_type, 'Williams Connect Home' as division,
-           (SELECT url FROM listing_images WHERE listing_id = p.id AND listing_type = 'property' ORDER BY sort_order LIMIT 1) AS thumbnail
-    FROM property_listings p
-    WHERE p.status = 'active' AND p.featured = 1
-    ORDER BY p.created_at DESC
-    LIMIT 2
-")->fetchAll();
-
-// SOLAR - now has a featured column, same as the other divisions
-$featuredSolar = $db->query("
-    SELECT s.id, s.title, s.price, s.service_type, s.featured,
-           'solar' as listing_type, 'KINAS Volt' as division,
-           (SELECT url FROM listing_images WHERE listing_id = s.id AND listing_type = 'solar' ORDER BY sort_order LIMIT 1) AS thumbnail
-    FROM solar_listings s
-    WHERE s.status = 'active' AND s.featured = 1
-    ORDER BY s.created_at DESC
-    LIMIT 2
-")->fetchAll();
-
-// MARKETPLACE - has featured column
-$featuredMarketplace = $db->query("
-    SELECT m.id, m.title, m.price, m.featured, m.brand,
-           'marketplace' as listing_type, 'KINAS Marketplace' as division,
-           (SELECT url FROM listing_images WHERE listing_id = m.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) AS thumbnail
-    FROM marketplace_listings m
-    WHERE m.status = 'active' AND m.featured = 1
-    ORDER BY m.created_at DESC
-    LIMIT 2
-")->fetchAll();
-
-// Combine all featured listings
-$featuredListings = array_merge($featuredCar, $featuredProperty, $featuredSolar, $featuredMarketplace);
-
-// Shuffle to mix them up
-shuffle($featuredListings);
-
-// Limit to 8 featured items
-$featuredListings = array_slice($featuredListings, 0, 8);
-
-$pageTitle = 'KINAS GROUP — One Company, Multiple Solutions, One Trusted Ecosystem';
+$pageTitle = 'KINAS GROUP — The World\'s Luxury Marketplace';
 include 'templates/header.php';
 ?>
-
 <style>
 /* ----- Hero Section ----- */
 #heroSection {
-    position: relative;
-    height: 80vh;
-    min-height: 600px;
-    display: flex;
-    align-items: flex-end;
-    overflow: hidden;
-    padding-bottom: 60px;
+position: relative;
+height: 80vh;
+min-height: 600px;
+display: flex;
+align-items: flex-end;
+overflow: hidden;
+padding-bottom: 60px;
 }
 #heroSection .hero-slides-wrapper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+z-index: 0;
 }
 #heroSection .hero-slide {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-size: cover;
-    background-position: center;
-    opacity: 0;
-    transition: opacity 1.5s ease-in-out;
-    will-change: opacity;
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background-size: cover;
+background-position: center;
+opacity: 0;
+transition: opacity 1.5s ease-in-out;
+will-change: opacity;
 }
 #heroSection .hero-slide.active {
-    opacity: 1;
+opacity: 1;
 }
 #heroSection .hero-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(10,10,10,0.4), rgba(0,0,0,0.7));
-    z-index: 1;
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: linear-gradient(135deg, rgba(10,10,10,0.4), rgba(0,0,0,0.7));
+z-index: 1;
 }
 #heroSection .hero-content {
-    position: relative;
-    z-index: 2;
-    color: #fff;
-    max-width: 700px;
-    padding-bottom: 10px;
+position: relative;
+z-index: 2;
+color: #fff;
+max-width: 700px;
+padding-bottom: 10px;
 }
 #heroSection .hero-content h1 {
-    font-family: 'Prata', serif;
-    font-size: 52px;
-    font-weight: 400;
-    line-height: 1.1;
-    margin-bottom: 20px;
+font-family: 'Prata', serif;
+font-size: 52px;
+font-weight: 400;
+line-height: 1.1;
+margin-bottom: 20px;
 }
 #heroSection .hero-content p {
-    font-size: 18px;
-    color: rgba(255,255,255,0.85);
-    line-height: 1.7;
-    margin-bottom: 32px;
-    max-width: 540px;
+font-size: 18px;
+color: rgba(255,255,255,0.85);
+line-height: 1.7;
+margin-bottom: 32px;
+max-width: 540px;
 }
 #heroSection .hero-indicators {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 3;
-    display: flex;
-    gap: 10px;
+position: absolute;
+bottom: 20px;
+left: 50%;
+transform: translateX(-50%);
+z-index: 3;
+display: flex;
+gap: 10px;
 }
 #heroSection .hero-indicators .dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.4);
-    cursor: pointer;
-    transition: background 0.3s ease, transform 0.3s ease;
-    border: none;
-    padding: 0;
+width: 10px;
+height: 10px;
+border-radius: 50%;
+background: rgba(255,255,255,0.4);
+cursor: pointer;
+transition: background 0.3s ease, transform 0.3s ease;
+border: none;
+padding: 0;
 }
 #heroSection .hero-indicators .dot.active {
-    background: #C6A43F;
-    transform: scale(1.2);
+background: #C6A43F;
+transform: scale(1.2);
 }
 #heroSection .hero-indicators .dot:hover {
-    background: rgba(255,255,255,0.8);
+background: rgba(255,255,255,0.8);
 }
 
 /* ----- Division Cards ----- */
 .division-card {
-    position: relative;
-    border-radius: 16px;
-    overflow: hidden;
-    transition: all 0.4s ease;
-    cursor: default;
-    min-height: 280px;
-    display: flex;
-    align-items: flex-end;
-    text-decoration: none;
+position: relative;
+border-radius: 16px;
+overflow: hidden;
+transition: all 0.4s ease;
+cursor: default;
+min-height: 280px;
+display: flex;
+align-items: flex-end;
+text-decoration: none;
 }
 .division-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 16px 48px rgba(0,0,0,0.15);
+transform: translateY(-6px);
+box-shadow: 0 16px 48px rgba(0,0,0,0.15);
 }
 .division-card .card-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-size: cover;
-    background-position: center;
-    transition: transform 0.6s ease;
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background-size: cover;
+background-position: center;
+transition: transform 0.6s ease;
 }
 .division-card:hover .card-bg {
-    transform: scale(1.05);
+transform: scale(1.05);
 }
 .division-card .card-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
 }
 .division-card .card-content {
-    position: relative;
-    z-index: 2;
-    padding: 32px 28px 28px;
-    color: #fff;
-    width: 100%;
+position: relative;
+z-index: 2;
+padding: 32px 28px 28px;
+color: #fff;
+width: 100%;
 }
 .division-card .card-content h3 {
-    font-family: 'Prata', serif;
-    font-size: 22px;
-    margin-bottom: 6px;
-    font-weight: 400;
+font-family: 'Prata', serif;
+font-size: 22px;
+margin-bottom: 6px;
+font-weight: 400;
 }
 .division-card .card-content p {
-    font-size: 13px;
-    color: rgba(255,255,255,0.8);
-    margin-bottom: 4px;
-    line-height: 1.5;
+font-size: 13px;
+color: rgba(255,255,255,0.8);
+margin-bottom: 4px;
+line-height: 1.5;
 }
 .division-card .card-content .count {
-    font-size: 12px;
-    color: #C6A43F;
-    font-weight: 500;
+font-size: 12px;
+color: #C6A43F;
+font-weight: 500;
 }
 
 /* ----- Feature Cards ----- */
 .feature-card {
-    position: relative;
-    border-radius: 16px;
-    overflow: hidden;
-    transition: all 0.4s ease;
-    cursor: default;
-    min-height: 280px;
-    display: flex;
-    align-items: flex-end;
+position: relative;
+border-radius: 16px;
+overflow: hidden;
+transition: all 0.4s ease;
+cursor: default;
+min-height: 280px;
+display: flex;
+align-items: flex-end;
 }
 .feature-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 16px 48px rgba(0,0,0,0.15);
+transform: translateY(-6px);
+box-shadow: 0 16px 48px rgba(0,0,0,0.15);
 }
 .feature-card .feature-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-size: cover;
-    background-position: center;
-    transition: transform 0.6s ease;
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background-size: cover;
+background-position: center;
+transition: transform 0.6s ease;
 }
 .feature-card:hover .feature-bg {
-    transform: scale(1.05);
+transform: scale(1.05);
 }
 .feature-card .feature-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
 }
 .feature-card .feature-content {
-    position: relative;
-    z-index: 2;
-    padding: 32px 28px 28px;
-    color: #fff;
-    width: 100%;
+position: relative;
+z-index: 2;
+padding: 32px 28px 28px;
+color: #fff;
+width: 100%;
 }
 .feature-card .feature-content h3 {
-    font-family: 'Prata', serif;
-    font-size: 22px;
-    margin-bottom: 8px;
-    font-weight: 400;
+font-family: 'Prata', serif;
+font-size: 22px;
+margin-bottom: 8px;
+font-weight: 400;
 }
 .feature-card .feature-content p {
-    font-size: 14px;
-    color: rgba(255,255,255,0.8);
-    margin-bottom: 12px;
-    line-height: 1.5;
+font-size: 14px;
+color: rgba(255,255,255,0.8);
+margin-bottom: 12px;
+line-height: 1.5;
 }
 
 /* ----- Stats Section ----- */
 .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 30px;
-    text-align: center;
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 30px;
+text-align: center;
 }
 .stats-grid .stat-item .number {
-    font-family: 'Prata', serif;
-    font-size: 36px;
-    color: #C6A43F;
-    display: block;
+font-family: 'Prata', serif;
+font-size: 36px;
+color: #C6A43F;
+display: block;
 }
 .stats-grid .stat-item .label {
-    font-size: 13px;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-top: 4px;
+font-size: 13px;
+color: #888;
+text-transform: uppercase;
+letter-spacing: 1px;
+margin-top: 4px;
 }
 
 /* ----- Featured Listing Card (Homepage Style) ----- */
 .featured-item-card {
-    background: #fff;
-    border-radius: 12px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    border: 1px solid #f0ede8;
-    text-decoration: none;
-    color: inherit;
-    display: block;
+background: #fff;
+border-radius: 12px;
+overflow: hidden;
+transition: all 0.3s ease;
+border: 1px solid #f0ede8;
+text-decoration: none;
+color: inherit;
+display: block;
 }
 .featured-item-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.08);
-    border-color: #C6A43F;
+transform: translateY(-4px);
+box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+border-color: #C6A43F;
 }
 .featured-item-card .item-image {
-    height: 200px;
-    background-size: cover;
-    background-position: center;
-    position: relative;
+height: 200px;
+background-size: cover;
+background-position: center;
+position: relative;
 }
 .featured-item-card .item-image .division-tag {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    background: rgba(0,0,0,0.8);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 4px 12px;
-    border-radius: 20px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+position: absolute;
+top: 12px;
+left: 12px;
+background: rgba(0,0,0,0.8);
+color: #fff;
+font-size: 10px;
+font-weight: 600;
+padding: 4px 12px;
+border-radius: 20px;
+text-transform: uppercase;
+letter-spacing: 0.5px;
 }
 .featured-item-card .item-body {
-    padding: 16px 18px 18px;
+padding: 16px 18px 18px;
 }
 .featured-item-card .item-body .item-title {
-    font-family: 'Prata', serif;
-    font-size: 16px;
-    color: #0A0A0A;
-    margin-bottom: 4px;
-    font-weight: 400;
+font-family: 'Prata', serif;
+font-size: 16px;
+color: #0A0A0A;
+margin-bottom: 4px;
+font-weight: 400;
 }
 .featured-item-card .item-body .item-price {
-    font-size: 18px;
-    font-weight: 600;
-    color: #C6A43F;
+font-size: 18px;
+font-weight: 600;
+color: #C6A43F;
 }
 .featured-item-card .item-body .item-meta {
-    font-size: 13px;
-    color: #888;
-    margin-top: 4px;
+font-size: 13px;
+color: #888;
+margin-top: 4px;
 }
 
 /* ----- Divisions Section Anchor ----- */
 #divisionsSection {
-    scroll-margin-top: 80px;
+scroll-margin-top: 80px;
 }
 
 /* ----- Responsive ----- */
 @media (max-width: 992px) {
-    #heroSection .hero-content h1 { font-size: 38px; }
-    #heroSection { padding-bottom: 40px; }
-    .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+#heroSection .hero-content h1 { font-size: 38px; }
+#heroSection { padding-bottom: 40px; }
+.stats-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
 }
-
 @media (max-width: 768px) {
-    #heroSection { 
-        min-height: 500px; 
-        padding-bottom: 30px;
-        align-items: flex-end;
-    }
-    #heroSection .hero-content h1 { font-size: 30px; }
-    #heroSection .hero-content p { font-size: 16px; }
-    .division-card { min-height: 220px; }
-    .feature-card { min-height: 220px; }
-    .featured-item-card .item-image { height: 160px; }
+#heroSection {
+min-height: 500px;
+padding-bottom: 30px;
+align-items: flex-end;
 }
-
+#heroSection .hero-content h1 { font-size: 30px; }
+#heroSection .hero-content p { font-size: 16px; }
+.division-card { min-height: 220px; }
+.feature-card { min-height: 220px; }
+.featured-item-card .item-image { height: 160px; }
+}
 @media (max-width: 576px) {
-    .stats-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
-    .stats-grid .stat-item .number { font-size: 28px; }
-    #heroSection { padding-bottom: 20px; min-height: 420px; }
+.stats-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+.stats-grid .stat-item .number { font-size: 28px; }
+#heroSection { padding-bottom: 20px; min-height: 420px; }
 }
 </style>
 
@@ -469,64 +423,65 @@ include 'templates/header.php';
 <!-- HERO SECTION -->
 <!-- ============================================================ -->
 <section id="heroSection">
-    <!-- Slides Container -->
-    <div class="hero-slides-wrapper" id="heroSlides">
-        <!-- Slide 1 - First image (now second image from original) -->
-        <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80');"></div>
-        <!-- Slide 2 - Second image (now first image from original) -->
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80');"></div>
-        <!-- Slide 3 -->
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1920&q=80');"></div>
-        <!-- Slide 4 -->
-        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1920&q=80');"></div>
-    </div>
-    <div class="hero-overlay"></div>
-    
-    <div class="je-container" style="position:relative; z-index:2; width:100%;">
-        <div class="hero-content">
-            <div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">KINAS GROUP OF COMPANIES</div>
-            <h1>One Company<br> Multiple Solutions<br>One Trusted Ecosystem</h1>
-            <p>Building Excellence across Real Estate, Automobiles, Renewable Energy, Hospitality & Global Trade</p>
-            <div style="display:flex; gap:14px; flex-wrap:wrap;">
-                <a href="#divisionsSection" class="je-btn je-btn-gold je-btn-lg" id="exploreDivisionsBtn"><i class="fas fa-search"></i> Explore our Divisions</a>
-                <a href="/pages/contact.php" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Contact Us</a>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Slide Indicators -->
-    <div class="hero-indicators" id="heroIndicators">
-        <button class="dot active" data-index="0" aria-label="Slide 1"></button>
-        <button class="dot" data-index="1" aria-label="Slide 2"></button>
-        <button class="dot" data-index="2" aria-label="Slide 3"></button>
-        <button class="dot" data-index="3" aria-label="Slide 4"></button>
-    </div>
+<!-- Slides Container -->
+<div class="hero-slides-wrapper" id="heroSlides">
+<!-- Slide 1 - First image (now second image from original) -->
+<div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80');"></div>
+<!-- Slide 2 - Second image (now first image from original) -->
+<div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80');"></div>
+<!-- Slide 3 -->
+<div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1920&q=80');"></div>
+<!-- Slide 4 -->
+<div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1920&q=80');"></div>
+</div>
+
+<div class="hero-overlay"></div>
+
+<div class="je-container" style="position:relative; z-index:2; width:100%;">
+<div class="hero-content">
+<div style="font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#C6A43F; margin-bottom:12px; font-weight:600;">KINAS GROUP OF COMPANIES</div>
+<h1>One Company<br> Multiple Solutions<br>One Trusted Ecosystem</h1>
+<p>Building Excellence across Real Estate, Automobiles, Renewable Energy, Hospitality & Global Trade</p>
+<div style="display:flex; gap:14px; flex-wrap:wrap;">
+<a href="#divisionsSection" class="je-btn je-btn-gold je-btn-lg" id="exploreDivisionsBtn"><i class="fas fa-search"></i> Explore our Divisions</a>
+<a href="/pages/contact.php" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Contact Us</a>
+</div>
+</div>
+</div>
+
+<!-- Slide Indicators -->
+<div class="hero-indicators" id="heroIndicators">
+<button class="dot active" data-index="0" aria-label="Slide 1"></button>
+<button class="dot" data-index="1" aria-label="Slide 2"></button>
+<button class="dot" data-index="2" aria-label="Slide 3"></button>
+<button class="dot" data-index="3" aria-label="Slide 4"></button>
+</div>
 </section>
 
 <!-- ============================================================ -->
 <!-- STATS SECTION -->
 <!-- ============================================================ -->
 <section style="padding:40px 0; background:#F8F6F1; border-bottom:1px solid #e8e5e0;">
-    <div class="je-container">
-        <div class="stats-grid">
-            <div class="stat-item">
-                <span class="number"><?= number_format($carCount) ?>+</span>
-                <span class="label">Luxury Vehicles</span>
-            </div>
-            <div class="stat-item">
-                <span class="number"><?= number_format($propertyCount) ?>+</span>
-                <span class="label">Premium Properties</span>
-            </div>
-            <div class="stat-item">
-                <span class="number"><?= number_format($solarCount) ?>+</span>
-                <span class="label">Solar Solutions</span>
-            </div>
-            <div class="stat-item">
-                <span class="number"><?= number_format($marketplaceCount) ?>+</span>
-                <span class="label">Curated Goods</span>
-            </div>
-        </div>
-    </div>
+<div class="je-container">
+<div class="stats-grid">
+<div class="stat-item">
+<span class="number"><?= number_format($carCount) ?>+</span>
+<span class="label">Luxury Vehicles</span>
+</div>
+<div class="stat-item">
+<span class="number"><?= number_format($propertyCount) ?>+</span>
+<span class="label">Premium Properties</span>
+</div>
+<div class="stat-item">
+<span class="number"><?= number_format($solarCount) ?>+</span>
+<span class="label">Solar Solutions</span>
+</div>
+<div class="stat-item">
+<span class="number"><?= number_format($marketplaceCount) ?>+</span>
+<span class="label">Curated Goods</span>
+</div>
+</div>
+</div>
 </section>
 
 <!-- ============================================================ -->
@@ -534,56 +489,58 @@ include 'templates/header.php';
 <!-- ============================================================ -->
 <?php if (!empty($featuredListings)): ?>
 <section style="padding:60px 0;">
-    <div class="je-container">
-        <div class="je-flex-between" style="margin-bottom:32px;">
-            <div>
-                <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">FEATURED LISTINGS</div>
-                <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Exceptional finds</h2>
-            </div>
-            <a href="/search.php" class="je-btn je-btn-outline">View all <i class="fas fa-arrow-right"></i></a>
-        </div>
-        
-        <div class="je-listings-grid" style="gap:24px;">
-            <?php foreach ($featuredListings as $item): 
-                // Explicit map — stripping "KINAS " gives wrong slugs (volt, automobile, etc.)
-                $divisionFolderMap = [
-                    'KINAS Automobile'   => 'kinas-automobile',
-                    'KINAS Volt'         => 'kinas-volt',
-                    'KINAS Marketplace'  => 'kinas-marketplace',
-                    'Williams Connect Home' => 'williams-connect-home',
-                ];
-                $divisionSlug = $divisionFolderMap[$item['division']] ?? strtolower(str_replace(' ', '-', $item['division']));
-                $detailUrl = '/divisions/' . $divisionSlug . '/detail.php?id=' . $item['id'];
-                $price = isset($item['price']) ? '₦' . number_format($item['price']) : 'Contact for price';
-                $title = $item['title'] ?? 'Featured Listing';
-                $division = $item['division'] ?? '';
-                $thumbnail = $item['thumbnail'] ?? '';
-            ?>
-            <a href="<?= $detailUrl ?>" class="featured-item-card">
-                <div class="item-image" style="background-image: url('<?= htmlspecialchars($thumbnail ?: '/assets/images/placeholder/product-placeholder.svg') ?>');">
-                    <span class="division-tag"><?= htmlspecialchars($division) ?></span>
-                </div>
-                <div class="item-body">
-                    <div class="item-title"><?= htmlspecialchars($title) ?></div>
-                    <div class="item-price"><?= $price ?></div>
-                    <div class="item-meta">
-                        <?php if ($item['listing_type'] == 'car' && isset($item['brand'])): ?>
-                            <?= htmlspecialchars($item['brand']) ?>
-                            <?php if (isset($item['model'])): ?> · <?= htmlspecialchars($item['model']) ?><?php endif; ?>
-                        <?php elseif ($item['listing_type'] == 'property' && isset($item['property_type'])): ?>
-                            <?= htmlspecialchars($item['property_type']) ?>
-                        <?php elseif ($item['listing_type'] == 'solar' && isset($item['service_type'])): ?>
-                            <?= htmlspecialchars(ucfirst($item['service_type'])) ?> Solar
-                        <?php elseif ($item['listing_type'] == 'marketplace' && isset($item['brand'])): ?>
-                            <?= htmlspecialchars($item['brand']) ?>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </a>
-            <?php endforeach; ?>
-        </div>
-    </div>
+<div class="je-container">
+<div class="je-flex-between" style="margin-bottom:32px;">
+<div>
+<div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">FEATURED LISTINGS</div>
+<h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Exceptional finds</h2>
+</div>
+<a href="/search.php" class="je-btn je-btn-outline">View all <i class="fas fa-arrow-right"></i></a>
+</div>
+
+<div class="je-listings-grid" style="gap:24px;">
+<?php foreach ($featuredListings as $item):
+// Explicit map — stripping "KINAS " gives wrong slugs (volt, automobile, etc.)
+$divisionFolderMap = [
+'KINAS Automobile'   => 'kinas-automobile',
+'KINAS Volt'         => 'kinas-volt',
+'KINAS Marketplace'  => 'kinas-marketplace',
+'Williams Connect Home' => 'williams-connect-home',
+];
+$divisionSlug = $divisionFolderMap[$item['division']] ?? strtolower(str_replace(' ', '-', $item['division']));
+$detailUrl = '/divisions/' . $divisionSlug . '/detail.php?id=' . $item['id'];
+
+$price = isset($item['price']) ? '₦' . number_format($item['price']) : 'Contact for price';
+$title = $item['title'] ?? 'Featured Listing';
+$division = $item['division'] ?? '';
+$thumbnail = $item['thumbnail'] ?? '';
+?>
+<a href="<?= $detailUrl ?>" class="featured-item-card">
+<div class="item-image" style="background-image: url('<?= htmlspecialchars($thumbnail ?: '/assets/images/placeholder/product-placeholder.svg') ?>');">
+<span class="division-tag"><?= htmlspecialchars($division) ?></span>
+</div>
+<div class="item-body">
+<div class="item-title"><?= htmlspecialchars($title) ?></div>
+<div class="item-price"><?= $price ?></div>
+<div class="item-meta">
+<?php if ($item['listing_type'] == 'car' && isset($item['brand'])): ?>
+<?= htmlspecialchars($item['brand']) ?>
+<?php if (isset($item['model'])): ?> · <?= htmlspecialchars($item['model']) ?><?php endif; ?>
+<?php elseif ($item['listing_type'] == 'property' && isset($item['property_type'])): ?>
+<?= htmlspecialchars($item['property_type']) ?>
+<?php elseif ($item['listing_type'] == 'solar' && isset($item['service_type'])): ?>
+<?= htmlspecialchars(ucfirst($item['service_type'])) ?> Solar
+<?php elseif ($item['listing_type'] == 'marketplace' && isset($item['brand'])): ?>
+<?= htmlspecialchars($item['brand']) ?>
+<?php endif; ?>
+</div>
+</div>
+</a>
+<?php endforeach; ?>
+</div>
+</div>
 </section>
+
 <script>
 // Featured listing thumbnails are set via CSS background-image, which has
 // no native onerror event — a broken/404'd photo URL just leaves an empty
@@ -591,13 +548,15 @@ include 'templates/header.php';
 // and swaps in the placeholder if it fails to load, so every card always
 // shows something that fills the box.
 document.querySelectorAll('.featured-item-card .item-image').forEach(function (el) {
-    var match = el.style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
-    var url = match ? match[1] : '';
-    var placeholder = '/assets/images/placeholder/product-placeholder.svg';
-    if (!url || url.indexOf(placeholder) !== -1) return;
-    var probe = new Image();
-    probe.onerror = function () { el.style.backgroundImage = "url('" + placeholder + "')"; };
-    probe.src = url;
+var match = el.style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
+var url = match ? match[1] : '';
+var placeholder = '/assets/images/placeholder/product-placeholder.svg';
+
+if (!url || url.indexOf(placeholder) !== -1) return;
+
+var probe = new Image();
+probe.onerror = function () { el.style.backgroundImage = "url('" + placeholder + "')"; };
+probe.src = url;
 });
 </script>
 <?php endif; ?>
@@ -606,130 +565,127 @@ document.querySelectorAll('.featured-item-card .item-image').forEach(function (e
 <!-- DIVISIONS SECTION - ICONS REMOVED -->
 <!-- ============================================================ -->
 <section id="divisionsSection" style="padding:60px 0; <?= empty($featuredListings) ? '' : 'padding-top:0;' ?>">
-    <div class="je-container">
-        <div style="text-align:center; margin-bottom:40px;">
-            <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">OUR DIVISIONS</div>
-            <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Explore our luxury portfolio</h2>
-            <p style="color:#888; max-width:560px; margin:8px auto 0;">Four exceptional Companies, One unparalleled standard of Luxury.</p>
-        </div>
-        
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px;">
-            
-            <!-- KINAS Automobile -->
-            <a href="/divisions/kinas-automobile/" class="division-card">
-                <div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=600&q=80');"></div>
-                <div class="card-overlay"></div>
-                <div class="card-content">
-                    <h3>KINAS Automobile</h3>
-                    <p>Luxury cars, supercars & exotic vehicles</p>
-                    <span class="count"><?= number_format($carCount) ?> vehicles</span>
-                </div>
-            </a>
-            
-            <!-- Williams Connect Home -->
-            <a href="/divisions/williams-connect-home/" class="division-card">
-                <div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80');"></div>
-                <div class="card-overlay"></div>
-                <div class="card-content">
-                    <h3>Williams Connect Home</h3>
-                    <p>Luxury estates, villas & penthouses</p>
-                    <span class="count"><?= number_format($propertyCount) ?> properties</span>
-                </div>
-            </a>
-            
-            <!-- KINAS Volt -->
-            <a href="/divisions/kinas-volt/" class="division-card">
-                <div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=600&q=80');"></div>
-                <div class="card-overlay"></div>
-                <div class="card-content">
-                    <h3>KINAS Volt</h3>
-                    <p>Premium solar & energy solutions</p>
-                    <span class="count"><?= number_format($solarCount) ?> systems</span>
-                </div>
-            </a>
-            
-            <!-- KINAS Marketplace -->
-            <a href="/divisions/kinas-marketplace/" class="division-card">
-                <div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1558002038-1055907df827?w=600&q=80');"></div>
-                <div class="card-overlay"></div>
-                <div class="card-content">
-                    <h3>KINAS Marketplace</h3>
-                    <p>Curated watches, jewelry, art & fashion</p>
-                    <span class="count"><?= number_format($marketplaceCount) ?> items</span>
-                </div>
-            </a>
-            
-        </div>
-    </div>
+<div class="je-container">
+<div style="text-align:center; margin-bottom:40px;">
+<div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">OUR DIVISIONS</div>
+<h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">Explore our luxury portfolio</h2>
+<p style="color:#888; max-width:560px; margin:8px auto 0;">Four exceptional Companies, One unparalleled standard of Luxury.</p>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px;">
+<!-- KINAS Automobile -->
+<a href="/divisions/kinas-automobile/" class="division-card">
+<div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=600&q=80');"></div>
+<div class="card-overlay"></div>
+<div class="card-content">
+<h3>KINAS Automobile</h3>
+<p>Luxury cars, supercars & exotic vehicles</p>
+<span class="count"><?= number_format($carCount) ?> vehicles</span>
+</div>
+</a>
+
+<!-- Williams Connect Home -->
+<a href="/divisions/williams-connect-home/" class="division-card">
+<div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80');"></div>
+<div class="card-overlay"></div>
+<div class="card-content">
+<h3>Williams Connect Home</h3>
+<p>Luxury estates, villas & penthouses</p>
+<span class="count"><?= number_format($propertyCount) ?> properties</span>
+</div>
+</a>
+
+<!-- KINAS Volt -->
+<a href="/divisions/kinas-volt/" class="division-card">
+<div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=600&q=80');"></div>
+<div class="card-overlay"></div>
+<div class="card-content">
+<h3>KINAS Volt</h3>
+<p>Premium solar & energy solutions</p>
+<span class="count"><?= number_format($solarCount) ?> systems</span>
+</div>
+</a>
+
+<!-- KINAS Marketplace -->
+<a href="/divisions/kinas-marketplace/" class="division-card">
+<div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1558002038-1055907df827?w=600&q=80');"></div>
+<div class="card-overlay"></div>
+<div class="card-content">
+<h3>KINAS Marketplace</h3>
+<p>Curated watches, jewelry, art & fashion</p>
+<span class="count"><?= number_format($marketplaceCount) ?> items</span>
+</div>
+</a>
+</div>
+</div>
 </section>
 
 <!-- ============================================================ -->
 <!-- WHY KINAS GROUP - Feature Cards -->
 <!-- ============================================================ -->
 <section style="padding:80px 0; background:#F8F6F1;">
-    <div class="je-container">
-        <div style="text-align:center; margin-bottom:48px;">
-            <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">WHY KINAS GROUP</div>
-            <h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">The standard of luxury</h2>
-        </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px;">
-            
-            <!-- Verified Sellers -->
-            <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?w=600&q=80'); background-color: #1a2e1a;"></div>
-                <div class="feature-overlay"></div>
-                <div class="feature-content">
-                    <h3>Verified Sellers</h3>
-                    <p>Every seller is identity-verified through our secure KYC process. Trust is our foundation.</p>
-                </div>
-            </div>
-            
-            <!-- Global Reach -->
-            <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/393570/pexels-photo-393570.jpeg?w=600&q=80'); background-color: #0c1a2e;"></div>
-                <div class="feature-overlay"></div>
-                <div class="feature-content">
-                    <h3>Global Reach</h3>
-                    <p>Access luxury listings from verified sellers across 100+ countries, all in one marketplace.</p>
-                </div>
-            </div>
-            
-            <!-- Secure Transactions -->
-            <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('/assets/images/trust/secure-transactions-240.jpg'); background-color: #2e1a0c;"></div>
-                <div class="feature-overlay"></div>
-                <div class="feature-content">
-                    <h3>Secure Transactions</h3>
-                    <p>End-to-end encrypted messaging and escrow-protected payments for complete peace of mind.</p>
-                </div>
-            </div>
-            
-            <!-- Quality Assurance -->
-            <div class="feature-card">
-                <div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/3862631/pexels-photo-3862631.jpeg?w=600&q=80'); background-color: #1a0c2e;"></div>
-                <div class="feature-overlay"></div>
-                <div class="feature-content">
-                    <h3>Quality Assurance</h3>
-                    <p>Every listing is reviewed for quality, accuracy, and authenticity before publication.</p>
-                </div>
-            </div>
-            
-        </div>
-    </div>
+<div class="je-container">
+<div style="text-align:center; margin-bottom:48px;">
+<div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#C6A43F; margin-bottom:6px; font-weight:600;">WHY KINAS GROUP</div>
+<h2 style="font-family:'Prata',serif; font-size:32px; color:#0A0A0A;">The standard of luxury</h2>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px;">
+<!-- Verified Sellers -->
+<div class="feature-card">
+<div class="feature-bg" style="background-image: url('https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?w=600&q=80'); background-color: #1a2e1a;"></div>
+<div class="feature-overlay"></div>
+<div class="feature-content">
+<h3>Verified Sellers</h3>
+<p>Every seller is identity-verified through our secure KYC process. Trust is our foundation.</p>
+</div>
+</div>
+
+<!-- Global Reach -->
+<div class="feature-card">
+<div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/393570/pexels-photo-393570.jpeg?w=600&q=80'); background-color: #0c1a2e;"></div>
+<div class="feature-overlay"></div>
+<div class="feature-content">
+<h3>Global Reach</h3>
+<p>Access luxury listings from verified sellers across 100+ countries, all in one marketplace.</p>
+</div>
+</div>
+
+<!-- Secure Transactions -->
+<div class="feature-card">
+<div class="feature-bg" style="background-image: url('/assets/images/trust/secure-transactions-240.jpg'); background-color: #2e1a0c;"></div>
+<div class="feature-overlay"></div>
+<div class="feature-content">
+<h3>Secure Transactions</h3>
+<p>End-to-end encrypted messaging and escrow-protected payments for complete peace of mind.</p>
+</div>
+</div>
+
+<!-- Quality Assurance -->
+<div class="feature-card">
+<div class="feature-bg" style="background-image: url('https://images.pexels.com/photos/3862631/pexels-photo-3862631.jpeg?w=600&q=80'); background-color: #1a0c2e;"></div>
+<div class="feature-overlay"></div>
+<div class="feature-content">
+<h3>Quality Assurance</h3>
+<p>Every listing is reviewed for quality, accuracy, and authenticity before publication.</p>
+</div>
+</div>
+</div>
+</div>
 </section>
 
 <!-- ============================================================ -->
 <!-- CTA SECTION -->
 <!-- ============================================================ -->
 <section style="background:#0A0A0A; padding:80px 0; text-align:center; color:#fff;">
-    <div class="je-container">
-        <h2 style="font-family:'Prata',serif; font-size:36px; margin-bottom:14px;">Join the KINAS Group community</h2>
-        <p style="color:rgba(255,255,255,0.7); font-size:15px; max-width:560px; margin:0 auto 28px;">Whether you're buying or selling, experience luxury redefined.</p>
-        <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
-            <a href="/search.php" class="je-btn je-btn-gold je-btn-lg">Start Exploring</a>
-            <a href="/auth/register.php" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Become a Seller</a>
-        </div>
-    </div>
+<div class="je-container">
+<h2 style="font-family:'Prata',serif; font-size:36px; margin-bottom:14px;">Join the KINAS Group community</h2>
+<p style="color:rgba(255,255,255,0.7); font-size:15px; max-width:560px; margin:0 auto 28px;">Whether you're buying or selling, experience luxury redefined.</p>
+<div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+<a href="/search.php" class="je-btn je-btn-gold je-btn-lg">Start Exploring</a>
+<a href="/auth/register.php" class="je-btn je-btn-lg" style="background:transparent;border-color:rgba(255,255,255,0.3);color:#fff;">Become a Seller</a>
+</div>
+</div>
 </section>
 
 <script>
@@ -737,96 +693,96 @@ document.querySelectorAll('.featured-item-card .item-image').forEach(function (e
 // HERO CAROUSEL - FIXED TRANSITION
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
-    const slides = document.querySelectorAll('#heroSlides .hero-slide');
-    const dots = document.querySelectorAll('#heroIndicators .dot');
-    let currentIndex = 0;
-    let slideInterval;
-    const intervalTime = 6000; // 6 seconds
+const slides = document.querySelectorAll('#heroSlides .hero-slide');
+const dots = document.querySelectorAll('#heroIndicators .dot');
 
-    function goToSlide(index) {
-        // Remove active class from all slides
-        slides.forEach(function(slide) {
-            slide.classList.remove('active');
-        });
-        
-        // Remove active class from all dots
-        dots.forEach(function(dot) {
-            dot.classList.remove('active');
-        });
-        
-        // Add active class to current slide and dot
-        slides[index].classList.add('active');
-        dots[index].classList.add('active');
-        currentIndex = index;
-    }
+let currentIndex = 0;
+let slideInterval;
+const intervalTime = 6000; // 6 seconds
 
-    function nextSlide() {
-        let nextIndex = (currentIndex + 1) % slides.length;
-        goToSlide(nextIndex);
-    }
+function goToSlide(index) {
+// Remove active class from all slides
+slides.forEach(function(slide) {
+slide.classList.remove('active');
+});
 
-    function startSlideshow() {
-        if (slideInterval) {
-            clearInterval(slideInterval);
-        }
-        slideInterval = setInterval(nextSlide, intervalTime);
-    }
+// Remove active class from all dots
+dots.forEach(function(dot) {
+dot.classList.remove('active');
+});
 
-    function stopSlideshow() {
-        if (slideInterval) {
-            clearInterval(slideInterval);
-            slideInterval = null;
-        }
-    }
+// Add active class to current slide and dot
+slides[index].classList.add('active');
+dots[index].classList.add('active');
 
-    // Click dots to navigate
-    dots.forEach(function(dot, index) {
-        dot.addEventListener('click', function() {
-            stopSlideshow();
-            goToSlide(index);
-            startSlideshow();
-        });
-    });
+currentIndex = index;
+}
 
-    // Start the slideshow
-    startSlideshow();
+function nextSlide() {
+let nextIndex = (currentIndex + 1) % slides.length;
+goToSlide(nextIndex);
+}
 
-    // ============================================
-    // SMOOTH SCROLL TO DIVISIONS SECTION
-    // ============================================
-    const exploreBtn = document.getElementById('exploreDivisionsBtn');
-    if (exploreBtn) {
-        exploreBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const target = document.getElementById('divisionsSection');
-            if (target) {
-                const headerHeight = document.querySelector('header')?.offsetHeight || 0;
-                const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - headerHeight - 20;
-                
-                window.scrollTo({
-                    top: targetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        });
-    }
+function startSlideshow() {
+if (slideInterval) {
+clearInterval(slideInterval);
+}
+slideInterval = setInterval(nextSlide, intervalTime);
+}
 
-    // Also handle any other links that might point to #divisionsSection
-    document.querySelectorAll('a[href="#divisionsSection"]').forEach(function(link) {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const target = document.getElementById('divisionsSection');
-            if (target) {
-                const headerHeight = document.querySelector('header')?.offsetHeight || 0;
-                const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - headerHeight - 20;
-                
-                window.scrollTo({
-                    top: targetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        });
-    });
+function stopSlideshow() {
+if (slideInterval) {
+clearInterval(slideInterval);
+slideInterval = null;
+}
+}
+
+// Click dots to navigate
+dots.forEach(function(dot, index) {
+dot.addEventListener('click', function() {
+stopSlideshow();
+goToSlide(index);
+startSlideshow();
+});
+});
+
+// Start the slideshow
+startSlideshow();
+
+// ============================================
+// SMOOTH SCROLL TO DIVISIONS SECTION
+// ============================================
+const exploreBtn = document.getElementById('exploreDivisionsBtn');
+if (exploreBtn) {
+exploreBtn.addEventListener('click', function(e) {
+e.preventDefault();
+const target = document.getElementById('divisionsSection');
+if (target) {
+const headerHeight = document.querySelector('header')?.offsetHeight || 0;
+const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - headerHeight - 20;
+window.scrollTo({
+top: targetPosition,
+behavior: 'smooth'
+});
+}
+});
+}
+
+// Also handle any other links that might point to #divisionsSection
+document.querySelectorAll('a[href="#divisionsSection"]').forEach(function(link) {
+link.addEventListener('click', function(e) {
+e.preventDefault();
+const target = document.getElementById('divisionsSection');
+if (target) {
+const headerHeight = document.querySelector('header')?.offsetHeight || 0;
+const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - headerHeight - 20;
+window.scrollTo({
+top: targetPosition,
+behavior: 'smooth'
+});
+}
+});
+});
 });
 </script>
 
