@@ -35,7 +35,7 @@ $csrf   = Security::generateCSRFToken();
 $row = $db->prepare("
     SELECT ap.verification_status, ap.kyc_submitted_at, ap.kyc_decision_at,
            ap.kyb_status, ap.company_name,
-           u.phone, u.phone_verified_at
+           u.phone, u.phone_verified_at, u.name
     FROM users u
     JOIN agent_profiles ap ON ap.user_id = u.id
     WHERE u.id = ?
@@ -45,6 +45,7 @@ $state = $row->fetch(PDO::FETCH_ASSOC) ?: [];
 
 $status        = $state['verification_status'] ?? 'pending';
 $phoneVerified = !empty($state['phone_verified_at']);
+$userFullName  = trim($state['name'] ?? '');
 // 'kyc_passed' now means "identity confirmed" for BOTH individuals and
 // businesses — for a business it's an intermediate state (KYB still
 // pending), not yet a full pass. See api/webhooks/didit.php.
@@ -165,6 +166,31 @@ include __DIR__ . '/../templates/header.php';
 .alert-success p { font-size: 14px; }
 .alert-success .btn-gold { font-size: 14px; padding: 8px 24px; }
 
+/* ============================================================
+   KYC NAME VALIDATION NOTICE - Added for Issue 6
+   ============================================================ */
+.alert-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    padding: 15px 18px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+.alert-warning strong {
+    font-weight: 700;
+}
+.alert-warning .registered-name {
+    color: #0A0A0A;
+    font-weight: 600;
+    background: #f8f0d0;
+    padding: 2px 10px;
+    border-radius: 4px;
+    display: inline-block;
+}
+/* ============================================================ */
+
 /* Toast (needed for the Didit start/resume/retry buttons below) */
 .toast {
     position: fixed; bottom: 24px; right: 24px; z-index: 9999;
@@ -186,6 +212,21 @@ include __DIR__ . '/../templates/header.php';
         <h1><i class="fas fa-user-check" style="color:#C6A43F; font-size:20px;"></i> Account Verification</h1>
         <p style="font-size:14px; color:#666; margin-top:4px;">Complete these steps to activate your agent account</p>
     </div>
+
+    <!-- ============================================================
+    KYC NAME VALIDATION NOTICE - Added for Issue 6
+    This informs the user that their ID name must match their registered name
+    ============================================================ -->
+    <?php if ($userFullName): ?>
+    <div class="alert-warning">
+        <strong>⚠️ Important:</strong> The legal name on your government-issued ID must <strong>exactly match</strong> the full name registered on your account: 
+        <span class="registered-name"><?php echo htmlspecialchars($userFullName); ?></span><br>
+        <small style="display:block;margin-top:6px;color:#6c5a00;">
+            <i class="fas fa-info-circle"></i> If the names do not match, your KYC verification will be rejected. Please ensure your ID reflects this exact name before proceeding.
+        </small>
+    </div>
+    <?php endif; ?>
+    <!-- ============================================================ -->
 
     <?php if ($isBusiness && !$approved): ?>
     <div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#5d4a00;">
