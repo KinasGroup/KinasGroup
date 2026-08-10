@@ -4,22 +4,11 @@ declare(strict_types=1);
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
-/**
- * KINAS GROUP — Product Rotation Fix Installer
- *
- * This script automatically patches:
- * - includes/featured-algorithm.php
- * - index.php
- * - divisions/kinas-automobile/index.php
- * - divisions/kinas-volt/index.php
- * - divisions/kinas-marketplace/index.php
- * - divisions/williams-connect-home/index.php
- *
- * Run:
- * /apply-product-rotation-fix.php?apply=1
- */
-
 $apply = isset($_GET['apply']) && $_GET['apply'] === '1';
+
+if (PHP_SAPI === 'cli') {
+    $apply = true;
+}
 
 $root = __DIR__;
 $backupDir = $root . '/backups/product-rotation-fix-' . date('Ymd-His');
@@ -79,11 +68,16 @@ function kpf_write_file(string $file, string $content): void
         throw new RuntimeException("File not found: {$file}");
     }
 
+    if (!is_writable($file)) {
+        $relative = ltrim(str_replace($root, '', $file), '/');
+        throw new RuntimeException("{$relative} is not writable. Check file permissions.");
+    }
+
     kpf_backup_file($file);
 
     if (file_put_contents($file, $content) === false) {
         $relative = ltrim(str_replace($root, '', $file), '/');
-        throw new RuntimeException("Could not write {$relative}. Check file permissions.");
+        throw new RuntimeException("Could not write {$relative}.");
     }
 }
 
@@ -93,15 +87,16 @@ function kpf_add_require(string &$content, string $needle, string $require, stri
         return false;
     }
 
-    if (strpos($content, $needle) === false) {
+    $pos = strpos($content, $needle);
+
+    if ($pos === false) {
         throw new RuntimeException("Could not find insertion point for {$label}.");
     }
 
-    $content = str_replace(
-        $needle,
-        $needle . PHP_EOL . PHP_EOL . $require,
-        $content
-    );
+    $content = substr($content, 0, $pos + strlen($needle))
+        . PHP_EOL . PHP_EOL
+        . $require
+        . substr($content, $pos + strlen($needle));
 
     return true;
 }
@@ -122,11 +117,67 @@ function kpf_preg_replace_once(string $pattern, string $replacement, string $sub
     );
 }
 
+function kpf_patch_division(string $file, string $label, string $var, string $functionName): void
+{
+    if (!file_exists($file)) {
+        throw new RuntimeException("{$label} index file was not found.");
+    }
+
+    $content = file_get_contents($file);
+
+    if ($content === false) {
+        throw new RuntimeException("Could not read {$label} index file.");
+    }
+
+    $changed = false;
+
+    if (kpf_add_require(
+        $content,
+        '$db = Database::getInstance()->getConnection();',
+        "require_once '../../includes/kinas-rotation.php';",
+        $label . ' rotation include'
+    )) {
+        $changed = true;
+    }
+
+    if (strpos($content, $functionName) === false) {
+        $pattern = '/\$' . $var . '\s*=\s*\$db->query\(".*?LIMIT\s+\d+\s*"\)\s*->fetchAll\(\);/s';
+
+        $replacement = "// ============================================================\n"
+            . "// PRODUCT ROTATION / FAIR VISIBILITY\n"
+            . "// ============================================================\n"
+            . "\$" . $var . " = " . $functionName . "(\$db, 12);";
+
+        $newContent = kpf_preg_replace_once($pattern, $replacement, $content);
+
+        if ($newContent === null) {
+            throw new RuntimeException("Could not find the listing query in {$label}.");
+        }
+
+        $content = $newContent;
+
+        $content = str_replace(
+            'array_slice($' . $var . ', 0, 9)',
+            'array_slice($' . $var . ', 0, 12)',
+            $content
+        );
+
+        $changed = true;
+    }
+
+    if ($changed) {
+        kpf_write_file($file, $content);
+        kpf_message("{$label} updated with product rotation.", 'success');
+    } else {
+        kpf_message("{$label} already appears to have product rotation.", 'info');
+    }
+}
+
 if (!$apply) {
     kpf_header();
     kpf_message('This script will patch the homepage and division pages to enable product rotation.', 'info');
-    kpf_message('Make sure you are ready, then open this URL:', 'warning');
-    kpf_message('/apply-product-rotation-fix.php?apply=1', 'success');
+    kpf_message('Make sure includes/kinas-rotation.php has been uploaded first.', 'warning');
+    kpf_message('Then open: /apply-product-rotation-fix.php?apply=1', 'success');
     kpf_footer();
     exit;
 }
@@ -134,299 +185,106 @@ if (!$apply) {
 kpf_header();
 
 try {
-    // ============================================================
-    // 1. ROTATION ENGINE CODE
-    // ============================================================
+    $rotationFile = $root . '/includes/kinas-rotation.php';
 
-    $rotationEngineCode = <<<'PHP'
-// ============================================================
-// PRODUCT ROTATION ENGINE — FAIR HOMEPAGE/DIVISION VISIBILITY
-// ============================================================
-
-class KinasListingRotation
-{
-    private $db;
-
-    private $tables = [
-        'car' => 'car_listings',
-        'property' => 'property_listings',
-        'solar' => 'solar_listings',
-        'marketplace' => 'marketplace_listings',
-    ];
-
-    public function __construct($db)
-    {
-        $this->db = $db;
+    if (!file_exists($rotationFile)) {
+        throw new RuntimeException('includes/kinas-rotation.php was not found. Upload that file first.');
     }
-
-    /**
-     * Get rotated listing IDs for a division.
-     *
-     * This avoids showing the same products repeatedly.
-     * It stores a shuffled pool of active listing IDs in the session
-     * and serves them until the pool is exhausted.
-     */
-    public function getRotatingIds(string $division, int $limit = 12): array
-    {
-        $division = strtolower($division);
-
-        if (!isset($this->tables[$division])) {
-            return [];
-        }
-
-        $limit = max(1, min(100, $limit));
-
-        $this->sendNoCacheHeaders();
-
-        // If session cannot be used, fall back to random selection.
-        if (!$this->sessionReady()) {
-            return $this->getRandomIds($division, $limit);
-        }
-
-        $key = 'kinas_product_rotation_' . $division;
-        $state = $_SESSION[$key] ?? [];
-
-        try {
-            $total = (int)$this->db->query("
-                SELECT COUNT(*)
-                FROM {$this->tables[$division]}
-                WHERE status = 'active'
-            ")->fetchColumn();
-        } catch (Exception $e) {
-            $total = 0;
-        }
-
-        if ($total === 0) {
-            unset($_SESSION[$key]);
-            return [];
-        }
-
-        // Reset rotation if the number of active listings changed.
-        // This allows newly added products to enter the rotation.
-        if (!isset($state['total']) || (int)$state['total'] !== $total) {
-            $state = [
-                'total' => $total,
-                'remaining' => [],
-                'shown' => [],
-            ];
-        }
-
-        $state['remaining'] = array_values(array_filter(array_map('intval', (array)($state['remaining'] ?? []))));
-        $state['shown'] = array_values(array_filter(array_map('intval', (array)($state['shown'] ?? []))));
-
-        // If not enough products remain in the pool, add more unseen products.
-        if (count($state['remaining']) < $limit) {
-            $allIds = $this->getActiveIds($division);
-            $unseen = array_values(array_diff($allIds, $state['shown']));
-            $needed = $limit - count($state['remaining']);
-
-            // If almost everything has already been shown, start a new cycle.
-            if (count($unseen) < $needed) {
-                $state['shown'] = [];
-                $unseen = $allIds;
-            }
-
-            shuffle($unseen);
-
-            $state['remaining'] = array_merge(
-                $state['remaining'],
-                array_slice($unseen, 0, $needed)
-            );
-        }
-
-        $take = array_slice($state['remaining'], 0, $limit);
-
-        $state['remaining'] = array_slice($state['remaining'], count($take));
-        $state['shown'] = array_values(array_unique(array_merge($state['shown'], $take)));
-
-        // Prevent session storage from growing too large over time.
-        if (count($state['shown']) > 5000) {
-            $state['shown'] = array_slice($state['shown'], -5000);
-        }
-
-        $_SESSION[$key] = $state;
-
-        return $take;
-    }
-
-    private function getActiveIds(string $division): array
-    {
-        $table = $this->tables[$division] ?? null;
-
-        if (!$table) {
-            return [];
-        }
-
-        try {
-            $ids = $this->db->query("
-                SELECT id
-                FROM {$table}
-                WHERE status = 'active'
-            ")->fetchAll(PDO::FETCH_COLUMN);
-        } catch (Exception $e) {
-            return [];
-        }
-
-        return array_values(array_unique(array_map('intval', (array)$ids)));
-    }
-
-    private function getRandomIds(string $division, int $limit): array
-    {
-        $table = $this->tables[$division] ?? null;
-
-        if (!$table) {
-            return [];
-        }
-
-        try {
-            $stmt = $this->db->prepare("
-                SELECT id
-                FROM {$table}
-                WHERE status = 'active'
-                ORDER BY RAND()
-                LIMIT " . (int)$limit . "
-            ");
-
-            $stmt->execute();
-
-            return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
-        } catch (Exception $e) {
-            return [];
-        }
-    }
-
-    private function sessionReady(): bool
-    {
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            return true;
-        }
-
-        if (headers_sent()) {
-            return false;
-        }
-
-        return @session_start();
-    }
-
-    private function sendNoCacheHeaders(): void
-    {
-        if (!headers_sent()) {
-            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-            header('Pragma: no-cache');
-            header('Expires: 0');
-        }
-    }
-}
-
-/**
- * Preserve the rotation order after fetching rows by ID.
- */
-function kinas_sort_rows_by_ids(array $rows, array $ids, string $idKey = 'id'): array
-{
-    $indexed = [];
-
-    foreach ($rows as $row) {
-        if (isset($row[$idKey])) {
-            $indexed[(int)$row[$idKey]] = $row;
-        }
-    }
-
-    $sorted = [];
-
-    foreach ($ids as $id) {
-        $id = (int)$id;
-
-        if (isset($indexed[$id])) {
-            $sorted[] = $indexed[$id];
-        }
-    }
-
-    return $sorted;
-}
-PHP;
 
     // ============================================================
-    // 2. PATCH includes/featured-algorithm.php
+    // PATCH HOMEPAGE
     // ============================================================
 
-    $featuredAlgorithmFile = $root . '/includes/featured-algorithm.php';
+    $homepageFile = $root . '/index.php';
 
-    if (!file_exists($featuredAlgorithmFile)) {
-        throw new RuntimeException('includes/featured-algorithm.php was not found.');
+    if (!file_exists($homepageFile)) {
+        throw new RuntimeException('index.php was not found in root.');
     }
 
-    $featuredAlgorithmContent = file_get_contents($featuredAlgorithmFile);
+    $homepageContent = file_get_contents($homepageFile);
 
-    if ($featuredAlgorithmContent === false) {
-        throw new RuntimeException('Could not read includes/featured-algorithm.php.');
+    if ($homepageContent === false) {
+        throw new RuntimeException('Could not read index.php.');
     }
 
-    if (strpos($featuredAlgorithmContent, 'class KinasListingRotation') === false) {
-        $featuredAlgorithmContent = preg_replace('/\?>\s*$/', '', $featuredAlgorithmContent);
-        $featuredAlgorithmContent = rtrim((string)$featuredAlgorithmContent);
-        $featuredAlgorithmContent .= PHP_EOL . PHP_EOL . $rotationEngineCode . PHP_EOL;
+    $homepageChanged = false;
 
-        kpf_write_file($featuredAlgorithmFile, $featuredAlgorithmContent);
-        kpf_message('includes/featured-algorithm.php updated with rotation engine.', 'success');
+    if (kpf_add_require(
+        $homepageContent,
+        '$db = Database::getInstance()->getConnection();',
+        "require_once 'includes/kinas-rotation.php';",
+        'homepage rotation include'
+    )) {
+        $homepageChanged = true;
+    }
+
+    if (strpos($homepageContent, 'kinas_get_home_rotated_listings') === false) {
+        $homepagePattern = '/\/\/ Get featured listings from all divisions.*?\$featuredListings = array_slice\(\$featuredListings,\s*0,\s*8\);/s';
+
+        $homepageReplacement = "// ============================================================\n"
+            . "// PRODUCT ROTATION / FAIR VISIBILITY\n"
+            . "// ============================================================\n"
+            . "\$featuredListings = kinas_get_home_rotated_listings(\$db, 12, 6);";
+
+        $patchedHomepage = kpf_preg_replace_once($homepagePattern, $homepageReplacement, $homepageContent);
+
+        if ($patchedHomepage === null) {
+            throw new RuntimeException('Could not find the homepage featured listings block.');
+        }
+
+        $homepageContent = $patchedHomepage;
+        $homepageChanged = true;
+    }
+
+    if ($homepageChanged) {
+        kpf_write_file($homepageFile, $homepageContent);
+        kpf_message('Main homepage updated with product rotation.', 'success');
     } else {
-        kpf_message('includes/featured-algorithm.php already contains rotation engine.', 'info');
+        kpf_message('Main homepage already appears to have product rotation.', 'info');
     }
 
     // ============================================================
-    // 3. HOMEPAGE ROTATION REPLACEMENT
+    // PATCH DIVISION PAGES
     // ============================================================
 
-    $homepageRotationBlock = <<<'PHP'
-// ============================================================
-// PRODUCT ROTATION / FAIR VISIBILITY
-// ============================================================
-// Instead of showing the same featured products forever, rotate
-// through all active listings across all divisions.
-// ============================================================
+    kpf_patch_division(
+        $root . '/divisions/kinas-automobile/index.php',
+        'KINAS Automobile',
+        'cars',
+        'kinas_get_rotated_cars'
+    );
 
-$rotation = new KinasListingRotation($db);
+    kpf_patch_division(
+        $root . '/divisions/kinas-volt/index.php',
+        'KINAS Volt',
+        'systems',
+        'kinas_get_rotated_solar'
+    );
 
-$homeLimit = 12;
-$homePerDivisionPool = 6;
+    kpf_patch_division(
+        $root . '/divisions/kinas-marketplace/index.php',
+        'KINAS Marketplace',
+        'items',
+        'kinas_get_rotated_marketplace'
+    );
 
-$carIds = $rotation->getRotatingIds('car', $homePerDivisionPool);
-$propertyIds = $rotation->getRotatingIds('property', $homePerDivisionPool);
-$solarIds = $rotation->getRotatingIds('solar', $homePerDivisionPool);
-$marketplaceIds = $rotation->getRotatingIds('marketplace', $homePerDivisionPool);
+    // ============================================================
+    // PATCH WILLIAMS CONNECT HOME
+    // ============================================================
 
-$featuredCar = [];
-if (!empty($carIds)) {
-    $carIdList = implode(',', array_map('intval', $carIds));
+    $williamsFile = $root . '/divisions/williams-connect-home/index.php';
 
-    $featuredCar = $db->query("
-        SELECT c.id, c.title, c.brand, c.model, c.year, c.price, c.featured,
-               'car' as listing_type, 'KINAS Automobile' as division,
-               (SELECT url FROM listing_images WHERE listing_id = c.id AND listing_type = 'car' ORDER BY sort_order LIMIT 1) AS thumbnail
-        FROM car_listings c
-        WHERE c.status = 'active' AND c.id IN ($carIdList)
-    ")->fetchAll();
+    if (file_exists($williamsFile)) {
+        $williamsContent = file_get_contents($williamsFile);
 
-    $featuredCar = kinas_sort_rows_by_ids($featuredCar, $carIds);
-}
+        if ($williamsContent === false) {
+            throw new RuntimeException('Could not read Williams Connect Home index file.');
+        }
 
-$featuredProperty = [];
-if (!empty($propertyIds)) {
-    $propertyIdList = implode(',', array_map('intval', $propertyIds));
+        $williamsChanged = false;
 
-    $featuredProperty = $db->query("
-        SELECT p.id, p.title, p.price, p.featured, p.property_type,
-               'property' as listing_type, 'Williams Connect Home' as division,
-               (SELECT url FROM listing_images WHERE listing_id = p.id AND listing_type = 'property' ORDER BY sort_order LIMIT 1) AS thumbnail
-        FROM property_listings p
-        WHERE p.status = 'active' AND p.id IN ($propertyIdList)
-    ")->fetchAll();
-
-    $featuredProperty = kinas_sort_rows_by_ids($featuredProperty, $propertyIds);
-}
-
-$featuredSolar = [];
-if (!empty($solarIds)) {
-    $solarIdList = implode(',', array_map('intval', $solarIds));
-
-    $featuredSolar = $db->query("
-        SELECT s.id, s.title, s.price, s.service_type, s.featured,
+        if (kpf_add_require(
+            $williamsContent,
+            '$db = Database::getInstance()->getConnection();',
+            "require_once '../../includes/kinas-rotation.php';",
+            'Williams
