@@ -343,7 +343,7 @@ KINAS GROUP OF COMPANIES LIMITED
 Hello, {$name}!
 
 Thank you for joining KINAS GROUP OF COMPANIES LIMITED. 
-We're excited to have you as part of our luxury marketplace ecosystem.
+We're excited to have you as part of our exotic ecosystem.
 
 Please verify your email address to complete your registration:
 
