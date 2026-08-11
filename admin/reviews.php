@@ -2,10 +2,17 @@
 /**
  * ADMIN — Product Reviews Moderation
  *
+ * Optimized version.
+ *
  * Allows admins to:
  * - approve/reject/delete product reviews
  * - manage reported reviews
  * - manually add verified purchases for offline sales
+ * - remove manually added verified purchases
+ * - see matching paid order/transaction evidence where available
+ *
+ * This version also self-heals the required review moderation schema
+ * if columns or supporting tables are missing.
  */
 
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -16,11 +23,283 @@ require_once __DIR__ . '/../api/config/database.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../includes/reviews.php';
+
+// Load the shared review engine if available.
+$kinasReviewsEngine = __DIR__ . '/../includes/reviews.php';
+
+if (file_exists($kinasReviewsEngine)) {
+    require_once $kinasReviewsEngine;
+}
+
+// ============================================================
+// FALLBACK REVIEW HELPERS
+// ============================================================
+// These prevent a fatal error if includes/reviews.php is missing
+// or incomplete. If the shared review engine already defines them,
+// these are skipped.
+// ============================================================
+
+if (!function_exists('kinas_reviews_table_exists')) {
+    function kinas_reviews_table_exists(PDO $db, string $table): bool
+    {
+        static $cache = [];
+
+        if (isset($cache[$table])) {
+            return $cache[$table];
+        }
+
+        try {
+            $stmt = $db->prepare("
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = DATABASE()
+                  AND table_name = ?
+            ");
+
+            $stmt->execute([$table]);
+
+            $cache[$table] = ((int)$stmt->fetchColumn()) > 0;
+        } catch (Throwable $e) {
+            $cache[$table] = false;
+        }
+
+        return $cache[$table];
+    }
+}
+
+if (!function_exists('kinas_reviews_table_columns')) {
+    function kinas_reviews_table_columns(PDO $db, string $table): array
+    {
+        static $cache = [];
+
+        if (isset($cache[$table])) {
+            return $cache[$table];
+        }
+
+        $cache[$table] = [];
+
+        try {
+            $stmt = $db->prepare("
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = DATABASE()
+                  AND table_name = ?
+            ");
+
+            $stmt->execute([$table]);
+
+            $cache[$table] = array_map('strtolower', $stmt->fetchAll(PDO::FETCH_COLUMN));
+        } catch (Throwable $e) {
+            $cache[$table] = [];
+        }
+
+        return $cache[$table];
+    }
+}
+
+if (!function_exists('kinas_normalize_review_listing_type')) {
+    function kinas_normalize_review_listing_type(?string $type): ?string
+    {
+        $type = strtolower(trim((string)$type));
+
+        $map = [
+            'car' => 'car',
+            'automobile' => 'car',
+            'vehicle' => 'car',
+            'vehicles' => 'car',
+
+            'property' => 'property',
+            'real_estate' => 'property',
+            'realestate' => 'property',
+            'home' => 'property',
+            'homes' => 'property',
+
+            'solar' => 'solar',
+            'volt' => 'solar',
+            'energy' => 'solar',
+
+            'marketplace' => 'marketplace',
+            'market' => 'marketplace',
+            'item' => 'marketplace',
+            'product' => 'marketplace',
+        ];
+
+        return $map[$type] ?? null;
+    }
+}
+
+if (!function_exists('kinas_get_review_listing')) {
+    function kinas_get_review_listing(PDO $db, string $type, int $listingId): ?array
+    {
+        $type = kinas_normalize_review_listing_type($type);
+
+        if (!$type || $listingId <= 0) {
+            return null;
+        }
+
+        $tables = [
+            'car' => 'car_listings',
+            'property' => 'property_listings',
+            'solar' => 'solar_listings',
+            'marketplace' => 'marketplace_listings',
+        ];
+
+        $table = $tables[$type] ?? null;
+
+        if (!$table || !kinas_reviews_table_exists($db, $table)) {
+            return null;
+        }
+
+        try {
+            $stmt = $db->prepare("SELECT * FROM {$table} WHERE id = ? LIMIT 1");
+            $stmt->execute([$listingId]);
+
+            $listing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$listing) {
+                return null;
+            }
+
+            $listing['listing_type'] = $type;
+
+            return $listing;
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+}
 
 SessionManager::requireAdmin();
 
 $db = Database::getInstance()->getConnection();
+
+// ============================================================
+// SCHEMA SELF-HEALING
+// ============================================================
+
+function admin_reviews_add_column_if_missing(PDO $db, string $column, string $definition): void
+{
+    try {
+        $stmt = $db->prepare("
+            SELECT COUNT(*)
+            FROM information_schema.columns
+            WHERE table_schema = DATABASE()
+              AND table_name = 'product_reviews'
+              AND column_name = ?
+        ");
+
+        $stmt->execute([$column]);
+
+        if ((int)$stmt->fetchColumn() === 0) {
+            $db->exec("ALTER TABLE product_reviews ADD COLUMN {$definition}");
+        }
+    } catch (Throwable $e) {
+        // Ignore schema errors.
+    }
+}
+
+function admin_reviews_ensure_schema(PDO $db): void
+{
+    try {
+        $db->exec("
+            CREATE TABLE IF NOT EXISTS product_reviews (
+                id                INT PRIMARY KEY AUTO_INCREMENT,
+                user_id           INT NOT NULL,
+                listing_type      ENUM('car','property','solar','marketplace') NOT NULL,
+                listing_id        INT NOT NULL,
+                rating            TINYINT(1) NOT NULL,
+                comment           TEXT NULL,
+                status            ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+                verified_purchase TINYINT(1) NOT NULL DEFAULT 0,
+                ip_address        VARCHAR(45) NULL,
+                order_reference   VARCHAR(191) NULL,
+                moderated_by      INT NULL,
+                moderated_at      DATETIME NULL,
+                moderation_note   VARCHAR(500) NULL,
+                created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at        TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uniq_user_listing (user_id, listing_type, listing_id),
+                INDEX idx_listing (listing_type, listing_id),
+                INDEX idx_user (user_id),
+                INDEX idx_status (status),
+                INDEX idx_created (created_at),
+                INDEX idx_verified_purchase (verified_purchase)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } catch (Throwable $e) {
+        // Table may already exist with a slightly different structure.
+    }
+
+    admin_reviews_add_column_if_missing($db, 'verified_purchase', 'verified_purchase TINYINT(1) NOT NULL DEFAULT 0');
+    admin_reviews_add_column_if_missing($db, 'ip_address', 'ip_address VARCHAR(45) NULL');
+    admin_reviews_add_column_if_missing($db, 'order_reference', 'order_reference VARCHAR(191) NULL');
+    admin_reviews_add_column_if_missing($db, 'moderated_by', 'moderated_by INT NULL');
+    admin_reviews_add_column_if_missing($db, 'moderated_at', 'moderated_at DATETIME NULL');
+    admin_reviews_add_column_if_missing($db, 'moderation_note', 'moderation_note VARCHAR(500) NULL');
+
+    try {
+        $stmt = $db->prepare("
+            SELECT COLUMN_TYPE
+            FROM information_schema.columns
+            WHERE table_schema = DATABASE()
+              AND table_name = 'product_reviews'
+              AND column_name = 'listing_type'
+        ");
+
+        $stmt->execute();
+
+        $columnType = (string)$stmt->fetchColumn();
+
+        if ($columnType !== '' && stripos($columnType, 'solar') === false) {
+            $db->exec("
+                ALTER TABLE product_reviews
+                MODIFY COLUMN listing_type ENUM('car','property','solar','marketplace') NOT NULL
+            ");
+        }
+    } catch (Throwable $e) {
+        // Ignore.
+    }
+
+    try {
+        $db->exec("
+            CREATE TABLE IF NOT EXISTS product_review_reports (
+                id          INT PRIMARY KEY AUTO_INCREMENT,
+                review_id   INT NOT NULL,
+                user_id     INT NULL,
+                reason      VARCHAR(500) NOT NULL,
+                status      ENUM('open','resolved','dismissed') NOT NULL DEFAULT 'open',
+                created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                resolved_at DATETIME NULL,
+                UNIQUE KEY uniq_user_review_report (user_id, review_id),
+                INDEX idx_report_review (review_id),
+                INDEX idx_report_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } catch (Throwable $e) {
+        // Ignore.
+    }
+
+    try {
+        $db->exec("
+            CREATE TABLE IF NOT EXISTS verified_purchases (
+                id              INT PRIMARY KEY AUTO_INCREMENT,
+                user_id         INT NOT NULL,
+                listing_type    ENUM('car','property','solar','marketplace') NOT NULL,
+                listing_id      INT NOT NULL,
+                source          ENUM('order','inspection','rental','manual') NOT NULL DEFAULT 'manual',
+                order_reference VARCHAR(191) NULL,
+                created_by      INT NULL,
+                created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uniq_user_listing_source (user_id, listing_type, listing_id, source),
+                INDEX idx_verified_listing (listing_type, listing_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } catch (Throwable $e) {
+        // Ignore.
+    }
+}
+
+admin_reviews_ensure_schema($db);
 
 $reviewsInstalled = kinas_reviews_table_exists($db, 'product_reviews');
 $reportsInstalled = kinas_reviews_table_exists($db, 'product_review_reports');
@@ -42,7 +321,6 @@ function admin_reviews_redirect(string $tab, string $type, string $message): voi
 
 function admin_reviews_success_redirect(string $tab, string $message): void
 {
-    // Rotate CSRF token after a successful state-changing action.
     unset($_SESSION['csrf_token']);
     Security::generateCSRFToken();
 
@@ -111,6 +389,86 @@ function admin_reviews_stars(int $rating): string
     $html .= '</span>';
 
     return $html;
+}
+
+function admin_reviews_order_match(PDO $db, array $review): array
+{
+    $info = [
+        'reference' => null,
+        'order_id' => null,
+        'paid_at' => null,
+        'source' => null,
+    ];
+
+    $userId = (int)($review['user_id'] ?? 0);
+    $listingId = (int)($review['listing_id'] ?? 0);
+    $listingType = (string)($review['listing_type'] ?? '');
+
+    if (!$userId || !$listingId) {
+        return $info;
+    }
+
+    // Try transactions first.
+    try {
+        $stmt = $db->prepare("
+            SELECT order_id, paystack_reference, paid_at
+            FROM transactions
+            WHERE buyer_id = ?
+              AND listing_id = ?
+              AND listing_type = ?
+              AND status = 'paid'
+            ORDER BY paid_at DESC
+            LIMIT 1
+        ");
+
+        $stmt->execute([$userId, $listingId, $listingType]);
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($row) {
+            return [
+                'reference' => $row['paystack_reference'] ?? null,
+                'order_id' => $row['order_id'] ?? null,
+                'paid_at' => $row['paid_at'] ?? null,
+                'source' => 'transactions',
+            ];
+        }
+    } catch (Throwable $e) {
+        // Continue.
+    }
+
+    // Fallback for marketplace orders.
+    if ($listingType === 'marketplace') {
+        try {
+            $stmt = $db->prepare("
+                SELECT o.id AS order_id, o.reference AS paystack_reference, o.paid_at
+                FROM orders o
+                JOIN order_items oi ON oi.order_id = o.id
+                WHERE o.buyer_id = ?
+                  AND oi.listing_id = ?
+                  AND o.status = 'paid'
+                ORDER BY o.paid_at DESC
+                LIMIT 1
+            ");
+
+            $stmt->execute([$userId, $listingId]);
+
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($row) {
+                return [
+                    'reference' => $row['paystack_reference'] ?? null,
+                    'order_id' => $row['order_id'] ?? null,
+                    'paid_at' => $row['paid_at'] ?? null,
+                    'source' => 'orders',
+                ];
+            }
+        } catch (Throwable $e) {
+            // Continue.
+        }
+    }
+
+    return $info;
 }
 
 // ============================================================
@@ -380,6 +738,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             admin_reviews_success_redirect('verified', 'Verified purchase added successfully.');
+        }
+
+        // ------------------------------------------------------------
+        // Remove manual verified purchase
+        // ------------------------------------------------------------
+        if ($adminAction === 'remove_verified_purchase') {
+            if (!$verifiedInstalled) {
+                admin_reviews_redirect('verified', 'error', 'Verified purchases are not installed.');
+            }
+
+            $purchaseId = (int)($_POST['purchase_id'] ?? 0);
+
+            if (!$purchaseId) {
+                admin_reviews_redirect('verified', 'error', 'Invalid verified purchase record.');
+            }
+
+            $db->prepare("DELETE FROM verified_purchases WHERE id = ?")
+                ->execute([$purchaseId]);
+
+            Security::logActivity(
+                $adminId,
+                'verified_purchase_removed',
+                sprintf('Removed verified purchase record #%d', $purchaseId)
+            );
+
+            admin_reviews_success_redirect('verified', 'Verified purchase removed.');
         }
 
         admin_reviews_redirect('reviews', 'error', 'Unknown admin action.');
@@ -766,7 +1150,7 @@ require_once __DIR__ . '/../templates/header.php';
 
     table.kr-table {
         width: 100%;
-        min-width: 980px;
+        min-width: 1100px;
         border-collapse: collapse;
     }
 
@@ -909,6 +1293,12 @@ require_once __DIR__ . '/../templates/header.php';
         background: #fff;
     }
 
+    .ref-code {
+        font-family: monospace;
+        font-size: 11px;
+        color: #999;
+    }
+
     @media (prefers-color-scheme: dark) {
         .kr-admin-header h1,
         .kr-admin-header p,
@@ -1030,6 +1420,7 @@ require_once __DIR__ . '/../templates/header.php';
                                     <th>Customer</th>
                                     <th>Rating</th>
                                     <th>Review</th>
+                                    <th>Order Match</th>
                                     <th>Status</th>
                                     <th>Submitted</th>
                                     <th>Actions</th>
@@ -1044,6 +1435,7 @@ require_once __DIR__ . '/../templates/header.php';
 
                                     $listingUrl = admin_reviews_listing_url($listingType, $listingId);
                                     $listingTitle = admin_reviews_listing_title($db, $listingType, $listingId);
+                                    $orderMatch = admin_reviews_order_match($db, $review);
 
                                     $commentText = trim((string)($review['comment'] ?? ''));
 
@@ -1107,8 +1499,29 @@ require_once __DIR__ . '/../templates/header.php';
                                         </td>
 
                                         <td>
-                                            <span class="kr-status <?= htmlspecialchars((string)($review['status'] ?? 'pending')) ?>">
-                                                <?= htmlspecialchars(ucfirst((string)($review['status'] ?? 'pending'))) ?>
+                                            <?php if (!empty($orderMatch['reference'])): ?>
+                                                <span class="ref-code">
+                                                    <?= htmlspecialchars((string)$orderMatch['reference']) ?>
+                                                </span><br>
+                                                <span style="font-size:11px;color:#2E7D32;">
+                                                    <i class="fas fa-check-circle"></i> Paid order found
+                                                </span>
+                                                <?php if (!empty($orderMatch['paid_at'])): ?>
+                                                    <br>
+                                                    <span style="font-size:11px;color:#999;">
+                                                        <?= date('M j, Y', strtotime((string)$orderMatch['paid_at'])) ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <span class="kr-muted">
+                                                    No direct order match
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+
+                                        <td>
+                                            <span class="kr-status <?= htmlspecialchars((string)$review['status']) ?>">
+                                                <?= htmlspecialchars(ucfirst((string)$review['status'])) ?>
                                             </span>
                                         </td>
 
@@ -1145,7 +1558,9 @@ require_once __DIR__ . '/../templates/header.php';
                                                 </form>
                                             <?php endif; ?>
 
-                                            <form method="POST" class="kr-inline-form" data-confirm="Delete this review permanently? This cannot be undone.">
+                                            <form method="POST"
+                                                  class="kr-inline-form"
+                                                  data-confirm="Delete this review permanently? This cannot be undone.">
                                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                                                 <input type="hidden" name="admin_action" value="moderate_review">
                                                 <input type="hidden" name="review_id" value="<?= $reviewId ?>">
@@ -1177,7 +1592,7 @@ require_once __DIR__ . '/../templates/header.php';
                                 </a>
                             <?php endif; ?>
 
-                            <span class="kr-muted">
+                            <span style="font-size:13px;color:#666;">
                                 Page <?= (int)$page ?> of <?= (int)$totalPages ?>
                             </span>
 
@@ -1297,8 +1712,8 @@ require_once __DIR__ . '/../templates/header.php';
                                         </td>
 
                                         <td>
-                                            <span class="kr-status <?= htmlspecialchars((string)($report['status'] ?? 'open')) ?>">
-                                                <?= htmlspecialchars(ucfirst((string)($report['status'] ?? 'open'))) ?>
+                                            <span class="kr-status <?= htmlspecialchars((string)$report['status'] ?? 'open')) ?>">
+                                                <?= htmlspecialchars(ucfirst((string)$report['status'] ?? 'open'))) ?>
                                             </span>
                                         </td>
 
@@ -1428,6 +1843,7 @@ require_once __DIR__ . '/../templates/header.php';
                                         <th>Reference</th>
                                         <th>Added By</th>
                                         <th>Date</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1470,6 +1886,19 @@ require_once __DIR__ . '/../templates/header.php';
 
                                             <td>
                                                 <?= date('M j, Y H:i', strtotime((string)($purchase['created_at'] ?? 'now'))) ?>
+                                            </td>
+
+                                            <td>
+                                                <form method="POST"
+                                                      class="kr-inline-form"
+                                                      data-confirm="Remove this verified purchase?">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                                    <input type="hidden" name="admin_action" value="remove_verified_purchase">
+                                                    <input type="hidden" name="purchase_id" value="<?= (int)$purchase['id'] ?>">
+                                                    <button type="submit" class="kr-btn-sm dark">
+                                                        <i class="fas fa-trash"></i> Remove
+                                                    </button>
+                                                </form>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
