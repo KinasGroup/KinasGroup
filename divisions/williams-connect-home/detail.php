@@ -7,7 +7,15 @@
 *   customers can leave reviews after purchase.
 * - Pending/flagged/non-public listings remain private to owner/admin.
 * - Adds the KINAS Product Reviews section near the bottom of the page.
+*
+* AMENDED FOR RELATED PRODUCTS:
+* - Replaces the old static similar-properties query with the dynamic
+*   weighted related-properties engine.
 */
+
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 require_once '../../includes/session.php';
 require_once '../../includes/functions.php';
@@ -15,6 +23,13 @@ require_once '../../includes/helpers.php';
 require_once '../../api/config/database.php';
 require_once '../../includes/je-components.php';
 require_once '../../includes/security.php';
+
+// Related products engine
+$kinasRelatedProductsEngine = __DIR__ . '/../../includes/related-products.php';
+
+if (file_exists($kinasRelatedProductsEngine)) {
+    require_once $kinasRelatedProductsEngine;
+}
 
 /**
 * Converts a YouTube or Vimeo "watch" URL into its embeddable iframe form.
@@ -93,20 +108,38 @@ $images = $db->prepare("SELECT * FROM listing_images WHERE listing_id = ? AND li
 $images->execute([$id]);
 $images = $images->fetchAll();
 
-$similar = $db->prepare("
-SELECT p.id, p.title, p.property_type, p.price, p.beds, p.baths, p.sqft, p.city, p.state,
-(SELECT url FROM listing_images WHERE listing_id = p.id AND listing_type = 'property' ORDER BY sort_order LIMIT 1) AS thumbnail
-FROM property_listings p
-WHERE p.id != ? AND p.status = 'active' AND (p.property_type = ? OR p.city = ?)
-ORDER BY p.featured DESC, p.created_at DESC
-LIMIT 4
-");
-$similar->execute([$id, $item['property_type'] ?? '', $item['city'] ?? '']);
-$similar = $similar->fetchAll();
+// ============================================================
+// RELATED PRODUCTS — DYNAMIC WEIGHTED ENGINE
+// ============================================================
+
+$similar = [];
+
+if (function_exists('kinas_get_related_properties')) {
+    $similar = kinas_get_related_properties($db, $item, 4);
+} else {
+    $similarStmt = $db->prepare("
+        SELECT p.id, p.title, p.property_type, p.price, p.beds, p.baths, p.sqft, p.city, p.state,
+               (SELECT url FROM listing_images WHERE listing_id = p.id AND listing_type = 'property' ORDER BY sort_order LIMIT 1) AS thumbnail
+        FROM property_listings p
+        WHERE p.id != ?
+          AND p.status = 'active'
+        ORDER BY RAND()
+        LIMIT 4
+    ");
+
+    $similarStmt->execute([$id]);
+    $similar = $similarStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+}
 
 $features = [];
-if (!empty($item['features']))     $features = array_merge($features, is_array($item['features'])     ? $item['features']     : (json_decode($item['features'], true) ?: []));
-if (!empty($item['amenities']))    $features = array_merge($features, is_array($item['amenities'])    ? $item['amenities']    : (json_decode($item['amenities'], true) ?: []));
+
+if (!empty($item['features'])) {
+    $features = array_merge($features, is_array($item['features']) ? $item['features'] : (json_decode($item['features'], true) ?: []));
+}
+
+if (!empty($item['amenities'])) {
+    $features = array_merge($features, is_array($item['amenities']) ? $item['amenities'] : (json_decode($item['amenities'], true) ?: []));
+}
 
 $pageTitle = ($item['title'] ?? 'Property') . ' - Williams Connect Home';
 $pageDescription = !empty($item['description'])
@@ -133,7 +166,6 @@ $agentName = htmlspecialchars($item['agent_name'] ?? 'Agent', ENT_QUOTES, 'UTF-8
 $listingTitle = htmlspecialchars($item['title'] ?? 'Property', ENT_QUOTES, 'UTF-8');
 $agentVerified = !empty($item['agent_verified']);
 ?>
-
 <!-- ============================================================ -->
 <!-- JAVASCRIPT - DEFINED AT THE TOP BEFORE ANY HTML -->
 <!-- ============================================================ -->
@@ -275,9 +307,6 @@ window.showLoginRequired = function() {
     }, 1500);
 };
 
-// showSuccessBanner() is now defined globally in includes/kinas-ui.php
-// (loaded site-wide via templates/footer.php) — no need to duplicate it here.
-
 // ============================================================
 // SCHEDULE VIEWING MODAL
 // ============================================================
@@ -337,6 +366,7 @@ window.showScheduleModal = function(listingId, listingType, agentId, inspectionF
                         <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Date *</label>
                         <input type="date" name="preferred_date" id="prefDate" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
                     </div>
+
                     <div>
                         <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Time *</label>
                         <select name="preferred_time" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
@@ -375,12 +405,14 @@ window.showScheduleModal = function(listingId, listingType, agentId, inspectionF
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const dateInput = document.getElementById('prefDate');
+
     if (dateInput) {
         dateInput.min = tomorrow.toISOString().split('T')[0];
         dateInput.value = tomorrow.toISOString().split('T')[0];
     }
 
     const meta = document.querySelector('meta[name="user-data"]');
+
     if (meta) {
         try {
             const data = JSON.parse(meta.content);
@@ -585,6 +617,7 @@ window.showContactModal = function(agentId, agentName, division) {
     document.body.insertAdjacentHTML('beforeend', html);
 
     const meta = document.querySelector('meta[name="user-data"]');
+
     if (meta) {
         try {
             const data = JSON.parse(meta.content);
@@ -713,7 +746,6 @@ Verified customers can still leave a review below.
 </div>
 <?php else: ?>
 <div class="je-gallery-main"><img id="jeMainImage" src="<?= htmlspecialchars($images[0]['url']) ?>" alt="<?= htmlspecialchars($item['title']) ?>" onerror="this.onerror=null; this.src='/assets/images/placeholder/property-placeholder.svg';"></div>
-
 <?php if (count($images) > 1): ?>
 <div class="je-gallery-thumbs">
 <?php foreach ($images as $idx => $img): ?>
@@ -755,7 +787,7 @@ $keys = [
 ];
 
 foreach ($keys as $label => $val):
-    if (!$val) continue;
+if (!$val) continue;
 ?>
 <div><dt><?= htmlspecialchars($label) ?></dt><dd><?= htmlspecialchars($val) ?></dd></div>
 <?php endforeach; ?>
@@ -787,6 +819,7 @@ foreach ($keys as $label => $val):
 <?= strtoupper(substr($item['agent_name'] ?? 'A', 0, 1)) ?>
 <?php endif; ?>
 </div>
+
 <div class="je-agent-info">
 <div class="je-agent-name"><?= htmlspecialchars($item['agent_name'] ?? 'Agent') ?></div>
 <div class="je-agent-meta">
@@ -867,14 +900,17 @@ style="height:360px;border-radius:8px;overflow:hidden;border:1px solid #e8e8e8;"
 <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Property Price (₦)</label>
 <input type="number" id="mcPrice" value="<?= (int)($item['price'] ?? 0) ?>" min="0" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;">
 </div>
+
 <div>
 <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Down Payment (%)</label>
 <input type="number" id="mcDown" value="25" min="0" max="100" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;">
 </div>
+
 <div>
 <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Interest Rate (% / yr)</label>
 <input type="number" id="mcRate" value="21" min="0" max="100" step="0.1" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;">
 </div>
+
 <div>
 <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Loan Term (years)</label>
 <select id="mcTerm" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;">
