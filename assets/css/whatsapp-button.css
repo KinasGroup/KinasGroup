@@ -1,0 +1,208 @@
+/* ============================================================
+   KINAS GROUP — WHATSAPP BUTTON STYLES
+   ============================================================
+   Provides styling for:
+   - global floating WhatsApp contact button
+   - product detail WhatsApp enquiry button
+   - listing card WhatsApp quick-contact icon
+   ============================================================ */
+
+:root {
+    --kinas-whatsapp-green: #25D366;
+    --kinas-whatsapp-dark: #128C7E;
+    --kinas-whatsapp-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* ------------------------------------------------------------
+   GLOBAL FLOATING WHATSAPP BUTTON
+   ------------------------------------------------------------ */
+
+.kinas-whatsapp-float {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 99999;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--kinas-whatsapp-green);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    box-shadow: var(--kinas-whatsapp-shadow);
+    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kinas-whatsapp-float:hover,
+.kinas-whatsapp-float:focus {
+    background: var(--kinas-whatsapp-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+    color: #ffffff;
+}
+
+.kinas-whatsapp-float svg {
+    width: 28px;
+    height: 28px;
+    fill: currentColor;
+    display: block;
+}
+
+.kinas-whatsapp-tooltip {
+    position: absolute;
+    right: 66px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #0A0A0A;
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.kinas-whatsapp-float:hover .kinas-whatsapp-tooltip,
+.kinas-whatsapp-float:focus .kinas-whatsapp-tooltip {
+    opacity: 1;
+}
+
+/* ------------------------------------------------------------
+   PRODUCT DETAIL WHATSAPP BUTTON
+   ------------------------------------------------------------ */
+
+.kinas-whatsapp-product-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--kinas-whatsapp-green);
+    color: #ffffff !important;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.22);
+}
+
+.kinas-whatsapp-product-btn:hover,
+.kinas-whatsapp-product-btn:focus {
+    background: var(--kinas-whatsapp-dark);
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(18, 140, 126, 0.24);
+}
+
+.kinas-whatsapp-product-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------
+   LISTING CARD WHATSAPP ICON
+   ------------------------------------------------------------ */
+
+.kinas-whatsapp-card-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 6;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(37, 211, 102, 0.96);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.kinas-whatsapp-card-btn:hover,
+.kinas-whatsapp-card-btn:focus {
+    background: var(--kinas-whatsapp-dark);
+    transform: scale(1.08);
+    color: #ffffff;
+}
+
+.kinas-whatsapp-card-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    display: block;
+}
+
+/* Make sure the card image wrapper can host the floating icon */
+.je-card-img {
+    position: relative;
+}
+
+/* ------------------------------------------------------------
+   RESPONSIVE
+   ------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+    .kinas-whatsapp-float {
+        bottom: 18px;
+        right: 18px;
+        width: 52px;
+        height: 52px;
+    }
+
+    .kinas-whatsapp-float svg {
+        width: 25px;
+        height: 25px;
+    }
+
+    .kinas-whatsapp-tooltip {
+        display: none;
+    }
+
+    .kinas-whatsapp-product-btn {
+        width: 100%;
+        padding: 13px 18px;
+    }
+
+    .kinas-whatsapp-card-btn {
+        top: 8px;
+        right: 8px;
+        width: 34px;
+        height: 34px;
+    }
+
+    .kinas-whatsapp-card-btn svg {
+        width: 17px;
+        height: 17px;
+    }
+}
+
+@media (max-width: 480px) {
+    .kinas-whatsapp-float {
+        bottom: 14px;
+        right: 14px;
+        width: 50px;
+        height: 50px;
+    }
+
+    .kinas-whatsapp-float svg {
+        width: 24px;
+        height: 24px;
+    }
+}
