@@ -7,13 +7,28 @@
 *   buyers can leave reviews after purchase.
 * - Pending/flagged/non-public listings remain private to owner/admin.
 * - Adds the KINAS Product Reviews section near the bottom of the page.
+*
+* AMENDED FOR RELATED PRODUCTS:
+* - Replaces the old static similar-products query with the dynamic
+*   weighted related-products engine.
 */
+
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 require_once '../../includes/session.php';
 require_once '../../includes/functions.php';
 require_once '../../includes/helpers.php';
 require_once '../../api/config/database.php';
 require_once '../../includes/je-components.php';
+
+// Related products engine
+$kinasRelatedProductsEngine = __DIR__ . '/../../includes/related-products.php';
+
+if (file_exists($kinasRelatedProductsEngine)) {
+    require_once $kinasRelatedProductsEngine;
+}
 
 $id = (int)($_GET['id'] ?? 0);
 
@@ -75,17 +90,46 @@ $images = $db->prepare("SELECT * FROM listing_images WHERE listing_id = ? AND li
 $images->execute([$id]);
 $images = $images->fetchAll();
 
-$similar = $db->prepare("
-SELECT m.id, m.title, m.price, m.brand, m.category_id, c.name AS category_name,
-(SELECT url FROM listing_images WHERE listing_id = m.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) AS thumbnail
-FROM marketplace_listings m
-LEFT JOIN marketplace_categories c ON m.category_id = c.id
-WHERE m.id != ? AND m.status = 'active' AND (m.category_id = ? OR m.brand = ?)
-ORDER BY m.featured DESC, m.created_at DESC
-LIMIT 4
-");
-$similar->execute([$id, $item['category_id'] ?? 0, $item['brand'] ?? '']);
-$similar = $similar->fetchAll();
+// ============================================================
+// RELATED PRODUCTS — DYNAMIC WEIGHTED ENGINE
+// ============================================================
+
+$similar = [];
+
+if (function_exists('kinas_get_related_marketplace_items')) {
+    $similar = kinas_get_related_marketplace_items($db, $item, 4);
+} else {
+    // Safe fallback if the related-products engine is missing.
+    $clauses = [];
+    $params = [$id];
+
+    if (!empty($item['category_id'])) {
+        $clauses[] = 'm.category_id = ?';
+        $params[] = $item['category_id'];
+    }
+
+    if (!empty($item['brand'])) {
+        $clauses[] = 'm.brand = ?';
+        $params[] = $item['brand'];
+    }
+
+    $whereSimilar = !empty($clauses) ? ' AND (' . implode(' OR ', $clauses) . ')' : '';
+
+    $similarStmt = $db->prepare("
+        SELECT m.id, m.title, m.price, m.brand, m.category_id, c.name AS category_name,
+               (SELECT url FROM listing_images WHERE listing_id = m.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) AS thumbnail
+        FROM marketplace_listings m
+        LEFT JOIN marketplace_categories c ON m.category_id = c.id
+        WHERE m.id != ?
+          AND m.status = 'active'
+          {$whereSimilar}
+        ORDER BY RAND()
+        LIMIT 4
+    ");
+
+    $similarStmt->execute($params);
+    $similar = $similarStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+}
 
 $pageTitle = ($item['title'] ?? 'Item') . ' - KINAS Marketplace';
 $pageDescription = !empty($item['description'])
@@ -120,9 +164,13 @@ $agentVerified = !empty($item['agent_verified']);
 $alreadyInCart = false;
 
 if (SessionManager::isLoggedIn()) {
-    $cartCheckStmt = $db->prepare("SELECT 1 FROM cart_items WHERE buyer_id = ? AND listing_id = ? AND listing_type = 'marketplace'");
-    $cartCheckStmt->execute([SessionManager::getUserId(), $listingId]);
-    $alreadyInCart = (bool)$cartCheckStmt->fetchColumn();
+    try {
+        $cartCheckStmt = $db->prepare("SELECT 1 FROM cart_items WHERE buyer_id = ? AND listing_id = ? AND listing_type = 'marketplace'");
+        $cartCheckStmt->execute([SessionManager::getUserId(), $listingId]);
+        $alreadyInCart = (bool)$cartCheckStmt->fetchColumn();
+    } catch (Throwable $e) {
+        $alreadyInCart = false;
+    }
 }
 ?>
 <div class="je-page">
@@ -165,7 +213,6 @@ Verified customers can still leave a review below.
 </div>
 <?php else: ?>
 <div class="je-gallery-main"><img id="jeMainImage" src="<?= htmlspecialchars($images[0]['url']) ?>" alt="" onerror="this.onerror=null; this.src='/assets/images/placeholder/product-placeholder.svg';"></div>
-
 <?php if (count($images) > 1): ?>
 <div class="je-gallery-thumbs">
 <?php foreach ($images as $idx => $img): ?>
@@ -184,11 +231,8 @@ this.classList.add('is-active');">
 <aside class="je-spec-panel">
 <div class="je-spec-eyebrow"><?= htmlspecialchars($item['category_name'] ?? 'Curated') ?></div>
 <h1 class="je-spec-title"><?= htmlspecialchars($item['title'] ?? '') ?></h1>
-
 <?php if ($location): ?><div style="font-size:13px;color:#888;margin-bottom:8px;"><i class="fas fa-map-marker-alt" style="color:#C6A43F"></i> <?= htmlspecialchars($location) ?></div><?php endif; ?>
-
 <div class="je-spec-price"><?= formatPrice(marketplaceBuyerPrice((float)$item['price'])) ?></div>
-
 <dl class="je-spec-key">
 <?php
 $keys = [
@@ -196,9 +240,8 @@ $keys = [
 'Brand'    => $item['brand'] ?? null,
 'Condition'=> $item['condition_status'] ?? null,
 ];
-
 foreach ($keys as $label => $val):
-    if (!$val) continue;
+if (!$val) continue;
 ?>
 <div><dt><?= htmlspecialchars($label) ?></dt><dd><?= htmlspecialchars(ucfirst($val)) ?></dd></div>
 <?php endforeach; ?>
@@ -207,7 +250,6 @@ foreach ($keys as $label => $val):
 <!-- ============================================================ -->
 <!-- BUTTONS - Cart & Checkout (Paystack) -->
 <!-- ============================================================ -->
-
 <?php if ($isPreview || $item['status'] === 'sold'): ?>
 <div class="je-cta-row">
 <button class="je-cta-secondary" disabled style="opacity:.55;cursor:not-allowed;">
@@ -216,7 +258,6 @@ foreach ($keys as $label => $val):
 </div>
 <?php else: ?>
 <div class="je-cta-row">
-
 <!-- Buy Now -->
 <button class="je-cta-primary" id="buyNowBtn" onclick="jeBuyNow(<?= $listingId ?>);">
 <i class="fas fa-bolt"></i> Buy Now
@@ -238,7 +279,6 @@ onclick="jeAddToCart(<?= $listingId ?>);"
 <button class="je-cta-secondary" id="saveBtn" onclick="jeSaveListing('marketplace', <?= $listingId ?>);">
 <i class="far fa-heart"></i> Save
 </button>
-
 </div>
 <?php endif; ?>
 
@@ -266,7 +306,6 @@ onclick="jeAddToCart(<?= $listingId ?>);"
 
 <section class="je-section" style="padding-left:0;padding-right:0;border-top:1px solid #e8e8e8; margin-top:40px;">
 <h2>About this item</h2>
-
 <?php if (!empty($item['description'])): ?>
 <p><?= nl2br(htmlspecialchars($item['description'])) ?></p>
 <?php else: ?>
@@ -274,7 +313,7 @@ onclick="jeAddToCart(<?= $listingId ?>);"
 <?php endif; ?>
 </section>
 
-<!-- ── Similar listings ── FIXED -->
+<!-- ── Similar listings ── -->
 <?php if (!empty($similar)): ?>
 <section class="je-section" style="padding-left:0;padding-right:0;border-top:1px solid #e8e8e8;">
 <h2>You may also like</h2>
@@ -289,14 +328,12 @@ $simCards = array_map(function ($s) {
         'thumbnail'  => $s['thumbnail'] ?: '',
         'specs'      => $s['category_name'] ?? '',
         'location'   => '',
-        // FIXED: Full path to detail page
         'detail_url' => '/divisions/kinas-marketplace/detail.php?id=' . (int)$s['id'],
         'featured'   => false,
         'verified'   => false,
     ];
 }, $similar);
 
-// FIXED: Use je_render_listing_grid instead of je_render_card
 je_render_listing_grid($simCards);
 ?>
 </section>
@@ -347,12 +384,6 @@ function isUserLoggedIn() {
 }
 
 function showLoginRequired() {
-    // In-page, mobile-responsive banner instead of a native browser
-    // alert() (which shows as a generic "kinas-group.com says: ..." popup).
-    // showSuccessBanner is the site-wide standard notification style
-    // (see includes/kinas-ui.php) - preferred here over kinasToast for
-    // visual consistency with other in-page banners like the add-to-cart
-    // error.
     if (typeof window.showSuccessBanner === 'function') {
         window.showSuccessBanner('Please sign in to continue — redirecting you to login…', true);
     } else if (typeof kinasToast === 'function') {
@@ -363,9 +394,6 @@ function showLoginRequired() {
         window.location.href = '/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
     }, 1500);
 }
-
-// showSuccessBanner() is now defined globally in includes/kinas-ui.php
-// (loaded site-wide via templates/footer.php) — no need to duplicate it here.
 
 // ============================================================
 // ADD TO CART
@@ -407,13 +435,11 @@ function jeAddToCart(listingId) {
             showSuccessBanner('✅ Added to cart! <a href="/divisions/kinas-marketplace/cart.php" style="color:#155724;font-weight:700;text-decoration:underline;margin-left:6px;">View cart</a>', false);
         } else {
             if (btn) { btn.innerHTML = original; btn.disabled = false; }
-
             showSuccessBanner('❌ ' + (data.error || 'Failed to add to cart'), true);
         }
     })
     .catch(function() {
         if (btn) { btn.innerHTML = original; btn.disabled = false; }
-
         showSuccessBanner('❌ Network error. Please try again.', true);
     });
 }
