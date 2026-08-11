@@ -7,6 +7,10 @@
 *   customers can leave reviews after purchase/installation.
 * - Pending/flagged/non-public listings remain private to owner/admin.
 * - Adds the KINAS Product Reviews section near the bottom of the page.
+*
+* AMENDED FOR RELATED PRODUCTS:
+* - Replaces the old static similar-products query with the dynamic
+*   weighted related-products engine.
 */
 
 require_once '../../includes/session.php';
@@ -14,6 +18,13 @@ require_once '../../includes/functions.php';
 require_once '../../includes/helpers.php';
 require_once '../../api/config/database.php';
 require_once '../../includes/je-components.php';
+
+// Related products engine
+$kinasRelatedProductsEngine = __DIR__ . '/../../includes/related-products.php';
+
+if (file_exists($kinasRelatedProductsEngine)) {
+    require_once $kinasRelatedProductsEngine;
+}
 
 $id = (int)($_GET['id'] ?? 0);
 
@@ -73,16 +84,28 @@ $images = $db->prepare("SELECT * FROM listing_images WHERE listing_id = ? AND li
 $images->execute([$id]);
 $images = $images->fetchAll();
 
-$similar = $db->prepare("
-SELECT s.id, s.title, s.service_type, s.price, s.brand, s.capacity_kw,
-(SELECT url FROM listing_images WHERE listing_id = s.id AND listing_type = 'solar' ORDER BY sort_order LIMIT 1) AS thumbnail
-FROM solar_listings s
-WHERE s.id != ? AND s.status = 'active' AND (s.brand = ? OR s.service_type = ?)
-ORDER BY s.created_at DESC
-LIMIT 4
-");
-$similar->execute([$id, $item['brand'] ?? '', $item['service_type'] ?? '']);
-$similar = $similar->fetchAll();
+// ============================================================
+// RELATED PRODUCTS — DYNAMIC WEIGHTED ENGINE
+// ============================================================
+
+$similar = [];
+
+if (function_exists('kinas_get_related_solar')) {
+    $similar = kinas_get_related_solar($db, $item, 4);
+} else {
+    $similarStmt = $db->prepare("
+        SELECT s.id, s.title, s.service_type, s.price, s.brand, s.capacity_kw,
+               (SELECT url FROM listing_images WHERE listing_id = s.id AND listing_type = 'solar' ORDER BY sort_order LIMIT 1) AS thumbnail
+        FROM solar_listings s
+        WHERE s.id != ?
+          AND s.status = 'active'
+        ORDER BY RAND()
+        LIMIT 4
+    ");
+
+    $similarStmt->execute([$id]);
+    $similar = $similarStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+}
 
 $features = !empty($item['features']) ? (is_array($item['features']) ? $item['features'] : (json_decode($item['features'], true) ?: [])) : [];
 
@@ -147,7 +170,6 @@ Verified customers can still leave a review below.
 </div>
 <?php else: ?>
 <div class="je-gallery-main"><img id="jeMainImage" src="<?= htmlspecialchars($images[0]['url']) ?>" alt="" onerror="this.onerror=null; this.src='/assets/images/placeholder/product-placeholder.svg';"></div>
-
 <?php if (count($images) > 1): ?>
 <div class="je-gallery-thumbs">
 <?php foreach ($images as $idx => $img): ?>
@@ -166,16 +188,13 @@ this.classList.add('is-active');">
 <aside class="je-spec-panel">
 <div class="je-spec-eyebrow"><?= htmlspecialchars(ucfirst($item['service_type'] ?? 'Residential')) ?> Solar</div>
 <h1 class="je-spec-title"><?= htmlspecialchars($item['title'] ?? '') ?></h1>
-
 <?php if ($location): ?><div style="font-size:13px;color:#888;margin-bottom:8px;"><i class="fas fa-map-marker-alt" style="color:#C6A43F"></i> <?= htmlspecialchars($location) ?></div><?php endif; ?>
-
 <?php if (!empty($item['price'])): ?>
 <div class="je-spec-price"><?= function_exists('formatPrice') ? formatPrice((float)$item['price']) : '₦' . number_format((float)$item['price']) ?></div>
 <div class="je-spec-price-note">Estimated project cost</div>
 <?php else: ?>
 <div class="je-spec-price" style="color:#888;">Get a quote</div>
 <?php endif; ?>
-
 <dl class="je-spec-key">
 <?php
 $keys = [
@@ -184,9 +203,8 @@ $keys = [
 'Capacity'     => ($item['capacity_kw'] ?? null) !== null ? rtrim(rtrim(number_format((float)$item['capacity_kw'], 2), '0'), '.') . ' kW' : null,
 'Warranty'     => ($item['warranty_years'] ?? null) !== null ? (int)$item['warranty_years'] . ' years' : null,
 ];
-
 foreach ($keys as $label => $val):
-    if (!$val) continue;
+if (!$val) continue;
 ?>
 <div><dt><?= htmlspecialchars($label) ?></dt><dd><?= htmlspecialchars(ucfirst($val)) ?></dd></div>
 <?php endforeach; ?>
@@ -197,7 +215,6 @@ foreach ($keys as $label => $val):
 <!-- ============================================================ -->
 
 <div class="je-cta-row">
-
 <!-- Schedule Viewing -->
 <button class="je-cta-primary" id="scheduleBtn" onclick="openScheduleViewing(<?= $listingId ?>, 'solar', <?= $agentId ?>);">
 <i class="far fa-calendar-alt"></i> Schedule Viewing
@@ -212,7 +229,6 @@ foreach ($keys as $label => $val):
 <button class="je-cta-secondary" id="saveBtn" onclick="jeSaveListing('solar', <?= $listingId ?>);">
 <i class="far fa-heart"></i> Save
 </button>
-
 </div>
 
 <div class="je-agent-card">
@@ -239,13 +255,11 @@ foreach ($keys as $label => $val):
 
 <section class="je-section" style="padding-left:0;padding-right:0;border-top:1px solid #e8e8e8; margin-top:40px;">
 <h2>About this system</h2>
-
 <?php if (!empty($item['description'])): ?>
 <p><?= nl2br(htmlspecialchars($item['description'])) ?></p>
 <?php else: ?>
 <p style="color:#999;font-style:italic;">No description provided.</p>
 <?php endif; ?>
-
 <?php if (!empty($features)): ?>
 <h2 style="margin-top:32px;">What's included</h2>
 <div class="je-features-grid">
@@ -311,6 +325,7 @@ if (file_exists($kinasReviewsEngine)) {
 <!-- ============================================================ -->
 <!-- ALL JAVASCRIPT - INLINE, NO EXTERNAL DEPENDENCIES -->
 <!-- ============================================================ -->
+
 <script>
 // ============================================================
 // HELPER FUNCTIONS
@@ -434,12 +449,14 @@ function openScheduleViewing(listingId, listingType, agentId) {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const dateInput = document.getElementById('prefDate');
+
     if (dateInput) {
         dateInput.min = tomorrow.toISOString().split('T')[0];
         dateInput.value = tomorrow.toISOString().split('T')[0];
     }
 
     const meta = document.querySelector('meta[name="user-data"]');
+
     if (meta) {
         try {
             const data = JSON.parse(meta.content);
@@ -576,6 +593,7 @@ function openContactAgent(agentId, agentName, division) {
     document.body.insertAdjacentHTML('beforeend', html);
 
     const meta = document.querySelector('meta[name="user-data"]');
+
     if (meta) {
         try {
             const data = JSON.parse(meta.content);
