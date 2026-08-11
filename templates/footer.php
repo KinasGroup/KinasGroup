@@ -1,5 +1,13 @@
 <?php
 // KINAS GROUP footer — uses the JE luxury footer component
+//
+// AMENDED FOR WHATSAPP CUSTOMER COMMUNICATION:
+// - Loads WhatsApp configuration safely.
+// - Loads WhatsApp CSS if available.
+// - Adds a global floating WhatsApp contact button.
+// - Loads whatsapp-button.js for product/listing WhatsApp enquiry buttons.
+
+require_once __DIR__ . '/../api/config/constants.php';
 require_once __DIR__ . '/../includes/je-components.php';
 
 // Site-wide toast/confirm modal system (kinasToast / kinasConfirm) — this
@@ -11,50 +19,31 @@ require_once __DIR__ . '/../includes/kinas-ui.php';
 // ============================================================
 // WHATSAPP CONFIGURATION
 // ============================================================
-// constants.php is normally loaded earlier in the request, but this
-// makes the footer safe even if a page reaches the footer without it.
-if (!defined('WHATSAPP_NUMBER')) {
-    require_once __DIR__ . '/../api/config/constants.php';
-}
 
-$whatsappNumber = defined('WHATSAPP_NUMBER')
+$kinasWhatsAppNumber = defined('WHATSAPP_NUMBER')
     ? preg_replace('/\D+/', '', (string)WHATSAPP_NUMBER)
     : '';
 
-$whatsappEnabled = $whatsappNumber !== '';
+$kinasWhatsAppGeneralMessage = 'Hello KINAS GROUP, I would like to make an enquiry.';
 
-$whatsappGeneralMessage = 'Hello KINAS GROUP, I would like to make an enquiry.';
-
-$whatsappGeneralLink = $whatsappEnabled
-    ? 'https://wa.me/' . $whatsappNumber . '?text=' . rawurlencode($whatsappGeneralMessage)
+$kinasWhatsAppLink = $kinasWhatsAppNumber !== ''
+    ? 'https://wa.me/' . $kinasWhatsAppNumber . '?text=' . rawurlencode($kinasWhatsAppGeneralMessage)
     : '';
 
-$whatsappCssAbs = __DIR__ . '/../assets/css/whatsapp-button.css';
-$whatsappCssUrl = '/assets/css/whatsapp-button.css';
-
-if (file_exists($whatsappCssAbs)) {
-    $whatsappCssUrl .= '?v=' . (@filemtime($whatsappCssAbs) ?: time());
-}
-
-$whatsappJsAbs = __DIR__ . '/../assets/js/whatsapp-button.js';
-$whatsappJsUrl = '/assets/js/whatsapp-button.js';
-
-if (file_exists($whatsappJsAbs)) {
-    $whatsappJsUrl .= '?v=' . (@filemtime($whatsappJsAbs) ?: time());
-}
+$kinasWhatsAppCssPath = __DIR__ . '/../assets/css/whatsapp-button.css';
+$kinasWhatsAppJsPath = __DIR__ . '/../assets/js/whatsapp-button.js';
 
 je_render_footer('site');
 ?>
 
-<?php if ($whatsappEnabled): ?>
 <!-- ============================================================ -->
-<!-- WHATSAPP GLOBAL FLOATING BUTTON -->
+<!-- WHATSAPP GLOBAL STYLES -->
 <!-- ============================================================ -->
-<?php if (file_exists($whatsappCssAbs)): ?>
-<link rel="stylesheet" href="<?= htmlspecialchars($whatsappCssUrl, ENT_QUOTES, 'UTF-8') ?>">
+<?php if (file_exists($kinasWhatsAppCssPath)): ?>
+<link rel="stylesheet" href="/assets/css/whatsapp-button.css?v=<?= (int)(@filemtime($kinasWhatsAppCssPath) ?: time()) ?>">
 <?php else: ?>
 <style>
-/* Minimal fallback WhatsApp styles if whatsapp-button.css is missing */
+/* Fallback WhatsApp floating button styles */
 .kinas-whatsapp-float {
     position: fixed;
     bottom: 24px;
@@ -105,11 +94,27 @@ je_render_footer('site');
 .kinas-whatsapp-float:hover .kinas-whatsapp-tooltip {
     opacity: 1;
 }
+
+@media (max-width: 768px) {
+    .kinas-whatsapp-float {
+        bottom: 18px;
+        right: 18px;
+        width: 52px;
+        height: 52px;
+    }
+
+    .kinas-whatsapp-tooltip {
+        display: none;
+    }
+}
 </style>
 <?php endif; ?>
 
-<a href="<?= htmlspecialchars($whatsappGeneralLink, ENT_QUOTES, 'UTF-8') ?>"
-   id="kinasWhatsAppFloat"
+<!-- ============================================================ -->
+<!-- WHATSAPP GLOBAL FLOATING BUTTON -->
+<!-- ============================================================ -->
+<?php if ($kinasWhatsAppLink !== ''): ?>
+<a href="<?= htmlspecialchars($kinasWhatsAppLink, ENT_QUOTES, 'UTF-8') ?>"
    class="kinas-whatsapp-float"
    target="_blank"
    rel="noopener noreferrer"
@@ -120,23 +125,21 @@ je_render_footer('site');
     </svg>
     <span class="kinas-whatsapp-tooltip">Chat with us on WhatsApp</span>
 </a>
+<?php endif; ?>
 
+<!-- ============================================================ -->
+<!-- WHATSAPP SITE CONSTANTS + SCRIPT -->
+<!-- ============================================================ -->
 <script>
-// Expose WhatsApp configuration to the shared WhatsApp button script.
 window.SITE_CONSTANTS = window.SITE_CONSTANTS || {};
 window.SITE_CONSTANTS.WHATSAPP_NUMBER = <?= json_encode(
-    $whatsappNumber,
-    JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
-) ?>;
-window.SITE_CONSTANTS.WHATSAPP_GENERAL_MESSAGE = <?= json_encode(
-    $whatsappGeneralMessage,
+    $kinasWhatsAppNumber,
     JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
 ) ?>;
 </script>
 
-<?php if (file_exists($whatsappJsAbs)): ?>
-<script src="<?= htmlspecialchars($whatsappJsUrl, ENT_QUOTES, 'UTF-8') ?>"></script>
-<?php endif; ?>
+<?php if (file_exists($kinasWhatsAppJsPath)): ?>
+<script src="/assets/js/whatsapp-button.js?v=<?= (int)(@filemtime($kinasWhatsAppJsPath) ?: time()) ?>"></script>
 <?php endif; ?>
 
 <!-- Shared transparent-header scroll effect (hero pages only) -->
