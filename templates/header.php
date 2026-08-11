@@ -187,6 +187,47 @@ $__cssVer = function ($relPath) {
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
 
 <!-- ============================================================ -->
+<!-- CRITICAL MOBILE MENU & NOTIFICATION STYLES (RESTORED) -->
+<!-- ============================================================ -->
+<style>
+/* CRITICAL MOBILE MENU STYLES */
+.mobile-menu-btn { display: none; background: none; border: none; font-size: 28px; cursor: pointer; color: #0A0A0A; padding: 10px; z-index: 1003; position: relative; }
+.mobile-nav-drawer { position: fixed; top: 0; right: -100%; width: 85%; max-width: 320px; height: 100%; background: #0A0A0A; z-index: 1002; transition: right 0.3s ease-in-out; padding: 30px 20px; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; box-shadow: -5px 0 25px rgba(0, 0, 0, 0.3); }
+.mobile-nav-drawer.open { right: 0; }
+.mobile-nav-drawer .close-menu { background: none; border: none; color: #C6A43F; font-size: 28px; cursor: pointer; align-self: flex-end; margin-bottom: 20px; padding: 5px; line-height: 1; }
+.mobile-nav-drawer a { color: #e0e0e0; text-decoration: none; font-family: 'Inter', sans-serif; padding: 14px 0; border-bottom: 1px solid #2a2a2a; font-size: 15px; letter-spacing: 0.5px; transition: color 0.3s; }
+.mobile-nav-drawer a:hover { color: #C6A43F; }
+.mobile-nav-drawer hr { border-color: #333; margin: 10px 0; }
+.menu-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: 1001; }
+.menu-overlay.active { display: block; }
+@media (max-width: 768px) {
+.mobile-menu-btn { display: block !important; }
+.header-nav { display: none !important; }
+}
+@media (min-width: 769px) {
+.mobile-nav-drawer { display: none !important; }
+.menu-overlay { display: none !important; }
+}
+.je3-header.transparent .mobile-menu-btn .menu-icon,
+.je3-header.transparent .mobile-menu-btn .menu-icon-close { color: #ffffff !important; }
+.je3-header.solid .mobile-menu-btn .menu-icon,
+.je3-header.solid .mobile-menu-btn .menu-icon-close { color: #0A0A0A !important; }
+/* NOTIFICATION BADGE STYLES */
+.notification-container { position: relative; display: inline-flex; align-items: center; margin-right: 12px; vertical-align: middle; }
+.notification-icon { font-size: 20px; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 4px 2px; color: #0A0A0A; transition: color 0.2s; position: relative; }
+.je3-header.transparent .notification-icon { color: #ffffff; }
+.je3-header.solid .notification-icon { color: #0A0A0A; }
+.notification-icon:hover { color: #C6A43F !important; }
+.notification-badge { position: absolute; top: -6px; right: -6px; background: #dc3545; color: #ffffff !important; border-radius: 50%; padding: 1px 6px; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; text-align: center; border: 2px solid #ffffff; z-index: 1000; line-height: 14px; display: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family: 'Inter', Arial, sans-serif; pointer-events: none; }
+.notification-badge.show { display: inline-block; animation: notificationPulse 0.5s ease-in-out 2; }
+@keyframes notificationPulse { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+.mobile-nav-drawer .notification-mobile-link { display: flex; align-items: center; justify-content: space-between; color: #e0e0e0; text-decoration: none; padding: 14px 0; border-bottom: 1px solid #2a2a2a; font-size: 15px; letter-spacing: 0.5px; transition: color 0.3s; }
+.mobile-nav-drawer .notification-mobile-link:hover { color: #C6A43F; }
+.mobile-nav-drawer .notification-mobile-badge { background: #dc3545; color: #ffffff; border-radius: 50%; padding: 1px 8px; font-size: 12px; font-weight: 700; min-width: 22px; height: 22px; text-align: center; line-height: 22px; display: none; }
+.mobile-nav-drawer .notification-mobile-badge.show { display: inline-block; }
+</style>
+
+<!-- ============================================================ -->
 <!-- WHATSAPP SITE CONSTANTS + SCRIPT -->
 <!-- ============================================================ -->
 <?php if ($whatsappEnabled): ?>
