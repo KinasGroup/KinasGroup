@@ -9,6 +9,11 @@ header('Pragma: no-cache');
 
 /**
  * Admin Dashboard - KINAS GROUP
+ *
+ * AMENDED:
+ * - Adds Product Reviews moderation shortcut.
+ * - Shows pending product reviews count.
+ * - Shows open review report count.
  */
 
 require_once '../includes/session.php';
@@ -32,6 +37,8 @@ $stats = [
     'total_admins' => 0,
     'total_listings' => 0,
     'pending_verifications' => 0,
+    'pending_reviews' => 0,
+    'open_review_reports' => 0,
 ];
 
 try {
@@ -62,6 +69,7 @@ try {
     // Total listings across all divisions
     $tables = ['solar_listings', 'car_listings', 'property_listings', 'marketplace_listings'];
     $total = 0;
+
     foreach ($tables as $table) {
         try {
             $result = $db->query("SELECT COUNT(*) as count FROM $table WHERE status = 'active'");
@@ -70,6 +78,7 @@ try {
             // Table might not exist
         }
     }
+
     $stats['total_listings'] = $total;
 } catch (Exception $e) {
     $stats['total_listings'] = 'N/A';
@@ -78,6 +87,7 @@ try {
 try {
     // Pending verifications - check if table exists
     $tables = $db->query("SHOW TABLES LIKE 'agent_profiles'")->fetchAll();
+
     if (!empty($tables)) {
         $result = $db->query("SELECT COUNT(*) as count FROM agent_profiles WHERE verification_status = 'pending'");
         $stats['pending_verifications'] = $result->fetchColumn();
@@ -88,10 +98,25 @@ try {
     $stats['pending_verifications'] = 'N/A';
 }
 
+try {
+    // Pending product reviews
+    $result = $db->query("SELECT COUNT(*) as count FROM product_reviews WHERE status = 'pending'");
+    $stats['pending_reviews'] = (int)$result->fetchColumn();
+} catch (Exception $e) {
+    $stats['pending_reviews'] = 0;
+}
+
+try {
+    // Open review reports
+    $result = $db->query("SELECT COUNT(*) as count FROM product_review_reports WHERE status = 'open'");
+    $stats['open_review_reports'] = (int)$result->fetchColumn();
+} catch (Exception $e) {
+    $stats['open_review_reports'] = 0;
+}
+
 $pageTitle = 'Admin Dashboard - KINAS GROUP';
 include '../templates/header.php';
 ?>
-
 
 <div class="je-dash-shell">
     <!-- Sidebar -->
@@ -115,6 +140,7 @@ include '../templates/header.php';
                     <div class="je-stat-value"><?php echo $stats['total_users']; ?></div>
                 </div>
             </div>
+
             <div class="je-stat-card">
                 <div class="je-stat-icon"><i class="fas fa-user-tie"></i></div>
                 <div>
@@ -122,6 +148,7 @@ include '../templates/header.php';
                     <div class="je-stat-value"><?php echo $stats['total_agents']; ?></div>
                 </div>
             </div>
+
             <div class="je-stat-card">
                 <div class="je-stat-icon"><i class="fas fa-user-shield"></i></div>
                 <div>
@@ -129,6 +156,7 @@ include '../templates/header.php';
                     <div class="je-stat-value"><?php echo $stats['total_admins']; ?></div>
                 </div>
             </div>
+
             <div class="je-stat-card">
                 <div class="je-stat-icon"><i class="fas fa-list-ul"></i></div>
                 <div>
@@ -136,11 +164,28 @@ include '../templates/header.php';
                     <div class="je-stat-value"><?php echo $stats['total_listings']; ?></div>
                 </div>
             </div>
+
             <div class="je-stat-card">
                 <div class="je-stat-icon"><i class="fas fa-clock"></i></div>
                 <div>
                     <div class="je-stat-label">Pending Verifications</div>
                     <div class="je-stat-value"><?php echo $stats['pending_verifications']; ?></div>
+                </div>
+            </div>
+
+            <div class="je-stat-card">
+                <div class="je-stat-icon"><i class="fas fa-star-half-alt"></i></div>
+                <div>
+                    <div class="je-stat-label">Pending Reviews</div>
+                    <div class="je-stat-value"><?php echo (int)$stats['pending_reviews']; ?></div>
+                </div>
+            </div>
+
+            <div class="je-stat-card">
+                <div class="je-stat-icon"><i class="fas fa-flag"></i></div>
+                <div>
+                    <div class="je-stat-label">Open Review Reports</div>
+                    <div class="je-stat-value"><?php echo (int)$stats['open_review_reports']; ?></div>
                 </div>
             </div>
         </div>
@@ -152,15 +197,26 @@ include '../templates/header.php';
                 <strong>Test Algorithm</strong>
                 <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Preview featured scores</p>
             </a>
+
             <a href="update-featured.php" style="background: #C6A43F; color: #0A0A0A; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
                 <i class="fas fa-sync-alt" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
                 <strong>Update Featured</strong>
                 <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Run algorithm & update</p>
             </a>
+
             <a href="flagged-listings.php" style="background: #DC2626; color: white; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
                 <i class="fas fa-flag" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
                 <strong>Flagged Listings</strong>
                 <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Review reported content</p>
+            </a>
+
+            <a href="reviews.php" style="background: #6A1B9A; color: white; padding: 20px; border-radius: 12px; text-decoration: none; text-align: center; transition: all 0.3s;">
+                <i class="fas fa-comments" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
+                <strong>Product Reviews</strong>
+                <p style="font-size: 12px; margin-top: 4px; opacity: 0.8;">
+                    <?php echo (int)$stats['pending_reviews']; ?> pending ·
+                    <?php echo (int)$stats['open_review_reports']; ?> reports
+                </p>
             </a>
         </div>
 
@@ -169,22 +225,36 @@ include '../templates/header.php';
             <h3 style="font-family: 'Prata', serif; margin-bottom: 16px; color: #0A0A0A;">
                 <i class="fas fa-clock" style="color: #C6A43F; margin-right: 8px;"></i> Quick Links
             </h3>
+
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+                <a href="reviews.php" style="padding: 12px; background: #F5F7FA; border-radius: 8px; text-decoration: none; color: #333; text-align: center; transition: all 0.3s; border: 1px solid #E0E0E0;">
+                    <i class="fas fa-star" style="color: #C6A43F; font-size: 20px; display: block; margin-bottom: 4px;"></i>
+                    <span style="font-size: 13px;">Product Reviews</span>
+                </a>
+
                 <a href="reports.php" style="padding: 12px; background: #F5F7FA; border-radius: 8px; text-decoration: none; color: #333; text-align: center; transition: all 0.3s; border: 1px solid #E0E0E0;">
                     <i class="fas fa-chart-bar" style="color: #C6A43F; font-size: 20px; display: block; margin-bottom: 4px;"></i>
                     <span style="font-size: 13px;">View Reports</span>
                 </a>
+
                 <a href="activity-logs.php" style="padding: 12px; background: #F5F7FA; border-radius: 8px; text-decoration: none; color: #333; text-align: center; transition: all 0.3s; border: 1px solid #E0E0E0;">
                     <i class="fas fa-history" style="color: #C6A43F; font-size: 20px; display: block; margin-bottom: 4px;"></i>
                     <span style="font-size: 13px;">Activity Logs</span>
                 </a>
+
                 <a href="users.php" style="padding: 12px; background: #F5F7FA; border-radius: 8px; text-decoration: none; color: #333; text-align: center; transition: all 0.3s; border: 1px solid #E0E0E0;">
                     <i class="fas fa-users" style="color: #C6A43F; font-size: 20px; display: block; margin-bottom: 4px;"></i>
                     <span style="font-size: 13px;">Manage Users</span>
                 </a>
+
                 <a href="listings.php" style="padding: 12px; background: #F5F7FA; border-radius: 8px; text-decoration: none; color: #333; text-align: center; transition: all 0.3s; border: 1px solid #E0E0E0;">
                     <i class="fas fa-list-ul" style="color: #C6A43F; font-size: 20px; display: block; margin-bottom: 4px;"></i>
                     <span style="font-size: 13px;">All Listings</span>
+                </a>
+
+                <a href="marketplace-orders.php" style="padding: 12px; background: #F5F7FA; border-radius: 8px; text-decoration: none; color: #333; text-align: center; transition: all 0.3s; border: 1px solid #E0E0E0;">
+                    <i class="fas fa-receipt" style="color: #C6A43F; font-size: 20px; display: block; margin-bottom: 4px;"></i>
+                    <span style="font-size: 13px;">Marketplace Orders</span>
                 </a>
             </div>
         </div>
