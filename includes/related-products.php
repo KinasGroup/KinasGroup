@@ -2,55 +2,43 @@
 /**
  * KINAS GROUP — Related Products Engine
  *
- * Provides dynamic, weighted related products for:
+ * Safe replacement version.
+ *
+ * Provides related products for:
  * - car detail pages
  * - marketplace detail pages
  * - solar detail pages
  * - property detail pages
  *
- * The results are related first, then randomized so the
- * "You may also like" section does not stay static.
+ * Each function returns related active listings first, then fills with
+ * random active listings if there are not enough related items.
  */
 
-if (!function_exists('kinas_related_price_close')) {
-    function kinas_related_price_close(?float $a, ?float $b, float $tolerance = 0.35): bool
+if (!function_exists('kinas_related_products_limit')) {
+    function kinas_related_products_limit(int $limit): int
     {
-        if (!$a || !$b) {
-            return false;
-        }
-
-        $a = abs($a);
-        $b = abs($b);
-
-        if ($a <= 0 || $b <= 0) {
-            return false;
-        }
-
-        $min = min($a, $b);
-        $max = max($a, $b);
-
-        return (($max - $min) / $min) <= $tolerance;
+        return max(1, min(12, $limit));
     }
 }
 
-if (!function_exists('kinas_related_capacity_close')) {
-    function kinas_related_capacity_close(?float $a, ?float $b): bool
+if (!function_exists('kinas_related_products_unique_by_id')) {
+    function kinas_related_products_unique_by_id(array $rows): array
     {
-        if (!$a || !$b) {
-            return false;
+        $seen = [];
+        $out = [];
+
+        foreach ($rows as $row) {
+            $id = (int)($row['id'] ?? 0);
+
+            if ($id <= 0 || isset($seen[$id])) {
+                continue;
+            }
+
+            $seen[$id] = true;
+            $out[] = $row;
         }
 
-        $a = abs((float)$a);
-        $b = abs((float)$b);
-
-        if ($a <= 0 || $b <= 0) {
-            return false;
-        }
-
-        $diff = abs($a - $b);
-        $allowed = max(1.0, 0.25 * max($a, $b));
-
-        return $diff <= $allowed;
+        return $out;
     }
 }
 
@@ -59,26 +47,43 @@ if (!function_exists('kinas_related_capacity_close')) {
 // ============================================================
 
 if (!function_exists('kinas_get_related_cars')) {
-    function kinas_get_related_cars(PDO $db, array $current, int $limit = 4): array
+    function kinas_get_related_cars(PDO $db, array $item, int $limit = 4): array
     {
+        $limit = kinas_related_products_limit($limit);
+
+        $currentId = (int)($item['id'] ?? 0);
+        $brand = trim((string)($item['brand'] ?? ''));
+        $bodyType = trim((string)($item['body_type'] ?? ''));
+        $fuelType = trim((string)($item['fuel_type'] ?? ''));
+        $transmission = trim((string)($item['transmission'] ?? ''));
+
+        $baseSelect = "
+            SELECT
+                c.id,
+                c.title,
+                c.brand,
+                c.model,
+                c.year,
+                c.price,
+                c.body_type,
+                c.fuel_type,
+                c.transmission,
+                c.featured,
+                (
+                    SELECT url
+                    FROM listing_images
+                    WHERE listing_id = c.id
+                      AND listing_type = 'car'
+                    ORDER BY sort_order
+                    LIMIT 1
+                ) AS thumbnail
+            FROM car_listings c
+            WHERE c.status = 'active'
+              AND c.id != ?
+        ";
+
         try {
-            $limit = max(1, min(12, $limit));
-
-            $currentId = (int)($current['id'] ?? 0);
-            $brand = trim((string)($current['brand'] ?? ''));
-            $bodyType = trim((string)($current['body_type'] ?? ''));
-            $fuelType = trim((string)($current['fuel_type'] ?? ''));
-            $transmission = trim((string)($current['transmission'] ?? ''));
-            $price = (float)($current['price'] ?? 0);
-
-            $select = "
-                SELECT c.id, c.title, c.brand, c.model, c.year, c.price,
-                       c.body_type, c.fuel_type, c.transmission, c.featured,
-                       (SELECT url FROM listing_images WHERE listing_id = c.id AND listing_type = 'car' ORDER BY sort_order LIMIT 1) AS thumbnail
-                FROM car_listings c
-                WHERE c.id != ?
-                  AND c.status = 'active'
-            ";
+            $results = [];
 
             $clauses = [];
             $params = [$currentId];
@@ -98,78 +103,42 @@ if (!function_exists('kinas_get_related_cars')) {
                 $params[] = $fuelType;
             }
 
-            $candidates = [];
+            if ($transmission !== '') {
+                $clauses[] = 'c.transmission = ?';
+                $params[] = $transmission;
+            }
 
             if (!empty($clauses)) {
-                $sql = $select . ' AND (' . implode(' OR ', $clauses) . ') ORDER BY RAND() LIMIT 80';
+                $sql = $baseSelect
+                    . ' AND (' . implode(' OR ', $clauses) . ')'
+                    . ' ORDER BY RAND() LIMIT ' . $limit;
+
                 $stmt = $db->prepare($sql);
                 $stmt->execute($params);
-                $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if (!is_array($results)) {
+                    $results = [];
+                }
             }
 
-            if (count($candidates) < $limit) {
-                $sql = $select . ' ORDER BY RAND() LIMIT 80';
+            if (count($results) < $limit) {
+                $needed = $limit - count($results);
+
+                $sql = $baseSelect . ' ORDER BY RAND() LIMIT ' . $needed;
+
                 $stmt = $db->prepare($sql);
                 $stmt->execute([$currentId]);
-                $randomCandidates = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-                $candidateIds = array_map(static function ($row) {
-                    return (int)($row['id'] ?? 0);
-                }, $candidates);
+                $extra = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                foreach ($randomCandidates as $row) {
-                    if (!in_array((int)($row['id'] ?? 0), $candidateIds, true)) {
-                        $candidates[] = $row;
-                        $candidateIds[] = (int)($row['id'] ?? 0);
-                    }
+                if (is_array($extra)) {
+                    $results = array_merge($results, $extra);
                 }
             }
 
-            $seen = [$currentId => true];
-            $results = [];
-
-            foreach ($candidates as $row) {
-                $rowId = (int)($row['id'] ?? 0);
-
-                if ($rowId <= 0 || isset($seen[$rowId])) {
-                    continue;
-                }
-
-                $seen[$rowId] = true;
-
-                $score = 0;
-
-                if ($brand !== '' && strcasecmp((string)($row['brand'] ?? ''), $brand) === 0) {
-                    $score += 4;
-                }
-
-                if ($bodyType !== '' && strcasecmp((string)($row['body_type'] ?? ''), $bodyType) === 0) {
-                    $score += 3;
-                }
-
-                if ($fuelType !== '' && strcasecmp((string)($row['fuel_type'] ?? ''), $fuelType) === 0) {
-                    $score += 1;
-                }
-
-                if ($transmission !== '' && strcasecmp((string)($row['transmission'] ?? ''), $transmission) === 0) {
-                    $score += 1;
-                }
-
-                if (kinas_related_price_close($price, (float)($row['price'] ?? 0))) {
-                    $score += 2;
-                }
-
-                if (!empty($row['featured'])) {
-                    $score += 1;
-                }
-
-                $row['_score'] = $score + mt_rand(0, 2);
-                $results[] = $row;
-            }
-
-            usort($results, static function ($a, $b) {
-                return ($b['_score'] ?? 0) <=> ($a['_score'] ?? 0);
-            });
+            $results = kinas_related_products_unique_by_id($results);
 
             return array_slice($results, 0, $limit);
         } catch (Throwable $e) {
@@ -184,25 +153,38 @@ if (!function_exists('kinas_get_related_cars')) {
 // ============================================================
 
 if (!function_exists('kinas_get_related_marketplace_items')) {
-    function kinas_get_related_marketplace_items(PDO $db, array $current, int $limit = 4): array
+    function kinas_get_related_marketplace_items(PDO $db, array $item, int $limit = 4): array
     {
+        $limit = kinas_related_products_limit($limit);
+
+        $currentId = (int)($item['id'] ?? 0);
+        $categoryId = (int)($item['category_id'] ?? 0);
+        $brand = trim((string)($item['brand'] ?? ''));
+
+        $baseSelect = "
+            SELECT
+                m.id,
+                m.title,
+                m.price,
+                m.brand,
+                m.category_id,
+                c.name AS category_name,
+                (
+                    SELECT url
+                    FROM listing_images
+                    WHERE listing_id = m.id
+                      AND listing_type = 'marketplace'
+                    ORDER BY sort_order
+                    LIMIT 1
+                ) AS thumbnail
+            FROM marketplace_listings m
+            LEFT JOIN marketplace_categories c ON m.category_id = c.id
+            WHERE m.status = 'active'
+              AND m.id != ?
+        ";
+
         try {
-            $limit = max(1, min(12, $limit));
-
-            $currentId = (int)($current['id'] ?? 0);
-            $categoryId = (int)($current['category_id'] ?? 0);
-            $brand = trim((string)($current['brand'] ?? ''));
-            $price = (float)($current['price'] ?? 0);
-
-            $select = "
-                SELECT m.id, m.title, m.price, m.brand, m.category_id, m.featured,
-                       c.name AS category_name,
-                       (SELECT url FROM listing_images WHERE listing_id = m.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) AS thumbnail
-                FROM marketplace_listings m
-                LEFT JOIN marketplace_categories c ON m.category_id = c.id
-                WHERE m.id != ?
-                  AND m.status = 'active'
-            ";
+            $results = [];
 
             $clauses = [];
             $params = [$currentId];
@@ -217,35 +199,256 @@ if (!function_exists('kinas_get_related_marketplace_items')) {
                 $params[] = $brand;
             }
 
-            $candidates = [];
-
             if (!empty($clauses)) {
-                $sql = $select . ' AND (' . implode(' OR ', $clauses) . ') ORDER BY RAND() LIMIT 80';
+                $sql = $baseSelect
+                    . ' AND (' . implode(' OR ', $clauses) . ')'
+                    . ' ORDER BY RAND() LIMIT ' . $limit;
+
                 $stmt = $db->prepare($sql);
                 $stmt->execute($params);
-                $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-            }
 
-            if (count($candidates) < $limit) {
-                $sql = $select . ' ORDER BY RAND() LIMIT 80';
-                $stmt = $db->prepare($sql);
-                $stmt->execute([$currentId]);
-                $randomCandidates = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                $candidateIds = array_map(static function ($row) {
-                    return (int)($row['id'] ?? 0);
-                }, $candidates);
-
-                foreach ($randomCandidates as $row) {
-                    if (!in_array((int)($row['id'] ?? 0), $candidateIds, true)) {
-                        $candidates[] = $row;
-                        $candidateIds[] = (int)($row['id'] ?? 0);
-                    }
+                if (!is_array($results)) {
+                    $results = [];
                 }
             }
 
-            $seen = [$currentId => true];
+            if (count($results) < $limit) {
+                $needed = $limit - count($results);
+
+                $sql = $baseSelect . ' ORDER BY RAND() LIMIT ' . $needed;
+
+                $stmt = $db->prepare($sql);
+                $stmt->execute([$currentId]);
+
+                $extra = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if (is_array($extra)) {
+                    $results = array_merge($results, $extra);
+                }
+            }
+
+            $results = kinas_related_products_unique_by_id($results);
+
+            return array_slice($results, 0, $limit);
+        } catch (Throwable $e) {
+            error_log('kinas_get_related_marketplace_items error: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
+// ============================================================
+// SOLAR
+// ============================================================
+
+if (!function_exists('kinas_get_related_solar_systems')) {
+    function kinas_get_related_solar_systems(PDO $db, array $item, int $limit = 4): array
+    {
+        $limit = kinas_related_products_limit($limit);
+
+        $currentId = (int)($item['id'] ?? 0);
+        $serviceType = trim((string)($item['service_type'] ?? ''));
+        $brand = trim((string)($item['brand'] ?? ''));
+
+        $baseSelect = "
+            SELECT
+                s.id,
+                s.title,
+                s.service_type,
+                s.price,
+                s.brand,
+                s.capacity_kw,
+                s.featured,
+                (
+                    SELECT url
+                    FROM listing_images
+                    WHERE listing_id = s.id
+                      AND listing_type = 'solar'
+                    ORDER BY sort_order
+                    LIMIT 1
+                ) AS thumbnail
+            FROM solar_listings s
+            WHERE s.status = 'active'
+              AND s.id != ?
+        ";
+
+        try {
             $results = [];
 
-            foreach ($candidates as $row) {
-                $rowId = (int)($
+            $clauses = [];
+            $params = [$currentId];
+
+            if ($serviceType !== '') {
+                $clauses[] = 's.service_type = ?';
+                $params[] = $serviceType;
+            }
+
+            if ($brand !== '') {
+                $clauses[] = 's.brand = ?';
+                $params[] = $brand;
+            }
+
+            if (!empty($clauses)) {
+                $sql = $baseSelect
+                    . ' AND (' . implode(' OR ', $clauses) . ')'
+                    . ' ORDER BY RAND() LIMIT ' . $limit;
+
+                $stmt = $db->prepare($sql);
+                $stmt->execute($params);
+
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if (!is_array($results)) {
+                    $results = [];
+                }
+            }
+
+            if (count($results) < $limit) {
+                $needed = $limit - count($results);
+
+                $sql = $baseSelect . ' ORDER BY RAND() LIMIT ' . $needed;
+
+                $stmt = $db->prepare($sql);
+                $stmt->execute([$currentId]);
+
+                $extra = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if (is_array($extra)) {
+                    $results = array_merge($results, $extra);
+                }
+            }
+
+            $results = kinas_related_products_unique_by_id($results);
+
+            return array_slice($results, 0, $limit);
+        } catch (Throwable $e) {
+            error_log('kinas_get_related_solar_systems error: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
+// ============================================================
+// PROPERTY
+// ============================================================
+
+if (!function_exists('kinas_get_related_properties')) {
+    function kinas_get_related_properties(PDO $db, array $item, int $limit = 4): array
+    {
+        $limit = kinas_related_products_limit($limit);
+
+        $currentId = (int)($item['id'] ?? 0);
+        $propertyType = trim((string)($item['property_type'] ?? ''));
+        $city = trim((string)($item['city'] ?? ''));
+
+        $baseSelect = "
+            SELECT
+                p.id,
+                p.title,
+                p.property_type,
+                p.price,
+                p.beds,
+                p.baths,
+                p.sqft,
+                p.city,
+                p.state,
+                p.featured,
+                (
+                    SELECT url
+                    FROM listing_images
+                    WHERE listing_id = p.id
+                      AND listing_type = 'property'
+                    ORDER BY sort_order
+                    LIMIT 1
+                ) AS thumbnail
+            FROM property_listings p
+            WHERE p.status = 'active'
+              AND p.id != ?
+        ";
+
+        try {
+            $results = [];
+
+            $clauses = [];
+            $params = [$currentId];
+
+            if ($propertyType !== '') {
+                $clauses[] = 'p.property_type = ?';
+                $params[] = $propertyType;
+            }
+
+            if ($city !== '') {
+                $clauses[] = 'p.city = ?';
+                $params[] = $city;
+            }
+
+            if (!empty($clauses)) {
+                $sql = $baseSelect
+                    . ' AND (' . implode(' OR ', $clauses) . ')'
+                    . ' ORDER BY RAND() LIMIT ' . $limit;
+
+                $stmt = $db->prepare($sql);
+                $stmt->execute($params);
+
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if (!is_array($results)) {
+                    $results = [];
+                }
+            }
+
+            if (count($results) < $limit) {
+                $needed = $limit - count($results);
+
+                $sql = $baseSelect . ' ORDER BY RAND() LIMIT ' . $needed;
+
+                $stmt = $db->prepare($sql);
+                $stmt->execute([$currentId]);
+
+                $extra = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if (is_array($extra)) {
+                    $results = array_merge($results, $extra);
+                }
+            }
+
+            $results = kinas_related_products_unique_by_id($results);
+
+            return array_slice($results, 0, $limit);
+        } catch (Throwable $e) {
+            error_log('kinas_get_related_properties error: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
+// ============================================================
+// GENERIC HELPER
+// ============================================================
+
+if (!function_exists('kinas_get_related_products')) {
+    function kinas_get_related_products(PDO $db, string $type, array $item, int $limit = 4): array
+    {
+        $type = strtolower(trim($type));
+
+        if ($type === 'car' || $type === 'automobile') {
+            return kinas_get_related_cars($db, $item, $limit);
+        }
+
+        if ($type === 'marketplace' || $type === 'market') {
+            return kinas_get_related_marketplace_items($db, $item, $limit);
+        }
+
+        if ($type === 'solar' || $type === 'volt') {
+            return kinas_get_related_solar_systems($db, $item, $limit);
+        }
+
+        if ($type === 'property' || $type === 'home') {
+            return kinas_get_related_properties($db, $item, $limit);
+        }
+
+        return [];
+    }
+}
