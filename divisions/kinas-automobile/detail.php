@@ -7,7 +7,15 @@
 *   customers can leave reviews after purchase.
 * - Pending/flagged/non-public listings remain private to owner/admin.
 * - Adds the KINAS Product Reviews section near the bottom of the page.
+*
+* AMENDED FOR RELATED PRODUCTS:
+* - Replaces the old static similar-products query with the dynamic
+*   weighted related-products engine.
 */
+
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 require_once '../../includes/session.php';
 require_once '../../includes/functions.php';
@@ -17,6 +25,13 @@ require_once '../../includes/je-components.php';
 
 // CRITICAL: Include security BEFORE any HTML output
 require_once '../../includes/security.php';
+
+// Related products engine
+$kinasRelatedProductsEngine = __DIR__ . '/../../includes/related-products.php';
+
+if (file_exists($kinasRelatedProductsEngine)) {
+    require_once $kinasRelatedProductsEngine;
+}
 
 $id = (int)($_GET['id'] ?? 0);
 
@@ -77,18 +92,32 @@ $images = $db->prepare("SELECT * FROM listing_images WHERE listing_id = ? AND li
 $images->execute([$id]);
 $images = $images->fetchAll();
 
-$similar = $db->prepare("
-SELECT c.id, c.title, c.brand, c.model, c.year, c.price,
-(SELECT url FROM listing_images WHERE listing_id = c.id AND listing_type = 'car' ORDER BY sort_order LIMIT 1) AS thumbnail
-FROM car_listings c
-WHERE c.id != ? AND c.status = 'active' AND (c.brand = ? OR c.body_type = ?)
-ORDER BY c.featured DESC, c.created_at DESC
-LIMIT 4
-");
-$similar->execute([$id, $item['brand'] ?? '', $item['body_type'] ?? '']);
-$similar = $similar->fetchAll();
+// ============================================================
+// RELATED PRODUCTS — DYNAMIC WEIGHTED ENGINE
+// ============================================================
+
+$similar = [];
+
+if (function_exists('kinas_get_related_cars')) {
+    $similar = kinas_get_related_cars($db, $item, 4);
+} else {
+    // Safe fallback if the related-products engine is missing.
+    $similarStmt = $db->prepare("
+        SELECT c.id, c.title, c.brand, c.model, c.year, c.price,
+               (SELECT url FROM listing_images WHERE listing_id = c.id AND listing_type = 'car' ORDER BY sort_order LIMIT 1) AS thumbnail
+        FROM car_listings c
+        WHERE c.id != ?
+          AND c.status = 'active'
+        ORDER BY RAND()
+        LIMIT 4
+    ");
+
+    $similarStmt->execute([$id]);
+    $similar = $similarStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+}
 
 $features = [];
+
 if (!empty($item['features'])) {
     $features = is_array($item['features']) ? $item['features'] : (json_decode($item['features'], true) ?: []);
 }
@@ -399,6 +428,7 @@ async function submitRentalBooking(carId) {
 <!-- ============================================================ -->
 <!-- BUTTONS - Fully Working -->
 <!-- ============================================================ -->
+
 <div class="je-cta-row">
 
 <!-- Schedule Viewing -->
@@ -567,7 +597,11 @@ $simCards = array_map(function ($s) {
 }, $similar);
 
 echo '<div class="je-listings-grid" style="grid-template-columns:repeat(4,1fr);">';
-foreach ($simCards as $c) je_render_card($c);
+
+foreach ($simCards as $c) {
+    je_render_card($c);
+}
+
 echo '</div>';
 ?>
 </section>
@@ -597,6 +631,7 @@ if (file_exists($kinasReviewsEngine)) {
 <!-- ============================================================ -->
 <!-- ALL JAVASCRIPT - INLINE, NO EXTERNAL DEPENDENCIES -->
 <!-- ============================================================ -->
+
 <script>
 // ============================================================
 // HELPER FUNCTIONS
@@ -733,12 +768,14 @@ function openScheduleViewing(listingId, listingType, agentId, inspectionFee) {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const dateInput = document.getElementById('prefDate');
+
     if (dateInput) {
         dateInput.min = tomorrow.toISOString().split('T')[0];
         dateInput.value = tomorrow.toISOString().split('T')[0];
     }
 
     const meta = document.querySelector('meta[name="user-data"]');
+
     if (meta) {
         try {
             const data = JSON.parse(meta.content);
@@ -951,6 +988,7 @@ function openContactAgent(agentId, agentName, division) {
     document.body.insertAdjacentHTML('beforeend', html);
 
     const meta = document.querySelector('meta[name="user-data"]');
+
     if (meta) {
         try {
             const data = JSON.parse(meta.content);
