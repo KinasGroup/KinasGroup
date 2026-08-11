@@ -3,56 +3,69 @@
  *
  * Adds:
  * 1. Global floating WhatsApp contact button.
- * 2. Product detail WhatsApp enquiry button.
+ * 2. Product detail page WhatsApp enquiry button.
  * 3. WhatsApp quick-contact icon on listing cards.
  *
- * This file expects window.SITE_CONSTANTS.WHATSAPP_NUMBER to be printed
- * by the PHP header. A fallback number is included so the feature still
- * works if the constant is not exposed yet.
+ * Works with:
+ * - window.SITE_CONSTANTS.WHATSAPP_NUMBER
+ * - meta[name="whatsapp-number"]
+ * - body[data-whatsapp-number]
+ * - fallback public WhatsApp number
  */
 
 (function () {
     'use strict';
 
-    // ------------------------------------------------------------
-    // CONFIG
-    // ------------------------------------------------------------
-
-    const WHATSAPP_NUMBER = String(
-        (window.SITE_CONSTANTS && window.SITE_CONSTANTS.WHATSAPP_NUMBER) ||
-        '2349137175523'
-    ).replace(/[^0-9]/g, '');
-
-    if (!WHATSAPP_NUMBER) {
+    // Prevent duplicate execution if the script is included more than once.
+    if (window.__kinasWhatsAppJsLoaded) {
         return;
     }
 
+    window.__kinasWhatsAppJsLoaded = true;
+
+    // ------------------------------------------------------------
+    // CONFIGURATION
+    // ------------------------------------------------------------
+
     const COMPANY_NAME = 'KINAS GROUP';
 
-    const WHATSAPP_ICON = `
+    /**
+     * Public fallback number.
+     *
+     * This should normally come from window.SITE_CONSTANTS.WHATSAPP_NUMBER,
+     * which should be printed by PHP from includes/constants.php.
+     */
+    const FALLBACK_WHATSAPP_NUMBER = '2349137175523';
+
+    const WHATSAPP_ICON_SVG = `
         <svg viewBox="0 0 24 24" aria-hidden="true">
             <path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
         </svg>
     `;
 
-    const SELECTORS = {
-        global: '.kinas-whatsapp-float',
-        productButton: '.kinas-whatsapp-product-btn',
-        cardButton: '.kinas-whatsapp-card-btn',
-        detailWrappers: '.je-detail-wrap, .detail-container, .je-spec-panel, .detail-info',
-        detailTitle: '.je-spec-title, h1',
-        detailPrice: '.je-spec-price, .price',
-        ctaRows: '.je-cta-row, .action-buttons, .detail-info .action-buttons',
-        listingCards: '.je-card, .listing-card, .product-card, .marketplace-item',
-        cardImageWrap: '.je-card-img, .card-image, .product-image, .item-image',
-        cardTitle: '.je-card-title, .listing-title, .product-title, .item-title, h3, h4'
-    };
-
-    let observerTimer = null;
-
     // ------------------------------------------------------------
     // HELPERS
     // ------------------------------------------------------------
+
+    function getWhatsAppNumber() {
+        let number = '';
+
+        if (window.SITE_CONSTANTS && window.SITE_CONSTANTS.WHATSAPP_NUMBER) {
+            number = window.SITE_CONSTANTS.WHATSAPP_NUMBER;
+        } else {
+            const meta = document.querySelector('meta[name="whatsapp-number"]');
+
+            if (meta && meta.content) {
+                number = meta.content;
+            } else if (document.body && document.body.dataset.whatsappNumber) {
+                number = document.body.dataset.whatsappNumber;
+            } else {
+                number = FALLBACK_WHATSAPP_NUMBER;
+            }
+        }
+
+        return String(number || '').replace(/[^0-9]/g, '');
+    }
 
     function isRestrictedPath() {
         const path = window.location.pathname || '/';
@@ -61,12 +74,19 @@
             path.indexOf('/admin') === 0 ||
             path.indexOf('/agent') === 0 ||
             path.indexOf('/user') === 0 ||
-            path.indexOf('/auth') === 0
+            path.indexOf('/auth') === 0 ||
+            path.indexOf('/api') === 0
         );
     }
 
     function buildWhatsAppLink(message) {
-        return 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(message);
+        const number = getWhatsAppNumber();
+
+        if (!number) {
+            return '';
+        }
+
+        return 'https://wa.me/' + number + '?text=' + encodeURIComponent(message);
     }
 
     function generalMessage() {
@@ -77,11 +97,14 @@
         let message =
             'Hello ' + COMPANY_NAME + ',\n\n' +
             'I am interested in this product:\n\n' +
-            'Product: ' + title + '\n' +
-            'Link: ' + url;
+            'Product: ' + title;
 
         if (price) {
             message += '\nPrice: ' + price;
+        }
+
+        if (url) {
+            message += '\nLink: ' + url;
         }
 
         message += '\n\nPlease let me know more about availability and next steps.';
@@ -89,204 +112,410 @@
         return message;
     }
 
-    function getCanonicalUrl() {
-        const canonical = document.querySelector('link[rel="canonical"]');
-
-        if (canonical && canonical.href) {
-            return canonical.href;
-        }
-
-        return window.location.href;
-    }
-
     function cleanText(value) {
         return String(value || '').replace(/\s+/g, ' ').trim();
     }
 
     // ------------------------------------------------------------
-    // GLOBAL FLOATING BUTTON
+    // INLINE FALLBACK STYLES
+    //
+    // These are used if assets/css/whatsapp-button.css is missing
+    // or has not been loaded yet.
     // ------------------------------------------------------------
 
-    function createGlobalButton() {
-        const link = document.createElement('a');
-
-        link.className = 'kinas-whatsapp-float';
-        link.href = buildWhatsAppLink(generalMessage());
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.setAttribute('aria-label', 'Chat with ' + COMPANY_NAME + ' on WhatsApp');
-        link.setAttribute('data-kinas-whatsapp-global', '1');
-
-        link.innerHTML =
-            WHATSAPP_ICON +
-            '<span class="kinas-whatsapp-tooltip">Chat with us on WhatsApp</span>';
-
-        return link;
-    }
-
-    function addGlobalButton() {
-        if (document.querySelector(SELECTORS.global)) {
+    function injectFallbackStyles() {
+        if (document.getElementById('kinas-whatsapp-inline-styles')) {
             return;
         }
 
-        document.body.appendChild(createGlobalButton());
+        const style = document.createElement('style');
+        style.id = 'kinas-whatsapp-inline-styles';
+
+        style.textContent = `
+            .kinas-whatsapp-float {
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                z-index: 99999;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                background: #25D366;
+                color: #ffffff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-decoration: none;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+                transition: transform 0.2s ease, background 0.2s ease;
+            }
+
+            .kinas-whatsapp-float:hover {
+                background: #128C7E;
+                transform: translateY(-2px);
+            }
+
+            .kinas-whatsapp-float svg {
+                width: 28px;
+                height: 28px;
+                fill: currentColor;
+                display: block;
+            }
+
+            .kinas-whatsapp-tooltip {
+                position: absolute;
+                right: 66px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: #0A0A0A;
+                color: #ffffff;
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: 600;
+                white-space: nowrap;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s ease;
+            }
+
+            .kinas-whatsapp-float:hover .kinas-whatsapp-tooltip {
+                opacity: 1;
+            }
+
+            .kinas-whatsapp-product-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                background: #25D366;
+                color: #ffffff !important;
+                padding: 12px 20px;
+                border-radius: 8px;
+                text-decoration: none !important;
+                font-weight: 700;
+                font-size: 14px;
+                transition: background 0.2s ease;
+                border: none;
+                cursor: pointer;
+            }
+
+            .kinas-whatsapp-product-btn:hover {
+                background: #128C7E;
+            }
+
+            .kinas-whatsapp-product-btn svg {
+                width: 18px;
+                height: 18px;
+                fill: currentColor;
+                flex-shrink: 0;
+            }
+
+            .kinas-whatsapp-card-btn {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                z-index: 6;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: rgba(37, 211, 102, 0.96);
+                color: #ffffff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: none;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+                transition: transform 0.2s ease, background 0.2s ease;
+            }
+
+            .kinas-whatsapp-card-btn:hover {
+                background: #128C7E;
+                transform: scale(1.08);
+            }
+
+            .kinas-whatsapp-card-btn svg {
+                width: 18px;
+                height: 18px;
+                fill: currentColor;
+                display: block;
+            }
+
+            .kinas-whatsapp-detail-wrap {
+                margin-top: 14px;
+            }
+
+            @media (max-width: 768px) {
+                .kinas-whatsapp-float {
+                    bottom: 18px;
+                    right: 18px;
+                    width: 52px;
+                    height: 52px;
+                }
+
+                .kinas-whatsapp-float svg {
+                    width: 25px;
+                    height: 25px;
+                }
+
+                .kinas-whatsapp-tooltip {
+                    display: none;
+                }
+
+                .kinas-whatsapp-product-btn {
+                    width: 100%;
+                }
+            }
+        `;
+
+        document.head.appendChild(style);
     }
 
     // ------------------------------------------------------------
-    // PRODUCT DETAIL BUTTON
+    // GLOBAL FLOATING WHATSAPP BUTTON
     // ------------------------------------------------------------
 
-    function createProductButton(title, url, price) {
-        const link = document.createElement('a');
+    function addGlobalWhatsAppButton() {
+        if (isRestrictedPath()) {
+            return;
+        }
 
-        link.className = 'kinas-whatsapp-product-btn';
-        link.href = buildWhatsAppLink(productMessage(title, url, price));
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.setAttribute('aria-label', 'Enquire about this product on WhatsApp');
+        if (document.getElementById('kinas-whatsapp-float')) {
+            return;
+        }
 
-        link.innerHTML = WHATSAPP_ICON + '<span>Enquire on WhatsApp</span>';
+        const link = buildWhatsAppLink(generalMessage());
 
-        return link;
+        if (!link) {
+            return;
+        }
+
+        const button = document.createElement('a');
+
+        button.id = 'kinas-whatsapp-float';
+        button.className = 'kinas-whatsapp-float';
+        button.href = link;
+        button.target = '_blank';
+        button.rel = 'noopener noreferrer';
+        button.setAttribute('aria-label', 'Chat with ' + COMPANY_NAME + ' on WhatsApp');
+
+        button.innerHTML =
+            WHATSAPP_ICON_SVG +
+            '<span class="kinas-whatsapp-tooltip">Chat with us on WhatsApp</span>';
+
+        document.body.appendChild(button);
     }
 
-    function decorateDetailPage() {
-        const detailWrapper = document.querySelector(SELECTORS.detailWrappers);
+    // ------------------------------------------------------------
+    // PRODUCT DETAIL PAGE WHATSAPP BUTTON
+    // ------------------------------------------------------------
+
+    function getProductDetails() {
+        const titleElement = document.querySelector('.je-spec-title, h1');
+        const priceElement = document.querySelector('.je-spec-price, .price');
+        const canonicalElement = document.querySelector('link[rel="canonical"]');
+
+        const title = cleanText(titleElement ? titleElement.textContent : document.title);
+        const price = cleanText(priceElement ? priceElement.textContent : '');
+        const url = canonicalElement && canonicalElement.href
+            ? canonicalElement.href
+            : window.location.href;
+
+        return {
+            title: title,
+            price: price,
+            url: url
+        };
+    }
+
+    function createProductWhatsAppButton() {
+        const product = getProductDetails();
+
+        if (!product.title) {
+            return null;
+        }
+
+        const link = buildWhatsAppLink(productMessage(product.title, product.url, product.price));
+
+        if (!link) {
+            return null;
+        }
+
+        const button = document.createElement('a');
+
+        button.className = 'kinas-whatsapp-product-btn';
+        button.href = link;
+        button.target = '_blank';
+        button.rel = 'noopener noreferrer';
+        button.setAttribute('aria-label', 'Enquire about this product on WhatsApp');
+
+        button.innerHTML = WHATSAPP_ICON_SVG + '<span>Enquire on WhatsApp</span>';
+
+        return button;
+    }
+
+    function addDetailPageWhatsAppButton() {
+        if (isRestrictedPath()) {
+            return;
+        }
+
+        if (document.querySelector('.kinas-whatsapp-product-btn')) {
+            return;
+        }
+
+        const detailWrapper = document.querySelector(
+            '.je-detail-wrap, .detail-container, .je-spec-panel, .detail-info'
+        );
 
         if (!detailWrapper) {
             return;
         }
 
-        if (document.querySelector(SELECTORS.productButton)) {
+        const button = createProductWhatsAppButton();
+
+        if (!button) {
             return;
         }
 
-        const titleElement = document.querySelector(SELECTORS.detailTitle);
-
-        if (!titleElement) {
-            return;
-        }
-
-        const title = cleanText(titleElement.textContent) || document.title;
-        const priceElement = document.querySelector(SELECTORS.detailPrice);
-        const price = priceElement ? cleanText(priceElement.textContent) : '';
-        const url = getCanonicalUrl();
-
-        const button = createProductButton(title, url, price);
-
-        const ctaRow = document.querySelector(SELECTORS.ctaRows);
+        // Preferred placement: inside the existing call-to-action row.
+        const ctaRow = document.querySelector('.je-cta-row, .action-buttons');
 
         if (ctaRow) {
             ctaRow.appendChild(button);
             return;
         }
 
-        const wrapper = document.createElement('div');
-        wrapper.style.marginTop = '16px';
-        wrapper.appendChild(button);
+        // Secondary placement: directly below the product price.
+        const priceElement = document.querySelector('.je-spec-price, .price');
 
-        const target = titleElement.closest('.je-spec-panel, .detail-info') || titleElement.parentElement;
+        if (priceElement && priceElement.parentElement) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'kinas-whatsapp-detail-wrap';
+            wrapper.appendChild(button);
 
-        if (target) {
-            target.appendChild(wrapper);
+            priceElement.insertAdjacentElement('afterend', wrapper);
+            return;
         }
+
+        // Final fallback: append to the detail wrapper.
+        detailWrapper.appendChild(button);
     }
 
     // ------------------------------------------------------------
     // LISTING CARD WHATSAPP ICON
     // ------------------------------------------------------------
 
-    function createCardButton(title, url) {
-        const link = document.createElement('a');
+    function createCardWhatsAppButton(title, url, price) {
+        const button = document.createElement('button');
 
-        link.className = 'kinas-whatsapp-card-btn';
-        link.href = buildWhatsAppLink(productMessage(title, url, ''));
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.setAttribute('aria-label', 'Contact us about this listing on WhatsApp');
-        link.setAttribute('title', 'Enquire on WhatsApp');
+        button.type = 'button';
+        button.className = 'kinas-whatsapp-card-btn';
+        button.setAttribute('aria-label', 'Enquire about this listing on WhatsApp');
+        button.setAttribute('title', 'Enquire on WhatsApp');
 
-        link.innerHTML = WHATSAPP_ICON;
+        button.innerHTML = WHATSAPP_ICON_SVG;
 
-        // Prevent the parent listing card link from opening when the
-        // WhatsApp icon is clicked.
-        link.addEventListener('click', function (event) {
+        button.addEventListener('click', function (event) {
             event.preventDefault();
             event.stopPropagation();
 
-            window.open(link.href, '_blank', 'noopener');
+            const link = buildWhatsAppLink(productMessage(title, url, price));
+
+            if (link) {
+                window.open(link, '_blank', 'noopener');
+            }
         });
 
-        return link;
+        return button;
     }
 
-    function decorateListingCards(area) {
-        const root = area || document;
+    function addListingCardWhatsAppButtons(root) {
+        const scope = root instanceof Element ? root : document;
 
-        const cards = root.querySelectorAll(SELECTORS.listingCards);
+        const cards = scope.querySelectorAll(
+            '.je-card, .listing-card, .product-card, .marketplace-item'
+        );
 
         cards.forEach(function (card) {
             if (card.dataset.kinasWhatsappCard === '1') {
                 return;
             }
 
-            const imageWrap = card.querySelector(SELECTORS.cardImageWrap);
+            const titleElement = card.querySelector(
+                '.je-card-title, .listing-title, .product-title, .item-title, h3, h4'
+            );
 
-            if (!imageWrap) {
-                return;
-            }
-
-            const titleElement = card.querySelector(SELECTORS.cardTitle);
             const imageElement = card.querySelector('img');
 
-            const title =
-                cleanText(titleElement ? titleElement.textContent : '') ||
-                cleanText(imageElement ? imageElement.alt : '') ||
-                document.title;
+            const title = cleanText(
+                titleElement
+                    ? titleElement.textContent
+                    : (imageElement && imageElement.alt ? imageElement.alt : document.title)
+            );
 
             const url =
                 card.href ||
                 (card.querySelector('a[href]') ? card.querySelector('a[href]').href : '') ||
                 window.location.href;
 
-            const button = createCardButton(title, url);
+            const priceElement = card.querySelector(
+                '.je-card-price, .price, .product-price, .item-price'
+            );
 
-            imageWrap.appendChild(button);
+            const price = cleanText(priceElement ? priceElement.textContent : '');
+
+            const target =
+                card.querySelector('.je-card-img, .card-image, .product-image, .item-image') ||
+                card;
+
+            if (window.getComputedStyle(target).position === 'static') {
+                target.style.position = 'relative';
+            }
+
+            const button = createCardWhatsAppButton(title, url, price);
+
+            target.appendChild(button);
             card.dataset.kinasWhatsappCard = '1';
         });
     }
 
     // ------------------------------------------------------------
-    // RUN / OBSERVE
+    // INITIALISATION + DYNAMIC CONTENT SUPPORT
     // ------------------------------------------------------------
 
-    function decorateAll() {
-        if (!document.body) {
+    function initialiseWhatsAppButtons() {
+        const number = getWhatsAppNumber();
+
+        if (!number) {
             return;
         }
 
-        if (isRestrictedPath()) {
-            return;
-        }
-
-        addGlobalButton();
-        decorateDetailPage();
-        decorateListingCards(document);
+        injectFallbackStyles();
+        addGlobalWhatsAppButton();
+        addDetailPageWhatsAppButton();
+        addListingCardWhatsAppButtons(document);
+        observeDynamicContent();
     }
 
-    function observeDom() {
+    function observeDynamicContent() {
         if (!window.MutationObserver || !document.body) {
             return;
         }
 
+        let debounceTimer = null;
+
         const observer = new MutationObserver(function () {
-            if (observerTimer) {
+            if (debounceTimer) {
                 return;
             }
 
-            observerTimer = window.setTimeout(function () {
-                observerTimer = null;
-                decorateAll();
+            debounceTimer = window.setTimeout(function () {
+                debounceTimer = null;
+
+                addGlobalWhatsAppButton();
+                addDetailPageWhatsAppButton();
+                addListingCardWhatsAppButtons(document);
             }, 250);
         });
 
@@ -296,18 +525,10 @@
         });
     }
 
-    function init() {
-        decorateAll();
-        observeDom();
-    }
-
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', initialiseWhatsAppButtons);
     } else {
-        init();
+        initialiseWhatsAppButtons();
     }
-
-    // Backward compatibility with the old function name.
-    window.addWhatsAppButtons = decorateAll;
 
 })();
