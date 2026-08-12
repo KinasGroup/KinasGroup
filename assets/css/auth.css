@@ -1,0 +1,168 @@
+/* ============================================================
+KINAS AUTH — auth.css
+Loaded ONLY on auth pages, AFTER style.css / james-edition.css /
+responsive.css so it wins the cascade without touching any other
+page. Design source: approved PC + mobile mockups (dark brand
+panel + white form card).
+============================================================ */
+:root {
+    --ka-orange:      #ED5B0C;
+    --ka-orange-deep: #C94A08;
+    --ka-night:       #050505;
+    --ka-card:        #FAFAFA;
+    --ka-line:        #D7DDE2;
+}
+
+/* Page base — must beat the site-wide force-light white background */
+html, body { background: var(--ka-night) !important; }
+body { color: #fff; }
+@media (prefers-color-scheme: dark) {
+    html, body { background: var(--ka-night) !important; color: #fff !important; }
+}
+
+/* ── Shell ─────────────────────────────────────────────── */
+.ka-shell { min-height: 100vh; display: flex; flex-direction: column; background: var(--ka-night); }
+.ka-main  { flex: 1; display: grid; grid-template-columns: 1.15fr 1fr; align-items: stretch; }
+
+/* ── Left brand panel (hero image fades to black on left) ── */
+.ka-brand {
+    position: relative; overflow: hidden;
+    padding: 52px 60px;
+    display: flex; flex-direction: column; justify-content: space-between; gap: 40px;
+    background:
+        linear-gradient(90deg, #050505 0%, #050505 20%, rgba(5,5,5,.78) 45%, rgba(5,5,5,.25) 68%, rgba(5,5,5,0) 100%),
+        url('../images/hero/auth-hero-night.jpg') right center / cover no-repeat #050505;
+}
+.ka-logo img { height: 62px; width: auto; }
+.ka-headline { font-family: 'Inter', sans-serif; font-size: 54px; font-weight: 800; line-height: 1.06; color: #fff; letter-spacing: -0.5px; }
+.ka-accent { color: var(--ka-orange); }
+.ka-rule { width: 44px; height: 3px; background: var(--ka-orange); margin: 22px 0 18px; }
+.ka-group { font-size: 21px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+.ka-desc { color: rgba(255,255,255,.72); font-size: 13.5px; line-height: 1.75; max-width: 360px; }
+.ka-secure-pill {
+    display: inline-flex; align-items: center; gap: 12px; width: fit-content;
+    background: rgba(8,8,8,.72); border: 1px solid rgba(237,91,12,.35);
+    border-radius: 12px; padding: 13px 18px; backdrop-filter: blur(6px);
+}
+.ka-secure-pill i { color: var(--ka-orange); font-size: 20px; }
+.ka-secure-pill strong { display: block; font-size: 13.5px; color: #fff; }
+.ka-secure-pill span { display: block; font-size: 12px; color: rgba(255,255,255,.6); }
+
+/* ── Right form side ───────────────────────────────────── */
+.ka-form-side { display: flex; align-items: center; justify-content: center; padding: 56px 48px; }
+.ka-card {
+    width: min(500px, 100%);
+    background: var(--ka-card); border-radius: 18px; padding: 40px 44px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.55); color: #111;
+}
+.ka-card h2 { font-family: 'Inter', sans-serif; font-size: 30px; font-weight: 800; color: #111; }
+.ka-sub { color: #777; font-size: 13px; margin: 6px 0 26px; }
+
+.ka-alert { display: flex; align-items: center; gap: 8px; border-radius: 8px; padding: 11px 14px; font-size: 13px; margin-bottom: 16px; }
+.ka-alert.error   { background: #FEF2F2; border: 1px solid #FECACA; color: #B71C1C; }
+.ka-alert.success { background: #F0FDF4; border: 1px solid #BBF7D0; color: #1B5E20; }
+
+.ka-field { margin-bottom: 16px; }
+.ka-field label { display: block; font-size: 13px; font-weight: 600; color: #222; margin-bottom: 6px; }
+.ka-input-wrap { position: relative; }
+.ka-input-wrap .ka-lead {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: #9AA3AB; font-size: 15px; pointer-events: none; z-index: 1;
+}
+.ka-input {
+    width: 100%; padding: 13px 14px 13px 42px;
+    border: 1px solid var(--ka-line); border-radius: 8px;
+    background: #fff; color: #111;
+    font-family: 'Inter', sans-serif; font-size: 14px;
+    transition: border-color .2s, box-shadow .2s;
+}
+.ka-input::placeholder { color: #A6AFB7; }
+.ka-input:focus { outline: none; border-color: var(--ka-orange); box-shadow: 0 0 0 3px rgba(237,91,12,.12); }
+.ka-input-wrap.je-password-wrap .ka-input { padding-right: 44px; }
+
+.ka-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 18px; font-size: 13px; }
+.ka-remember { display: flex; align-items: center; gap: 7px; color: #555; cursor: pointer; }
+.ka-remember input { accent-color: var(--ka-orange); width: 15px; height: 15px; }
+.ka-link { color: var(--ka-orange); font-weight: 600; text-decoration: none; }
+.ka-link:hover { text-decoration: underline; }
+
+.ka-btn-primary {
+    width: 100%; border: none; border-radius: 8px; cursor: pointer;
+    background: var(--ka-orange); color: #fff;
+    font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700;
+    padding: 14px; transition: background .2s, transform .15s;
+    min-height: 48px;
+}
+.ka-btn-primary:hover { background: var(--ka-orange-deep); }
+.ka-btn-primary:disabled { opacity: .7; cursor: not-allowed; }
+
+.ka-divider-or { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: #999; font-size: 12px; }
+.ka-divider-or::before, .ka-divider-or::after { content: ''; flex: 1; height: 1px; background: #E3E7EA; }
+
+.ka-btn-google {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: #fff; border: 1px solid var(--ka-line); border-radius: 8px;
+    padding: 12px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #333;
+    cursor: pointer; transition: background .2s; min-height: 48px;
+}
+.ka-btn-google:hover { background: #F6F8FA; }
+.ka-btn-google[hidden] { display: none; }
+
+.ka-switch { text-align: center; margin-top: 22px; font-size: 13px; color: #667078; }
+.ka-switch .ka-dot { margin: 0 6px; color: #B9C2C9; }
+
+/* ── Trust bar (reuses existing assets/images/trust icons) ── */
+.ka-trust {
+    border-top: 1px solid rgba(255,255,255,.08);
+    padding: 22px 56px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    background: var(--ka-night);
+}
+.ka-trust-item { display: flex; align-items: flex-start; gap: 12px; }
+.ka-trust-item img { width: 28px; height: 28px; flex-shrink: 0; }
+.ka-trust-item strong { display: block; font-size: 13.5px; color: #fff; }
+.ka-trust-item span { display: block; font-size: 12px; color: rgba(255,255,255,.55); margin-top: 2px; }
+
+/* ── Footer ────────────────────────────────────────────── */
+.ka-footer {
+    border-top: 1px solid rgba(255,255,255,.08);
+    padding: 18px 16px; text-align: center;
+    font-size: 12.5px; color: rgba(255,255,255,.5);
+}
+.ka-footer a { color: rgba(255,255,255,.7); text-decoration: none; }
+.ka-footer a:hover { color: var(--ka-orange); }
+.ka-footer .ka-sep { margin: 0 10px; color: rgba(255,255,255,.25); }
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 1100px) {
+    .ka-headline { font-size: 44px; }
+    .ka-brand { padding: 40px 44px; }
+}
+@media (max-width: 900px) {
+    .ka-main { grid-template-columns: 1fr; }
+    .ka-brand {
+        padding: 34px 24px 30px; gap: 26px;
+        background:
+            linear-gradient(180deg, rgba(5,5,5,.62) 0%, rgba(5,5,5,.55) 40%, rgba(5,5,5,.94) 100%),
+            url('../images/hero/auth-hero-night.jpg') top right / cover no-repeat #050505;
+    }
+    .ka-logo img { height: 52px; }
+    .ka-headline { font-size: 38px; }
+    .ka-rule { margin: 16px 0 12px; }
+    .ka-form-side { padding: 26px 16px 10px; }
+    .ka-card { padding: 30px 24px; }
+    .ka-trust { padding: 18px 20px; gap: 14px; }
+}
+@media (max-width: 560px) {
+    .ka-headline { font-size: 32px; }
+    .ka-desc { font-size: 12.5px; }
+    .ka-card { padding: 26px 18px; border-radius: 14px; }
+    .ka-card h2 { font-size: 25px; }
+    .ka-trust { gap: 10px; padding: 16px 14px; }
+    .ka-trust-item { gap: 8px; }
+    .ka-trust-item img { width: 22px; height: 22px; }
+    .ka-trust-item strong { font-size: 11.5px; }
+    .ka-trust-item span { font-size: 10.5px; }
+    .ka-footer { font-size: 11.5px; }
+    .ka-footer .ka-sep { margin: 0 6px; }
+}
