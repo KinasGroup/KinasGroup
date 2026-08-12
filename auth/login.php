@@ -44,7 +44,8 @@ $googleOAuthEnabled = filter_var(getenv('GOOGLE_OAUTH_ENABLED') ?: 'false', FILT
 <link rel="stylesheet" href="../assets/css/style.css">
 <link rel="stylesheet" href="../assets/css/james-edition.css">
 <link rel="stylesheet" href="../assets/css/responsive.css">
-<link rel="stylesheet" href="../assets/css/auth.css">
+<!-- v=2 cache-bust: forces browsers to fetch the new auth.css -->
+<link rel="stylesheet" href="../assets/css/auth.css?v=2">
 <!-- Preload the hero so the CSS background isn't discovered late (keeps LCP fast).
      If you convert the hero to WebP later, change the extension here AND in auth.css. -->
 <link rel="preload" as="image" href="../assets/images/hero/auth-hero-night.jpg">
@@ -54,23 +55,19 @@ $googleOAuthEnabled = filter_var(getenv('GOOGLE_OAUTH_ENABLED') ?: 'false', FILT
 <body>
 <div class="ka-shell">
     <div class="ka-main">
+        <!-- Full-bleed hero layer: spans the ENTIRE width behind both columns -->
+        <div class="ka-hero" aria-hidden="true"></div>
+
         <!-- ── Brand panel ── -->
         <aside class="ka-brand">
             <a href="../index.php" class="ka-logo">
                 <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
             </a>
-            <div>
+            <div class="ka-brand-copy">
                 <h1 class="ka-headline">Welcome<br><span class="ka-accent">Back!</span></h1>
                 <div class="ka-rule"></div>
                 <p class="ka-group"><span class="ka-accent">Kinas</span> Group</p>
                 <p class="ka-desc">One Company. Multiple Solutions. Delivering excellence across Real Estate, Automobiles, Solar Solutions, Hospitality, Global Trade and Commerce.</p>
-            </div>
-            <div class="ka-secure-pill">
-                <i class="fas fa-shield-alt" aria-hidden="true"></i>
-                <div>
-                    <strong>Platform 100% secure</strong>
-                    <span>Your data is safe with us</span>
-                </div>
             </div>
         </aside>
 
