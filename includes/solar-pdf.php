@@ -1,6 +1,6 @@
 <?php
-// includes/solar-pdf.php
-// Production PDF generator with robust vendor loading
+// includes/solar-pdf.php  (ALIGNED — bundle line items, NO service costs)
+// Production PDF generator with robust vendor loading.
 
 // Try multiple possible vendor paths
 $vendorPaths = [
@@ -8,7 +8,6 @@ $vendorPaths = [
     '/var/www/html/vendor/autoload.php',
     '/app/vendor/autoload.php',
 ];
-
 $vendorLoaded = false;
 foreach ($vendorPaths as $vendorPath) {
     if (file_exists($vendorPath)) {
@@ -17,7 +16,6 @@ foreach ($vendorPaths as $vendorPath) {
         break;
     }
 }
-
 if (!$vendorLoaded) {
     error_log('Vendor autoload not found');
     header('Content-Type: application/json');
@@ -30,21 +28,15 @@ if (!$vendorLoaded) {
 
 // Ensure mPDF temp directory exists and is writable
 $tmpDir = __DIR__ . '/../vendor/mpdf/mpdf/tmp';
-if (!is_dir($tmpDir)) {
-    mkdir($tmpDir, 0777, true);
-}
-if (!is_writable($tmpDir)) {
-    chmod($tmpDir, 0777);
-}
+if (!is_dir($tmpDir)) { mkdir($tmpDir, 0777, true); }
+if (!is_writable($tmpDir)) { chmod($tmpDir, 0777); }
 
 // Ensure uploads directory exists
 $uploadDir = __DIR__ . '/../uploads/solar-reports/';
-if (!is_dir($uploadDir)) {
-    mkdir($uploadDir, 0777, true);
-}
+if (!is_dir($uploadDir)) { mkdir($uploadDir, 0777, true); }
 
 /**
- * Get the professional email header HTML (same as PDF header)
+ * Professional email header (same branding as PDF header)
  */
 function getSolarEmailHeader() {
     return '
@@ -57,7 +49,7 @@ function getSolarEmailHeader() {
 }
 
 /**
- * Get the professional email footer HTML (same as PDF footer)
+ * Professional email footer
  */
 function getSolarEmailFooter() {
     return '
@@ -69,14 +61,9 @@ function getSolarEmailFooter() {
 
 function generateSolarRecommendationPDF($data, $reference) {
     try {
-        // Ensure temp directory exists
         $tmpDir = __DIR__ . '/../vendor/mpdf/mpdf/tmp';
-        if (!is_dir($tmpDir)) {
-            mkdir($tmpDir, 0777, true);
-        }
-        if (!is_writable($tmpDir)) {
-            chmod($tmpDir, 0777);
-        }
+        if (!is_dir($tmpDir)) { mkdir($tmpDir, 0777, true); }
+        if (!is_writable($tmpDir)) { chmod($tmpDir, 0777); }
 
         $mpdf = new \Mpdf\Mpdf([
             'margin_top'    => 45,
@@ -88,23 +75,17 @@ function generateSolarRecommendationPDF($data, $reference) {
             'tempDir'       => $tmpDir
         ]);
 
-        $generationTime = date('F j, Y - h:i:s A');
-
         // Decode appliances
         $appliances = $data['appliances'] ?? [];
-        if (is_string($appliances)) {
-            $appliances = json_decode($appliances, true);
-        }
-        if (!is_array($appliances)) {
-            $appliances = [];
-        }
+        if (is_string($appliances)) { $appliances = json_decode($appliances, true); }
+        if (!is_array($appliances)) { $appliances = []; }
 
         $totalWattage = 0;
         foreach ($appliances as $appliance) {
             $totalWattage += ($appliance['quantity'] ?? 1) * ($appliance['watts'] ?? 0);
         }
 
-        // Professional Header with LOGO
+        // Professional Header with LOGO (branding retained)
         $mpdf->SetHTMLHeader('
         <div style="text-align:center; padding-bottom:12px; border-bottom:2px solid #C6A43F;">
             <img src="' . __DIR__ . '/../assets/images/logos/kinas-volt-logo.jpg"
@@ -113,7 +94,6 @@ function generateSolarRecommendationPDF($data, $reference) {
             <div style="font-size:8px; color:#999; margin-top:2px;">Gwarimpa, Abuja • +234 913 717 5523</div>
         </div>');
 
-        // Professional Footer - FIXED URL
         $mpdf->SetHTMLFooter('
         <table width="100%" style="border-top:1px solid #E0E0E0; padding-top:8px; font-size:8px; color:#999;">
             <tr>
@@ -123,7 +103,6 @@ function generateSolarRecommendationPDF($data, $reference) {
             </tr>
         </table>');
 
-        // Build HTML
         $html = '
 <!DOCTYPE html>
 <html>
@@ -196,7 +175,7 @@ body { font-family: Arial, sans-serif; line-height: 1.5; color: #2C2C2C; font-si
 
         // Load Analysis
         $systemSize = $data['system_size'] ?? ceil(($data['daily_kwh'] ?? 0) / 5);
-        $panels = $data['recommended_panels'] ?? max(8, ceil($systemSize * 1000 / 550));
+        $panels = $data['recommended_panels'] ?? max(1, ceil($systemSize * 1000 / 550));
 
         $html .= '
 <div class="section-title">LOAD ANALYSIS</div>
@@ -208,48 +187,62 @@ body { font-family: Arial, sans-serif; line-height: 1.5; color: #2C2C2C; font-si
 </tr>
 </table>';
 
-        // Recommended System
+        // Recommended System (matched bundle)
         $html .= '
 <div class="section-title">RECOMMENDED SYSTEM</div>
 <table class="system-table">
 <tr><th width="28%">Component</th><th>Specification</th><th width="18%">Quantity</th></tr>
-<tr><td><strong>Solar Panels</strong></td><td>550W Monocrystalline PERC Tier-1</td><td><strong>' . number_format($panels) . ' Units</strong></td></tr>
-<tr><td><strong>Inverter</strong></td><td>' . htmlspecialchars($data['recommended_inverter'] ?? '12kVA Hybrid Inverter') . '</td><td><strong>1 Unit</strong></td></tr>
-<tr><td><strong>Battery Bank</strong></td><td>' . htmlspecialchars($data['recommended_battery'] ?? '48V 400Ah LiFePO4') . '</td><td><strong>' . ($data['battery_units'] ?? 2) . ' Units</strong></td></tr>
+<tr><td><strong>Solar Panels</strong></td><td>' . (int)($data['panel_wattage_w'] ?? 550) . 'W Monocrystalline PERC Tier-1</td><td><strong>' . number_format($panels) . ' Units</strong></td></tr>
+<tr><td><strong>Power System</strong></td><td>' . htmlspecialchars($data['recommended_inverter'] ?? 'KINAS VOLT Power Station') . '</td><td><strong>1 Unit</strong></td></tr>
+<tr><td><strong>Battery</strong></td><td>' . htmlspecialchars($data['recommended_battery'] ?? 'Integrated LiFePO4') . '</td><td><strong>' . ($data['battery_units'] ?? 1) . ' Unit(s)</strong></td></tr>
 </table>';
 
         // ============================================================
-        // Financial Breakdown — HARDWARE ONLY
-        //
-        // CLIENT REQUEST: Installation, Cabling, Mounting and Transport
-        // are services the company does NOT currently offer, so they are
-        // intentionally EXCLUDED from the automatic quotation.
+        // FINANCIAL BREAKDOWN — live bundle line items, NO service costs
         // ============================================================
-        $panelPrice = 450000;
-        $inverterPrice = 3500000;
-        $batteryPrice = 2800000;
+        $items = $data['items'] ?? [];
+        if (!is_array($items)) { $items = []; }
+        $hasItems = !empty($items);
+        $grandTotal = (float)($data['estimated_cost'] ?? $data['grand_total'] ?? 0);
 
-        $panelTotal = $panelPrice * $panels;
-        $batteryTotal = $batteryPrice * ($data['battery_units'] ?? 2);
-        $subtotal = $panelTotal + $inverterPrice + $batteryTotal;
-        $grandTotal = $subtotal;   // no service charges added
+        if ($hasItems) {
+            $html .= '<div class="section-title">FINANCIAL BREAKDOWN (LIVE KINAS VOLT PRICES)</div>';
+            $html .= '<table class="system-table"><tr><th>Item</th><th>Unit Price</th><th>Qty</th><th>Total</th></tr>';
+            $sum = 0;
+            foreach ($items as $it) {
+                $line = (float)($it['line_total'] ?? 0);
+                $sum += $line;
+                $html .= '<tr><td><strong>' . htmlspecialchars((string)($it['description'] ?? 'Item')) . '</strong></td>'
+                       . '<td>₦' . number_format((float)($it['unit_price'] ?? 0)) . '</td>'
+                       . '<td>' . (int)($it['qty'] ?? 1) . '</td>'
+                       . '<td><strong>₦' . number_format($line) . '</strong></td></tr>';
+            }
+            if ($grandTotal <= 0) { $grandTotal = $sum; }
+            $html .= '<tr style="background:#C6A43F;color:#0A0A0A;font-weight:bold;font-size:13px;"><td colspan="3" align="right"><strong>GRAND TOTAL (HARDWARE ONLY)</strong></td><td><strong>₦' . number_format($grandTotal) . '</strong></td></tr>';
+            $html .= '</table>';
+            $html .= '<p style="font-size:9px;color:#888;margin-top:4px;">Quotation covers solar hardware only. Installation, cabling, mounting and transport are not included, as these services are not currently offered.</p>';
+        } else {
+            // Fallback: no line items supplied — show total only.
+            $html .= '<div class="section-title">FINANCIAL BREAKDOWN</div>';
+            $html .= '<p style="font-size:10px;color:#666;">Itemised pricing will be confirmed by our team after a site assessment.</p>';
+        }
 
-        $html .= '
-<div class="section-title">FINANCIAL BREAKDOWN</div>
-<table class="system-table">
-<tr><th>Item</th><th>Unit Price</th><th>Qty</th><th>Total</th></tr>
-<tr><td><strong>Solar Panels</strong></td><td>₦' . number_format($panelPrice) . '</td><td>' . $panels . '</td><td><strong>₦' . number_format($panelTotal) . '</strong></td></tr>
-<tr><td><strong>Inverter</strong></td><td>₦' . number_format($inverterPrice) . '</td><td>1</td><td><strong>₦' . number_format($inverterPrice) . '</strong></td></tr>
-<tr><td><strong>Battery Bank</strong></td><td>₦' . number_format($batteryPrice) . '</td><td>' . ($data['battery_units'] ?? 2) . '</td><td><strong>₦' . number_format($batteryTotal) . '</strong></td></tr>
-<tr style="background:#C6A43F;color:#0A0A0A;font-weight:bold;font-size:13px;"><td colspan="3" align="right"><strong>GRAND TOTAL</strong></td><td><strong>₦' . number_format($grandTotal) . '</strong></td></tr>
-</table>
-<p style="font-size:9px;color:#888;margin-top:2px;">Quotation covers solar hardware only. Installation, cabling, mounting and transport are not included, as these services are not currently offered.</p>';
+        // Warnings (engine notes)
+        $warnings = $data['warnings'] ?? [];
+        if (!empty($warnings) && is_array($warnings)) {
+            $html .= '<div class="section-title">PLEASE NOTE</div>';
+            $html .= '<ul style="font-size:10px;color:#5d4a00;background:#FFF8E1;border:1px solid #FFE082;padding:10px 10px 10px 24px;border-radius:4px;">';
+            foreach ($warnings as $w) {
+                $html .= '<li>' . htmlspecialchars((string)$w) . '</li>';
+            }
+            $html .= '</ul>';
+        }
 
         // Investment Summary
-        $estimatedCost = $data['estimated_cost'] ?? $grandTotal;
+        $estimatedCost = $grandTotal > 0 ? $grandTotal : (float)($data['estimated_cost'] ?? 0);
         $monthlySavings = $data['monthly_savings'] ?? (($data['daily_kwh'] ?? 0) * 30 * 225);
-        $paybackYears = $data['payback_years'] ?? ($estimatedCost / ($monthlySavings * 12));
-        $roi = $data['roi'] ?? (($monthlySavings * 12 * 20) / $estimatedCost * 100);
+        $paybackYears = $data['payback_years'] ?? ($monthlySavings > 0 ? ($estimatedCost / ($monthlySavings * 12)) : 0);
+        $roi = $data['roi'] ?? ($estimatedCost > 0 ? (($monthlySavings * 12 * 20) / $estimatedCost * 100) : 0);
 
         $html .= '
 <div class="section-title">INVESTMENT SUMMARY</div>
@@ -277,14 +270,11 @@ body { font-family: Arial, sans-serif; line-height: 1.5; color: #2C2C2C; font-si
 
         // Save PDF
         $uploadDir = __DIR__ . '/../uploads/solar-reports/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
+        if (!is_dir($uploadDir)) { mkdir($uploadDir, 0777, true); }
         $filepath = $uploadDir . $reference . '.pdf';
         $mpdf->Output($filepath, 'F');
 
         return $filepath;
-
     } catch (Exception $e) {
         error_log('PDF Generation Error: ' . $e->getMessage());
         throw $e;
