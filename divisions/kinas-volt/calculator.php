@@ -1,12 +1,10 @@
 <?php
-// calculator.php - Footer social icons fixed
+// calculator.php — bundle-aware rebuild (shows matched bundle + line items)
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/security.php';
 require_once __DIR__ . '/../../api/config/database.php';
 
 $page_title = 'Solar Savings Calculator - Kinas Volt';
-$headerDepth = '../../';
-
 require_once __DIR__ . '/../../templates/header.php';
 ?>
 <style>
@@ -39,8 +37,7 @@ body {
 }
 .calculator-hero::before {
     content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
+    position: absolute; inset: 0;
     background: url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1920&q=80') center/cover;
     opacity: 0.1;
     pointer-events: none;
@@ -67,11 +64,8 @@ body {
 .progress-steps { display: flex; justify-content: center; gap: 80px; margin-bottom: 60px; position: relative; }
 .progress-steps::before {
     content: '';
-    position: absolute;
-    top: 24px; left: 15%; right: 15%;
-    height: 2px;
-    background: rgba(255,255,255,0.1);
-    z-index: 0;
+    position: absolute; top: 24px; left: 15%; right: 15%; height: 2px;
+    background: rgba(255,255,255,0.1); z-index: 0;
 }
 .step-indicator { text-align: center; position: relative; z-index: 1; cursor: pointer; transition: var(--transition); }
 .step-number {
@@ -118,6 +112,7 @@ body {
 .form-group input::placeholder { color: rgba(255,255,255,0.3); }
 .form-group select option { background: #1a1a1a; color: #fff; }
 
+/* Appliances — now with Hours/Day */
 .appliances-header {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr 60px;
@@ -253,33 +248,32 @@ body {
     margin-bottom: 16px;
 }
 .results-header h2 { font-family: 'Prata', serif; font-size: 32px; margin-bottom: 8px; }
-.results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
 .result-item { background: rgba(0,0,0,0.08); border-radius: 12px; padding: 20px; text-align: center; }
 .result-item i { font-size: 28px; margin-bottom: 8px; }
 .result-value { font-size: 24px; font-weight: 800; margin: 4px 0; }
+.result-value.small { font-size: 15px; line-height: 1.3; }
 .result-label { font-size: 12px; opacity: 0.7; }
 
-/* Calculated-result blocks (new engine output, same visual language) */
-.quote-block { background: rgba(0,0,0,0.08); border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: left; }
+/* Itemised quotation + warnings */
+.quote-block { background: rgba(0,0,0,0.08); border-radius: 12px; padding: 20px; margin: 0 0 20px 0; text-align: left; }
 .quote-block h3 { font-size: 16px; margin-bottom: 12px; }
 .quote-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .quote-table th { text-align: left; padding: 8px 10px; border-bottom: 2px solid rgba(0,0,0,0.25); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 .quote-table td { padding: 8px 10px; border-bottom: 1px solid rgba(0,0,0,0.12); vertical-align: top; }
-.quote-table td.num { text-align: right; white-space: nowrap; }
 .quote-table tr.total td { font-weight: 800; border-bottom: none; font-size: 15px; }
-.quote-warnings { background: rgba(255,255,255,0.35); border: 1px solid rgba(0,0,0,0.25); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; }
-.quote-warnings li { margin: 4px 0 4px 18px; }
+.quote-warnings { background: rgba(255,255,255,0.35); border: 1px solid rgba(0,0,0,0.25); border-radius: 12px; padding: 14px 18px; margin: 0 0 20px 0; font-size: 13px; text-align: left; }
+.quote-warnings ul { margin: 6px 0 0 18px; }
 
 .proposal-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
 .btn-dark { background: var(--dark-bg); color: white; }
 .btn-dark:hover { background: #1A1A1A; transform: translateY(-2px); }
 .btn-outline-dark { background: transparent; border: 2px solid var(--dark-bg); color: var(--dark-bg); }
 .btn-outline-dark:hover { background: var(--dark-bg); color: white; }
-
 .error-message { background: rgba(220,53,69,0.2); border: 1px solid var(--error); border-radius: 8px; padding: 12px 16px; color: var(--error); margin-bottom: 16px; display: none; }
 .error-message.show { display: block; }
 
-/* Footer Social Icons Fix - Force visibility */
+/* Footer social fix */
 .je-footer-social { display: flex !important; gap: 12px !important; margin-top: 16px !important; flex-wrap: wrap !important; }
 .je-footer-social a {
     display: inline-flex !important; align-items: center !important; justify-content: center !important;
@@ -316,7 +310,7 @@ body {
             <i class="fas fa-solar-panel"></i> KINAS VOLT
         </div>
         <h1 style="font-family:'Prata',serif; font-size:52px; font-weight:400; background:linear-gradient(135deg, #FFFFFF 0%, #C6A43F 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:16px;">Solar Savings Calculator</h1>
-        <p style="font-size:18px; color:rgba(255,255,255,0.7); max-width:600px; margin:0 auto; line-height:1.6;">Get an instant estimate of your solar needs and potential savings</p>
+        <p style="font-size:18px; color:rgba(255,255,255,0.7); max-width:600px; margin:0 auto; line-height:1.6;">Get an instant estimate matched to real KINAS VOLT power stations and panels</p>
     </div>
 </div>
 
@@ -347,7 +341,7 @@ body {
                         <label><i class="fas fa-building"></i> Property Type *</label>
                         <select name="property_type" required>
                             <option value="">Select property type</option>
-                            <option value="Apartment">🏢 Apartment</option>
+                            <option value="Apartment"> Apartment</option>
                             <option value="Duplex">🏠 Duplex</option>
                             <option value="Bungalow">🏡 Bungalow</option>
                             <option value="Office">💼 Office</option>
@@ -364,14 +358,14 @@ body {
             </div>
         </div>
 
-        <!-- Step 2: Appliances -->
+        <!-- Step 2: Appliances (with Hours/Day) -->
         <div class="step" id="step2">
             <div class="form-card">
                 <h2><i class="fas fa-plug"></i> Your Appliances</h2>
-                <p style="margin-bottom: 24px; color: var(--text-muted);">Add the appliances you want to power with solar</p>
+                <p style="margin-bottom: 24px; color: var(--text-muted);">Add the appliances you want to power. Hours/day drives your real daily energy use.</p>
                 <div class="preset-grid" id="presetGrid"></div>
                 <div class="appliances-header">
-                    <div>Appliance</div><div>Quantity</div><div>Watts (W)</div><div>Hours/Day</div><div></div>
+                    <div>Appliance</div><div>Qty</div><div>Watts (W)</div><div>Hours/Day</div><div></div>
                 </div>
                 <div id="appliance-list"></div>
                 <button type="button" class="add-appliance-btn" onclick="addCustomAppliance()"><i class="fas fa-plus"></i> Add Custom Appliance</button>
@@ -408,42 +402,44 @@ body {
     <!-- Loading -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-spinner"></div>
-        <p style="color: #C6A43F; font-weight: 600;">Calculating your solar solution...</p>
-        <p style="color: rgba(255,255,255,0.5); font-size: 14px;">Matching real KINAS VOLT products and pricing</p>
+        <p style="color: #C6A43F; font-weight: 600;">Matching real KINAS VOLT products...</p>
+        <p style="color: rgba(255,255,255,0.5); font-size: 14px;">This may take a few moments</p>
     </div>
 
-    <!-- Results (immediate temporary on-page display) -->
+    <!-- Results -->
     <div id="results" class="results-section"></div>
 </div>
 
 <script>
-// Appliance presets (original design presets)
+// Appliance presets (name, watts, typical hours/day)
 const appliancePresets = [
-    { name: "LED Bulb (10W)", watts: 10 },
-    { name: "Ceiling Fan (70W)", watts: 70 },
-    { name: "Refrigerator (150W)", watts: 150 },
-    { name: "TV (100W)", watts: 100 },
-    { name: "Laptop (50W)", watts: 50 },
-    { name: "Air Conditioner (1HP)", watts: 900 },
-    { name: "Air Conditioner (1.5HP)", watts: 1200 },
-    { name: "Microwave (1000W)", watts: 1000 },
-    { name: "Electric Kettle (1500W)", watts: 1500 },
-    { name: "Washing Machine (500W)", watts: 500 },
-    { name: "Water Pump (750W)", watts: 750 },
-    { name: "Iron (1000W)", watts: 1000 }
+    { name: "LED Bulb (10W)", watts: 10, hours: 5 },
+    { name: "Ceiling Fan (70W)", watts: 70, hours: 6 },
+    { name: "Refrigerator (150W)", watts: 150, hours: 8 },
+    { name: "TV (100W)", watts: 100, hours: 4 },
+    { name: "Laptop (50W)", watts: 50, hours: 4 },
+    { name: "Air Conditioner (1HP)", watts: 900, hours: 3 },
+    { name: "Air Conditioner (1.5HP)", watts: 1200, hours: 3 },
+    { name: "Microwave (1000W)", watts: 1000, hours: 0.5 },
+    { name: "Electric Kettle (1500W)", watts: 1500, hours: 0.5 },
+    { name: "Washing Machine (500W)", watts: 500, hours: 1 },
+    { name: "Water Pump (750W)", watts: 750, hours: 1 },
+    { name: "Iron (1000W)", watts: 1000, hours: 0.5 }
 ];
 let applianceCounter = 0;
 let currentStep = 1;
 
 function loadPresets() {
     const container = document.getElementById('presetGrid');
-    container.innerHTML = appliancePresets.map(preset => `
-        <div class="preset-chip" onclick="addPresetAppliance('${preset.name}', ${preset.watts})">${preset.name}</div>
+    container.innerHTML = appliancePresets.map((p, i) => `
+        <div class="preset-chip" onclick="addPresetAppliance(${i})">${p.name}</div>
     `).join('');
 }
-function addPresetAppliance(name, watts) { addCustomAppliance(name, watts); }
-
-function addCustomAppliance(name = '', watts = '') {
+function addPresetAppliance(i) {
+    const p = appliancePresets[i];
+    addCustomAppliance(p.name, p.watts, p.hours);
+}
+function addCustomAppliance(name = '', watts = '', hours = 4) {
     applianceCounter++;
     const container = document.getElementById('appliance-list');
     const row = document.createElement('div');
@@ -453,7 +449,7 @@ function addCustomAppliance(name = '', watts = '') {
         <input type="text" name="appliance_name[]" placeholder="Appliance name" value="${escapeHtml(name)}">
         <input type="number" name="appliance_qty[]" placeholder="Qty" value="1" min="1">
         <input type="number" name="appliance_watts[]" placeholder="Watts" value="${watts}" min="1">
-        <input type="number" name="appliance_hours[]" placeholder="Hrs/day" value="4" min="0.5" max="24" step="0.5">
+        <input type="number" name="appliance_hours[]" placeholder="Hrs/day" value="${hours}" min="0.5" max="24" step="0.5">
         <button type="button" class="remove-appliance" onclick="removeAppliance('appliance-${applianceCounter}')"><i class="fas fa-trash"></i></button>
     `;
     container.appendChild(row);
@@ -464,15 +460,8 @@ function removeAppliance(id) {
 }
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>"]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        if (m === '"') return '&quot;';
-        return m;
-    });
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
-
 function goToStep(step) {
     if (step === 2 && currentStep === 1) {
         const form = document.getElementById('solarCalculatorForm');
@@ -480,7 +469,7 @@ function goToStep(step) {
         let valid = true;
         inputs.forEach(input => {
             if (!input.value.trim()) { valid = false; input.style.borderColor = '#dc3545'; }
-            else { input.style.borderColor = ''; }
+            else input.style.borderColor = '';
         });
         if (!valid) { showError('Please fill in all required fields in Customer Information.'); return; }
         hideError();
@@ -515,7 +504,7 @@ document.getElementById('submitBtn').addEventListener('click', async function() 
     let valid = true;
     allRequired.forEach(input => {
         if (!input.value.trim()) { valid = false; input.style.borderColor = '#dc3545'; }
-        else { input.style.borderColor = ''; }
+        else input.style.borderColor = '';
     });
     if (!valid) { showError('Please fill in all required fields.'); goToStep(1); return; }
 
@@ -548,9 +537,8 @@ document.getElementById('submitBtn').addEventListener('click', async function() 
         const result = await response.json();
         loading.classList.remove('active');
         this.disabled = false;
-
         if (result.success) {
-            displayResults(result.data || {}, result.reference || '', result.pdf_url || '');
+            displayResults(result.data, result.reference, result.pdf_url);
         } else {
             showError(result.message || 'Something went wrong. Please try again.');
         }
@@ -561,47 +549,33 @@ document.getElementById('submitBtn').addEventListener('click', async function() 
     }
 });
 
-// Immediate temporary on-page result display (retained from the old design)
 function displayResults(data, reference, pdfUrl) {
     const resultsDiv = document.getElementById('results');
 
-    const systemSize = data.system_size ?? data.recommended_pv_kw ?? '--';
-    const panels     = data.panels ?? data.panels_qty ?? '--';
-    const battery    = data.battery_capacity ?? data.recommended_battery_kwh ?? '--';
-    const inverter   = data.recommended_inverter ?? data.power_source_label ?? '--';
-    const cost       = data.estimated_cost ?? data.grand_total ?? 0;
-    const savings    = data.monthly_savings ?? 0;
-    const co2        = data.co2_saved ?? data.co2_tons_year ?? '--';
-    const payback    = data.payback_years ?? '--';
-    const roi        = data.roi ?? data.roi_20_years ?? '--';
-    const items      = Array.isArray(data.items) ? data.items : [];
-    const warnings   = Array.isArray(data.warnings) ? data.warnings : [];
-
+    // Itemised quotation (live KINAS VOLT prices)
     let itemsHtml = '';
-    if (items.length) {
+    if (data.items && data.items.length) {
         let rows = '';
-        let total = 0;
-        items.forEach(it => {
-            const line = Number(it.line_total) || 0;
-            total += line;
-            rows += `<tr><td>${escapeHtml(it.description || '')}</td><td class="num">${it.qty ?? 1}</td><td class="num">₦${line.toLocaleString()}</td></tr>`;
+        data.items.forEach(it => {
+            rows += `<tr><td>${escapeHtml(it.description || '')}</td><td style="text-align:center;">${it.qty || 1}</td><td style="text-align:right;">₦${Number(it.line_total || 0).toLocaleString()}</td></tr>`;
         });
         itemsHtml = `
         <div class="quote-block">
-            <h3><i class="fas fa-boxes"></i> Recommended KINAS VOLT Products &amp; Costs</h3>
+            <h3><i class="fas fa-boxes"></i> Itemised Quotation (live KINAS VOLT prices)</h3>
             <table class="quote-table">
-                <thead><tr><th>Item</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Total</th></tr></thead>
+                <thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Total</th></tr></thead>
                 <tbody>${rows}
-                <tr class="total"><td colspan="2" style="text-align:right;">GRAND TOTAL</td><td class="num">₦${total.toLocaleString()}</td></tr>
+                <tr class="total"><td colspan="2" style="text-align:right;">GRAND TOTAL</td><td style="text-align:right;">₦${Number(data.estimated_cost || 0).toLocaleString()}</td></tr>
                 </tbody>
             </table>
         </div>`;
     }
 
+    // Warnings
     let warningsHtml = '';
-    if (warnings.length) {
+    if (data.warnings && data.warnings.length) {
         warningsHtml = `<div class="quote-warnings"><strong>Please note:</strong><ul>` +
-            warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('') + `</ul></div>`;
+            data.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('') + `</ul></div>`;
     }
 
     resultsDiv.innerHTML = `
@@ -609,19 +583,19 @@ function displayResults(data, reference, pdfUrl) {
         <div class="results-header">
             <div class="check-icon"><i class="fas fa-check-circle"></i></div>
             <h2>Your Solar Solution is Ready!</h2>
-            <p>Based on your inputs, here's what we recommend</p>
-            <p style="font-size: 13px; margin-top: 8px; opacity: 0.7;">Reference: ${escapeHtml(reference)}</p>
+            <p>Matched to real KINAS VOLT products</p>
+            <p style="font-size: 13px; margin-top: 8px; opacity: 0.7;">Reference: ${escapeHtml(reference || '')}</p>
         </div>
         <div class="results-grid">
-            <div class="result-item"><i class="fas fa-bolt"></i><div class="result-value">${systemSize} kW</div><div class="result-label">Recommended System Size</div></div>
-            <div class="result-item"><i class="fas fa-solar-panel"></i><div class="result-value">${panels}</div><div class="result-label">Solar Panels Needed</div></div>
-            <div class="result-item"><i class="fas fa-battery-full"></i><div class="result-value">${battery} kWh</div><div class="result-label">Battery Storage</div></div>
-            <div class="result-item"><i class="fas fa-microchip"></i><div class="result-value" style="font-size:16px;">${escapeHtml(inverter)}</div><div class="result-label">Power System</div></div>
-            <div class="result-item"><i class="fas fa-money-bill-wave"></i><div class="result-value">₦${Number(cost).toLocaleString()}</div><div class="result-label">Estimated Investment</div></div>
-            <div class="result-item"><i class="fas fa-chart-line"></i><div class="result-value">₦${Number(savings).toLocaleString()}</div><div class="result-label">Monthly Savings</div></div>
-            <div class="result-item"><i class="fas fa-leaf"></i><div class="result-value">${co2}</div><div class="result-label">CO₂ Saved (tons/year)</div></div>
-            <div class="result-item"><i class="fas fa-calendar-alt"></i><div class="result-value">${payback} years</div><div class="result-label">Payback Period</div></div>
-            <div class="result-item"><i class="fas fa-trophy"></i><div class="result-value">${roi}%</div><div class="result-label">ROI (20 years)</div></div>
+            <div class="result-item"><i class="fas fa-bolt"></i><div class="result-value">${data.system_size || '--'} kW</div><div class="result-label">Recommended System Size</div></div>
+            <div class="result-item"><i class="fas fa-solar-panel"></i><div class="result-value">${data.panels || '--'}</div><div class="result-label">Solar Panels Needed</div></div>
+            <div class="result-item"><i class="fas fa-microchip"></i><div class="result-value small">${escapeHtml(data.power_system || 'Custom (contact us)')}</div><div class="result-label">Matched Power Station</div></div>
+            <div class="result-item"><i class="fas fa-battery-full"></i><div class="result-value">${data.battery_capacity || '--'} kWh</div><div class="result-label">Usable Battery</div></div>
+            <div class="result-item"><i class="fas fa-money-bill-wave"></i><div class="result-value">₦${Number(data.estimated_cost || 0).toLocaleString()}</div><div class="result-label">Estimated Investment</div></div>
+            <div class="result-item"><i class="fas fa-chart-line"></i><div class="result-value">₦${Number(data.monthly_savings || 0).toLocaleString()}</div><div class="result-label">Monthly Savings</div></div>
+            <div class="result-item"><i class="fas fa-leaf"></i><div class="result-value">${data.co2_saved || '--'}</div><div class="result-label">CO₂ Saved (tons/year)</div></div>
+            <div class="result-item"><i class="fas fa-calendar-alt"></i><div class="result-value">${data.payback_years || '--'} years</div><div class="result-label">Payback Period</div></div>
+            <div class="result-item"><i class="fas fa-trophy"></i><div class="result-value">${data.roi || '--'}%</div><div class="result-label">ROI (20 years)</div></div>
         </div>
         ${warningsHtml}
         ${itemsHtml}
@@ -633,20 +607,17 @@ function displayResults(data, reference, pdfUrl) {
             <i class="fas fa-envelope"></i> A detailed proposal has been sent to your email.
         </p>
     </div>`;
-
     resultsDiv.classList.add('active');
     resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-// Initialize (original defaults retained)
+// Initialize
 document.addEventListener('DOMContentLoaded', function() {
     loadPresets();
-    addCustomAppliance('Refrigerator', 150);
-    addCustomAppliance('LED Bulbs', 10);
-    addCustomAppliance('Ceiling Fan', 70);
+    addCustomAppliance('Refrigerator', 150, 8);
+    addCustomAppliance('LED Bulbs', 10, 5);
+    addCustomAppliance('Ceiling Fan', 70, 6);
 });
-
-// Input validation on blur
 document.querySelectorAll('input[required], select[required]').forEach(el => {
     el.addEventListener('blur', function() {
         if (this.value.trim()) this.style.borderColor = '';
