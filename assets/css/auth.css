@@ -169,18 +169,18 @@ body { color: #ffffff !important; }
     }
     /* v3: give the brand band real height and push the copy down
        so "Welcome Back!" no longer sticks to the logo on mobile */
-    .ka-brand { padding: 34px 24px 30px; min-height: 430px; }
-    .ka-brand-copy { margin: 0; padding-top: 44px; }
+    .ka-brand { padding: 34px 24px 30px; min-height: 410px; }
+    .ka-brand-copy { margin: 0; padding-top: 64px; }
     .ka-logo img { height: 52px; }
     .ka-headline { font-size: 38px; }
     .ka-rule { margin: 16px 0 12px; }
-    .ka-form-side { padding: 26px 16px 10px; }
+    .ka-form-side { padding: 10px 16px 10px; }
     .ka-card { padding: 30px 24px; }
     .ka-trust { padding: 18px 20px; gap: 14px; }
 }
 @media (max-width: 560px) {
-    .ka-brand { min-height: 400px; }
-    .ka-brand-copy { padding-top: 34px; }
+    .ka-brand { min-height: 380px; }
+    .ka-brand-copy { padding-top: 48px; }
     .ka-headline { font-size: 32px; }
     .ka-desc { font-size: 12.5px; }
     .ka-card { padding: 26px 18px; border-radius: 14px; }
