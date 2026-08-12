@@ -31,6 +31,11 @@ if ($registrationSuccess) {
 
 // Google OAuth slot — shipped disabled; flip in .env when ready.
 $googleOAuthEnabled = filter_var(getenv('GOOGLE_OAUTH_ENABLED') ?: 'false', FILTER_VALIDATE_BOOLEAN);
+
+// AUTO CACHE-BUST: version = file modified time. Every time a CSS file
+// changes on disk, its query string changes automatically — browsers can
+// never serve stale CSS again. No manual ?v bumps needed, ever.
+function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file) ?: 1; }
 ?>
 <!DOCTYPE html>
 <html lang="en" style="color-scheme: light;">
@@ -41,11 +46,10 @@ $googleOAuthEnabled = filter_var(getenv('GOOGLE_OAUTH_ENABLED') ?: 'false', FILT
 <meta name="theme-color" content="#050505">
 <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
 <title>Sign In - KINAS GROUP | One Company, Multiple Solutions, One Trusted Ecosystem</title>
-<link rel="stylesheet" href="../assets/css/style.css">
-<link rel="stylesheet" href="../assets/css/james-edition.css">
-<link rel="stylesheet" href="../assets/css/responsive.css">
-<!-- v=3 cache-bust: forces browsers to fetch the new auth.css -->
-<link rel="stylesheet" href="../assets/css/auth.css?v=3">
+<link rel="stylesheet" href="../assets/css/style.css?v=<?= authCssV('style.css') ?>">
+<link rel="stylesheet" href="../assets/css/james-edition.css?v=<?= authCssV('james-edition.css') ?>">
+<link rel="stylesheet" href="../assets/css/responsive.css?v=<?= authCssV('responsive.css') ?>">
+<link rel="stylesheet" href="../assets/css/auth.css?v=<?= authCssV('auth.css') ?>">
 <!-- Preload the hero so the CSS background isn't discovered late (keeps LCP fast).
      If you convert the hero to WebP later, change the extension here AND in auth.css. -->
 <link rel="preload" as="image" href="../assets/images/hero/auth-hero-night.jpg">
