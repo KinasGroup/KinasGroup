@@ -1,10 +1,12 @@
 /* ============================================================
-KINAS AUTH — auth.css (v2)
+KINAS AUTH — auth.css (v3)
 Loaded ONLY on auth pages, AFTER style.css / james-edition.css /
 responsive.css so it wins the cascade without touching any other
 page. Design source: approved PC + mobile mockups.
 v2: hero painted on a dedicated full-bleed layer (.ka-hero) that
 spans the ENTIRE viewport width; secure-pill removed.
+v3: mobile brand band gets min-height + push-down gap so the
+"Welcome Back!" block no longer sticks to the logo.
 ============================================================ */
 :root {
     --ka-orange:      #ED5B0C;
@@ -165,7 +167,10 @@ body { color: #ffffff !important; }
     .ka-hero::after {
         background: linear-gradient(180deg, rgba(5,5,5,.62) 0%, rgba(5,5,5,.55) 40%, rgba(5,5,5,.94) 100%);
     }
-    .ka-brand { padding: 34px 24px 30px; }
+    /* v3: give the brand band real height and push the copy down
+       so "Welcome Back!" no longer sticks to the logo on mobile */
+    .ka-brand { padding: 34px 24px 30px; min-height: 430px; }
+    .ka-brand-copy { margin: 0; padding-top: 44px; }
     .ka-logo img { height: 52px; }
     .ka-headline { font-size: 38px; }
     .ka-rule { margin: 16px 0 12px; }
@@ -174,6 +179,8 @@ body { color: #ffffff !important; }
     .ka-trust { padding: 18px 20px; gap: 14px; }
 }
 @media (max-width: 560px) {
+    .ka-brand { min-height: 400px; }
+    .ka-brand-copy { padding-top: 34px; }
     .ka-headline { font-size: 32px; }
     .ka-desc { font-size: 12.5px; }
     .ka-card { padding: 26px 18px; border-radius: 14px; }
