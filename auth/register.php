@@ -1,9 +1,5 @@
 <?php
-// Authenticated, per-session content — never cache this page. Without
-// this, a browser or CDN (e.g. Cloudflare) could keep serving a stale
-// snapshot indefinitely after data changes (deletes, status updates,
-// etc.), which is exactly what made this dashboard look like it wasn't
-// updating.
+// Authenticated, per-session content — never cache this page.
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 
@@ -20,282 +16,174 @@ if (SessionManager::isLoggedIn()) {
 $csrfToken = Security::generateCSRFToken();
 $errorMessage = SessionManager::getFlash('error');
 $successMessage = SessionManager::getFlash('success');
-
 $divisions = [
     'automobile'    => 'KINAS Automobile',
     'real_estate'   => 'Williams Connect Home',
     'marketplace'   => 'KINAS Marketplace',
 ];
+
+// AUTO CACHE-BUST: version = file modified time (never serve stale CSS).
+function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file) ?: 1; }
 ?>
 <!DOCTYPE html>
 <html lang="en" style="color-scheme: light;">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- ============================================================
-         FORCE LIGHT MODE - PERMANENT FIX
-         ============================================================ -->
-    <meta name="color-scheme" content="only light">
-    <meta name="theme-color" content="#ffffff">
-    <style>
-        html, body { 
-            color-scheme: light !important; 
-            background: #ffffff !important;
-        }
-        @media (prefers-color-scheme: dark) {
-            html, body {
-                color-scheme: light !important;
-                background: #ffffff !important;
-                color: #0A0A0A !important;
-            }
-            .je-auth-shell,
-            .je-auth-main,
-            .je-auth-form {
-                background-color: #ffffff !important;
-                color: #0A0A0A !important;
-            }
-            .je-auth-aside {
-                background-color: #0A0A0A !important;
-                color: rgba(255,255,255,0.7) !important;
-            }
-            .je-auth-aside * {
-                color: rgba(255,255,255,0.7) !important;
-            }
-            .je-auth-aside h1,
-            .je-auth-aside .je-auth-headline {
-                color: #ffffff !important;
-            }
-        }
-    </style>
-    <!-- ============================================================ -->
-    
-    <?php require_once __DIR__ . '/../includes/favicon.php'; ?>
-    <title>Agent Registration - KINAS GROUP | One Company, Multiple Solutions, One Trusted Ecosystem</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/james-edition.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- ============================================================
-         MOBILE RESPONSIVENESS FIXES
-         ============================================================ -->
-    <style>
-        .je-auth-shell {
-            min-height: 100vh;
-            width: 100%;
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-        @media (max-width: 992px) {
-            .je-auth-shell {
-                grid-template-columns: 1fr !important;
-                grid-template-rows: auto 1fr !important;
-            }
-            .je-auth-aside {
-                padding: 30px 24px 36px !important;
-                min-height: auto !important;
-                overflow: visible !important;
-            }
-            .je-auth-aside .je-auth-headline {
-                font-size: 24px !important;
-            }
-            .je-auth-main {
-                padding: 30px 20px !important;
-            }
-            .je-auth-form {
-                max-width: 100% !important;
-                padding: 0 10px !important;
-            }
-            .je-auth-form h2 {
-                font-size: 24px !important;
-            }
-            .je-form-row {
-                grid-template-columns: 1fr !important;
-                gap: 0 !important;
-            }
-        }
-        @media (max-width: 480px) {
-            .je-auth-aside {
-                padding: 20px 16px 24px !important;
-                min-height: auto !important;
-            }
-            .je-auth-aside .je-auth-headline {
-                font-size: 20px !important;
-            }
-            .je-auth-main {
-                padding: 20px 14px !important;
-            }
-            .je-auth-form h2 {
-                font-size: 20px !important;
-            }
-            .je-auth-form .je-auth-sub-form {
-                font-size: 13px !important;
-            }
-            .je-form-group input,
-            .je-form-group select {
-                font-size: 14px !important;
-                padding: 10px 12px !important;
-            }
-            .je-btn-lg {
-                padding: 12px 20px !important;
-                font-size: 13px !important;
-            }
-            .je-auth-switch {
-                font-size: 12px !important;
-            }
-        }
-        .je-password-wrap {
-            display: flex;
-            align-items: center;
-            position: relative;
-        }
-        .je-password-wrap input {
-            flex: 1;
-            padding-right: 44px !important;
-        }
-        .je-password-toggle {
-            position: absolute;
-            right: 12px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #999;
-            padding: 8px;
-            font-size: 16px;
-        }
-        .je-password-toggle:hover {
-            color: #666;
-        }
-        #captcha-group {
-            min-height: 78px;
-        }
-
-        /* Restore gold accents - the site-wide dark-mode override
-           (assets/css/style.css) blackens all text inside .je-auth-form,
-           which was silently killing the gold CTA button and links here. */
-        @media (prefers-color-scheme: dark) {
-            #submitBtn.je-btn-gold,
-            .je-auth-form .je-text-gold {
-                color: #C6A43F !important;
-            }
-        }
-    
-/* ============================================================
-   DARK MODE — force this page's own styling to stay identical
-   to light mode. Auto-generated from every hardcoded
-   background/color/border-color rule already on this page.
-   ============================================================ */
-@media (prefers-color-scheme: dark) {
-    html, body { background: #ffffff !important; }
-    .je-password-toggle { color: #999 !important; }
-    .je-password-toggle:hover { color: #666 !important; }
-}
-</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="only light">
+<meta name="theme-color" content="#050505">
+<?php require_once __DIR__ . '/../includes/favicon.php'; ?>
+<title>Agent Registration - KINAS GROUP | One Company, Multiple Solutions, One Trusted Ecosystem</title>
+<link rel="stylesheet" href="../assets/css/style.css?v=<?= authCssV('style.css') ?>">
+<link rel="stylesheet" href="../assets/css/james-edition.css?v=<?= authCssV('james-edition.css') ?>">
+<link rel="stylesheet" href="../assets/css/responsive.css?v=<?= authCssV('responsive.css') ?>">
+<link rel="stylesheet" href="../assets/css/auth.css?v=<?= authCssV('auth.css') ?>">
+<link rel="preload" as="image" href="../assets/images/hero/auth-hero-night.jpg">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+<div class="ka-shell">
+    <div class="ka-main">
+        <div class="ka-hero" aria-hidden="true"></div>
 
-<div class="je-auth-shell">
-    <aside class="je-auth-aside">
-        <a href="../index.php" class="je-auth-brand">
-            <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
-            <span></span>
-        </a>
-        <div>
-            <h1 class="je-auth-headline">Become a KINAS Agent.</h1>
-            <p class="je-auth-sub"></p>
-        </div>
-        <blockquote class="je-auth-quote">
-            <p>"KINAS made cross-border selling simple. Our Lagos dealership saw international buyers within the first week."</p>
-            <cite>— M. Adebayo, Verified Dealer</cite>
-        </blockquote>
-    </aside>
-
-    <main class="je-auth-main">
-        <div class="je-auth-form" style="max-width:520px;">
-            <h2>Create Agent Account</h2>
-            <p class="je-auth-sub-form">After registration you'll complete MetaMap identity verification — usually under 2 minutes.</p>
-
-            <?php if ($errorMessage): ?><div class="je-form-error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div><?php endif; ?>
-            <?php if ($successMessage): ?><div class="je-form-success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($successMessage) ?></div><?php endif; ?>
-
-            <form id="registerForm" method="POST" action="../api/auth/register.php" novalidate>
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-
-                <div class="je-form-group">
-                    <label for="name">Full Name</label>
-                    <input type="text" id="name" name="name" placeholder="Your full name" required minlength="2" maxlength="100">
-                </div>
-
-                <div class="je-form-row">
-                    <div class="je-form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
-                    </div>
-                    <div class="je-form-group">
-                        <label for="phone">Phone</label>
-                        <input type="tel" id="phone" name="phone" placeholder="+234 800 000 0000" required>
-                    </div>
-                </div>
-
-                <div class="je-form-group">
-                    <label for="division">Select Your Division</label>
-                    <select id="division" name="division" required>
-                        <option value="">Choose your division</option>
-                        <?php foreach ($divisions as $key => $label): ?>
-                        <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($label) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div class="je-form-row">
-                    <div class="je-form-group">
-                        <label for="password">Password</label>
-                        <div class="je-password-wrap">
-                            <input type="password" id="password" name="password" placeholder="Min. 8 characters" required minlength="8">
-                            <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
-                                <i class="fas fa-eye" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                        <p style="font-size:11px; color:#888; margin-top:4px;">At least 8 characters with uppercase, lowercase, and numbers.</p>
-                    </div>
-                    <div class="je-form-group">
-                        <label for="password_confirmation">Confirm Password</label>
-                        <div class="je-password-wrap">
-                            <input type="password" id="password_confirmation" name="password_confirmation" placeholder="Confirm password" required>
-                            <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
-                                <i class="fas fa-eye" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="je-form-group" id="captcha-group">
-                    <div id="captcha-container"></div>
-                    <input type="hidden" id="captcha-token" name="captcha_token">
-                    <p style="font-size:11px; color:#888; margin-top:6px;">
-                        <i class="fas fa-shield-alt"></i> Protected by reCAPTCHA. <a href="https://policies.google.com/privacy" target="_blank" class="je-text-gold" style="color:#C6A43F;">Privacy</a> · <a href="https://policies.google.com/terms" target="_blank" class="je-text-gold" style="color:#C6A43F;">Terms</a>
-                    </p>
-                </div>
-
-                <p style="font-size:12px; color:#666; margin-bottom:20px; line-height:1.5;">
-                    <i class="fas fa-shield-alt je-text-gold" style="color:#C6A43F;"></i> By registering, you agree to our
-                    <a href="../pages/terms-of-use.php" class="je-text-gold" style="color:#C6A43F;">Terms</a> and
-                    <a href="../pages/privacy-policy.php" class="je-text-gold" style="color:#C6A43F;">Privacy Policy</a>.
-                    KYC verification is required before listing.
-                </p>
-
-                <button type="submit" id="submitBtn" class="je-btn je-btn-gold je-btn-block je-btn-lg">
-                    Create Account &amp; Continue
-                </button>
-            </form>
-
-            <div class="je-auth-switch">
-                Already have an account? <a href="login.php">Sign in</a> · <a href="register-buyer.php">Register as buyer</a>
+        <!-- ── Brand panel ── -->
+        <aside class="ka-brand">
+            <a href="../index.php" class="ka-logo">
+                <img src="../assets/images/logos/kinas-group-logo.png" alt="KINAS GROUP" onerror="this.style.display='none'">
+            </a>
+            <div class="ka-brand-copy">
+                <h1 class="ka-headline">Become a<br><span class="ka-accent">KINAS Agent.</span></h1>
+                <div class="ka-rule"></div>
+                <p class="ka-group"><span class="ka-accent">Kinas</span> Group</p>
+                <p class="ka-desc">One account to sell across Real Estate, Automobiles and Marketplace — verified buyers, secure payouts, global reach.</p>
             </div>
+        </aside>
+
+        <!-- ── Form card ── -->
+        <main class="ka-form-side">
+            <div class="ka-card">
+                <h2>Create Agent Account</h2>
+                <p class="ka-sub">After registration you'll complete identity verification — usually under 2 minutes.</p>
+
+                <?php if ($errorMessage): ?>
+                    <div class="ka-alert error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div>
+                <?php endif; ?>
+                <?php if ($successMessage): ?>
+                    <div class="ka-alert success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($successMessage) ?></div>
+                <?php endif; ?>
+
+                <form id="registerForm" method="POST" action="../api/auth/register.php" novalidate>
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+
+                    <div class="ka-field">
+                        <label for="name">Full Name</label>
+                        <div class="ka-input-wrap">
+                            <i class="fas fa-user ka-lead" aria-hidden="true"></i>
+                            <input class="ka-input" type="text" id="name" name="name" placeholder="Your full name" required minlength="2" maxlength="100">
+                        </div>
+                    </div>
+
+                    <div class="ka-grid-2">
+                        <div class="ka-field">
+                            <label for="email">Email</label>
+                            <div class="ka-input-wrap">
+                                <i class="fas fa-envelope ka-lead" aria-hidden="true"></i>
+                                <input class="ka-input" type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
+                            </div>
+                        </div>
+                        <div class="ka-field">
+                            <label for="phone">Phone</label>
+                            <div class="ka-input-wrap">
+                                <i class="fas fa-phone ka-lead" aria-hidden="true"></i>
+                                <input class="ka-input" type="tel" id="phone" name="phone" placeholder="+234 800 000 0000" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ka-field">
+                        <label for="division">Select Your Division</label>
+                        <div class="ka-input-wrap">
+                            <i class="fas fa-briefcase ka-lead" aria-hidden="true"></i>
+                            <select class="ka-select" id="division" name="division" required>
+                                <option value="">Choose your division</option>
+                                <?php foreach ($divisions as $key => $label): ?>
+                                <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($label) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="ka-grid-2">
+                        <div class="ka-field">
+                            <label for="password">Password</label>
+                            <div class="ka-input-wrap je-password-wrap">
+                                <i class="fas fa-lock ka-lead" aria-hidden="true"></i>
+                                <input class="ka-input" type="password" id="password" name="password" placeholder="Min. 8 characters" required minlength="8">
+                                <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <p class="ka-hint">At least 8 characters with uppercase, lowercase, and numbers.</p>
+                        </div>
+                        <div class="ka-field">
+                            <label for="password_confirmation">Confirm Password</label>
+                            <div class="ka-input-wrap je-password-wrap">
+                                <i class="fas fa-lock ka-lead" aria-hidden="true"></i>
+                                <input class="ka-input" type="password" id="password_confirmation" name="password_confirmation" placeholder="Confirm password" required>
+                                <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ka-field" id="captcha-group">
+                        <div id="captcha-container"></div>
+                        <input type="hidden" id="captcha-token" name="captcha_token">
+                        <p class="ka-hint"><i class="fas fa-shield-alt"></i> Protected by reCAPTCHA.</p>
+                    </div>
+
+                    <p class="ka-terms">
+                        <i class="fas fa-shield-alt"></i> By registering, you agree to our
+                        <a href="../pages/terms-of-use.php" class="ka-link">Terms</a> and
+                        <a href="../pages/privacy-policy.php" class="ka-link">Privacy Policy</a>.
+                        KYC verification is required before listing.
+                    </p>
+
+                    <button type="submit" id="submitBtn" class="ka-btn-primary">Create Account &amp; Continue</button>
+                </form>
+
+                <div class="ka-switch">
+                    Already have an account? <a href="login.php" class="ka-link">Sign in</a>
+                    <span class="ka-dot">·</span>
+                    <a href="register-buyer.php" class="ka-link">Register as buyer</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ── Trust bar ── -->
+    <section class="ka-trust">
+        <div class="ka-trust-item">
+            <img src="../assets/images/trust/secure-transactions-icon-60.png" alt="" onerror="this.style.display='none'">
+            <div><strong>Secure &amp; Protected</strong><span>Your data is safe with us</span></div>
         </div>
-    </main>
+        <div class="ka-trust-item">
+            <img src="../assets/images/trust/concierge-service-icon-60.png" alt="" onerror="this.style.display='none'">
+            <div><strong>24/7 Support</strong><span>We're here to help you anytime</span></div>
+        </div>
+        <div class="ka-trust-item">
+            <img src="../assets/images/trust/verified-dealers-icon-60.png" alt="" onerror="this.style.display='none'">
+            <div><strong>Trusted &amp; Reliable</strong><span>Excellence you can trust</span></div>
+        </div>
+    </section>
+
+    <footer class="ka-footer">
+        © <?= date('Y') ?> Kinas Group. All rights reserved.
+        <span class="ka-sep">|</span> <a href="../pages/privacy-policy.php">Privacy Policy</a>
+        <span class="ka-sep">|</span> <a href="../pages/terms-of-use.php">Terms of Use</a>
+    </footer>
 </div>
 
 <script>
@@ -329,10 +217,8 @@ document.getElementById('registerForm').addEventListener('submit', async functio
     if (password !== passwordConfirmation) { kinasToast('Passwords do not match', 'error'); return; }
     if (password.length < 8) { kinasToast('Password must be at least 8 characters', 'error'); return; }
     if (isCaptchaConfigured && !document.getElementById('captcha-token').value) { kinasToast('Please complete the CAPTCHA verification', 'warning'); return; }
-
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account…';
-
     try {
         const res = await fetch(form.action, {
             method: 'POST', credentials: 'same-origin',
