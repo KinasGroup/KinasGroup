@@ -2,8 +2,8 @@
 KINAS AUTH — auth.css
 Loaded ONLY on auth pages, AFTER style.css / james-edition.css /
 responsive.css so it wins the cascade without touching any other
-page. Design source: approved PC + mobile mockups (dark brand
-panel + white form card).
+page. Design source: approved PC + mobile mockups (full-bleed
+night-house hero + white form card).
 ============================================================ */
 :root {
     --ka-orange:      #ED5B0C;
@@ -15,23 +15,43 @@ panel + white form card).
 
 /* Page base — must beat the site-wide force-light white background */
 html, body { background: var(--ka-night) !important; }
-body { color: #fff; }
+body { color: #ffffff !important; }
 @media (prefers-color-scheme: dark) {
-    html, body { background: var(--ka-night) !important; color: #fff !important; }
+    html, body {
+        background: var(--ka-night) !important;
+        color: #ffffff !important;
+    }
 }
 
-/* ── Shell ─────────────────────────────────────────────── */
+/* ── Shell ────────────────────────────────────────────── */
 .ka-shell { min-height: 100vh; display: flex; flex-direction: column; background: var(--ka-night); }
-.ka-main  { flex: 1; display: grid; grid-template-columns: 1.15fr 1fr; align-items: stretch; }
 
-/* ── Left brand panel (hero image fades to black on left) ── */
+/* Full-bleed hero: image spans the ENTIRE desktop width behind
+   both columns; the ::before overlay keeps text (left) and card
+   (right) readable while the house shows mid-screen. */
+.ka-main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    align-items: stretch;
+    position: relative;
+    background: url('../images/hero/auth-hero-night.jpg') center center / cover no-repeat #050505;
+}
+.ka-main::before {
+    content: '';
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg,
+        #050505 0%, rgba(5,5,5,.88) 20%, rgba(5,5,5,.35) 46%,
+        rgba(5,5,5,.15) 60%, rgba(5,5,5,.55) 82%, rgba(5,5,5,.90) 100%);
+}
+.ka-brand, .ka-form-side { position: relative; z-index: 1; }
+
+/* ── Left brand panel (transparent — hero lives on .ka-main) ── */
 .ka-brand {
     position: relative; overflow: hidden;
     padding: 52px 60px;
     display: flex; flex-direction: column; justify-content: space-between; gap: 40px;
-    background:
-        linear-gradient(90deg, #050505 0%, #050505 20%, rgba(5,5,5,.78) 45%, rgba(5,5,5,.25) 68%, rgba(5,5,5,0) 100%),
-        url('../images/hero/auth-hero-night.jpg') right center / cover no-repeat #050505;
 }
 .ka-logo img { height: 62px; width: auto; }
 .ka-headline { font-family: 'Inter', sans-serif; font-size: 54px; font-weight: 800; line-height: 1.06; color: #fff; letter-spacing: -0.5px; }
@@ -78,6 +98,7 @@ body { color: #fff; }
 }
 .ka-input::placeholder { color: #A6AFB7; }
 .ka-input:focus { outline: none; border-color: var(--ka-orange); box-shadow: 0 0 0 3px rgba(237,91,12,.12); }
+/* keep clear of the eye toggle injected by includes/password-toggle.php */
 .ka-input-wrap.je-password-wrap .ka-input { padding-right: 44px; }
 
 .ka-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 18px; font-size: 13px; }
@@ -139,13 +160,11 @@ body { color: #fff; }
     .ka-brand { padding: 40px 44px; }
 }
 @media (max-width: 900px) {
-    .ka-main { grid-template-columns: 1fr; }
-    .ka-brand {
-        padding: 34px 24px 30px; gap: 26px;
-        background:
-            linear-gradient(180deg, rgba(5,5,5,.62) 0%, rgba(5,5,5,.55) 40%, rgba(5,5,5,.94) 100%),
-            url('../images/hero/auth-hero-night.jpg') top right / cover no-repeat #050505;
+    .ka-main { grid-template-columns: 1fr; background-position: top center; }
+    .ka-main::before {
+        background: linear-gradient(180deg, rgba(5,5,5,.62) 0%, rgba(5,5,5,.55) 40%, rgba(5,5,5,.94) 100%);
     }
+    .ka-brand { padding: 34px 24px 30px; gap: 26px; }
     .ka-logo img { height: 52px; }
     .ka-headline { font-size: 38px; }
     .ka-rule { margin: 16px 0 12px; }
