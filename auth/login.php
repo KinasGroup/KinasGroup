@@ -3,10 +3,12 @@
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 
+// Load environment variables from .env file
 require_once __DIR__ . '/../includes/dotenv.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
 
+// Redirect already-logged-in users away from auth pages
 if (SessionManager::isLoggedIn()) {
     $role = SessionManager::getUserRole();
     if ($role === 'admin') {
@@ -43,6 +45,9 @@ $googleOAuthEnabled = filter_var(getenv('GOOGLE_OAUTH_ENABLED') ?: 'false', FILT
 <link rel="stylesheet" href="../assets/css/james-edition.css">
 <link rel="stylesheet" href="../assets/css/responsive.css">
 <link rel="stylesheet" href="../assets/css/auth.css">
+<!-- Preload the hero so the CSS background isn't discovered late (keeps LCP fast).
+     If you convert the hero to WebP later, change the extension here AND in auth.css. -->
+<link rel="preload" as="image" href="../assets/images/hero/auth-hero-night.jpg">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -190,11 +195,17 @@ if (window.location.search.includes('registered=1')) {
     window.history.replaceState({}, document.title, url.pathname);
 }
 
+// ============================================================
+// NOTIFICATION — delegates to kinasToast (defined in kinas-ui.php)
+// ============================================================
 window.showNotification = function(message, type) {
     var typeMap = { error: 'error', success: 'success', warning: 'warning', info: 'info' };
     kinasToast(message, typeMap[type] || 'error', 5000);
 };
 
+// ============================================================
+// LOGIN FORM HANDLER
+// ============================================================
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const form = this;
