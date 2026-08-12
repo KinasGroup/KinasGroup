@@ -157,7 +157,7 @@ include __DIR__ . '/../templates/header.php';
 
                     <div class="je-form-row">
                         <div class="je-form-group">
-                            <label for="capacity_kw">Capacity (kW)</label>
+                            <label for="capacity_kw">Capacity (W)</label>
                             <input type="number" step="0.01" id="capacity_kw" name="capacity_kw"
                                    value="<?= htmlspecialchars($_POST['capacity_kw'] ?? '') ?>"
                                    placeholder="e.g. 0.55">
