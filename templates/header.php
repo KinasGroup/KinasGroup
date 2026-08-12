@@ -1,7 +1,23 @@
 <?php
+/**
+ * KINAS GROUP — Global Site Header
+ *
+ * Includes:
+ * - WhatsApp global floating button & product integration constants
+ * - Open Graph / Twitter Card meta tags
+ * - Mobile navigation drawer & overlay
+ * - Desktop navigation with notification bell & cart badge
+ * - Real-time session-based notification polling
+ */
+
 require_once __DIR__ . '/../api/config/database.php';
 require_once __DIR__ . '/../api/config/constants.php';
 require_once __DIR__ . '/../includes/functions.php';
+
+// Ensure session is active before checking user data
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
 
 $isLoggedIn = isset($_SESSION['user_id']);
 $userRole = $_SESSION['user_role'] ?? null;
@@ -276,7 +292,7 @@ $messagesLink = '/user/messages.php';
 if ($userRole === 'agent') { $messagesLink = '/agent/messages.php'; }
 elseif ($userRole === 'admin') { $messagesLink = '/admin/messages.php'; }
 ?>
-<a href="<?php echo $messagesLink; ?>" class="notification-mobile-link">
+<a href="<?php echo htmlspecialchars($messagesLink); ?>" class="notification-mobile-link">
 <span><i class="fas fa-envelope" style="margin-right:8px;"></i>Messages</span>
 <span id="notificationMobileBadge" class="notification-mobile-badge">0</span>
 </a>
@@ -327,13 +343,13 @@ elseif ($userRole === 'admin') { $messagesLink = '/admin/messages.php'; }
 
 <!-- NOTIFICATION BELL - Desktop -->
 <?php if ($isLoggedIn): ?>
-<div class="notification-container">
 <?php
 $messagesLink = '/user/messages.php';
 if ($userRole === 'agent') { $messagesLink = '/agent/messages.php'; }
 elseif ($userRole === 'admin') { $messagesLink = '/admin/messages.php'; }
 ?>
-<a href="<?php echo $messagesLink; ?>" class="notification-icon" aria-label="Messages">
+<div class="notification-container">
+<a href="<?php echo htmlspecialchars($messagesLink); ?>" class="notification-icon" aria-label="Messages" title="View Messages">
 <i class="fas fa-envelope"></i>
 <span id="notificationBadge" class="notification-badge">0</span>
 </a>
@@ -472,7 +488,6 @@ elseif ($userRole === 'admin') { $messagesLink = '/admin/messages.php'; }
     var lastCount = -1;
 
     function updateBadges() {
-        // No Bearer token needed. The secure session cookie is sent automatically.
         fetch(CONFIG.apiEndpoint, {
             credentials: 'same-origin',
             headers: {
