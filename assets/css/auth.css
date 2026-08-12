@@ -1,9 +1,10 @@
 /* ============================================================
-KINAS AUTH — auth.css
+KINAS AUTH — auth.css (v2)
 Loaded ONLY on auth pages, AFTER style.css / james-edition.css /
 responsive.css so it wins the cascade without touching any other
-page. Design source: approved PC + mobile mockups (full-bleed
-night-house hero + white form card).
+page. Design source: approved PC + mobile mockups.
+v2: hero painted on a dedicated full-bleed layer (.ka-hero) that
+spans the ENTIRE viewport width; secure-pill removed.
 ============================================================ */
 :root {
     --ka-orange:      #ED5B0C;
@@ -23,50 +24,49 @@ body { color: #ffffff !important; }
     }
 }
 
-/* ── Shell ────────────────────────────────────────────── */
+/* ── Shell ─────────────────────────────────────────────── */
 .ka-shell { min-height: 100vh; display: flex; flex-direction: column; background: var(--ka-night); }
 
-/* Full-bleed hero: image spans the ENTIRE desktop width behind
-   both columns; the ::before overlay keeps text (left) and card
-   (right) readable while the house shows mid-screen. */
+/* ── Main grid (full width) ────────────────────────────── */
 .ka-main {
     flex: 1;
     display: grid;
     grid-template-columns: 1.15fr 1fr;
     align-items: stretch;
     position: relative;
+    overflow: hidden;
+    background: var(--ka-night);
+}
+
+/* ── Full-bleed hero layer: ALWAYS spans 100% of .ka-main ── */
+.ka-hero {
+    position: absolute; inset: 0;
+    z-index: 0;
+    pointer-events: none;
     background: url('../images/hero/auth-hero-night.jpg') center center / cover no-repeat #050505;
 }
-.ka-main::before {
+/* Readability overlay: black left (text), house visible mid, dark right (card pops) */
+.ka-hero::after {
     content: '';
     position: absolute; inset: 0;
-    pointer-events: none;
     background: linear-gradient(90deg,
-        #050505 0%, rgba(5,5,5,.88) 20%, rgba(5,5,5,.35) 46%,
-        rgba(5,5,5,.15) 60%, rgba(5,5,5,.55) 82%, rgba(5,5,5,.90) 100%);
+        #050505 0%, rgba(5,5,5,.90) 22%, rgba(5,5,5,.45) 40%,
+        rgba(5,5,5,.12) 55%, rgba(5,5,5,.35) 72%, rgba(5,5,5,.88) 100%);
 }
 .ka-brand, .ka-form-side { position: relative; z-index: 1; }
 
-/* ── Left brand panel (transparent — hero lives on .ka-main) ── */
+/* ── Left brand panel (transparent — hero lives on .ka-hero) ── */
 .ka-brand {
-    position: relative; overflow: hidden;
     padding: 52px 60px;
-    display: flex; flex-direction: column; justify-content: space-between; gap: 40px;
+    display: flex; flex-direction: column;
 }
+.ka-brand-copy { margin: auto 0; }
 .ka-logo img { height: 62px; width: auto; }
 .ka-headline { font-family: 'Inter', sans-serif; font-size: 54px; font-weight: 800; line-height: 1.06; color: #fff; letter-spacing: -0.5px; }
 .ka-accent { color: var(--ka-orange); }
 .ka-rule { width: 44px; height: 3px; background: var(--ka-orange); margin: 22px 0 18px; }
 .ka-group { font-size: 21px; font-weight: 700; color: #fff; margin-bottom: 12px; }
 .ka-desc { color: rgba(255,255,255,.72); font-size: 13.5px; line-height: 1.75; max-width: 360px; }
-.ka-secure-pill {
-    display: inline-flex; align-items: center; gap: 12px; width: fit-content;
-    background: rgba(8,8,8,.72); border: 1px solid rgba(237,91,12,.35);
-    border-radius: 12px; padding: 13px 18px; backdrop-filter: blur(6px);
-}
-.ka-secure-pill i { color: var(--ka-orange); font-size: 20px; }
-.ka-secure-pill strong { display: block; font-size: 13.5px; color: #fff; }
-.ka-secure-pill span { display: block; font-size: 12px; color: rgba(255,255,255,.6); }
 
 /* ── Right form side ───────────────────────────────────── */
 .ka-form-side { display: flex; align-items: center; justify-content: center; padding: 56px 48px; }
@@ -160,11 +160,12 @@ body { color: #ffffff !important; }
     .ka-brand { padding: 40px 44px; }
 }
 @media (max-width: 900px) {
-    .ka-main { grid-template-columns: 1fr; background-position: top center; }
-    .ka-main::before {
+    .ka-main { grid-template-columns: 1fr; }
+    .ka-hero { background-position: top center; }
+    .ka-hero::after {
         background: linear-gradient(180deg, rgba(5,5,5,.62) 0%, rgba(5,5,5,.55) 40%, rgba(5,5,5,.94) 100%);
     }
-    .ka-brand { padding: 34px 24px 30px; gap: 26px; }
+    .ka-brand { padding: 34px 24px 30px; }
     .ka-logo img { height: 52px; }
     .ka-headline { font-size: 38px; }
     .ka-rule { margin: 16px 0 12px; }
