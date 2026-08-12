@@ -2,16 +2,10 @@
 /**
  * KINAS GROUP — Chat Send Endpoint
  *
- * ALIGNED: media (images + voice notes) now upload through the same
- * R2 driver used by listing uploads (includes/r2-upload.php), with an
- * automatic local fallback to /uploads/chat/ when R2 is unavailable.
- *
- * Rules enforced:
- * - Logged-in users only; User <-> Agent pairs only.
- * - Every message must reference an existing listing.
- * - A NEW thread can only start with the listing's agent (no free compose).
- * - Text (<=2000 chars) and/or up to 4 images (<=10MB) and/or one voice
- *   note (<=4MB, client caps at 3:00).
+ * AMENDED: a delisted/removed/deleted product no longer closes an existing
+ * thread. Replies are allowed whenever a conversation already exists between
+ * the two users about that listing. The listing only gates STARTING a new
+ * thread (and must be active for that).
  */
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -22,7 +16,6 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/security.php';
 
-// Same R2 driver the listing uploaders use. Optional — local fallback below.
 if (file_exists(__DIR__ . '/../../includes/r2-upload.php')) {
     require_once __DIR__ . '/../../includes/r2-upload.php';
 }
@@ -33,9 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// ------------------------------------------------------------
-// 1. Auth + CSRF + rate limit
-// ------------------------------------------------------------
 if (!SessionManager::isLoggedIn()) {
     http_response_code(401);
     echo json_encode(['success' => false, 'error' => 'Please log in to send messages.']);
@@ -53,7 +43,7 @@ if (!Security::verifyCSRFToken($csrf)) {
 Security::rateLimitDB('chat_send_u' . $userId, 30, 600);
 
 // ------------------------------------------------------------
-// 2. Media helpers
+// Media helpers (unchanged)
 // ------------------------------------------------------------
 function chat_normalize_files(?array $entry): array
 {
@@ -86,24 +76,17 @@ function chat_normalize_files(?array $entry): array
     return $out;
 }
 
-/**
- * Store one chat media file.
- * Tries R2 first (same driver/CDN as listings); falls back to local.
- * Returns the public URL, or null on rejection.
- */
 function chat_store_media(array $file, string $prefix, array $mimeMap, int $maxBytes): ?string
 {
     if (($file['error'] ?? UPLOAD_ERR_CANT_WRITE) !== UPLOAD_ERR_OK) return null;
     if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) return null;
     if (($file['size'] ?? 0) <= 0 || ($file['size'] ?? 0) > $maxBytes) return null;
 
-    // Validate real MIME type against the whitelist.
     $finfo = new finfo(FILEINFO_MIME_TYPE);
     $mime  = $finfo->file($file['tmp_name']);
     if ($mime === false || !isset($mimeMap[$mime])) return null;
     $ext = $mimeMap[$mime];
 
-    // 1) R2 — identical driver to listing uploads.
     if (class_exists('R2Upload', false)) {
         try {
             $uploader = new R2Upload('general', $mimeMap, $maxBytes);
@@ -117,7 +100,6 @@ function chat_store_media(array $file, string $prefix, array $mimeMap, int $maxB
         }
     }
 
-    // 2) Local fallback (served from web root, same as before).
     $dir = __DIR__ . '/../../uploads/chat/';
     if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
     $fname = $prefix . date('Ymd_His') . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
@@ -135,7 +117,7 @@ $AUDIO_MIMES = [
 ];
 
 // ------------------------------------------------------------
-// 3. Read + validate inputs
+// Read + validate inputs
 // ------------------------------------------------------------
 $receiverId  = (int)($_POST['receiver_id'] ?? 0);
 $listingId   = (int)($_POST['listing_id'] ?? 0);
@@ -147,7 +129,6 @@ if ($receiverId <= 0 || $receiverId === $userId) {
     echo json_encode(['success' => false, 'error' => 'Invalid recipient.']);
     exit;
 }
-
 $tableMap = [
     'car'         => 'car_listings',
     'property'    => 'property_listings',
@@ -189,7 +170,8 @@ if ($body === '' && empty($imageFiles) && empty($audioFiles)) {
 }
 
 // ------------------------------------------------------------
-// 4. DB checks: roles, listing, connection
+// DB checks: roles, listing, connection
+// AMENDED gating — existing threads survive delisting/deletion.
 // ------------------------------------------------------------
 try {
     $db = Database::getInstance()->getConnection();
@@ -212,17 +194,7 @@ if (!$pairValid) {
     exit;
 }
 
-$table = $tableMap[$listingType];
-$listStmt = $db->prepare("SELECT id, agent_id FROM {$table} WHERE id = ?");
-$listStmt->execute([$listingId]);
-$listing = $listStmt->fetch(PDO::FETCH_ASSOC);
-if (!$listing) {
-    http_response_code(404);
-    echo json_encode(['success' => false, 'error' => 'Listing not found. Messages must be about a product listing.']);
-    exit;
-}
-$listingAgentId = (int)$listing['agent_id'];
-
+// Does a conversation already exist between this pair about this listing?
 $threadStmt = $db->prepare("
     SELECT COUNT(*) FROM messages
     WHERE listing_id = ? AND listing_type = ?
@@ -231,18 +203,39 @@ $threadStmt = $db->prepare("
 $threadStmt->execute([$listingId, $listingType, $userId, $receiverId, $receiverId, $userId]);
 $hasThread = ((int)$threadStmt->fetchColumn()) > 0;
 
-$mayStart = ($senderRole === 'user')
-    ? ($receiverId === $listingAgentId)
-    : ($userId === $listingAgentId);
+// Look up the listing WITHOUT a status filter (so removed/delisted still resolve).
+$table = $tableMap[$listingType];
+$listStmt = $db->prepare("SELECT id, agent_id, status FROM {$table} WHERE id = ?");
+$listStmt->execute([$listingId]);
+$listing = $listStmt->fetch(PDO::FETCH_ASSOC);
 
+$mayStart = false;
+if ($listing) {
+    $listingAgentId = (int)$listing['agent_id'];
+    // A NEW thread may only start with the listing's agent, and only while active.
+    if (($listing['status'] ?? '') === 'active') {
+        $mayStart = ($senderRole === 'user')
+            ? ($receiverId === $listingAgentId)
+            : ($userId === $listingAgentId);
+    }
+} else {
+    // Listing row fully deleted: only an existing thread may continue.
+    if (!$hasThread) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => 'Listing not found.']);
+        exit;
+    }
+}
+
+// Final gate: an existing thread ALWAYS stays open; a new thread needs a live listing.
 if (!$hasThread && !$mayStart) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'error' => 'You can only message the agent of this listing, or someone you already have a conversation with about it.']);
+    echo json_encode(['success' => false, 'error' => 'You can only message the agent of this listing, or continue an existing conversation about it.']);
     exit;
 }
 
 // ------------------------------------------------------------
-// 5. Store media (R2 first, local fallback)
+// Store media (R2 first, local fallback)
 // ------------------------------------------------------------
 $imageUrls = [];
 foreach ($imageFiles as $img) {
@@ -268,7 +261,7 @@ if (!empty($audioFiles)) {
 }
 
 // ------------------------------------------------------------
-// 6. Insert message
+// Insert message
 // ------------------------------------------------------------
 $messageType  = !empty($imageUrls) ? 'image' : ($audioUrl !== null ? 'audio' : 'text');
 $mediaStored  = null;
@@ -302,14 +295,14 @@ try {
 echo json_encode([
     'success' => true,
     'message' => [
-        'id'                 => $messageId,
-        'sender_id'          => $userId,
-        'receiver_id'        => $receiverId,
-        'body'               => $body,
-        'message_type'       => $messageType,
-        'media_urls'         => $messageType === 'image' ? $imageUrls : ($audioUrl !== null ? [$audioUrl] : []),
-        'media_duration_sec' => $messageType === 'audio' ? $audioDuration : null,
-        'is_read'            => 0,
+        'id'                   => $messageId,
+        'sender_id'            => $userId,
+        'receiver_id'          => $receiverId,
+        'body'                 => $body,
+        'message_type'         => $messageType,
+        'media_urls'           => $messageType === 'image' ? $imageUrls : ($audioUrl !== null ? [$audioUrl] : []),
+        'media_duration_sec'   => $messageType === 'audio' ? $audioDuration : null,
+        'is_read'              => 0,
         'created_at_formatted' => date('g:i A'),
     ],
 ]);
