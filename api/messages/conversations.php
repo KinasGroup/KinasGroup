@@ -6,10 +6,9 @@
  *
  * Returns the logged-in user's conversations, grouped by
  * (other user + listing), newest first, with unread counts,
- * type-aware previews ("📷 Photo", "🎤 Voice note"), listing info
- * and — REVAMP — a `listing_closed` flag (status removed/inactive
- * or row deleted) so the client shows a lock badge on threads
- * whose listing has been delisted.
+ * type-aware previews ("📷 Photo", "🎤 Voice note"), listing info,
+ * a `listing_closed` flag (status removed/inactive or row deleted)
+ * and — GUARD — self-addressed rows are skipped entirely.
  */
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -92,7 +91,8 @@ try {
         FROM messages m
         LEFT JOIN users s ON s.id = m.sender_id
         LEFT JOIN users r ON r.id = m.receiver_id
-        WHERE m.sender_id = ? OR m.receiver_id = ?
+        WHERE (m.sender_id = ? OR m.receiver_id = ?)
+          AND m.sender_id <> m.receiver_id
         ORDER BY m.id DESC
     ");
     $stmt->execute([$userId, $userId]);
@@ -110,6 +110,8 @@ $groups = [];
 foreach ($rows as $m) {
     $isMine    = (int)$m['sender_id'] === $userId;
     $otherId   = $isMine ? (int)$m['receiver_id'] : (int)$m['sender_id'];
+    // GUARD: never surface a self-conversation.
+    if ($otherId === $userId) continue;
     $otherName = $isMine ? ($m['receiver_name'] ?? 'Unknown') : ($m['sender_name'] ?? 'Unknown');
     $otherRole = $isMine ? ($m['receiver_role'] ?? 'user') : ($m['sender_role'] ?? 'user');
     $lType     = (string)($m['listing_type'] ?? '');
