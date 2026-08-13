@@ -60,23 +60,24 @@ $hardwareType = in_array(($data['hardware_type'] ?? ''), ['solar_panel','inverte
 $panelWatts  = $num('panel_watts');
 $inverterKva = $num('inverter_kva');
 $batteryKwh  = $num('battery_kwh');
-// Keep legacy capacity_kw in sync (kW) for old readers / calculator fallback.
+// Backward-compat capacity_kw derivation so old readers/calculator fallbacks work.
 $capacityKw = $num('capacity_kw') ?? $num('capacity');
 if ($capacityKw === null) {
 if ($hardwareType === 'solar_panel' && $panelWatts !== null) $capacityKw = round($panelWatts / 1000, 3);
 elseif (($hardwareType === 'inverter' || $hardwareType === 'power_station') && $inverterKva !== null) $capacityKw = $inverterKva;
+elseif ($hardwareType === 'battery' && $batteryKwh !== null) $capacityKw = $batteryKwh;
 }
 $cols = ['agent_id','title','service_type','price','brand','capacity_kw','warranty_years','description','features','city','state','country','status'];
 $vals = [$agentId,$title,
 in_array(($data['service_type']??''),['residential','commercial','industrial','maintenance','financing'],true)?$data['service_type']:($s('solar_type',50)?strtolower($s('solar_type',50)):'residential'),
 $price,$s('brand',100),$capacityKw,$int('warranty_years'),$description,!empty($data['features'])?json_encode($data['features']):null,$s('city',100),$s('state',100),$s('country',100)?:'Nigeria',$listingStatus];
 $colCheck = $db->query("SHOW COLUMNS FROM solar_listings")->fetchAll(PDO::FETCH_COLUMN);
-if (in_array('hardware_type', $colCheck)) { $cols[]='hardware_type'; $vals[]=$hardwareType; }
-if (in_array('panel_watts', $colCheck))  { $cols[]='panel_watts';  $vals[]=$panelWatts; }
-if (in_array('inverter_kva', $colCheck)) { $cols[]='inverter_kva'; $vals[]=$inverterKva; }
-if (in_array('battery_kwh', $colCheck))  { $cols[]='battery_kwh';  $vals[]=$batteryKwh; }
+if (in_array('hardware_type',$colCheck)) { $cols[]='hardware_type'; $vals[]=$hardwareType; }
+if (in_array('panel_watts',$colCheck))  { $cols[]='panel_watts';  $vals[]=$panelWatts; }
+if (in_array('inverter_kva',$colCheck)) { $cols[]='inverter_kva'; $vals[]=$inverterKva; }
+if (in_array('battery_kwh',$colCheck))  { $cols[]='battery_kwh';  $vals[]=$batteryKwh; }
 $ph = implode(',', array_fill(0, count($cols), '?'));
-$stmt = $db->prepare("INSERT INTO solar_listings (" . implode(',', $cols) . ", created_at) VALUES ($ph, NOW())");
+$stmt = $db->prepare("INSERT INTO solar_listings (".implode(',',$cols).", created_at) VALUES ($ph, NOW())");
 $stmt->execute($vals);
 } else {
 $categoryId = $int('category_id') ?? $int('category');
@@ -120,7 +121,7 @@ if ($posterPath !== null) { $pu = new FileUpload('properties'); $pr = $pu->uploa
 } else { $vtError = 'Video upload failed (error code ' . $_FILES['virtual_tour_video']['error'] . ')'; }
 }
 if ($vtUrl !== null) { $db->prepare("UPDATE property_listings SET virtual_tour_url = ?, virtual_tour_type = ?, virtual_tour_thumbnail = ? WHERE id = ?")->execute([$vtUrl, $vtType, $vtThumbnail, $listingId]); }
-elseif ($vtError !== null) error_log("Virtual tour upload error for listing $listingId: $vtError");
+elseif ($vtError !== null) { error_log("Virtual tour upload error for listing $listingId: $vtError"); }
 }
 if (!empty($data['featured'])) { $db->prepare("UPDATE $table SET featured = 1 WHERE id = ?")->execute([$listingId]); }
 Security::logActivity($agentId, 'listing_created', "Created $listingType listing #$listingId");
