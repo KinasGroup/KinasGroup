@@ -1,5 +1,5 @@
 // /assets/js/chat.js
-// KINAS GROUP — Rebuilt Messenger client (REVAMP)
+// KINAS GROUP — Rebuilt Messenger client (REVAMP + boot guard)
 // Pairs with assets/css/chat.css and api/messages/* endpoints.
 //
 // REVAMP FEATURES:
@@ -12,12 +12,23 @@
 //  • Sounds: WebAudio send blip + receive blip, mute toggle persisted.
 //  • Delisted listings: composer locked with a clear closed notice.
 //  • listing=0 opens auto-resolve to the pair's latest listing thread.
-//  • UNREAD VISIBILITY: incoming messages that are still unread render
-//    with a darker-blue bubble (.is-unread) until they are read.
+//  • UNREAD VISIBILITY: incoming unread messages render with a darker
+//    blue bubble until mark-read confirms them as read.
+//  • BOOT GUARD: any initialisation failure renders a visible red
+//    diagnostic card inside #chatRoot instead of a blank white area.
 (function () {
 'use strict';
 var root = document.getElementById('chatRoot');
 if (!root) return;
+
+function fatal(msg) {
+    root.innerHTML =
+        '<div style="margin:24px auto;max-width:600px;background:#FEF2F2;border:1px solid #FECACA;color:#B71C1C;border-radius:12px;padding:18px 22px;font:13px/1.6 Inter,Arial,sans-serif;">' +
+        '<strong style="font-size:14px;">Messenger could not start.</strong><br>' +
+        msg + '<br><small style="color:#7f1d1d;">Please screenshot this message and send it to support — the page will never show blank again.</small></div>';
+}
+
+try {
 
 // ------------------------------------------------------------
 // CONFIG + STATE
@@ -50,7 +61,7 @@ var state = {
     lastId: 0,
     prevDate: null,
     msgEls: {},
-    uploads: [],              // {id,file,objectUrl,serverUrl,progress,status,xhr}
+    uploads: [],
     upSeq: 0,
     search: '',
     currentAudioStop: null,
@@ -64,7 +75,7 @@ var state = {
     recStopMode: 'send',
     recTouchStartX: 0,
     recTouchCancelled: false,
-    recPending: null,         // {blob, ext, seconds} awaiting send/discard (PC)
+    recPending: null,
     markReadQueued: false,
     prevUnreadTotal: null,
     muted: false
@@ -84,7 +95,7 @@ function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
         if (m === '&') return '&amp;';
         if (m === '<') return '&lt;';
-        if (m === '>'') return '&gt;';
+        if (m === '>') return '&gt;';
         if (m === '"') return '&quot;';
         return '&#39;';
     });
@@ -95,7 +106,6 @@ function fmtDur(sec) {
     var m = Math.floor(sec / 60), s = sec % 60;
     return m + ':' + (s < 10 ? '0' : '') + s;
 }
-// Gmail-style formal timestamp: "Wed, Aug 13, 2026, 2:32 PM"
 function fmtGmailDate(dt) {
     var d = new Date(dt);
     if (!dt || isNaN(d.getTime())) return '';
@@ -226,6 +236,7 @@ root.innerHTML =
     '  <img id="chatLightboxImg" src="" alt="">' +
     '  <button type="button" class="chat-lightbox-close" id="chatLightboxClose" title="Close">✕</button>' +
     '</div>';
+
 var app = qs('chatApp'), listWrap = qs('chatList'), listCount = qs('chatListCount'),
     searchInput = qs('chatSearch'), messagesWrap = qs('chatMessages'),
     threadHead = qs('chatThreadHead'), threadAvatar = qs('chatThreadAvatar'),
@@ -352,8 +363,6 @@ function loadThread(initial) {
             state.canReply = !!conv.can_reply;
             state.closed = !!conv.closed;
             state.listing = conv.listing || null;
-            // listing=0 auto-resolution sync (thread.php resolves to the
-            // pair's latest listing thread) — keep client in lockstep.
             if (state.listing && state.listing.listing_id && state.current.listing !== state.listing.listing_id) {
                 state.current.listing = state.listing.listing_id;
                 state.current.type = state.listing.listing_type || state.current.type;
@@ -361,7 +370,6 @@ function loadThread(initial) {
                     window.history.replaceState(null, '', window.location.pathname + '?user=' + state.current.other + '&listing=' + state.current.listing);
                 } catch (e) {}
             }
-            // Header
             var otherName = conv.other_name || 'Unknown';
             threadAvatar.textContent = otherName.charAt(0).toUpperCase();
             threadName.innerHTML = esc(otherName) +
@@ -377,7 +385,6 @@ function loadThread(initial) {
             } else {
                 listingCtx.style.display = 'none';
             }
-            // Composer visibility + closed notice
             if (state.canReply) {
                 composer.style.display = 'flex';
                 composerNote.style.display = 'none';
@@ -411,8 +418,6 @@ function applyMessages(messages, initial) {
     messages.forEach(function (m) {
         var id = m.id;
         if (state.msgEls[id]) {
-            // Existing node: refresh read-receipt ticks (mine) and
-            // clear the darker-blue unread highlight once read (theirs).
             if (m.mine) updateTicks(id, m.is_read);
             else state.msgEls[id].classList.toggle('is-unread', !m.is_read);
             return;
@@ -451,17 +456,11 @@ function updateTicks(id, isRead) {
     t.textContent = isRead ? '✓✓' : '✓';
     t.classList.toggle('is-read', !!isRead);
 }
-// ------------------------------------------------------------
-// MESSAGE RENDERING (with formal inquiry card + unread highlight)
-// ------------------------------------------------------------
 function renderMessage(m) {
     var row = el('div', 'chat-msg ' + (m.mine ? 'mine' : 'theirs'));
     row.setAttribute('data-msg-id', m.id);
-    // UNREAD VISIBILITY: incoming + still unread => darker blue bubble.
     if (!m.mine && !m.is_read) row.classList.add('is-unread');
     var bubble = el('div', 'chat-bubble');
-
-    // Formal inquiry card (structured meta from send-inquiry.php)
     if (m.inquiry_meta) {
         var meta = m.inquiry_meta;
         var card = el('div', 'chat-inquiry');
@@ -485,7 +484,6 @@ function renderMessage(m) {
         card.appendChild(grid);
         bubble.appendChild(card);
     } else if (m.is_viewing_request) {
-        // Legacy viewing badge (pre-revamp rows without meta)
         var vb = el('div', 'chat-viewing-badge');
         vb.innerHTML = '<i class="fas fa-calendar-check"></i> Viewing Request';
         bubble.appendChild(vb);
@@ -520,7 +518,7 @@ function renderMessage(m) {
     }
     var meta2 = el('div', 'chat-msg-meta');
     meta2.innerHTML = '<span>' + esc(m.time_formatted || '') + '</span>' +
-        (m.mine ? ' <span class="chat-ticks' + (m.is_read ? ' is-read' : '') + '">' + (m.is_read ? '✓✓' : '✓') + '</span>' : '');
+        (m.mine ? ' <span class="chat-ticks' + (m.mine && m.is_read ? ' is-read' : '') + '">' + (m.is_read ? '✓✓' : '✓') + '</span>' : '');
     bubble.appendChild(meta2);
     row.appendChild(bubble);
     return row;
@@ -767,7 +765,6 @@ function startRecording(holdMode) {
             if (mode === 'send') {
                 doSend({ body: input.value.trim(), imageUrls: [], audio: { blob: blob, ext: ext, seconds: secs } });
             } else {
-                // PC max-time overflow: keep the note, let the user decide
                 state.recPending = { blob: blob, ext: ext, seconds: secs };
                 pendingRecLabel.textContent = 'Voice note ready — ' + fmtDur(secs);
                 composer.classList.add('has-pending-rec');
@@ -792,7 +789,6 @@ function stopRecording(mode) {
     if (mode === 'cancel') state.recCancelled = true;
     if (state.rec && state.rec.state !== 'inactive') state.rec.stop();
 }
-// Mobile: hold to record, release to send, slide left to cancel
 micBtn.addEventListener('touchstart', function (e) {
     if (state.rec || !isTouch) return;
     e.preventDefault();
@@ -820,7 +816,6 @@ micBtn.addEventListener('touchend', function (e) {
     if (state.recTouchCancelled) stopRecording('cancel');
     else stopRecording('send');
 }, { passive: false });
-// PC: click to start; the recording bar's send/discard finish it
 micBtn.addEventListener('click', function () {
     if (isTouch || state.rec) return;
     startRecording(false);
@@ -900,14 +895,12 @@ composer.addEventListener('submit', function (e) {
     if (!body && !urls.length) return;
     doSend({ body: body, imageUrls: urls, audio: null });
 });
-// Enter = send, Shift+Enter = newline
 input.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         composer.requestSubmit ? composer.requestSubmit() : composer.dispatchEvent(new Event('submit'));
     }
 });
-// Auto-resize textarea
 input.addEventListener('input', function () {
     input.style.height = '42px';
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
@@ -944,5 +937,11 @@ window.addEventListener('beforeunload', function () {
 loadConversations();
 if (CFG.openOther > 0) {
     openConversation(CFG.openOther, CFG.openListing, CFG.openType);
+}
+window.__kinasChatBoot = true;
+
+} catch (bootErr) {
+    fatal((bootErr && bootErr.message) ? bootErr.message : String(bootErr));
+    if (window.console) console.error('[chat] boot error:', bootErr);
 }
 })();
