@@ -1,19 +1,9 @@
 <?php
 /**
 * KINAS GROUP — Chat Send Endpoint (revamped)
-*
-* REVAMPED POLICY (replaces the "existing threads survive delisting"
-* amendment): a listing whose status is removed/inactive — or whose row
-* is deleted — REJECTS new messages even inside an existing thread.
-* sold/rented/pending/flagged remain replyable.
-* Also accepts pre-uploaded image URLs (image_urls[]) produced by the
-* new upload-media.php progress pipeline; raw file uploads still work
-* as a fallback.
-*
-* VOICE-NOTE FIX: browsers record audio in a Matroska/WebM container,
-* which finfo/libmagic identifies as video/webm (and m4a/mp4 audio as
-* video/mp4, ogg as application/ogg). The audio whitelist now includes
-* those container aliases so recordings are accepted and stored.
+* VOICE-NOTE FIX: finfo/libmagic reports browser MediaRecorder output as
+* video/webm (Matroska container) or video/mp4 — those aliases are now
+* whitelisted so voice notes are stored instead of 422-rejected.
 */
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -102,7 +92,6 @@ $fname = $prefix . date('Ymd_His') . '_' . bin2hex(random_bytes(8)) . '.' . $ext
 if (!@move_uploaded_file($file['tmp_name'], $dir . $fname)) return null;
 return '/uploads/chat/' . $fname;
 }
-/** Validates a pre-uploaded chat image URL (from upload-media.php). */
 function chat_validate_preuploaded_url(string $u): bool
 {
 if ($u === '' || str_contains($u, '..') || str_contains($u, "\0")) return false;
@@ -111,23 +100,16 @@ $base = basename($path);
 return (bool)preg_match('/^chat_img_[0-9]{8}_[0-9]{6}_[0-9a-f]{16}\.(jpg|png|webp)$/', $base);
 }
 $IMAGE_MIMES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-// VOICE-NOTE FIX — container aliases included. MediaRecorder output is
-// audio inside a Matroska/MP4/OGG container, and finfo reports the
-// container type (video/webm etc.), not audio/webm. Without these
-// aliases every browser voice note was rejected with 422.
 $AUDIO_MIMES = [
 'audio/webm'      => 'webm',
 'video/webm'      => 'webm',   // libmagic label for webm audio recordings
 'audio/mp4'       => 'mp4',
-'video/mp4'       => 'mp4',    // some detectors label m4a/mp4 audio this way
+'video/mp4'       => 'mp4',
 'audio/x-m4a'     => 'm4a',
 'audio/ogg'       => 'ogg',
 'application/ogg' => 'ogg',
 'audio/mpeg'      => 'mp3',
 ];
-// ------------------------------------------------------------
-// Read + validate inputs
-// ------------------------------------------------------------
 $receiverId  = (int)($_POST['receiver_id'] ?? 0);
 $listingId   = (int)($_POST['listing_id'] ?? 0);
 $listingType = strtolower(trim((string)($_POST['listing_type'] ?? '')));
@@ -153,7 +135,6 @@ http_response_code(422);
 echo json_encode(['success' => false, 'error' => 'Message is too long (max 2000 characters).']);
 exit;
 }
-// Pre-uploaded image URLs (progress pipeline) OR raw files (fallback)
 $imageUrls = [];
 $postedUrls = $_POST['image_urls'] ?? null;
 if (is_string($postedUrls)) { $postedUrls = json_decode($postedUrls, true); }
@@ -195,9 +176,6 @@ http_response_code(422);
 echo json_encode(['success' => false, 'error' => 'Message is empty.']);
 exit;
 }
-// ------------------------------------------------------------
-// DB checks: roles, listing closure, connection
-// ------------------------------------------------------------
 try {
 $db = Database::getInstance()->getConnection();
 } catch (Throwable $e) {
@@ -220,7 +198,6 @@ $table = $tableMap[$listingType];
 $listStmt = $db->prepare("SELECT id, agent_id, status FROM {$table} WHERE id = ?");
 $listStmt->execute([$listingId]);
 $listing = $listStmt->fetch(PDO::FETCH_ASSOC);
-// REVAMPED GATE: delisted/removed/inactive/deleted => CLOSED for everyone.
 if (!$listing) {
 http_response_code(403);
 echo json_encode(['success' => false, 'error' => 'This listing no longer exists — messaging is closed.']);
@@ -231,7 +208,6 @@ http_response_code(403);
 echo json_encode(['success' => false, 'error' => 'This listing has been delisted — messaging is now closed.']);
 exit;
 }
-// New threads only with the listing's own agent; existing threads continue.
 $threadStmt = $db->prepare("
 SELECT COUNT(*) FROM messages
 WHERE listing_id = ? AND listing_type = ?
@@ -248,9 +224,6 @@ http_response_code(403);
 echo json_encode(['success' => false, 'error' => 'You can only message the agent of this listing, or continue an existing conversation about it.']);
 exit;
 }
-// ------------------------------------------------------------
-// Store raw-file media (pre-uploaded URLs already stored)
-// ------------------------------------------------------------
 foreach ($imageFiles as $img) {
 $url = chat_store_media($img, 'chat_img_', $IMAGE_MIMES, 10 * 1024 * 1024);
 if ($url === null) {
@@ -271,9 +244,6 @@ exit;
 }
 $audioDuration = max(0, min(3600, (int)($_POST['audio_duration'] ?? 0)));
 }
-// ------------------------------------------------------------
-// Insert message
-// ------------------------------------------------------------
 $messageType = !empty($imageUrls) ? 'image' : ($audioUrl !== null ? 'audio' : 'text');
 $mediaStored = null;
 if ($messageType === 'image') {
