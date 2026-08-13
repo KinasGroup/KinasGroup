@@ -1,60 +1,34 @@
 <?php
-// Authenticated, per-agent content — never cache this page (see
-// agent/edit-listing.php for the full rationale).
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
-
 require_once __DIR__ . '/../api/config/database.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
-
-// Auth: handled by SessionManager::requireAgent()
-
-// KYC soft-guard: unverified agents are warned but can still view the page
-$kycStatus = 'pending';
-$isBusinessAgent = false;
-$kybApprovedAgent = false;
+$kycStatus = 'pending'; $isBusinessAgent = false; $kybApprovedAgent = false;
 try {
-    $st = Database::getInstance()->getConnection()
-        ->prepare("SELECT verification_status, company_name, kyb_status FROM agent_profiles WHERE user_id = ?");
-    $st->execute([(int)$_SESSION['user_id']]);
-    $agentRow = $st->fetch(PDO::FETCH_ASSOC) ?: [];
-    $kycStatus = $agentRow['verification_status'] ?? 'pending';
-    $isBusinessAgent = trim((string)($agentRow['company_name'] ?? '')) !== '';
-    $kybApprovedAgent = ($agentRow['kyb_status'] ?? '') === 'approved';
-} catch (Exception $e) { /* table not migrated yet — allow */ }
-// Only a verified business (company name on file AND KYB approved) may
-// list a vehicle for rental — individuals and unverified businesses are
-// restricted to Sale.
+$st = Database::getInstance()->getConnection()->prepare("SELECT verification_status, company_name, kyb_status FROM agent_profiles WHERE user_id = ?");
+$st->execute([(int)$_SESSION['user_id']]);
+$agentRow = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+$kycStatus = $agentRow['verification_status'] ?? 'pending';
+$isBusinessAgent = trim((string)($agentRow['company_name'] ?? '')) !== '';
+$kybApprovedAgent = ($agentRow['kyb_status'] ?? '') === 'approved';
+} catch (Exception $e) {}
 $canOfferRental = $isBusinessAgent && $kybApprovedAgent;
-
-// Division + super-agent flag (set on login by SessionManager::setUser).
-// Super agents can list across all 4 divisions; regular agents are
-// restricted to the division they chose at registration.
-$agentDivision = $_SESSION['user_division']  ?? null;
+$agentDivision = $_SESSION['user_division'] ?? null;
 $isSuperAgent  = !empty($_SESSION['is_super_agent']);
-
 $flashSuccess = $_SESSION['flash_success'] ?? null;
 $flashError   = $_SESSION['flash_error']   ?? null;
 unset($_SESSION['flash_success'], $_SESSION['flash_error']);
-
-// Map: DB division value → listing_type (what the API expects) → label
 $divisionMap = [
-    'kinas-automobile'    => ['type' => 'car',         'label' => 'Kinas Automobile',      'opt' => 'automobile'],
-    'williams-connect-home'=> ['type' => 'property',   'label' => 'Williams Connect Home', 'opt' => 'realestate'],
-    'kinas-volt'          => ['type' => 'solar',       'label' => 'Kinas Volt',            'opt' => 'solar'],
-    'kinas-marketplace'   => ['type' => 'marketplace', 'label' => 'Kinas Marketplace',     'opt' => 'marketplace'],
+'kinas-automobile'    => ['type' => 'car',         'label' => 'Kinas Automobile',      'opt' => 'automobile'],
+'williams-connect-home'=> ['type' => 'property',   'label' => 'Williams Connect Home', 'opt' => 'realestate'],
+'kinas-volt'          => ['type' => 'solar',       'label' => 'Kinas Volt',            'opt' => 'solar'],
+'kinas-marketplace'   => ['type' => 'marketplace', 'label' => 'Kinas Marketplace',     'opt' => 'marketplace'],
 ];
-
-// Generate CSRF token BEFORE including header
 $csrf_token = Security::generateCSRFToken();
-
-// Set page title before including header
 $pageTitle = 'Add Listing - Agent Dashboard';
-
 require_once __DIR__ . '/../templates/header.php';
 ?>
-
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
@@ -101,524 +75,246 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 .full-width { grid-column: 1 / -1; }
 @media (max-width: 968px) { .form-grid { grid-template-columns: 1fr; } .form-section:first-child { border-right: none; border-bottom: 1px solid #E0E0E0; } .form-row { grid-template-columns: 1fr; gap: 0; } .automobile-fields-grid { grid-template-columns: 1fr; } }
 @media (max-width: 768px) { .agent-container { padding: 20px; } .form-section { padding: 24px; } }
-
-/* Upload loading overlay */
-.upload-loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    color: white;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Inter', sans-serif;
-    border-radius: 16px;
-    z-index: 10;
-}
-
-/* ============================================================
-   DARK MODE — force this page's own styling to stay identical
-   to light mode. Auto-generated from every hardcoded
-   background/color/border-color rule already on this page.
-   ============================================================ */
+.upload-loading-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); color:white; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'Inter',sans-serif; border-radius:16px; z-index:10; }
 @media (prefers-color-scheme: dark) {
-    body { background: #F5F7FA !important; }
-    .agent-header h1 { color: #0A0A0A !important; }
-    .agent-header h1 i { color: #C6A43F !important; }
-    .btn-secondary { background: #F5F5F5 !important; color: #666 !important; }
-    .btn-secondary:hover { background: #E0E0E0 !important; }
-    .listing-form { background: white !important; }
-    .form-section h3 { color: #C6A43F !important; }
-    .form-group label { color: #333 !important; }
-    .form-group label i { color: #C6A43F !important; }
-    .form-group input, .form-group select, .form-group textarea { background: #fff !important; }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #C6A43F !important; }
-    .prefix { color: #C6A43F !important; }
-    .image-upload-area:hover { border-color: #C6A43F !important; background: rgba(198,164,63,0.02) !important; }
-    .upload-placeholder i { color: #C6A43F !important; }
-    .upload-placeholder p { color: #666 !important; }
-    .upload-placeholder span { color: #999 !important; }
-    .preview-item { background: #F5F5F5 !important; }
-    .preview-remove { background: rgba(0,0,0,0.7) !important; color: white !important; }
-    .btn-cancel { background: #F5F5F5 !important; color: #666 !important; }
-    .btn-submit { background: #C6A43F !important; color: #0A0A0A !important; }
-    .btn-submit:hover { background: #A8882E !important; }
-    .upload-loading-overlay { background: rgba(0,0,0,0.5) !important; color: white !important; }
+body { background: #F5F7FA !important; }
+.agent-header h1 { color: #0A0A0A !important; } .agent-header h1 i { color: #C6A43F !important; }
+.btn-secondary { background: #F5F5F5 !important; color: #666 !important; }
+.listing-form { background: white !important; }
+.form-section h3 { color: #C6A43F !important; }
+.form-group label { color: #333 !important; } .form-group label i { color: #C6A43F !important; }
+.form-group input, .form-group select, .form-group textarea { background: #fff !important; }
+.prefix { color: #C6A43F !important; }
+.btn-cancel { background: #F5F5F5 !important; color: #666 !important; }
+.btn-submit { background: #C6A43F !important; color: #0A0A0A !important; }
 }
 </style>
-
 <div class="je-dash-shell">
 <?php include __DIR__ . '/../includes/partials/agent-sidebar.php'; ?>
 <main class="je-dash-main">
-
 <div class="agent-container">
-    <div class="agent-header"><div><h1><i class="fas fa-plus-circle"></i> Add New Listing</h1><p>Create a new listing in any division</p></div><a href="/agent/listings.php" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back to Listings</a></div>
-
-    <?php if (!in_array($kycStatus, ['approved'], true)): ?>
-    <div style="background:linear-gradient(135deg,#FFF8E1,#FFF3E0); border:1px solid #FFE0B2; border-radius:16px; padding:18px 24px; margin-bottom:24px; display:flex; align-items:center; gap:16px;">
-        <i class="fas fa-shield-alt" style="color:#E65100; font-size:24px;"></i>
-        <div style="flex:1;">
-            <strong style="color:#BF360C;">Verification recommended.</strong>
-            <span style="color:#5D4037; font-size:13px;"> Listings from verified agents rank higher and get the verified badge. <a href="/agent/verification.php" style="color:#BF360C; font-weight:600;">Complete KYC →</a></span>
-        </div>
-    </div>
-    <?php endif; ?>
-
-    <?php if ($flashSuccess): ?>
-        <div style="background:#E8F5E9; border:1px solid #A5D6A7; color:#1B5E20; border-radius:8px; padding:14px 20px; margin-bottom:24px;"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($flashSuccess) ?></div>
-    <?php endif; ?>
-    <?php if ($flashError): ?>
-        <div style="background:#FFEBEE; border:1px solid #EF9A9A; color:#B71C1C; border-radius:8px; padding:14px 20px; margin-bottom:24px;"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($flashError) ?></div>
-    <?php endif; ?>
-
-    <form class="listing-form" method="POST" action="/api/listings/create.php" enctype="multipart/form-data" id="listingForm">
-        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-        <div class="form-grid">
-            <div class="form-section"><h3>Basic Information</h3>
-                <div class="form-group"><label><i class="fas fa-layer-group"></i> Division *</label>
-                    <?php
-                    // Super agent: full 4-division dropdown.
-                    // Regular agent: only their own division is available
-                    // (server-side enforcement in api/listings/create.php is
-                    // the source of truth — this is just UX).
-                    $allowed = $isSuperAgent
-                        ? array_keys($divisionMap)
-                        : ($agentDivision ? [$agentDivision] : []);
-                    ?>
-                    <select name="division" id="division" required>
-                        <option value="">Select Division</option>
-                        <?php foreach ($divisionMap as $dbDiv => $info):
-                            $sel = (!$isSuperAgent && $dbDiv === $agentDivision) ? 'selected' : '';
-                            ?>
-                            <option value="<?= htmlspecialchars($info['opt']) ?>" <?= $sel ?>>
-                                <?= htmlspecialchars($info['label']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <?php if (!$isSuperAgent && $agentDivision): ?>
-                        <small style="color:#666; font-size:12px;">
-                            Your account is registered for <strong><?= htmlspecialchars($divisionMap[$agentDivision]['label'] ?? $agentDivision) ?></strong> only.
-                            Contact an admin to be promoted to a Super Agent.
-                        </small>
-                    <?php endif; ?>
-                    <!-- Server reads listing_type (car/property/solar/marketplace), not the frontend 'division' key. -->
-                    <input type="hidden" name="listing_type" id="listing_type" value="">
-                </div>
-                <div class="form-group"><label><i class="fas fa-heading"></i> Listing Title *</label><input type="text" name="title" placeholder="e.g., 2024 Mercedes-Benz S-Class" required></div>
-                <div class="form-group"><label><i class="fas fa-align-left"></i> Description *</label><textarea name="description" rows="6" placeholder="Provide a detailed description of your listing..." required></textarea></div>
-                <div class="form-row"><div class="form-group"><label><i class="fas fa-tag"></i> Price *</label><div class="input-prefix"><span class="prefix">₦</span><input type="number" name="price" placeholder="0" step="0.01" required></div></div><div class="form-group"><label>Price Type</label><select name="price_type"><option value="fixed">Fixed Price</option><option value="negotiable">Negotiable</option><option value="contact">Contact for Price</option></select></div></div>
-                <h3>Location</h3>
-                <div class="form-row"><div class="form-group"><label><i class="fas fa-map-marker-alt"></i> City</label><input type="text" name="city" placeholder="e.g., Bellevue"></div><div class="form-group"><label>State/Province</label><input type="text" name="state" placeholder="e.g., WA"></div></div>
-                <div class="form-group"><label><i class="fas fa-location-dot"></i> Address</label><input type="text" name="address" placeholder="Full address, e.g., 1880 136th Place NE"></div>
-                <div class="form-group"><label><i class="fas fa-globe"></i> Country</label><input type="text" name="country" placeholder="e.g., United States" value="Nigeria"></div>
-            </div>
-            <div class="form-section"><h3>Images</h3>
-                <div class="image-upload-area"><input type="file" name="images[]" id="imageUpload" multiple accept="image/*" style="display: none;"><div class="upload-placeholder" onclick="if (document.getElementById('imageUpload').dataset.kinasProcessing === '1') return; document.getElementById('imageUpload').click()"><i class="fas fa-cloud-upload-alt"></i><p>Click or drag images here</p><span>Upload up to 10 images (Max 5MB each)</span></div><div class="image-preview-grid" id="imagePreviewGrid"></div></div>
-
-                <!-- AUTOMOBILE DETAILS SECTION -->
-                <div id="automobileFields" style="display:none; margin-top:24px;">
-                    <h3 style="margin-bottom:16px;"><i class="fas fa-car"></i> Automobile Details</h3>
-                    <div class="automobile-fields-grid">
-                        <div class="form-group"><label><i class="fas fa-key"></i> Listing Purpose *</label>
-                            <select name="car_listing_type" id="carListingType" required>
-                                <option value="sale">For Sale</option>
-                                <?php if ($canOfferRental): ?>
-                                <option value="rental">For Rental</option>
-                                <?php endif; ?>
-                            </select>
-                            <?php if (!$canOfferRental): ?>
-                            <span style="display:block;font-size:12px;color:#888;margin-top:4px;">
-                                Rental listings are only available to verified registered businesses.
-                                <?= $isBusinessAgent ? 'Your business KYB verification is still pending.' : 'Add a business name and complete KYB verification in your profile to unlock this.' ?>
-                            </span>
-                            <?php endif; ?>
-                        </div>
-                        <div class="form-group"><label><i class="fas fa-clipboard-check"></i> Inspection Fee (₦) <span style="font-weight:400;color:#888;">(optional)</span></label>
-                            <input type="number" name="inspection_fee" min="0" step="0.01" placeholder="Leave blank for free inspections">
-                            <span style="display:block;font-size:12px;color:#888;margin-top:4px;">If set, buyers pay this online before an inspection appointment is confirmed. 10% goes to KINAS GROUP.</span>
-                        </div>
-                        <!-- Make (Brand) -->
-                        <div class="form-group"><label><i class="fas fa-tag"></i> Make *</label>
-                            <select name="brand" required>
-                                <option value="">Select Make</option>
-                                <option value="Acura">Acura</option>
-                                <option value="Alfa Romeo">Alfa Romeo</option>
-                                <option value="Aston Martin">Aston Martin</option>
-                                <option value="Audi">Audi</option>
-                                <option value="Bentley">Bentley</option>
-                                <option value="BMW">BMW</option>
-                                <option value="Bugatti">Bugatti</option>
-                                <option value="Buick">Buick</option>
-                                <option value="Cadillac">Cadillac</option>
-                                <option value="Chevrolet">Chevrolet</option>
-                                <option value="Chrysler">Chrysler</option>
-                                <option value="Citroen">Citroen</option>
-                                <option value="Dodge">Dodge</option>
-                                <option value="Ferrari">Ferrari</option>
-                                <option value="Fiat">Fiat</option>
-                                <option value="Ford">Ford</option>
-                                <option value="Genesis">Genesis</option>
-                                <option value="GMC">GMC</option>
-                                <option value="Honda">Honda</option>
-                                <option value="Hyundai">Hyundai</option>
-                                <option value="Infiniti">Infiniti</option>
-                                <option value="Jaguar">Jaguar</option>
-                                <option value="Jeep">Jeep</option>
-                                <option value="Kia">Kia</option>
-                                <option value="Lamborghini">Lamborghini</option>
-                                <option value="Land Rover">Land Rover</option>
-                                <option value="Lexus">Lexus</option>
-                                <option value="Maserati">Maserati</option>
-                                <option value="Mazda">Mazda</option>
-                                <option value="McLaren">McLaren</option>
-                                <option value="Mercedes-Benz">Mercedes-Benz</option>
-                                <option value="Mini">Mini</option>
-                                <option value="Mitsubishi">Mitsubishi</option>
-                                <option value="Nissan">Nissan</option>
-                                <option value="Porsche">Porsche</option>
-                                <option value="Ram">Ram</option>
-                                <option value="Rolls-Royce">Rolls-Royce</option>
-                                <option value="Subaru">Subaru</option>
-                                <option value="Tesla">Tesla</option>
-                                <option value="Toyota">Toyota</option>
-                                <option value="Volkswagen">Volkswagen</option>
-                                <option value="Volvo">Volvo</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <!-- Model -->
-                        <div class="form-group"><label><i class="fas fa-car"></i> Model *</label><input type="text" name="model" placeholder="e.g., S-Class" required></div>
-                        <div class="form-group"><label><i class="fas fa-calendar"></i> Year *</label><input type="number" name="year" placeholder="e.g., 2018" min="1900" max="2099" required></div>
-                        <div class="form-group"><label><i class="fas fa-tachometer-alt"></i> Mileage *</label><input type="text" name="mileage" placeholder="e.g., 19592 mi (31530 km)" required></div>
-                        <div class="form-group"><label><i class="fas fa-cog"></i> Engine</label><input type="text" name="engine" placeholder="e.g., 6 Cylinder"></div>
-                        <div class="form-group"><label><i class="fas fa-cogs"></i> Gearbox / Transmission</label>
-                            <select name="gearbox"><option value="">Select Gearbox</option><option value="Automatic">Automatic</option><option value="Manual">Manual</option><option value="Semi-Automatic">Semi-Automatic</option><option value="CVT">CVT</option></select>
-                        </div>
-                        <div class="form-group"><label><i class="fas fa-car-side"></i> Car Type</label>
-                            <select name="car_type"><option value="">Select Car Type</option><option value="Coupe">Coupe</option><option value="Sedan">Sedan</option><option value="SUV">SUV</option><option value="Convertible">Convertible</option><option value="Hatchback">Hatchback</option><option value="Wagon">Wagon</option><option value="Truck">Truck</option><option value="Van">Van</option></select>
-                        </div>
-                        <div class="form-group"><label><i class="fas fa-steering-wheel"></i> Drive</label>
-                            <select name="drive"><option value="">Select Drive</option><option value="LHD">LHD (Left-Hand Drive)</option><option value="RHD">RHD (Right-Hand Drive)</option></select>
-                        </div>
-                        <div class="form-group"><label><i class="fas fa-road"></i> Drive Train</label>
-                            <select name="drive_train"><option value="">Select Drive Train</option><option value="AWD">AWD (All-Wheel Drive)</option><option value="FWD">FWD (Front-Wheel Drive)</option><option value="RWD">RWD (Rear-Wheel Drive)</option><option value="4WD">4WD (Four-Wheel Drive)</option></select>
-                        </div>
-                        <div class="form-group"><label><i class="fas fa-gas-pump"></i> Fuel Type</label>
-                            <select name="fuel_type"><option value="">Select Fuel Type</option><option value="Petrol">Petrol</option><option value="Diesel">Diesel</option><option value="Electric">Electric</option><option value="Hybrid">Hybrid</option><option value="Plugin-Hybrid">Plugin Hybrid</option></select>
-                        </div>
-                        <div class="form-group"><label><i class="fas fa-clipboard-check"></i> Condition</label>
-                            <select name="condition"><option value="">Select Condition</option><option value="Brand New">Brand New</option><option value="Like New">Like New</option><option value="Excellent">Excellent</option><option value="Very Good">Very Good</option><option value="Good">Good</option><option value="Fair">Fair</option></select>
-                        </div>
-                        <div class="form-group"><label><i class="fas fa-barcode"></i> VIN</label><input type="text" name="vin" placeholder="e.g., 19UNC1B01JY000027"></div>
-                        <div class="form-group"><label><i class="fas fa-palette"></i> Color</label><input type="text" name="color" placeholder="e.g., Silver"></div>
-                        <div class="form-group"><label><i class="fas fa-palette"></i> Interior Color</label><input type="text" name="interior_color" placeholder="e.g., Grey"></div>
-                        <div class="form-group"><label><i class="fas fa-door-open"></i> Doors</label>
-                            <select name="doors"><option value="">Select Doors</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
-                        </div>
-                        <div class="form-group"><label><i class="fas fa-users"></i> Seats</label>
-                            <select name="seats"><option value="">Select Seats</option><option value="2">2</option><option value="4">4</option><option value="5">5</option><option value="7">7</option><option value="8">8</option></select>
-                        </div>
-                        <div class="form-group full-width"><label><i class="fas fa-check-circle"></i> Features (comma separated)</label><input type="text" name="features" placeholder="e.g., Leather seats, Sunroof, Navigation, Backup camera"></div>
-                    </div>
-                </div>
-
-                <!-- PROPERTY DETAILS SECTION -->
-                <div id="realestateFields" style="display:none; margin-top:24px;">
-                    <h3 style="margin-bottom:16px;"><i class="fas fa-home"></i> Property Details</h3>
-                    <div class="automobile-fields-grid">
-                        <div class="form-group"><label>Listing Type</label>
-                            <select name="listing_type_purpose" id="listing_type_purpose">
-                                <option value="sale">For Sale</option>
-                                <option value="rent">For Rent</option>
-                            </select>
-                        </div>
-                        <div class="form-group"><label>Bedrooms</label><input type="number" name="bedrooms" placeholder="e.g., 3"></div>
-                        <div class="form-group"><label>Bathrooms</label><input type="number" name="bathrooms" placeholder="e.g., 2"></div>
-                        <div class="form-group"><label>Area (sq ft)</label><input type="text" name="area" placeholder="e.g., 2500"></div>
-                        <div class="form-group"><label>Property Type</label>
-                            <select name="property_type"><option value="">Select Type</option><option value="Villa">Villa</option><option value="Apartment">Apartment</option><option value="Land">Land</option><option value="House">House</option><option value="Condo">Condo</option><option value="Townhouse">Townhouse</option></select>
-                        </div>
-                        <div class="form-group"><label><i class="fas fa-clipboard-check"></i> Inspection Fee (₦) <span style="font-weight:400;color:#888;">(optional)</span></label>
-                            <input type="number" name="inspection_fee" min="0" step="0.01" placeholder="Leave blank for free inspections">
-                            <span style="display:block;font-size:12px;color:#888;margin-top:4px;">If set, buyers pay this online before an inspection appointment is confirmed. 10% goes to KINAS GROUP.</span>
-                        </div>
-                    </div>
-
-                    <div style="margin-top:20px;">
-                        <label style="display:block;font-weight:600;margin-bottom:8px;"><i class="fas fa-street-view"></i> Virtual Tour <span style="font-weight:400;color:#888;">(optional)</span></label>
-                        <div style="display:flex;gap:20px;margin-bottom:12px;">
-                            <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;">
-                                <input type="radio" name="virtual_tour_type" value="link" id="vtTypeLink" checked> Paste a link (YouTube, Vimeo, Matterport)
-                            </label>
-                            <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;">
-                                <input type="radio" name="virtual_tour_type" value="video" id="vtTypeVideo"> Upload a video file
-                            </label>
-                        </div>
-                        <div id="vtLinkField" class="form-group">
-                            <input type="url" name="virtual_tour_url" id="vtUrlInput" placeholder="https://youtube.com/watch?v=...">
-                        </div>
-                        <div id="vtVideoField" class="form-group" style="display:none;">
-                            <input type="file" name="virtual_tour_video" id="vtVideoInput" accept="video/mp4,video/quicktime,video/webm">
-                            <span style="display:block;font-size:12px;color:#888;margin-top:4px;">MP4, MOV, or WebM — up to 150MB.</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SOLAR DETAILS SECTION -->
-                <div id="solarFields" style="display:none; margin-top:24px;">
-                    <h3 style="margin-bottom:16px;"><i class="fas fa-sun"></i> Solar Details</h3>
-                    <div class="automobile-fields-grid">
-                        <div class="form-group"><label>Capacity (kW)</label><input type="text" name="capacity" placeholder="e.g., 10"></div>
-                        <div class="form-group"><label>System Type</label>
-                            <select name="solar_type"><option value="">Select Type</option><option value="Residential">Residential</option><option value="Commercial">Commercial</option><option value="Industrial">Industrial</option></select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="checkbox-group" style="margin-top:24px;"><label class="checkbox-label"><input type="checkbox" name="featured" value="1"><span>Feature this listing for premium visibility</span></label></div>
-                <div class="form-actions"><button type="button" class="btn-cancel" onclick="window.location.href='/agent/listings.php'">Cancel</button><button type="submit" class="btn-submit" id="submitBtn">Publish Listing</button></div>
-            </div>
-        </div>
-    </form>
+<div class="agent-header"><div><h1><i class="fas fa-plus-circle"></i> Add New Listing</h1><p>Create a new listing in any division</p></div><a href="/agent/listings.php" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back to Listings</a></div>
+<?php if (!in_array($kycStatus, ['approved'], true)): ?>
+<div style="background:linear-gradient(135deg,#FFF8E1,#FFF3E0); border:1px solid #FFE0B2; border-radius:16px; padding:18px 24px; margin-bottom:24px; display:flex; align-items:center; gap:16px;">
+<i class="fas fa-shield-alt" style="color:#E65100; font-size:24px;"></i>
+<div style="flex:1;"><strong style="color:#BF360C;">Verification recommended.</strong>
+<span style="color:#5D4037; font-size:13px;"> Listings from verified agents rank higher and get the verified badge. <a href="/agent/verification.php" style="color:#BF360C; font-weight:600;">Complete KYC →</a></span></div>
 </div>
-
+<?php endif; ?>
+<?php if ($flashSuccess): ?><div style="background:#E8F5E9; border:1px solid #A5D6A7; color:#1B5E20; border-radius:8px; padding:14px 20px; margin-bottom:24px;"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($flashSuccess) ?></div><?php endif; ?>
+<?php if ($flashError): ?><div style="background:#FFEBEE; border:1px solid #EF9A9A; color:#B71C1C; border-radius:8px; padding:14px 20px; margin-bottom:24px;"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($flashError) ?></div><?php endif; ?>
+<form class="listing-form" method="POST" action="/api/listings/create.php" enctype="multipart/form-data" id="listingForm">
+<input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+<div class="form-grid">
+<div class="form-section"><h3>Basic Information</h3>
+<div class="form-group"><label><i class="fas fa-layer-group"></i> Division *</label>
+<select name="division" id="division" required>
+<option value="">Select Division</option>
+<?php foreach ($divisionMap as $dbDiv => $info):
+$sel = (!$isSuperAgent && $dbDiv === $agentDivision) ? 'selected' : '';
+?>
+<option value="<?= htmlspecialchars($info['opt']) ?>" <?= $sel ?>><?= htmlspecialchars($info['label']) ?></option>
+<?php endforeach; ?>
+</select>
+<?php if (!$isSuperAgent && $agentDivision): ?>
+<small style="color:#666; font-size:12px;">Your account is registered for <strong><?= htmlspecialchars($divisionMap[$agentDivision]['label'] ?? $agentDivision) ?></strong> only. Contact an admin to be promoted to a Super Agent.</small>
+<?php endif; ?>
+<input type="hidden" name="listing_type" id="listing_type" value="">
+</div>
+<div class="form-group"><label><i class="fas fa-heading"></i> Listing Title *</label><input type="text" name="title" placeholder="e.g., 2024 Mercedes-Benz S-Class" required></div>
+<div class="form-group"><label><i class="fas fa-align-left"></i> Description *</label><textarea name="description" rows="6" placeholder="Provide a detailed description of your listing..." required></textarea></div>
+<div class="form-row"><div class="form-group"><label><i class="fas fa-tag"></i> Price *</label><div class="input-prefix"><span class="prefix">₦</span><input type="number" name="price" placeholder="0" step="0.01" required></div></div><div class="form-group"><label>Price Type</label><select name="price_type"><option value="fixed">Fixed Price</option><option value="negotiable">Negotiable</option><option value="contact">Contact for Price</option></select></div></div>
+<h3>Location</h3>
+<div class="form-row"><div class="form-group"><label><i class="fas fa-map-marker-alt"></i> City</label><input type="text" name="city" placeholder="e.g., Bellevue"></div><div class="form-group"><label>State/Province</label><input type="text" name="state" placeholder="e.g., WA"></div></div>
+<div class="form-group"><label><i class="fas fa-location-dot"></i> Address</label><input type="text" name="address" placeholder="Full address, e.g., 1880 136th Place NE"></div>
+<div class="form-group"><label><i class="fas fa-globe"></i> Country</label><input type="text" name="country" placeholder="e.g., United States" value="Nigeria"></div>
+</div>
+<div class="form-section"><h3>Images</h3>
+<div class="image-upload-area"><input type="file" name="images[]" id="imageUpload" multiple accept="image/*" style="display: none;"><div class="upload-placeholder" onclick="if (document.getElementById('imageUpload').dataset.kinasProcessing === '1') return; document.getElementById('imageUpload').click()"><i class="fas fa-cloud-upload-alt"></i><p>Click or drag images here</p><span>Upload up to 10 images (Max 5MB each)</span></div><div class="image-preview-grid" id="imagePreviewGrid"></div></div>
+<!-- AUTOMOBILE -->
+<div id="automobileFields" style="display:none; margin-top:24px;">
+<h3 style="margin-bottom:16px;"><i class="fas fa-car"></i> Automobile Details</h3>
+<div class="automobile-fields-grid">
+<div class="form-group"><label><i class="fas fa-key"></i> Listing Purpose *</label>
+<select name="car_listing_type" id="carListingType" required>
+<option value="sale">For Sale</option>
+<?php if ($canOfferRental): ?><option value="rental">For Rental</option><?php endif; ?>
+</select>
+<?php if (!$canOfferRental): ?><span style="display:block;font-size:12px;color:#888;margin-top:4px;">Rental listings are only available to verified registered businesses. <?= $isBusinessAgent ? 'Your business KYB verification is still pending.' : 'Add a business name and complete KYB verification in your profile to unlock this.' ?></span><?php endif; ?>
+</div>
+<div class="form-group"><label><i class="fas fa-clipboard-check"></i> Inspection Fee (₦) <span style="font-weight:400;color:#888;">(optional)</span></label><input type="number" name="inspection_fee" min="0" step="0.01" placeholder="Leave blank for free inspections"></div>
+<div class="form-group"><label><i class="fas fa-tag"></i> Make *</label>
+<select name="brand" required><option value="">Select Make</option><option>Acura</option><option>Alfa Romeo</option><option>Aston Martin</option><option>Audi</option><option>Bentley</option><option>BMW</option><option>Bugatti</option><option>Buick</option><option>Cadillac</option><option>Chevrolet</option><option>Chrysler</option><option>Citroen</option><option>Dodge</option><option>Ferrari</option><option>Fiat</option><option>Ford</option><option>Genesis</option><option>GMC</option><option>Honda</option><option>Hyundai</option><option>Infiniti</option><option>Jaguar</option><option>Jeep</option><option>Kia</option><option>Lamborghini</option><option>Land Rover</option><option>Lexus</option><option>Maserati</option><option>Mazda</option><option>McLaren</option><option>Mercedes-Benz</option><option>Mini</option><option>Mitsubishi</option><option>Nissan</option><option>Porsche</option><option>Ram</option><option>Rolls-Royce</option><option>Subaru</option><option>Tesla</option><option>Toyota</option><option>Volkswagen</option><option>Volvo</option><option>Other</option></select>
+</div>
+<div class="form-group"><label><i class="fas fa-car"></i> Model *</label><input type="text" name="model" placeholder="e.g., S-Class" required></div>
+<div class="form-group"><label><i class="fas fa-calendar"></i> Year *</label><input type="number" name="year" placeholder="e.g., 2018" min="1900" max="2099" required></div>
+<div class="form-group"><label><i class="fas fa-tachometer-alt"></i> Mileage *</label><input type="text" name="mileage" placeholder="e.g., 19592 mi (31530 km)" required></div>
+<div class="form-group"><label><i class="fas fa-cog"></i> Engine</label><input type="text" name="engine" placeholder="e.g., 6 Cylinder"></div>
+<div class="form-group"><label><i class="fas fa-cogs"></i> Gearbox / Transmission</label><select name="gearbox"><option value="">Select Gearbox</option><option>Automatic</option><option>Manual</option><option>Semi-Automatic</option><option>CVT</option></select></div>
+<div class="form-group"><label><i class="fas fa-car-side"></i> Car Type</label><select name="car_type"><option value="">Select Car Type</option><option>Coupe</option><option>Sedan</option><option>SUV</option><option>Convertible</option><option>Hatchback</option><option>Wagon</option><option>Truck</option><option>Van</option></select></div>
+<div class="form-group"><label><i class="fas fa-steering-wheel"></i> Drive</label><select name="drive"><option value="">Select Drive</option><option value="LHD">LHD (Left-Hand Drive)</option><option value="RHD">RHD (Right-Hand Drive)</option></select></div>
+<div class="form-group"><label><i class="fas fa-road"></i> Drive Train</label><select name="drive_train"><option value="">Select Drive Train</option><option value="AWD">AWD</option><option value="FWD">FWD</option><option value="RWD">RWD</option><option value="4WD">4WD</option></select></div>
+<div class="form-group"><label><i class="fas fa-gas-pump"></i> Fuel Type</label><select name="fuel_type"><option value="">Select Fuel Type</option><option>Petrol</option><option>Diesel</option><option>Electric</option><option>Hybrid</option><option>Plugin-Hybrid</option></select></div>
+<div class="form-group"><label><i class="fas fa-clipboard-check"></i> Condition</label><select name="condition"><option value="">Select Condition</option><option>Brand New</option><option>Like New</option><option>Excellent</option><option>Very Good</option><option>Good</option><option>Fair</option></select></div>
+<div class="form-group"><label><i class="fas fa-barcode"></i> VIN</label><input type="text" name="vin" placeholder="e.g., 19UNC1B01JY000027"></div>
+<div class="form-group"><label><i class="fas fa-palette"></i> Color</label><input type="text" name="color" placeholder="e.g., Silver"></div>
+<div class="form-group"><label><i class="fas fa-palette"></i> Interior Color</label><input type="text" name="interior_color" placeholder="e.g., Grey"></div>
+<div class="form-group"><label><i class="fas fa-door-open"></i> Doors</label><select name="doors"><option value="">Select Doors</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+<div class="form-group"><label><i class="fas fa-users"></i> Seats</label><select name="seats"><option value="">Select Seats</option><option value="2">2</option><option value="4">4</option><option value="5">5</option><option value="7">7</option><option value="8">8</option></select></div>
+<div class="form-group full-width"><label><i class="fas fa-check-circle"></i> Features (comma separated)</label><input type="text" name="features" placeholder="e.g., Leather seats, Sunroof, Navigation, Backup camera"></div>
+</div>
+</div>
+<!-- PROPERTY -->
+<div id="realestateFields" style="display:none; margin-top:24px;">
+<h3 style="margin-bottom:16px;"><i class="fas fa-home"></i> Property Details</h3>
+<div class="automobile-fields-grid">
+<div class="form-group"><label>Listing Type</label><select name="listing_type_purpose" id="listing_type_purpose"><option value="sale">For Sale</option><option value="rent">For Rent</option></select></div>
+<div class="form-group"><label>Bedrooms</label><input type="number" name="bedrooms" placeholder="e.g., 3"></div>
+<div class="form-group"><label>Bathrooms</label><input type="number" name="bathrooms" placeholder="e.g., 2"></div>
+<div class="form-group"><label>Area (sq ft)</label><input type="text" name="area" placeholder="e.g., 2500"></div>
+<div class="form-group"><label>Property Type</label><select name="property_type"><option value="">Select Type</option><option>Villa</option><option>Apartment</option><option>Land</option><option>House</option><option>Condo</option><option>Townhouse</option></select></div>
+<div class="form-group"><label><i class="fas fa-clipboard-check"></i> Inspection Fee (₦) <span style="font-weight:400;color:#888;">(optional)</span></label><input type="number" name="inspection_fee" min="0" step="0.01" placeholder="Leave blank for free inspections"></div>
+</div>
+<div style="margin-top:20px;">
+<label style="display:block;font-weight:600;margin-bottom:8px;"><i class="fas fa-street-view"></i> Virtual Tour <span style="font-weight:400;color:#888;">(optional)</span></label>
+<div style="display:flex;gap:20px;margin-bottom:12px;">
+<label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;"><input type="radio" name="virtual_tour_type" value="link" id="vtTypeLink" checked> Paste a link (YouTube, Vimeo, Matterport)</label>
+<label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;"><input type="radio" name="virtual_tour_type" value="video" id="vtTypeVideo"> Upload a video file</label>
+</div>
+<div id="vtLinkField" class="form-group"><input type="url" name="virtual_tour_url" id="vtUrlInput" placeholder="https://youtube.com/watch?v=..."></div>
+<div id="vtVideoField" class="form-group" style="display:none;"><input type="file" name="virtual_tour_video" id="vtVideoInput" accept="video/mp4,video/quicktime,video/webm"><span style="display:block;font-size:12px;color:#888;margin-top:4px;">MP4, MOV, or WebM — up to 150MB.</span></div>
+</div>
+</div>
+<!-- SOLAR (HARDWARE PARTITIONING) -->
+<div id="solarFields" style="display:none; margin-top:24px;">
+<h3 style="margin-bottom:16px;"><i class="fas fa-sun"></i> Solar Details</h3>
+<div class="automobile-fields-grid">
+<div class="form-group"><label><i class="fas fa-microchip"></i> Hardware Type *</label>
+<select name="hardware_type" id="hardwareType" required>
+<option value="solar_panel">Solar Panel</option>
+<option value="inverter">Inverter</option>
+<option value="battery">Battery</option>
+<option value="power_station">Power Station</option>
+</select>
+</div>
+<div class="form-group"><label>System Type</label>
+<select name="solar_type"><option value="">Select Type</option><option value="Residential">Residential</option><option value="Commercial">Commercial</option><option value="Industrial">Industrial</option></select>
+</div>
+<div class="form-group" id="panelWattsGroup"><label>Panel Capacity (W)</label><input type="number" name="panel_watts" id="panelWatts" min="1" step="1" placeholder="e.g., 550"></div>
+<div class="form-group" id="inverterKvaGroup" style="display:none;"><label>Inverter Rating (kW/kVA)</label><input type="number" name="inverter_kva" id="inverterKva" min="0.1" step="0.1" placeholder="e.g., 5"></div>
+<div class="form-group" id="batteryKwhGroup" style="display:none;"><label>Battery Capacity (kWh)</label><input type="number" name="battery_kwh" id="batteryKwh" min="0.1" step="0.1" placeholder="e.g., 10"></div>
+</div>
+</div>
+<div class="checkbox-group" style="margin-top:24px;"><label class="checkbox-label"><input type="checkbox" name="featured" value="1"><span>Feature this listing for premium visibility</span></label></div>
+<div class="form-actions"><button type="button" class="btn-cancel" onclick="window.location.href='/agent/listings.php'">Cancel</button><button type="submit" class="btn-submit" id="submitBtn">Publish Listing</button></div>
+</div>
+</div>
+</form>
+</div>
 <script>
-// ============================================
-// FIX: SYNC LISTING TYPE ON PAGE LOAD AND CHANGE
-// ============================================
-const divisionToType = { 
-    automobile: 'car', 
-    realestate: 'property', 
-    solar: 'solar', 
-    marketplace: 'marketplace' 
-};
-
-function syncListingType() {
-    const d = document.getElementById('division')?.value || '';
-    const listingType = divisionToType[d] || '';
-    document.getElementById('listing_type').value = listingType;
-    
-    // Show/hide division-specific fields
-    const automobileDiv = document.getElementById('automobileFields');
-    const realestateDiv = document.getElementById('realestateFields');
-    const solarDiv = document.getElementById('solarFields');
-    
-    if (automobileDiv) automobileDiv.style.display = d === 'automobile' ? 'block' : 'none';
-    if (realestateDiv) realestateDiv.style.display = d === 'realestate' ? 'block' : 'none';
-    if (solarDiv) solarDiv.style.display = d === 'solar' ? 'block' : 'none';
-    
-    console.log('Division selected:', d, 'Listing type set to:', listingType);
+const divisionToType = { automobile: 'car', realestate: 'property', solar: 'solar', marketplace: 'marketplace' };
+// Show/hide the correct capacity inputs for the chosen hardware type.
+function syncSolarFields() {
+const t = document.getElementById('hardwareType')?.value || 'solar_panel';
+const show = (id, on) => { const elx = document.getElementById(id); if (elx) elx.style.display = on ? '' : 'none'; };
+show('panelWattsGroup',  t === 'solar_panel');
+show('inverterKvaGroup', t === 'inverter' || t === 'power_station');
+show('batteryKwhGroup',  t === 'battery'  || t === 'power_station');
 }
-
-// Run on page load
+function syncListingType() {
+const d = document.getElementById('division')?.value || '';
+const listingType = divisionToType[d] || '';
+document.getElementById('listing_type').value = listingType;
+document.getElementById('automobileFields').style.display = d === 'automobile' ? 'block' : 'none';
+document.getElementById('realestateFields').style.display = d === 'realestate' ? 'block' : 'none';
+document.getElementById('solarFields').style.display = d === 'solar' ? 'block' : 'none';
+if (d === 'solar') syncSolarFields();
+}
 document.addEventListener('DOMContentLoaded', function() {
-    // Set initial state
-    syncListingType();
-    
-    // Attach event listener
-    const divisionSelect = document.getElementById('division');
-    if (divisionSelect) {
-        divisionSelect.addEventListener('change', syncListingType);
-    }
-
-    // Virtual tour: toggle between "paste a link" and "upload a video" —
-    // only one of the two fields should actually submit, so the inactive
-    // one's inputs are cleared/disabled rather than just hidden.
-    const vtTypeLink = document.getElementById('vtTypeLink');
-    const vtTypeVideo = document.getElementById('vtTypeVideo');
-    const vtLinkField = document.getElementById('vtLinkField');
-    const vtVideoField = document.getElementById('vtVideoField');
-    const vtUrlInput = document.getElementById('vtUrlInput');
-    const vtVideoInput = document.getElementById('vtVideoInput');
-
-    function syncVirtualTourMode() {
-        if (!vtTypeLink || !vtTypeVideo) return;
-        const isLink = vtTypeLink.checked;
-        vtLinkField.style.display = isLink ? '' : 'none';
-        vtVideoField.style.display = isLink ? 'none' : '';
-        if (isLink && vtVideoInput) vtVideoInput.value = '';
-        if (!isLink && vtUrlInput) vtUrlInput.value = '';
-    }
-    if (vtTypeLink && vtTypeVideo) {
-        vtTypeLink.addEventListener('change', syncVirtualTourMode);
-        vtTypeVideo.addEventListener('change', syncVirtualTourMode);
-        syncVirtualTourMode();
-    }
+syncListingType();
+const divisionSelect = document.getElementById('division');
+if (divisionSelect) divisionSelect.addEventListener('change', syncListingType);
+const hw = document.getElementById('hardwareType');
+if (hw) hw.addEventListener('change', syncSolarFields);
+const vtTypeLink = document.getElementById('vtTypeLink');
+const vtTypeVideo = document.getElementById('vtTypeVideo');
+const vtLinkField = document.getElementById('vtLinkField');
+const vtVideoField = document.getElementById('vtVideoField');
+const vtUrlInput = document.getElementById('vtUrlInput');
+const vtVideoInput = document.getElementById('vtVideoInput');
+function syncVirtualTourMode() {
+if (!vtTypeLink || !vtTypeVideo) return;
+const isLink = vtTypeLink.checked;
+vtLinkField.style.display = isLink ? '' : 'none';
+vtVideoField.style.display = isLink ? 'none' : '';
+if (isLink && vtVideoInput) vtVideoInput.value = '';
+if (!isLink && vtUrlInput) vtUrlInput.value = '';
+}
+if (vtTypeLink && vtTypeVideo) { vtTypeLink.addEventListener('change', syncVirtualTourMode); vtTypeVideo.addEventListener('change', syncVirtualTourMode); syncVirtualTourMode(); }
 });
-
-// ============================================
-// FORM SUBMISSION HANDLER
-// ============================================
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('listingForm');
-    const submitBtn = document.getElementById('submitBtn');
-    let isSubmitting = false;
-    
-    if (form && submitBtn) {
-        // Listens on the FORM's submit event (not just the button's click)
-        // so pressing Enter in a text field is caught too — previously that
-        // bypassed validation, the disabled-state guard, and could fire a
-        // second POST alongside a click, creating a duplicate listing.
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            if (isSubmitting) return; // guards against any re-entrant submit
-            
-            // Validate required fields
-            const division = document.getElementById('division').value;
-            const title = form.querySelector('input[name="title"]')?.value?.trim() || '';
-            const price = form.querySelector('input[name="price"]')?.value?.trim() || '';
-            const description = form.querySelector('textarea[name="description"]')?.value?.trim() || '';
-            
-            if (!division) {
-                showSuccessBanner('Please select a division.', true);
-                return;
-            }
-            if (!title) {
-                showSuccessBanner('Please enter a listing title.', true);
-                return;
-            }
-            if (!price || parseFloat(price) <= 0) {
-                showSuccessBanner('Please enter a valid price greater than zero.', true);
-                return;
-            }
-            if (!description) {
-                showSuccessBanner('Please enter a description.', true);
-                return;
-            }
-            
-            // Make sure listing_type is set
-            syncListingType();
-            const listingType = document.getElementById('listing_type')?.value || '';
-            
-            if (!listingType) {
-                showSuccessBanner('Please select a valid division.', true);
-                return;
-            }
-            
-            // Show loading state
-            isSubmitting = true;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
-            
-            // Submit the form (bypasses this same listener — .submit() does
-            // not re-fire the 'submit' event)
-            form.submit();
-        });
-    }
+const form = document.getElementById('listingForm');
+const submitBtn = document.getElementById('submitBtn');
+let isSubmitting = false;
+if (form && submitBtn) {
+form.addEventListener('submit', function(e) {
+e.preventDefault();
+if (isSubmitting) return;
+const division = document.getElementById('division').value;
+const title = form.querySelector('input[name="title"]')?.value?.trim() || '';
+const price = form.querySelector('input[name="price"]')?.value?.trim() || '';
+const description = form.querySelector('textarea[name="description"]')?.value?.trim() || '';
+if (!division) { showSuccessBanner('Please select a division.', true); return; }
+if (!title) { showSuccessBanner('Please enter a listing title.', true); return; }
+if (!price || parseFloat(price) <= 0) { showSuccessBanner('Please enter a valid price greater than zero.', true); return; }
+if (!description) { showSuccessBanner('Please enter a description.', true); return; }
+syncListingType();
+const listingType = document.getElementById('listing_type')?.value || '';
+if (!listingType) { showSuccessBanner('Please select a valid division.', true); return; }
+isSubmitting = true;
+submitBtn.disabled = true;
+submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
+form.submit();
 });
-
-// ============================================
-// IMAGE PREVIEW
-// ============================================
+}
+});
 const imageUpload = document.getElementById('imageUpload');
 const previewGrid = document.getElementById('imagePreviewGrid');
 let selectedFiles = [];
-
-// Map<File, objectURL> — a stable, one-time URL per file for its whole
-// lifetime in selectedFiles. BUG FIX: the previous version revoked *every*
-// existing preview URL and recreated all of them from scratch on every
-// render. If the browser hadn't finished decoding a freshly-created blob
-// URL yet (very likely immediately after an upload) when a second render
-// happened for any reason, that URL got revoked while still in use —
-// which is exactly what showed up as a broken-image icon right after
-// adding a photo. Now a URL is only ever revoked once its file is actually
-// removed from selectedFiles, never just because a re-render happened.
 const filePreviewUrls = new Map();
-
-function getPreviewUrl(file) {
-    let url = filePreviewUrls.get(file);
-    if (!url) {
-        url = URL.createObjectURL(file);
-        filePreviewUrls.set(file, url);
-    }
-    return url;
-}
-
-// If a preview <img> ever fails to load its blob URL, this tells us
-// definitively whether it's a browser/environment issue (retrying with a
-// brand-new URL for the same File still fails) or a one-off glitch (retry
-// succeeds). Logs loudly to the console either way so it's diagnosable.
+function getPreviewUrl(file) { let url = filePreviewUrls.get(file); if (!url) { url = URL.createObjectURL(file); filePreviewUrls.set(file, url); } return url; }
 window.__kinasPreviewImgError = function(imgEl, index) {
-    const file = selectedFiles[index];
-    if (!file) {
-        console.error('[preview] broken image at index', index, 'but no matching file in selectedFiles');
-        return;
-    }
-    console.warn('[preview] <img> failed to load blob URL for', file.name, '— retrying with a fresh URL once.');
-    const oldUrl = filePreviewUrls.get(file);
-    if (oldUrl) { URL.revokeObjectURL(oldUrl); filePreviewUrls.delete(file); }
-    const freshUrl = getPreviewUrl(file);
-    if (imgEl.dataset.kinasRetried === '1') {
-        console.error('[preview] retry ALSO failed for', file.name, '— this browser/environment cannot preview this file locally. The upload itself is unaffected.');
-        return;
-    }
-    imgEl.dataset.kinasRetried = '1';
-    imgEl.onerror = function() { window.__kinasPreviewImgError(imgEl, index); };
-    imgEl.src = freshUrl;
+const file = selectedFiles[index]; if (!file) return;
+const oldUrl = filePreviewUrls.get(file); if (oldUrl) { URL.revokeObjectURL(oldUrl); filePreviewUrls.delete(file); }
+const freshUrl = getPreviewUrl(file);
+if (imgEl.dataset.kinasRetried === '1') return;
+imgEl.dataset.kinasRetried = '1';
+imgEl.onerror = function() { window.__kinasPreviewImgError(imgEl, index); };
+imgEl.src = freshUrl;
 };
-
-function syncInputFiles() { 
-    const dt = new DataTransfer(); 
-    selectedFiles.forEach(f => dt.items.add(f)); 
-    if (imageUpload) imageUpload.files = dt.files; 
+function syncInputFiles() { const dt = new DataTransfer(); selectedFiles.forEach(f => dt.items.add(f)); if (imageUpload) imageUpload.files = dt.files; }
+function updatePreview() {
+if (!previewGrid) return;
+previewGrid.innerHTML = '';
+const currentFiles = new Set(selectedFiles);
+for (const [file, url] of filePreviewUrls) { if (!currentFiles.has(file)) { URL.revokeObjectURL(url); filePreviewUrls.delete(file); } }
+selectedFiles.forEach((file, index) => {
+const div = document.createElement('div'); div.className = 'preview-item';
+div.innerHTML = `<img src="${getPreviewUrl(file)}" onerror="window.__kinasPreviewImgError && window.__kinasPreviewImgError(this, ${index})"><button type="button" class="preview-remove" onclick="removeImage(${index})">&times;</button>`;
+previewGrid.appendChild(div);
+});
 }
-
-function updatePreview() { 
-    if (!previewGrid) return;
-    previewGrid.innerHTML = ''; 
-
-    // Clean up URLs only for files that are no longer selected.
-    const currentFiles = new Set(selectedFiles);
-    for (const [file, url] of filePreviewUrls) {
-        if (!currentFiles.has(file)) {
-            URL.revokeObjectURL(url);
-            filePreviewUrls.delete(file);
-        }
-    }
-
-    selectedFiles.forEach((file, index) => { 
-        const div = document.createElement('div'); 
-        div.className = 'preview-item'; 
-        div.innerHTML = `<img src="${getPreviewUrl(file)}" onerror="window.__kinasPreviewImgError && window.__kinasPreviewImgError(this, ${index})"><button type="button" class="preview-remove" onclick="removeImage(${index})">&times;</button>`; 
-        previewGrid.appendChild(div); 
-    }); 
-}
-
-function removeImage(index) { 
-    selectedFiles.splice(index, 1); 
-    updatePreview(); 
-    syncInputFiles(); 
-}
-
+function removeImage(index) { selectedFiles.splice(index, 1); updatePreview(); syncInputFiles(); }
 if (imageUpload) {
-    // NOTE: we intentionally listen for 'kinas:images-ready' (dispatched by
-    // assets/js/image-upload.js once it has finished compressing) rather
-    // than the native 'change' event. The compression module used to
-    // re-dispatch 'change' on this same input after compressing, which
-    // re-triggered this exact listener (and the compression listener)
-    // over and over — a single file selection could add the same image
-    // 100+ times in a couple of seconds. 'kinas:images-ready' only ever
-    // fires once per genuine selection, so that loop can't happen.
-    imageUpload.addEventListener('kinas:images-ready', function(e) {
-        const newFiles = e.detail && Array.isArray(e.detail.files) ? e.detail.files : Array.from(imageUpload.files || []);
-        selectedFiles = [...selectedFiles, ...newFiles];
-        syncInputFiles();
-        updatePreview();
-    });
+imageUpload.addEventListener('kinas:images-ready', function(e) {
+const newFiles = e.detail && Array.isArray(e.detail.files) ? e.detail.files : Array.from(imageUpload.files || []);
+selectedFiles = [...selectedFiles, ...newFiles];
+syncInputFiles(); updatePreview();
+});
 }
-
 </script>
-
 </main>
 </div>
-
-<!-- Image Optimization - Client-side compression -->
 <?php $__imgUploadJsV = @filemtime(__DIR__ . '/../assets/js/image-upload.js') ?: time(); ?>
 <script src="/assets/js/image-upload.js?v=<?= $__imgUploadJsV ?>"></script>
-
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
