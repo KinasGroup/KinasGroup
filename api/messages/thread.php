@@ -1,16 +1,19 @@
 <?php
 /**
- * KINAS GROUP — Chat Thread Endpoint
+ * KINAS GROUP — Chat Thread Endpoint (revamped)
  *
- * AMENDED: can_reply stays true for existing threads even after the
- * listing is delisted/removed/deleted. Listing meta is best-effort
- * (shows "Listing removed" when gone) and never blocks the thread.
+ * REVAMPED POLICY (replaces the "thread always stays open" amendment):
+ *   • Listing status removed/inactive (or row deleted) => thread CLOSED.
+ *     History stays readable; can_reply = false; closed_reason returned
+ *     so the client shows the proper locked-composer notice.
+ *   • listing=0 opens are RESOLVED to the pair's most recent listing
+ *     thread — messages from different listings can never mix again.
+ *   • Messages now carry inquiry_meta for the formal inquiry card.
  */
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
-
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../../includes/session.php';
 
@@ -24,6 +27,8 @@ if (!SessionManager::isLoggedIn()) {
     echo json_encode(['success' => false, 'error' => 'Please log in.']);
     exit;
 }
+
+define('CHAT_CLOSED_STATUSES', ['removed', 'inactive']);
 
 function chat_media_urls($raw): array
 {
@@ -73,6 +78,7 @@ if (!$other) {
     echo json_encode(['success' => false, 'error' => 'User not found.']);
     exit;
 }
+
 $senderRole = (string)($_SESSION['user_role'] ?? '');
 $otherRole  = (string)($other['role'] ?? '');
 $pairValid  =
@@ -80,9 +86,27 @@ $pairValid  =
     ($senderRole === 'agent' && $otherRole === 'user')  ||
     ($senderRole === 'admin');
 
-// Listing meta — best effort, no status filter, never blocks.
-$listingMeta = null;
-$listingActive = false;
+// ------------------------------------------------------------
+// LISTING-LOCK: a listing=0 open resolves to the pair's most
+// recent listing thread so threads can never mix listings.
+// ------------------------------------------------------------
+if ($listingId === 0) {
+    $rStmt = $db->prepare("
+        SELECT listing_id, listing_type FROM messages
+        WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
+          AND listing_id > 0
+        ORDER BY id DESC LIMIT 1
+    ");
+    $rStmt->execute([$userId, $otherId, $otherId, $userId]);
+    $resolved = $rStmt->fetch(PDO::FETCH_ASSOC);
+    if ($resolved) {
+        $listingId = (int)$resolved['listing_id'];
+    }
+}
+
+// Listing meta + closure state
+$listingMeta   = null;
+$listingClosed = true;   // closed by default; only a live row reopens
 $listingAgentId = 0;
 if ($listingId > 0) {
     $tableMap = [
@@ -93,75 +117,90 @@ if ($listingId > 0) {
         'car' => 'kinas-automobile', 'property' => 'williams-connect-home',
         'solar' => 'kinas-volt', 'marketplace' => 'kinas-marketplace',
     ];
-    // Determine listing type from an existing message if not otherwise known.
     $ltStmt = $db->prepare("SELECT listing_type FROM messages WHERE listing_id = ? LIMIT 1");
     $ltStmt->execute([$listingId]);
     $lt = (string)$ltStmt->fetchColumn();
-    $type = $tableMap[$lt] ? $lt : 'marketplace';
-
-    if (isset($tableMap[$type])) {
-        try {
-            $ls = $db->prepare("SELECT id, title, price, agent_id, status FROM {$tableMap[$type]} WHERE id = ?");
-            $ls->execute([$listingId]);
-            $row = $ls->fetch(PDO::FETCH_ASSOC);
-            if ($row) {
-                $listingAgentId = (int)$row['agent_id'];
-                $listingActive = (($row['status'] ?? '') === 'active');
-                $listingMeta = [
-                    'listing_id'    => (int)$row['id'],
-                    'listing_type'  => $type,
-                    'listing_title' => $row['title'],
-                    'listing_price' => (float)$row['price'],
-                    'listing_url'   => '/divisions/' . ($folderMap[$type] ?? '') . '/detail.php?id=' . (int)$row['id'],
-                    'listing_status'=> (string)($row['status'] ?? ''),
-                ];
-                try {
-                    $im = $db->prepare("SELECT url FROM listing_images WHERE listing_type = ? AND listing_id = ? ORDER BY sort_order ASC LIMIT 1");
-                    $im->execute([$type, $listingId]);
-                    $listingMeta['listing_thumb'] = $im->fetchColumn() ?: null;
-                } catch (Throwable $e) { }
-            } else {
-                $listingMeta = [
-                    'listing_id'    => $listingId,
-                    'listing_type'  => $type,
-                    'listing_title' => 'Listing removed',
-                    'listing_price' => null,
-                    'listing_url'   => null,
-                    'listing_status'=> 'removed',
-                ];
-            }
-        } catch (Throwable $e) { }
-    }
+    $type = isset($tableMap[$lt]) ? $lt : 'marketplace';
+    try {
+        $ls = $db->prepare("SELECT id, title, price, agent_id, status FROM {$tableMap[$type]} WHERE id = ?");
+        $ls->execute([$listingId]);
+        $row = $ls->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $listingAgentId = (int)$row['agent_id'];
+            $status = (string)($row['status'] ?? '');
+            $listingClosed = in_array($status, CHAT_CLOSED_STATUSES, true);
+            $listingMeta = [
+                'listing_id'     => (int)$row['id'],
+                'listing_type'   => $type,
+                'listing_title'  => $row['title'],
+                'listing_price'  => (float)$row['price'],
+                'listing_url'    => '/divisions/' . ($folderMap[$type] ?? '') . '/detail.php?id=' . (int)$row['id'],
+                'listing_status' => $status,
+            ];
+            try {
+                $im = $db->prepare("SELECT url FROM listing_images WHERE listing_type = ? AND listing_id = ? ORDER BY sort_order ASC LIMIT 1");
+                $im->execute([$type, $listingId]);
+                $listingMeta['listing_thumb'] = $im->fetchColumn() ?: null;
+            } catch (Throwable $e) { }
+        } else {
+            $listingClosed = true;
+            $listingMeta = [
+                'listing_id'     => $listingId,
+                'listing_type'   => $type,
+                'listing_title'  => 'Listing removed',
+                'listing_price'  => null,
+                'listing_url'    => null,
+                'listing_status' => 'removed',
+            ];
+        }
+    } catch (Throwable $e) { }
 }
 
 // Existing thread?
-$threadStmt = $db->prepare("
-    SELECT COUNT(*) FROM messages
-    WHERE listing_id = ?
-      AND ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
-");
-$threadStmt->execute([$listingId, $userId, $otherId, $otherId, $userId]);
-$hasThread = ((int)$threadStmt->fetchColumn()) > 0;
+$hasThread = false;
+if ($listingId > 0) {
+    $threadStmt = $db->prepare("
+        SELECT COUNT(*) FROM messages
+        WHERE listing_id = ?
+          AND ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
+    ");
+    $threadStmt->execute([$listingId, $userId, $otherId, $otherId, $userId]);
+    $hasThread = ((int)$threadStmt->fetchColumn()) > 0;
+}
 
-// AMENDED: an existing thread ALWAYS stays open; a new one needs a live listing.
-$mayStart = $pairValid && $listingActive && (
+$mayStart = $pairValid && !$listingClosed && $listingId > 0 && (
     ($senderRole === 'user'  && $otherId === $listingAgentId) ||
     ($senderRole === 'agent' && $userId === $listingAgentId)
 );
-$canReply = $pairValid && ($hasThread || $mayStart);
 
-// Messages
+// REVAMPED GATE: a closed (delisted/removed) listing ends replies for
+// everyone; history remains readable.
+$canReply = $pairValid && !$listingClosed && $listingId > 0 && ($hasThread || $mayStart);
+
+// Messages — STRICT listing match (never mixes listings)
 try {
-    $mStmt = $db->prepare("
-        SELECT m.*, u.name AS sender_name
-        FROM messages m
-        LEFT JOIN users u ON u.id = m.sender_id
-        WHERE m.id > ?
-          AND ((m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?))
-          AND (? = 0 OR m.listing_id = ?)
-        ORDER BY m.id ASC
-    ");
-    $mStmt->execute([$sinceId, $userId, $otherId, $otherId, $userId, $listingId, $listingId]);
+    if ($listingId > 0) {
+        $mStmt = $db->prepare("
+            SELECT m.*, u.name AS sender_name
+            FROM messages m
+            LEFT JOIN users u ON u.id = m.sender_id
+            WHERE m.id > ?
+              AND ((m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?))
+              AND m.listing_id = ?
+            ORDER BY m.id ASC
+        ");
+        $mStmt->execute([$sinceId, $userId, $otherId, $otherId, $userId, $listingId]);
+    } else {
+        $mStmt = $db->prepare("
+            SELECT m.*, u.name AS sender_name
+            FROM messages m
+            LEFT JOIN users u ON u.id = m.sender_id
+            WHERE m.id > ?
+              AND ((m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?))
+            ORDER BY m.id ASC
+        ");
+        $mStmt->execute([$sinceId, $userId, $otherId, $otherId, $userId]);
+    }
     $rows = $mStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 } catch (Throwable $e) {
     error_log('thread.php query error: ' . $e->getMessage());
@@ -169,12 +208,18 @@ try {
     echo json_encode(['success' => false, 'error' => 'Could not load messages.']);
     exit;
 }
+
 if ($sinceId === 0 && count($rows) > 200) {
     $rows = array_slice($rows, -200);
 }
 
 $messages = [];
 foreach ($rows as $m) {
+    $meta = null;
+    if (!empty($m['inquiry_meta'])) {
+        $decoded = json_decode((string)$m['inquiry_meta'], true);
+        if (is_array($decoded)) $meta = $decoded;
+    }
     $messages[] = [
         'id'                 => (int)$m['id'],
         'mine'               => (int)$m['sender_id'] === $userId,
@@ -183,6 +228,7 @@ foreach ($rows as $m) {
         'message_type'       => (string)($m['message_type'] ?? 'text'),
         'media_urls'         => chat_media_urls($m['media_url'] ?? null),
         'media_duration_sec' => isset($m['media_duration_sec']) ? (int)$m['media_duration_sec'] : null,
+        'inquiry_meta'       => $meta,
         'is_read'            => (int)($m['is_read'] ?? 0) === 1,
         'read_at'            => $m['read_at'] ?? null,
         'is_viewing_request' => (int)($m['is_viewing_request'] ?? 0) === 1,
@@ -201,6 +247,8 @@ echo json_encode([
         'other_name'    => $other['name'] ?? 'Unknown',
         'other_role'    => $otherRole,
         'can_reply'     => $canReply,
+        'closed'        => $listingClosed,
+        'closed_reason' => $listingClosed ? 'delisted' : null,
         'listing'       => $listingMeta,
     ],
     'messages'     => $messages,
