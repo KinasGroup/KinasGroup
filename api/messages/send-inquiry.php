@@ -1,4 +1,16 @@
 <?php
+/**
+ * KINAS GROUP — Listing inquiry / viewing request (revamped)
+ *
+ * REVAMP: the chat row no longer stores the stripped email blob (the
+ * "scattered header with stray syntax"). It stores:
+ *   body         = the user's clean message text only
+ *   inquiry_meta = JSON {name,email,phone,subject,inquiry_type,
+ *                  preferred_date,preferred_time,listing_title,sent_at}
+ * which chat.js renders as a formal Gmail-style inquiry card.
+ * GUEST SAFETY: messages.sender_id is NOT NULL — logged-out enquirers
+ * now get the emails only (no chat row) instead of a silent 500.
+ */
 header('Content-Type: application/json');
 require_once '../config/database.php';
 require_once '../config/constants.php';
@@ -17,7 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 Security::rateLimitDB('inquiry_' . Security::getClientIP(), 5, 600);
 
 // Accept both form-POST and JSON bodies
-$data = $_SERVER['CONTENT_TYPE'] && str_contains($_SERVER['CONTENT_TYPE'], 'application/json')
+$contentType = (string)($_SERVER['CONTENT_TYPE'] ?? '');
+$data = (str_contains($contentType, 'application/json'))
     ? (json_decode(file_get_contents('php://input'), true) ?? [])
     : $_POST;
 
@@ -28,42 +41,35 @@ if (!empty($data['website'])) {
 }
 
 // Sanitise all inputs
-$listingId   = (int)($data['listing_id'] ?? 0);
-$listingType = $data['listing_type'] ?? 'car';
-$name        = Security::sanitizeInput($data['name'] ?? '');
-$email       = trim($data['email'] ?? '');
-$phone       = Security::sanitizeInput($data['phone'] ?? '');
-$message     = Security::sanitizeInput($data['message'] ?? '');
-$inquiryType = $data['inquiry_type'] ?? 'general';
-$preferredDate = $data['preferred_date'] ?? '';
-$preferredTime = $data['preferred_time'] ?? '';
+$listingId     = (int)($data['listing_id'] ?? 0);
+$listingType   = (string)($data['listing_type'] ?? 'car');
+$name          = Security::sanitizeInput($data['name'] ?? '');
+$email         = trim((string)($data['email'] ?? ''));
+$phone         = Security::sanitizeInput($data['phone'] ?? '');
+$message       = Security::sanitizeInput($data['message'] ?? '');
+$inquiryType   = (string)($data['inquiry_type'] ?? 'general');
+$preferredDate = (string)($data['preferred_date'] ?? '');
+$preferredTime = (string)($data['preferred_time'] ?? '');
 
-// Validate required fields
 if (!$listingId || !$name || !$message) {
     http_response_code(422);
     echo json_encode(['error' => 'Name, listing, and message are required']);
     exit;
 }
-
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     http_response_code(422);
     echo json_encode(['error' => 'Please provide a valid email address']);
     exit;
 }
-
 if (strlen($message) > 2000) {
     http_response_code(422);
     echo json_encode(['error' => 'Message is too long (max 2000 characters)']);
     exit;
 }
-
-// Validate date if viewing request
-if ($inquiryType === 'viewing') {
-    if (empty($preferredDate) || empty($preferredTime)) {
-        http_response_code(422);
-        echo json_encode(['error' => 'Please select a date and time for viewing']);
-        exit;
-    }
+if ($inquiryType === 'viewing' && ($preferredDate === '' || $preferredTime === '')) {
+    http_response_code(422);
+    echo json_encode(['error' => 'Please select a date and time for viewing']);
+    exit;
 }
 
 $tableMap = ['car' => 'car_listings', 'property' => 'property_listings', 'marketplace' => 'marketplace_listings', 'solar' => 'solar_listings'];
@@ -77,14 +83,13 @@ $table = $tableMap[$listingType];
 try {
     $db = Database::getInstance()->getConnection();
 
-    // Get listing details
-    $stmt = $db->prepare("SELECT agent_id, title FROM $table WHERE id = ? AND status = 'active'");
+    // Listing must be live to receive new inquiries
+    $stmt = $db->prepare("SELECT agent_id, title, status FROM $table WHERE id = ?");
     $stmt->execute([$listingId]);
     $listing = $stmt->fetch();
-
-    if (!$listing) {
+    if (!$listing || in_array((string)($listing['status'] ?? ''), ['removed', 'inactive'], true)) {
         http_response_code(404);
-        echo json_encode(['error' => 'Listing not found']);
+        echo json_encode(['error' => 'This listing is no longer available for inquiries.']);
         exit;
     }
 
@@ -99,7 +104,7 @@ try {
     // GET SUPER AGENT (is_super_agent = 1)
     // ============================================================
     $stmt = $db->prepare("
-        SELECT u.id, u.email, u.name, u.phone, u.phone_verified_at 
+        SELECT u.id, u.email, u.name, u.phone, u.phone_verified_at
         FROM users u
         JOIN agent_profiles ap ON u.id = ap.user_id
         WHERE ap.is_super_agent = 1 AND u.status = 'active'
@@ -109,45 +114,53 @@ try {
     $superAgent = $stmt->fetch();
 
     // ============================================================
-    // BUILD MESSAGE CONTENT
+    // BUILD MESSAGE CONTENT (emails unchanged)
     // ============================================================
     $isViewing = ($inquiryType === 'viewing');
-    $subject = $isViewing 
+    $subject = $isViewing
         ? "New Viewing Request for {$listing['title']}"
         : "New Inquiry for {$listing['title']}";
 
     $emailBody = "
-    <html>
-    <head><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}</style></head>
-    <body>
-        <h2 style='color:#C6A43F;'>" . ($isViewing ? "📅 New Viewing Request" : "📧 New Inquiry") . "</h2>
-        <p><strong>Listing:</strong> {$listing['title']}</p>
-        <p><strong>From:</strong> " . htmlspecialchars($name) . "</p>
-        <p><strong>Email:</strong> " . htmlspecialchars($email) . "</p>
-        <p><strong>Phone:</strong> " . htmlspecialchars($phone ?: 'Not provided') . "</p>
-        " . ($isViewing ? "
-        <p><strong>Preferred Date:</strong> " . htmlspecialchars($preferredDate) . "</p>
-        <p><strong>Preferred Time:</strong> " . htmlspecialchars($preferredTime) . "</p>
-        " : "") . "
-        <hr>
-        <p><strong>Message:</strong></p>
-        <p>" . nl2br(htmlspecialchars($message)) . "</p>
-        <hr>
-        <p style='font-size:12px;color:#888;'>This inquiry was sent via KINAS GROUP Platform</p>
-    </body>
-    </html>
-    ";
+<html>
+<head><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}</style></head>
+<body>
+<h2 style='color:#C6A43F;'>" . ($isViewing ? "📅 New Viewing Request" : "📧 New Inquiry") . "</h2>
+<p><strong>Listing:</strong> {$listing['title']}</p>
+<p><strong>From:</strong> " . htmlspecialchars($name) . "</p>
+<p><strong>Email:</strong> " . htmlspecialchars($email) . "</p>
+<p><strong>Phone:</strong> " . htmlspecialchars($phone ?: 'Not provided') . "</p>
+" . ($isViewing ? "
+<p><strong>Preferred Date:</strong> " . htmlspecialchars($preferredDate) . "</p>
+<p><strong>Preferred Time:</strong> " . htmlspecialchars($preferredTime) . "</p>
+" : "") . "
+<hr>
+<p><strong>Message:</strong></p>
+<p>" . nl2br(htmlspecialchars($message)) . "</p>
+<hr>
+<p style='font-size:12px;color:#888;'>This inquiry was sent via KINAS GROUP Platform</p>
+</body>
+</html>
+";
 
-    $plainMessage = strip_tags(str_replace(['<br>','</p>'], ["\n","\n"], $emailBody));
+    // Structured metadata stored with the chat row (rendered as the
+    // formal inquiry card by chat.js). Body stays CLEAN user text.
+    $inquiryMeta = json_encode([
+        'name'           => $name,
+        'email'          => $email,
+        'phone'          => $phone,
+        'subject'        => $subject,
+        'inquiry_type'   => $inquiryType,
+        'preferred_date' => $preferredDate ?: null,
+        'preferred_time' => $preferredTime ?: null,
+        'listing_title'  => (string)$listing['title'],
+        'sent_at'        => date('c'),
+    ], JSON_UNESCAPED_UNICODE);
 
     // ============================================================
     // SEND TO LISTING AGENT
     // ============================================================
     if ($listingAgent) {
-        // sendNewInquiry() was never a real method on EmailService — this
-        // call fatal-errored (Error, not Exception, so the catch below
-        // never even caught it) before the message was saved, on every
-        // single inquiry/viewing request across all 4 divisions.
         Notify::email(
             $listingAgent['email'],
             $subject,
@@ -156,8 +169,6 @@ try {
             SUPPORT_EMAIL,
             'KINAS GROUP Notifications'
         );
-
-        // Also send the detailed email with date/time if viewing
         if ($isViewing) {
             send_email(
                 $listingAgent['email'],
@@ -166,8 +177,6 @@ try {
                 'no-reply@kinas-group.com'
             );
         }
-
-        // SMS notify the listing agent
         if (!empty($listingAgent['phone']) && !empty($listingAgent['phone_verified_at'])) {
             $smsMsg = $isViewing
                 ? "New viewing request for {$listing['title']} from {$name} on {$preferredDate} at {$preferredTime}. Check your dashboard."
@@ -179,33 +188,22 @@ try {
     // ============================================================
     // CONFIRMATION EMAIL TO THE REQUESTER
     // ============================================================
-    // Previously nothing was ever sent back to the person who submitted
-    // the inquiry/viewing request — they had no way of knowing it went
-    // through at all beyond the on-page success message.
     $confirmSubject = $isViewing
         ? "Your viewing request for {$listing['title']} has been received"
         : "Your inquiry about {$listing['title']} has been received";
     $confirmBody = $isViewing
-        ? "Hi {$name},\n\nYour request to view \"{$listing['title']}\" on {$preferredDate} at {$preferredTime} has been sent to the listing agent.\n\nThey'll be in touch shortly to confirm the appointment. If the requested time doesn't work for them, they may suggest an alternative.\n\nYour message:\n{$message}"
-        : "Hi {$name},\n\nYour inquiry about \"{$listing['title']}\" has been sent to the listing agent, who will respond directly to this email address.\n\nYour message:\n{$message}";
+        ? "Hi {$name},\nYour request to view \"{$listing['title']}\" on {$preferredDate} at {$preferredTime} has been sent to the listing agent.\nThey'll be in touch shortly to confirm the appointment. If the requested time doesn't work for them, they may suggest an alternative.\nYour message:\n{$message}"
+        : "Hi {$name},\nYour inquiry about \"{$listing['title']}\" has been sent to the listing agent, who will respond directly to this email address.\nYour message:\n{$message}";
     Notify::email($email, $confirmSubject, $confirmBody, null, INFO_EMAIL, 'KINAS GROUP');
 
     // ============================================================
-    // SEND TO SUPER AGENT (if exists and is different from listing agent)
+    // SEND TO SUPER AGENT (if exists and different)
     // ============================================================
     if ($superAgent && ($superAgent['id'] != ($listingAgent['id'] ?? 0))) {
-        $superSubject = $isViewing 
+        $superSubject = $isViewing
             ? "🔔 Super Agent: New Viewing Request for {$listing['title']}"
             : "🔔 Super Agent: New Inquiry for {$listing['title']}";
-
-        send_email(
-            $superAgent['email'],
-            $superSubject,
-            $emailBody,
-            'no-reply@kinas-group.com'
-        );
-
-        // SMS to super agent
+        send_email($superAgent['email'], $superSubject, $emailBody, 'no-reply@kinas-group.com');
         if (!empty($superAgent['phone']) && !empty($superAgent['phone_verified_at'])) {
             $smsMsg = $isViewing
                 ? "Super Agent: New viewing request for {$listing['title']} from {$name} on {$preferredDate} at {$preferredTime}."
@@ -215,95 +213,75 @@ try {
     }
 
     // ============================================================
-    // SAVE TO DATABASE (for both agents)
+    // SAVE CHAT ROWS (logged-in senders only — sender_id is NOT NULL)
     // ============================================================
-    // Save to messages table
-    $stmt = $db->prepare("
-        INSERT INTO messages (
-            sender_id, 
-            receiver_id, 
-            listing_id, 
-            listing_type, 
-            subject, 
-            body, 
-            is_viewing_request,
-            preferred_date,
-            preferred_time,
-            is_read,
-            created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())
-    ");
-    
-    // Try to get sender user ID (if logged in)
     $senderId = SessionManager::getUserId() ?: null;
-    
-    $stmt->execute([
-        $senderId,
-        $listing['agent_id'],
-        $listingId,
-        $listingType,
-        $subject,
-        $plainMessage,
-        $isViewing ? 1 : 0,
-        $preferredDate ?: null,
-        $preferredTime ?: null
-    ]);
-
-    // Also save a copy for super agent if different
-    if ($superAgent && ($superAgent['id'] != ($listingAgent['id'] ?? 0))) {
+    if ($senderId !== null) {
         $stmt = $db->prepare("
             INSERT INTO messages (
-                sender_id, 
-                receiver_id, 
-                listing_id, 
-                listing_type, 
-                subject, 
-                body, 
-                is_viewing_request,
-                preferred_date,
-                preferred_time,
-                is_read,
-                created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())
+                sender_id, receiver_id, listing_id, listing_type, subject, body,
+                inquiry_meta, is_viewing_request, preferred_date, preferred_time,
+                is_read, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())
         ");
         $stmt->execute([
             $senderId,
-            $superAgent['id'],
+            $listing['agent_id'],
             $listingId,
             $listingType,
-            $subject . " (Super Agent)",
-            $plainMessage,
+            $subject,
+            $message,
+            $inquiryMeta,
             $isViewing ? 1 : 0,
             $preferredDate ?: null,
             $preferredTime ?: null
         ]);
+
+        if ($superAgent && ($superAgent['id'] != ($listingAgent['id'] ?? 0))) {
+            $stmt = $db->prepare("
+                INSERT INTO messages (
+                    sender_id, receiver_id, listing_id, listing_type, subject, body,
+                    inquiry_meta, is_viewing_request, preferred_date, preferred_time,
+                    is_read, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())
+            ");
+            $stmt->execute([
+                $senderId,
+                $superAgent['id'],
+                $listingId,
+                $listingType,
+                $subject . " (Super Agent)",
+                $message,
+                $inquiryMeta,
+                $isViewing ? 1 : 0,
+                $preferredDate ?: null,
+                $preferredTime ?: null
+            ]);
+        }
     }
 
-    // Log the inquiry
     Security::logActivity(
         SessionManager::getUserId(),
         $isViewing ? 'viewing_requested' : 'inquiry_sent',
-        $isViewing 
+        $isViewing
             ? "Viewing request for {$listingType} #{$listingId} from {$email} on {$preferredDate}"
             : "Inquiry for {$listingType} #{$listingId} from {$email}"
     );
 
     echo json_encode(['success' => true, 'message' => $isViewing ? 'Viewing request sent successfully!' : 'Inquiry sent successfully']);
-
 } catch (Exception $e) {
     error_log('Inquiry error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Failed to send inquiry: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Failed to send inquiry. Please try again.']);
 }
 
 /**
  * Helper function to send email (fallback if EmailService not available)
  */
 function send_email($to, $subject, $message, $from = null) {
-    $headers = "MIME-Version: 1.0" . "\r\n";
+    $headers  = "MIME-Version: 1.0" . "\r\n";
     $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
     $headers .= 'From: ' . ($from ?? 'noreply@kinas-group.com') . "\r\n";
     $headers .= 'Reply-To: ' . ($from ?? 'noreply@kinas-group.com') . "\r\n";
     return mail($to, $subject, $message, $headers);
 }
-?>
