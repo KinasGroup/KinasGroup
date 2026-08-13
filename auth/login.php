@@ -32,9 +32,7 @@ if ($registrationSuccess) {
 // Google OAuth slot — shipped disabled; flip in .env when ready.
 $googleOAuthEnabled = filter_var(getenv('GOOGLE_OAUTH_ENABLED') ?: 'false', FILTER_VALIDATE_BOOLEAN);
 
-// AUTO CACHE-BUST: version = file modified time. Every time a CSS file
-// changes on disk, its query string changes automatically — browsers can
-// never serve stale CSS again. No manual ?v bumps needed, ever.
+// AUTO CACHE-BUST: version = file modified time (never serve stale CSS).
 function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file) ?: 1; }
 ?>
 <!DOCTYPE html>
@@ -50,8 +48,6 @@ function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file
 <link rel="stylesheet" href="../assets/css/james-edition.css?v=<?= authCssV('james-edition.css') ?>">
 <link rel="stylesheet" href="../assets/css/responsive.css?v=<?= authCssV('responsive.css') ?>">
 <link rel="stylesheet" href="../assets/css/auth.css?v=<?= authCssV('auth.css') ?>">
-<!-- Preload the hero so the CSS background isn't discovered late (keeps LCP fast).
-     If you convert the hero to WebP later, change the extension here AND in auth.css. -->
 <link rel="preload" as="image" href="../assets/images/hero/auth-hero-night.jpg">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Prata&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -59,7 +55,6 @@ function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file
 <body>
 <div class="ka-shell">
     <div class="ka-main">
-        <!-- Full-bleed hero layer: spans the ENTIRE width behind both columns -->
         <div class="ka-hero" aria-hidden="true"></div>
 
         <!-- ── Brand panel ── -->
@@ -78,8 +73,9 @@ function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file
         <!-- ── Form card ── -->
         <main class="ka-form-side">
             <div class="ka-card">
+                <p class="ka-eyebrow"><i class="fas fa-shield-alt"></i> Secure Client Access</p>
                 <h2>Log In</h2>
-                <p class="ka-sub">Enter your details to access your account</p>
+                <p class="ka-sub">Enter your details to access your account, saved listings and messages.</p>
 
                 <?php if ($errorMessage): ?>
                     <div class="ka-alert error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div>
@@ -137,6 +133,12 @@ function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file
                     Don't have an account? <a href="register.php" class="ka-link">Register Now</a>
                     <span class="ka-dot">·</span>
                     <a href="register-buyer.php" class="ka-link">Register as Buyer</a>
+                </div>
+
+                <div class="ka-card-trust">
+                    <span><i class="fas fa-lock"></i>256-bit SSL encrypted</span>
+                    <span class="ka-dot">·</span>
+                    <span><i class="fas fa-shield-alt"></i>Your data is protected</span>
                 </div>
             </div>
         </main>
@@ -196,17 +198,11 @@ if (window.location.search.includes('registered=1')) {
     window.history.replaceState({}, document.title, url.pathname);
 }
 
-// ============================================================
-// NOTIFICATION — delegates to kinasToast (defined in kinas-ui.php)
-// ============================================================
 window.showNotification = function(message, type) {
     var typeMap = { error: 'error', success: 'success', warning: 'warning', info: 'info' };
     kinasToast(message, typeMap[type] || 'error', 5000);
 };
 
-// ============================================================
-// LOGIN FORM HANDLER
-// ============================================================
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const form = this;
