@@ -1,4 +1,4 @@
-// /assets/js/chat.js — KINAS GROUP Messenger (v4 — AUTHORITATIVE)
+// /assets/js/chat.js — KINAS GROUP Messenger (v5 — AUTHORITATIVE)
 // Any future messenger change must start from THIS file.
 window.__kinasChatJsLoaded = true;
 (function () {
@@ -41,12 +41,19 @@ function esc(s) {
 }
 function money(n) { return '₦' + Number(n || 0).toLocaleString('en-NG'); }
 function fmtDur(sec) { sec = Math.max(0, Math.round(sec || 0)); var m = Math.floor(sec / 60), s = sec % 60; return m + ':' + (s < 10 ? '0' : '') + s; }
+function fmtGmailDate(dt) {
+    var d = new Date(dt); if (!dt || isNaN(d.getTime())) return '';
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var h = d.getHours(); var ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12; if (h === 0) h = 12;
+    var min = d.getMinutes();
+    return days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ', ' + h + ':' + (min < 10 ? '0' : '') + min + ' ' + ampm;
+}
 function toast(msg, type) {
     if (typeof window.kinasToast === 'function') { window.kinasToast(msg, type || 'info'); return; }
     if (typeof window.showSuccessBanner === 'function') { window.showSuccessBanner(msg, type === 'error'); return; }
     console.warn('[chat]', msg);
 }
-// ALWAYS-VISIBLE notice bar (guaranteed feedback even if toast system is absent)
 function note(msg, isErr) {
     if (!composerNote) return;
     composerNote.textContent = msg;
@@ -309,14 +316,6 @@ function renderMessage(m) {
     bubble.appendChild(meta2); row.appendChild(bubble);
     return row;
 }
-function fmtGmailDate(dt) {
-    var d = new Date(dt); if (!dt || isNaN(d.getTime())) return '';
-    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var h = d.getHours(); var ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12; if (h === 0) h = 12;
-    var min = d.getMinutes();
-    return days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ', ' + h + ':' + (min < 10 ? '0' : '') + min + ' ' + ampm;
-}
 function voiceNode(url, seconds) {
     var wrap = el('div', 'chat-voice');
     var play = el('button', 'chat-voice-play'); play.type = 'button'; play.innerHTML = '<i class="fas fa-play"></i>';
@@ -358,7 +357,6 @@ function queueMarkRead() {
         fetch(CFG.epMarkRead, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () {});
     }, 400);
 }
-// ── Uploads with round progress ring ──
 function refreshSendState() { sendBtn.disabled = state.uploads.some(function (u) { return u.status === 'uploading'; }); }
 function ringMarkup(pct) {
     return '<svg class="chat-up-ring" viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.5"/><circle class="ring-fg" cx="18" cy="18" r="15.5" pathLength="100" style="stroke-dashoffset:' + (100 - pct) + '"/></svg><span class="chat-up-pct">' + pct + '%</span>';
@@ -375,7 +373,6 @@ function renderPending() {
         overlay.innerHTML = u.status === 'uploading' ? ringMarkup(u.progress)
             : (u.status === 'done' ? '<i class="fas fa-check chat-up-status"></i>' : '<i class="fas fa-exclamation chat-up-status"></i>');
         item.appendChild(overlay);
-        var bar = el('div', 'chat-up-bar'); bar.innerHTML = '<span style="width:' + u.progress + '%"></span>'; item.appendChild(bar);
         var rm = document.createElement('button'); rm.type = 'button'; rm.innerHTML = '<i class="fas fa-times"></i>'; rm.title = 'Remove image';
         rm.addEventListener('click', function () {
             if (u.xhr && u.status === 'uploading') { try { u.xhr.abort(); } catch (e) {} }
@@ -427,7 +424,7 @@ fileInput.addEventListener('change', function () {
     });
     fileInput.value = ''; renderPending();
 });
-// ── Voice recording with guaranteed feedback ──
+// ── Voice recording ──
 function failRec(msg) {
     composer.classList.remove('is-recording'); micBtn.classList.remove('is-active');
     clearInterval(state.recTimer);
@@ -437,7 +434,6 @@ function failRec(msg) {
 function startRecording(holdMode) {
     if (state.rec) return;
     clearNote();
-    // Immediate visible feedback BEFORE any permission prompt resolves
     composer.classList.add('is-recording'); micBtn.classList.add('is-active');
     recTimeEl.textContent = '0:00';
     recHint.textContent = 'Requesting microphone…';
@@ -471,10 +467,20 @@ function startRecording(holdMode) {
         rec.start();
         state.recTimer = setInterval(function () {
             state.recSeconds++; recTimeEl.textContent = fmtDur(state.recSeconds);
-            if (state.recSeconds >= CFG.maxVoiceSeconds && state.rec && state.rec.state !== 'inactive') stopRecording(state.recHold ? 'send' : 'send');
+            if (state.recSeconds >= CFG.maxVoiceSeconds && state.rec && state.rec.state !== 'inactive') stopRecording('send');
         }, 1000);
     }).catch(function (err) {
-        failRec('Microphone unavailable (' + ((err && err.name) || 'error') + '). Allow mic permission for this site and try again.');
+        // v5: precise, actionable microphone failure messages.
+        var name = (err && err.name) || '';
+        if (name === 'NotAllowedError' || name === 'SecurityError') {
+            failRec('Microphone is BLOCKED for this site by the browser. Fix: tap the padlock icon next to the website address → Site settings / Permissions → Microphone → set to Allow → reload this page → try again.');
+        } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+            failRec('No microphone was found on this device.');
+        } else if (name === 'NotReadableError') {
+            failRec('Your microphone is busy — another app may be using it. Close it and try again.');
+        } else {
+            failRec('Microphone unavailable' + (name ? ' (' + name + ')' : '') + '. Check browser permissions (HTTPS required).');
+        }
     });
 }
 function stopRecording(mode) {
@@ -501,7 +507,7 @@ micBtn.addEventListener('touchend', function (e) {
     if (state.recTouchCancelled) stopRecording('cancel'); else stopRecording('send');
 }, { passive: false });
 micBtn.addEventListener('click', function () {
-    if (Date.now() - state.lastTouchStart < 700) return; // synthetic click after touch
+    if (Date.now() - state.lastTouchStart < 700) return;
     if (state.rec) return;
     startRecording(false);
 });
