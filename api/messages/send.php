@@ -1,9 +1,14 @@
 <?php
 /**
-* KINAS GROUP — Chat Send Endpoint (revamped)
-* VOICE-NOTE FIX: finfo/libmagic reports browser MediaRecorder output as
-* video/webm (Matroska container) or video/mp4 — those aliases are now
-* whitelisted so voice notes are stored instead of 422-rejected.
+* KINAS GROUP — Chat Send Endpoint (v4 — AUTHORITATIVE)
+* Any future messenger change must start from THIS file.
+*
+* v4 fixes:
+*  - AUDIO_MIMES now accepts container labels finfo reports for browser
+*    recordings (video/webm, video/mp4, application/ogg) — previously
+*    every webm voice note was rejected with 422.
+*  - When pre-uploaded image_urls are present, raw images[] are ignored
+*    (prevents double-attach / silent drop).
 */
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -100,9 +105,11 @@ $base = basename($path);
 return (bool)preg_match('/^chat_img_[0-9]{8}_[0-9]{6}_[0-9a-f]{16}\.(jpg|png|webp)$/', $base);
 }
 $IMAGE_MIMES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+// v4: container aliases included — finfo labels browser recordings
+// video/webm (Matroska) or video/mp4, NOT audio/webm.
 $AUDIO_MIMES = [
 'audio/webm'      => 'webm',
-'video/webm'      => 'webm',   // libmagic label for webm audio recordings
+'video/webm'      => 'webm',
 'audio/mp4'       => 'mp4',
 'video/mp4'       => 'mp4',
 'audio/x-m4a'     => 'm4a',
@@ -135,6 +142,8 @@ http_response_code(422);
 echo json_encode(['success' => false, 'error' => 'Message is too long (max 2000 characters).']);
 exit;
 }
+// Pre-uploaded image URLs (progress pipeline). v4: when present, raw
+// images[] are IGNORED so a message can never double-attach.
 $imageUrls = [];
 $postedUrls = $_POST['image_urls'] ?? null;
 if (is_string($postedUrls)) { $postedUrls = json_decode($postedUrls, true); }
@@ -154,7 +163,7 @@ exit;
 $imageUrls[] = $u;
 }
 }
-$imageFiles = chat_normalize_files($_FILES['images'] ?? null);
+$imageFiles = !empty($imageUrls) ? [] : chat_normalize_files($_FILES['images'] ?? null);
 $audioFiles = chat_normalize_files($_FILES['audio'] ?? null);
 if (count($imageFiles) > 4) {
 http_response_code(422);
