@@ -130,7 +130,7 @@ function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file
                     </div>
 
                     <p class="ka-terms">
-                        <i class="fas fa-shield-alt"></i> By registering, you agree to our
+                        <i class="fas fa-shield-alt je-text-gold" style="color:#C6A43F;"></i> By registering, you agree to our
                         <a href="../pages/terms-of-use.php" class="ka-link">Terms</a> and
                         <a href="../pages/privacy-policy.php" class="ka-link">Privacy Policy</a>.
                     </p>
