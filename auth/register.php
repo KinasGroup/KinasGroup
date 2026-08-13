@@ -143,7 +143,10 @@ function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file
                     <div class="ka-field" id="captcha-group">
                         <div id="captcha-container"></div>
                         <input type="hidden" id="captcha-token" name="captcha_token">
-                        <p class="ka-hint"><i class="fas fa-shield-alt"></i> Protected by reCAPTCHA.</p>
+                        <!-- FIX: shield icon now carries the gold accent
+                             (je-text-gold + inline fallback) instead of
+                             inheriting the grey hint colour. -->
+                        <p class="ka-hint"><i class="fas fa-shield-alt je-text-gold" style="color:#C6A43F;"></i> Protected by reCAPTCHA.</p>
                     </div>
 
                     <p class="ka-terms">
