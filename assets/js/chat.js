@@ -1,4 +1,4 @@
-// /assets/js/chat.js — KINAS GROUP Messenger (v5 — AUTHORITATIVE)
+// /assets/js/chat.js — KINAS GROUP Messenger (v6 — AUTHORITATIVE)
 // Any future messenger change must start from THIS file.
 window.__kinasChatJsLoaded = true;
 (function () {
@@ -21,6 +21,7 @@ var CFG = {
     pollThreadMs: 5000, pollListMs: 20000,
     maxImages: 4, maxImageBytes: 10 * 1024 * 1024, maxVoiceSeconds: 180
 };
+var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 var state = {
     conversations: [], current: null, canReply: false, closed: false, listing: null,
     lastId: 0, prevDate: null, msgEls: {}, uploads: [], upSeq: 0, search: '',
@@ -357,6 +358,12 @@ function queueMarkRead() {
         fetch(CFG.epMarkRead, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () {});
     }, 400);
 }
+// ── v6: pending uploads — thumbnail ALWAYS shows the real image ──
+function overlayStyle(status) {
+    if (status === 'uploading') return 'rgba(10,10,10,0.25)';
+    if (status === 'done') return 'rgba(27,94,32,0.25)';
+    return 'rgba(183,28,28,0.45)';
+}
 function refreshSendState() { sendBtn.disabled = state.uploads.some(function (u) { return u.status === 'uploading'; }); }
 function ringMarkup(pct) {
     return '<svg class="chat-up-ring" viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.5"/><circle class="ring-fg" cx="18" cy="18" r="15.5" pathLength="100" style="stroke-dashoffset:' + (100 - pct) + '"/></svg><span class="chat-up-pct">' + pct + '%</span>';
@@ -368,8 +375,20 @@ function renderPending() {
     state.uploads.forEach(function (u) {
         var item = el('div', 'chat-pending-item is-' + u.status);
         item.setAttribute('data-up-id', String(u.id));
-        var img = document.createElement('img'); img.src = u.objectUrl; item.appendChild(img);
+        var img = document.createElement('img');
+        img.alt = 'Attached image preview';
+        // v6: once uploaded, show the ACTUAL uploaded file; before that, the local preview.
+        img.src = (u.status === 'done' && u.serverUrl) ? u.serverUrl : u.objectUrl;
+        img.onerror = (function (theImg, entry) {
+            return function () {
+                if (theImg.dataset.kinasRetried === '1') { theImg.style.display = 'none'; return; }
+                theImg.dataset.kinasRetried = '1';
+                theImg.src = URL.createObjectURL(entry.file);
+            };
+        })(img, u);
+        item.appendChild(img);
         var overlay = el('div', 'chat-up-overlay');
+        overlay.style.background = overlayStyle(u.status);
         overlay.innerHTML = u.status === 'uploading' ? ringMarkup(u.progress)
             : (u.status === 'done' ? '<i class="fas fa-check chat-up-status"></i>' : '<i class="fas fa-exclamation chat-up-status"></i>');
         item.appendChild(overlay);
@@ -388,12 +407,20 @@ function updatePendingItem(u) {
     var item = pendingWrap.querySelector('[data-up-id="' + u.id + '"]');
     if (!item) { renderPending(); return; }
     item.className = 'chat-pending-item is-' + u.status;
-    if (u.status === 'uploading') {
-        var fg = item.querySelector('.ring-fg'); if (fg) fg.style.strokeDashoffset = String(100 - u.progress);
-        var pct = item.querySelector('.chat-up-pct'); if (pct) pct.textContent = u.progress + '%';
-    } else {
-        var ov = item.querySelector('.chat-up-overlay');
-        if (ov) ov.innerHTML = u.status === 'done' ? '<i class="fas fa-check chat-up-status"></i>' : '<i class="fas fa-exclamation chat-up-status"></i>';
+    var ov = item.querySelector('.chat-up-overlay');
+    if (ov) {
+        ov.style.background = overlayStyle(u.status);
+        if (u.status === 'uploading') {
+            var fg = ov.querySelector('.ring-fg'); if (fg) fg.style.strokeDashoffset = String(100 - u.progress);
+            var pct = ov.querySelector('.chat-up-pct'); if (pct) pct.textContent = u.progress + '%';
+        } else {
+            ov.innerHTML = u.status === 'done' ? '<i class="fas fa-check chat-up-status"></i>' : '<i class="fas fa-exclamation chat-up-status"></i>';
+        }
+    }
+    // v6: swap the thumbnail to the real uploaded image on completion.
+    if (u.status === 'done' && u.serverUrl) {
+        var img = item.querySelector('img');
+        if (img && img.src !== u.serverUrl) img.src = u.serverUrl;
     }
 }
 function startUpload(u) {
@@ -430,6 +457,19 @@ function failRec(msg) {
     clearInterval(state.recTimer);
     if (state.rec) { try { state.rec.stop(); } catch (e) {} state.rec = null; }
     note(msg, true);
+}
+function micBlockedDiagnostics(fallback) {
+    if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'microphone' }).then(function (p) {
+            if (p.state === 'denied') {
+                failRec('Microphone is BLOCKED by your browser settings. Fix: tap the padlock icon next to the website address → Site settings / Permissions → Microphone → set to Allow → reload this page → try again.');
+            } else {
+                failRec('Microphone is BLOCKED at the server level (Permissions-Policy header). The browser never even shows a prompt. The site\'s nginx/CDN security headers must allow "microphone" — send this screenshot to support.');
+            }
+        }).catch(function () { failRec(fallback); });
+    } else {
+        failRec(fallback);
+    }
 }
 function startRecording(holdMode) {
     if (state.rec) return;
@@ -470,10 +510,9 @@ function startRecording(holdMode) {
             if (state.recSeconds >= CFG.maxVoiceSeconds && state.rec && state.rec.state !== 'inactive') stopRecording('send');
         }, 1000);
     }).catch(function (err) {
-        // v5: precise, actionable microphone failure messages.
         var name = (err && err.name) || '';
         if (name === 'NotAllowedError' || name === 'SecurityError') {
-            failRec('Microphone is BLOCKED for this site by the browser. Fix: tap the padlock icon next to the website address → Site settings / Permissions → Microphone → set to Allow → reload this page → try again.');
+            micBlockedDiagnostics('Microphone unavailable. Allow microphone permission in your browser\'s site settings, reload, and try again.');
         } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
             failRec('No microphone was found on this device.');
         } else if (name === 'NotReadableError') {
@@ -513,7 +552,7 @@ micBtn.addEventListener('click', function () {
 });
 recCancel.addEventListener('click', function () { stopRecording('cancel'); });
 recSend.addEventListener('click', function () { stopRecording('send'); });
-// ── Send ──
+// ── Send ─
 function doneUploadUrls() {
     return state.uploads.filter(function (u) { return u.status === 'done' && u.serverUrl; }).map(function (u) { return u.serverUrl; });
 }
