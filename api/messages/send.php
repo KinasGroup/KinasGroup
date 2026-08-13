@@ -1,21 +1,22 @@
 <?php
 /**
- * KINAS GROUP — Chat Send Endpoint
+ * KINAS GROUP — Chat Send Endpoint (revamped)
  *
- * AMENDED: a delisted/removed/deleted product no longer closes an existing
- * thread. Replies are allowed whenever a conversation already exists between
- * the two users about that listing. The listing only gates STARTING a new
- * thread (and must be active for that).
+ * REVAMPED POLICY (replaces the "existing threads survive delisting"
+ * amendment): a listing whose status is removed/inactive — or whose row
+ * is deleted — REJECTS new messages even inside an existing thread.
+ * sold/rented/pending/flagged remain replyable.
+ * Also accepts pre-uploaded image URLs (image_urls[]) produced by the
+ * new upload-media.php progress pipeline; raw file uploads still work
+ * as a fallback.
  */
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
-
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/security.php';
-
 if (file_exists(__DIR__ . '/../../includes/r2-upload.php')) {
     require_once __DIR__ . '/../../includes/r2-upload.php';
 }
@@ -25,15 +26,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'error' => 'Method not allowed.']);
     exit;
 }
-
 if (!SessionManager::isLoggedIn()) {
     http_response_code(401);
     echo json_encode(['success' => false, 'error' => 'Please log in to send messages.']);
     exit;
 }
-$userId   = (int)SessionManager::getUserId();
-$senderRole = (string)($_SESSION['user_role'] ?? '');
 
+$userId     = (int)SessionManager::getUserId();
+$senderRole = (string)($_SESSION['user_role'] ?? '');
 $csrf = (string)($_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
 if (!Security::verifyCSRFToken($csrf)) {
     http_response_code(403);
@@ -42,9 +42,8 @@ if (!Security::verifyCSRFToken($csrf)) {
 }
 Security::rateLimitDB('chat_send_u' . $userId, 30, 600);
 
-// ------------------------------------------------------------
-// Media helpers (unchanged)
-// ------------------------------------------------------------
+define('CHAT_CLOSED_STATUSES', ['removed', 'inactive']);
+
 function chat_normalize_files(?array $entry): array
 {
     if (!$entry || !isset($entry['name'])) return [];
@@ -81,12 +80,10 @@ function chat_store_media(array $file, string $prefix, array $mimeMap, int $maxB
     if (($file['error'] ?? UPLOAD_ERR_CANT_WRITE) !== UPLOAD_ERR_OK) return null;
     if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) return null;
     if (($file['size'] ?? 0) <= 0 || ($file['size'] ?? 0) > $maxBytes) return null;
-
     $finfo = new finfo(FILEINFO_MIME_TYPE);
     $mime  = $finfo->file($file['tmp_name']);
     if ($mime === false || !isset($mimeMap[$mime])) return null;
     $ext = $mimeMap[$mime];
-
     if (class_exists('R2Upload', false)) {
         try {
             $uploader = new R2Upload('general', $mimeMap, $maxBytes);
@@ -99,12 +96,20 @@ function chat_store_media(array $file, string $prefix, array $mimeMap, int $maxB
             error_log('chat media: R2 unavailable, using local — ' . $e->getMessage());
         }
     }
-
     $dir = __DIR__ . '/../../uploads/chat/';
     if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
     $fname = $prefix . date('Ymd_His') . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
     if (!@move_uploaded_file($file['tmp_name'], $dir . $fname)) return null;
     return '/uploads/chat/' . $fname;
+}
+
+/** Validates a pre-uploaded chat image URL (from upload-media.php). */
+function chat_validate_preuploaded_url(string $u): bool
+{
+    if ($u === '' || str_contains($u, '..') || str_contains($u, "\0")) return false;
+    $path = (string)(parse_url($u, PHP_URL_PATH) ?? '');
+    $base = basename($path);
+    return (bool)preg_match('/^chat_img_[0-9]{8}_[0-9]{6}_[0-9a-f]{16}\.(jpg|png|webp)$/', $base);
 }
 
 $IMAGE_MIMES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
@@ -146,8 +151,29 @@ if (function_exists('mb_strlen') ? mb_strlen($body) > 2000 : strlen($body) > 200
     exit;
 }
 
+// Pre-uploaded image URLs (progress pipeline) OR raw files (fallback)
+$imageUrls = [];
+$postedUrls = $_POST['image_urls'] ?? null;
+if (is_string($postedUrls)) { $postedUrls = json_decode($postedUrls, true); }
+if (is_array($postedUrls)) {
+    $postedUrls = array_values(array_filter($postedUrls, 'is_string'));
+    if (count($postedUrls) > 4) {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'error' => 'You can attach up to 4 images per message.']);
+        exit;
+    }
+    foreach ($postedUrls as $u) {
+        if (!chat_validate_preuploaded_url($u)) {
+            http_response_code(422);
+            echo json_encode(['success' => false, 'error' => 'An attached image URL was rejected.']);
+            exit;
+        }
+        $imageUrls[] = $u;
+    }
+}
 $imageFiles = chat_normalize_files($_FILES['images'] ?? null);
 $audioFiles = chat_normalize_files($_FILES['audio'] ?? null);
+
 if (count($imageFiles) > 4) {
     http_response_code(422);
     echo json_encode(['success' => false, 'error' => 'You can attach up to 4 images per message.']);
@@ -158,20 +184,19 @@ if (count($audioFiles) > 1) {
     echo json_encode(['success' => false, 'error' => 'Only one voice note per message.']);
     exit;
 }
-if (!empty($imageFiles) && !empty($audioFiles)) {
+if ((!empty($imageFiles) || !empty($imageUrls)) && !empty($audioFiles)) {
     http_response_code(422);
     echo json_encode(['success' => false, 'error' => 'Send images and voice notes in separate messages.']);
     exit;
 }
-if ($body === '' && empty($imageFiles) && empty($audioFiles)) {
+if ($body === '' && empty($imageFiles) && empty($imageUrls) && empty($audioFiles)) {
     http_response_code(422);
     echo json_encode(['success' => false, 'error' => 'Message is empty.']);
     exit;
 }
 
 // ------------------------------------------------------------
-// DB checks: roles, listing, connection
-// AMENDED gating — existing threads survive delisting/deletion.
+// DB checks: roles, listing closure, connection
 // ------------------------------------------------------------
 try {
     $db = Database::getInstance()->getConnection();
@@ -184,7 +209,6 @@ try {
 $roleStmt = $db->prepare("SELECT role FROM users WHERE id = ?");
 $roleStmt->execute([$receiverId]);
 $receiverRole = (string)$roleStmt->fetchColumn();
-
 $pairValid =
     ($senderRole === 'user'  && $receiverRole === 'agent') ||
     ($senderRole === 'agent' && $receiverRole === 'user');
@@ -194,7 +218,24 @@ if (!$pairValid) {
     exit;
 }
 
-// Does a conversation already exist between this pair about this listing?
+$table = $tableMap[$listingType];
+$listStmt = $db->prepare("SELECT id, agent_id, status FROM {$table} WHERE id = ?");
+$listStmt->execute([$listingId]);
+$listing = $listStmt->fetch(PDO::FETCH_ASSOC);
+
+// REVAMPED GATE: delisted/removed/inactive/deleted => CLOSED for everyone.
+if (!$listing) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'This listing no longer exists — messaging is closed.']);
+    exit;
+}
+if (in_array((string)($listing['status'] ?? ''), CHAT_CLOSED_STATUSES, true)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'This listing has been delisted — messaging is now closed.']);
+    exit;
+}
+
+// New threads only with the listing's own agent; existing threads continue.
 $threadStmt = $db->prepare("
     SELECT COUNT(*) FROM messages
     WHERE listing_id = ? AND listing_type = ?
@@ -203,31 +244,11 @@ $threadStmt = $db->prepare("
 $threadStmt->execute([$listingId, $listingType, $userId, $receiverId, $receiverId, $userId]);
 $hasThread = ((int)$threadStmt->fetchColumn()) > 0;
 
-// Look up the listing WITHOUT a status filter (so removed/delisted still resolve).
-$table = $tableMap[$listingType];
-$listStmt = $db->prepare("SELECT id, agent_id, status FROM {$table} WHERE id = ?");
-$listStmt->execute([$listingId]);
-$listing = $listStmt->fetch(PDO::FETCH_ASSOC);
+$listingAgentId = (int)$listing['agent_id'];
+$mayStart = ($senderRole === 'user')
+    ? ($receiverId === $listingAgentId)
+    : ($userId === $listingAgentId);
 
-$mayStart = false;
-if ($listing) {
-    $listingAgentId = (int)$listing['agent_id'];
-    // A NEW thread may only start with the listing's agent, and only while active.
-    if (($listing['status'] ?? '') === 'active') {
-        $mayStart = ($senderRole === 'user')
-            ? ($receiverId === $listingAgentId)
-            : ($userId === $listingAgentId);
-    }
-} else {
-    // Listing row fully deleted: only an existing thread may continue.
-    if (!$hasThread) {
-        http_response_code(404);
-        echo json_encode(['success' => false, 'error' => 'Listing not found.']);
-        exit;
-    }
-}
-
-// Final gate: an existing thread ALWAYS stays open; a new thread needs a live listing.
 if (!$hasThread && !$mayStart) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'You can only message the agent of this listing, or continue an existing conversation about it.']);
@@ -235,9 +256,8 @@ if (!$hasThread && !$mayStart) {
 }
 
 // ------------------------------------------------------------
-// Store media (R2 first, local fallback)
+// Store raw-file media (pre-uploaded URLs already stored)
 // ------------------------------------------------------------
-$imageUrls = [];
 foreach ($imageFiles as $img) {
     $url = chat_store_media($img, 'chat_img_', $IMAGE_MIMES, 10 * 1024 * 1024);
     if ($url === null) {
@@ -263,8 +283,8 @@ if (!empty($audioFiles)) {
 // ------------------------------------------------------------
 // Insert message
 // ------------------------------------------------------------
-$messageType  = !empty($imageUrls) ? 'image' : ($audioUrl !== null ? 'audio' : 'text');
-$mediaStored  = null;
+$messageType = !empty($imageUrls) ? 'image' : ($audioUrl !== null ? 'audio' : 'text');
+$mediaStored = null;
 if ($messageType === 'image') {
     $mediaStored = count($imageUrls) === 1 ? $imageUrls[0] : json_encode($imageUrls);
 } elseif ($messageType === 'audio') {
@@ -275,8 +295,8 @@ $subject = $messageType === 'image' ? 'Photo' : ($messageType === 'audio' ? 'Voi
 try {
     $ins = $db->prepare("
         INSERT INTO messages
-        (sender_id, receiver_id, listing_id, listing_type, subject, body,
-         message_type, media_url, media_duration_sec, is_read, created_at)
+            (sender_id, receiver_id, listing_id, listing_type, subject, body,
+             message_type, media_url, media_duration_sec, is_read, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())
     ");
     $ins->execute([
@@ -292,17 +312,26 @@ try {
     exit;
 }
 
+$senderNameStmt = $db->prepare("SELECT name FROM users WHERE id = ?");
+$senderNameStmt->execute([$userId]);
+$senderName = (string)($senderNameStmt->fetchColumn() ?: 'Unknown');
+
 echo json_encode([
     'success' => true,
     'message' => [
-        'id'                   => $messageId,
-        'sender_id'            => $userId,
-        'receiver_id'          => $receiverId,
-        'body'                 => $body,
-        'message_type'         => $messageType,
-        'media_urls'           => $messageType === 'image' ? $imageUrls : ($audioUrl !== null ? [$audioUrl] : []),
-        'media_duration_sec'   => $messageType === 'audio' ? $audioDuration : null,
-        'is_read'              => 0,
-        'created_at_formatted' => date('g:i A'),
+        'id'                 => $messageId,
+        'mine'               => true,
+        'sender_name'        => $senderName,
+        'receiver_id'        => $receiverId,
+        'body'               => $body,
+        'message_type'       => $messageType,
+        'media_urls'         => $messageType === 'image' ? $imageUrls : ($audioUrl !== null ? [$audioUrl] : []),
+        'media_duration_sec' => $messageType === 'audio' ? $audioDuration : null,
+        'inquiry_meta'       => null,
+        'is_read'            => false,
+        'is_viewing_request' => false,
+        'created_at'         => date('Y-m-d H:i:s'),
+        'time_formatted'     => date('g:i A'),
+        'date_label'         => 'Today',
     ],
 ]);
