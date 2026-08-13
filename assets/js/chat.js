@@ -1,5 +1,5 @@
-// /assets/js/chat.js — KINAS GROUP Messenger (definitive revamp)
-window.__kinasChatJsLoaded = true; // boot beacon: proves the file parsed
+// /assets/js/chat.js — KINAS GROUP Messenger (definitive v3)
+window.__kinasChatJsLoaded = true;
 (function () {
 'use strict';
 var root = document.getElementById('chatRoot');
@@ -20,13 +20,12 @@ var CFG = {
     pollThreadMs: 5000, pollListMs: 20000,
     maxImages: 4, maxImageBytes: 10 * 1024 * 1024, maxVoiceSeconds: 180
 };
-var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 var state = {
     conversations: [], current: null, canReply: false, closed: false, listing: null,
     lastId: 0, prevDate: null, msgEls: {}, uploads: [], upSeq: 0, search: '',
     currentAudioStop: null, rec: null, recChunks: [], recMime: '', recSeconds: 0,
     recTimer: null, recCancelled: false, recHold: false, recStopMode: 'send',
-    recTouchStartX: 0, recTouchCancelled: false, recPending: null,
+    recTouchStartX: 0, recTouchCancelled: false, lastTouchStart: 0,
     markReadQueued: false, prevUnreadTotal: null, muted: false
 };
 try { state.muted = localStorage.getItem('kinas_chat_muted') === '1'; } catch (e) {}
@@ -63,7 +62,6 @@ function barsFor(seed, count) {
 }
 function stopCurrentAudio() { if (state.currentAudioStop) { try { state.currentAudioStop(); } catch (e) {} state.currentAudioStop = null; } }
 
-// Sounds (WebAudio synth — no asset files)
 var AC = null;
 function audioCtx() {
     var C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
@@ -85,7 +83,6 @@ function tone(f, delay, dur, peak) {
 function playSend() { if (!state.muted) { tone(880, 0, 0.12, 0.06); tone(1320, 0.09, 0.14, 0.05); } }
 function playReceive() { if (!state.muted) { tone(660, 0, 0.12, 0.07); tone(520, 0.10, 0.16, 0.06); } }
 
-// ── UI SKELETON ──
 root.innerHTML =
 '<div class="chat-app" id="chatApp">' +
 '  <div class="chat-list-pane">' +
@@ -112,15 +109,12 @@ root.innerHTML =
 '    <form class="chat-composer" id="chatComposer" style="display:none">' +
 '      <button type="button" class="chat-attach-btn" id="chatAttachBtn" title="Attach images (max 4, 10MB each)"><i class="far fa-image"></i></button>' +
 '      <input type="file" id="chatFileInput" accept="image/jpeg,image/png,image/webp" multiple hidden>' +
-'      <button type="button" class="chat-mic-btn" id="chatMicBtn" title="' + (isTouch ? 'Hold to record a voice note' : 'Record a voice note') + '"><i class="fas fa-microphone"></i></button>' +
+'      <button type="button" class="chat-mic-btn" id="chatMicBtn" title="Record a voice note"><i class="fas fa-microphone"></i></button>' +
 '      <textarea class="chat-input" id="chatInput" rows="1" placeholder="Type a message…"></textarea>' +
 '      <button type="submit" class="chat-send-btn" id="chatSendBtn" title="Send"><i class="fas fa-paper-plane"></i></button>' +
 '      <div class="chat-recording"><span class="chat-rec-dot"></span><span class="chat-rec-time" id="chatRecTime">0:00</span><span class="chat-rec-hint" id="chatRecHint">Recording…</span>' +
 '        <button type="button" class="chat-rec-cancel" id="chatRecCancel" title="Discard recording"><i class="fas fa-trash"></i></button>' +
 '        <button type="button" class="chat-rec-send" id="chatRecSend" title="Stop and send voice note"><i class="fas fa-paper-plane"></i></button></div>' +
-'      <div class="chat-rec-pending"><i class="fas fa-microphone" style="color:#C6A43F;"></i><span class="chat-rec-pending-label" id="chatPendingRecLabel">Voice note ready</span>' +
-'        <button type="button" class="chat-rec-cancel" id="chatPendingRecDiscard" title="Discard voice note"><i class="fas fa-trash"></i></button>' +
-'        <button type="button" class="chat-rec-send" id="chatPendingRecSend" title="Send voice note"><i class="fas fa-paper-plane"></i></button></div>' +
 '    </form>' +
 '  </div>' +
 '</div>' +
@@ -138,13 +132,9 @@ attachBtn = qs('chatAttachBtn'), fileInput = qs('chatFileInput'),
 micBtn = qs('chatMicBtn'), pendingWrap = qs('chatPendingMedia'),
 recTimeEl = qs('chatRecTime'), recHint = qs('chatRecHint'),
 recCancel = qs('chatRecCancel'), recSend = qs('chatRecSend'),
-pendingRecLabel = qs('chatPendingRecLabel'),
-pendingRecSend = qs('chatPendingRecSend'), pendingRecDiscard = qs('chatPendingRecDiscard'),
 backBtn = qs('chatBackBtn'), soundBtn = qs('chatSoundBtn'),
 lightbox = qs('chatLightbox'), lightboxImg = qs('chatLightboxImg'), lightboxClose = qs('chatLightboxClose');
 
-// UI exists from here on — the page watchdog must stay silent even if a
-// later init step fails.
 window.__kinasChatBoot = true;
 
 function updateSoundBtn() {
@@ -359,8 +349,11 @@ function queueMarkRead() {
         fetch(CFG.epMarkRead, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () {});
     }, 400);
 }
-// ── Attachments with live upload progress ──
+// ── Uploads with ROUND progress ring ──
 function refreshSendState() { sendBtn.disabled = state.uploads.some(function (u) { return u.status === 'uploading'; }); }
+function ringMarkup(pct) {
+    return '<svg class="chat-up-ring" viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.5"/><circle class="ring-fg" cx="18" cy="18" r="15.5" pathLength="100" style="stroke-dashoffset:' + (100 - pct) + '"/></svg><span class="chat-up-pct">' + pct + '%</span>';
+}
 function renderPending() {
     pendingWrap.innerHTML = '';
     if (!state.uploads.length) { pendingWrap.classList.remove('has-items'); refreshSendState(); return; }
@@ -370,10 +363,9 @@ function renderPending() {
         item.setAttribute('data-up-id', String(u.id));
         var img = document.createElement('img'); img.src = u.objectUrl; item.appendChild(img);
         var overlay = el('div', 'chat-up-overlay');
-        overlay.innerHTML = u.status === 'uploading' ? '<span class="chat-up-pct">' + u.progress + '%</span>'
+        overlay.innerHTML = u.status === 'uploading' ? ringMarkup(u.progress)
             : (u.status === 'done' ? '<i class="fas fa-check chat-up-status"></i>' : '<i class="fas fa-exclamation chat-up-status"></i>');
         item.appendChild(overlay);
-        var bar = el('div', 'chat-up-bar'); bar.innerHTML = '<span style="width:' + u.progress + '%"></span>'; item.appendChild(bar);
         var rm = document.createElement('button'); rm.type = 'button'; rm.innerHTML = '<i class="fas fa-times"></i>'; rm.title = 'Remove image';
         rm.addEventListener('click', function () {
             if (u.xhr && u.status === 'uploading') { try { u.xhr.abort(); } catch (e) {} }
@@ -389,9 +381,10 @@ function updatePendingItem(u) {
     var item = pendingWrap.querySelector('[data-up-id="' + u.id + '"]');
     if (!item) { renderPending(); return; }
     item.className = 'chat-pending-item is-' + u.status;
-    var pct = item.querySelector('.chat-up-pct'); if (pct) pct.textContent = u.progress + '%';
-    var bar = item.querySelector('.chat-up-bar span'); if (bar) bar.style.width = u.progress + '%';
-    if (u.status !== 'uploading') {
+    if (u.status === 'uploading') {
+        var fg = item.querySelector('.ring-fg'); if (fg) fg.style.strokeDashoffset = String(100 - u.progress);
+        var pct = item.querySelector('.chat-up-pct'); if (pct) pct.textContent = u.progress + '%';
+    } else {
         var ov = item.querySelector('.chat-up-overlay');
         if (ov) ov.innerHTML = u.status === 'done' ? '<i class="fas fa-check chat-up-status"></i>' : '<i class="fas fa-exclamation chat-up-status"></i>';
     }
@@ -400,7 +393,9 @@ function startUpload(u) {
     var fd = new FormData(); fd.append('csrf_token', CFG.csrf); fd.append('file', u.file, u.file.name);
     var xhr = new XMLHttpRequest(); u.xhr = xhr;
     xhr.open('POST', CFG.epUpload); xhr.withCredentials = true;
-    xhr.upload.onprogress = function (e) { if (e.lengthComputable) { u.progress = Math.min(99, Math.round((e.loaded / e.total) * 100)); updatePendingItem(u); } };
+    xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable) { u.progress = Math.min(99, Math.round((e.loaded / e.total) * 100)); updatePendingItem(u); }
+    };
     xhr.onload = function () {
         var data = null; try { data = JSON.parse(xhr.responseText); } catch (e) {}
         if (xhr.status === 200 && data && data.success && data.url) { u.status = 'done'; u.serverUrl = data.url; u.progress = 100; }
@@ -422,11 +417,12 @@ fileInput.addEventListener('change', function () {
     });
     fileInput.value = ''; renderPending();
 });
-// ── Voice recording ──
-function clearPendingRec() { state.recPending = null; composer.classList.remove('has-pending-rec'); }
+// ── Voice recording: mobile hold-to-record, mouse click on ALL devices ──
 function startRecording(holdMode) {
     if (state.rec) return;
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) { toast('Voice notes are not supported in this browser.', 'error'); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+        toast('Voice notes are not supported in this browser.', 'error'); return;
+    }
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
         var mime = '';
         var cands = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
@@ -434,7 +430,9 @@ function startRecording(holdMode) {
         state.recChunks = []; state.recMime = mime; state.recCancelled = false; state.recSeconds = 0;
         state.recHold = !!holdMode; state.recStopMode = 'send';
         recTimeEl.textContent = '0:00';
-        recHint.textContent = holdMode ? 'Recording… release to send, slide ← to cancel' : 'Recording… send when done, or discard (max 3:00)';
+        recHint.textContent = holdMode
+            ? 'Recording… release to send, slide ← to cancel'
+            : 'Recording… click send when done, or trash to discard';
         var rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
         state.rec = rec;
         rec.ondataavailable = function (e) { if (e.data && e.data.size > 0) state.recChunks.push(e.data); };
@@ -448,16 +446,17 @@ function startRecording(holdMode) {
             var blob = new Blob(state.recChunks, { type: state.recMime || 'audio/webm' });
             state.recChunks = [];
             var ext = (state.recMime.indexOf('mp4') > -1) ? 'mp4' : ((state.recMime.indexOf('ogg') > -1) ? 'ogg' : 'webm');
-            if (mode === 'send') doSend({ body: input.value.trim(), imageUrls: [], audio: { blob: blob, ext: ext, seconds: secs } });
-            else { state.recPending = { blob: blob, ext: ext, seconds: secs }; pendingRecLabel.textContent = 'Voice note ready — ' + fmtDur(secs); composer.classList.add('has-pending-rec'); }
+            doSend({ body: input.value.trim(), imageUrls: [], audio: { blob: blob, ext: ext, seconds: secs } });
         };
         rec.start();
         composer.classList.add('is-recording'); micBtn.classList.add('is-active');
         state.recTimer = setInterval(function () {
             state.recSeconds++; recTimeEl.textContent = fmtDur(state.recSeconds);
-            if (state.recSeconds >= CFG.maxVoiceSeconds && state.rec && state.rec.state !== 'inactive') stopRecording(state.recHold ? 'send' : 'pending');
+            if (state.recSeconds >= CFG.maxVoiceSeconds && state.rec && state.rec.state !== 'inactive') stopRecording('send');
         }, 1000);
-    }).catch(function (err) { toast('Microphone unavailable' + (err && err.name ? ' (' + err.name + ')' : '') + '. Check browser permissions (HTTPS required).', 'error'); });
+    }).catch(function (err) {
+        toast('Microphone unavailable' + (err && err.name ? ' (' + err.name + ')' : '') + '. Check browser permissions (HTTPS required).', 'error');
+    });
 }
 function stopRecording(mode) {
     state.recStopMode = mode;
@@ -465,8 +464,9 @@ function stopRecording(mode) {
     if (state.rec && state.rec.state !== 'inactive') state.rec.stop();
 }
 micBtn.addEventListener('touchstart', function (e) {
-    if (state.rec || !isTouch) return;
+    if (state.rec) return;
     e.preventDefault();
+    state.lastTouchStart = Date.now();
     state.recTouchStartX = e.touches[0].clientX; state.recTouchCancelled = false;
     startRecording(true);
 }, { passive: false });
@@ -481,15 +481,14 @@ micBtn.addEventListener('touchend', function (e) {
     e.preventDefault(); composer.classList.remove('is-cancel-arm');
     if (state.recTouchCancelled) stopRecording('cancel'); else stopRecording('send');
 }, { passive: false });
-micBtn.addEventListener('click', function () { if (isTouch || state.rec) return; startRecording(false); });
+// Mouse click works everywhere; ignore the synthetic click that follows a touch.
+micBtn.addEventListener('click', function () {
+    if (Date.now() - state.lastTouchStart < 700) return;
+    if (state.rec) return;
+    startRecording(false);
+});
 recCancel.addEventListener('click', function () { stopRecording('cancel'); });
 recSend.addEventListener('click', function () { stopRecording('send'); });
-pendingRecSend.addEventListener('click', function () {
-    if (!state.recPending) return;
-    var p = state.recPending; clearPendingRec();
-    doSend({ body: input.value.trim(), imageUrls: [], audio: p });
-});
-pendingRecDiscard.addEventListener('click', clearPendingRec);
 // ── Send ──
 function doneUploadUrls() {
     return state.uploads.filter(function (u) { return u.status === 'done' && u.serverUrl; }).map(function (u) { return u.serverUrl; });
@@ -516,7 +515,7 @@ function doSend(opts) {
             playSend();
             input.value = ''; input.style.height = '42px';
             state.uploads.forEach(function (u) { try { URL.revokeObjectURL(u.objectUrl); } catch (e) {} });
-            state.uploads = []; renderPending(); clearPendingRec();
+            state.uploads = []; renderPending();
             applyMessages([data.message], false);
             messagesWrap.scrollTop = messagesWrap.scrollHeight;
             loadConversations();
@@ -544,11 +543,8 @@ setInterval(loadConversations, CFG.pollListMs);
 document.addEventListener('visibilitychange', function () { if (!document.hidden) { loadConversations(); if (state.current) loadThread(false); } });
 window.addEventListener('beforeunload', function () { state.uploads.forEach(function (u) { try { URL.revokeObjectURL(u.objectUrl); } catch (e) {} }); });
 
-// ── INIT (guarded so a data error can never blank the UI) ──
 try {
     loadConversations();
     if (CFG.openOther > 0) openConversation(CFG.openOther, CFG.openListing, CFG.openType);
-} catch (e) {
-    if (window.console) console.error('[chat] init error:', e);
-}
+} catch (e) { if (window.console) console.error('[chat] init error:', e); }
 })();
