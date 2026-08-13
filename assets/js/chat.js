@@ -12,6 +12,8 @@
 //  • Sounds: WebAudio send blip + receive blip, mute toggle persisted.
 //  • Delisted listings: composer locked with a clear closed notice.
 //  • listing=0 opens auto-resolve to the pair's latest listing thread.
+//  • UNREAD VISIBILITY: incoming messages that are still unread render
+//    with a darker-blue bubble (.is-unread) until they are read.
 (function () {
 'use strict';
 var root = document.getElementById('chatRoot');
@@ -409,7 +411,10 @@ function applyMessages(messages, initial) {
     messages.forEach(function (m) {
         var id = m.id;
         if (state.msgEls[id]) {
+            // Existing node: refresh read-receipt ticks (mine) and
+            // clear the darker-blue unread highlight once read (theirs).
             if (m.mine) updateTicks(id, m.is_read);
+            else state.msgEls[id].classList.toggle('is-unread', !m.is_read);
             return;
         }
         if (state.prevDate !== m.date_label) {
@@ -447,11 +452,13 @@ function updateTicks(id, isRead) {
     t.classList.toggle('is-read', !!isRead);
 }
 // ------------------------------------------------------------
-// MESSAGE RENDERING (with formal inquiry card)
+// MESSAGE RENDERING (with formal inquiry card + unread highlight)
 // ------------------------------------------------------------
 function renderMessage(m) {
     var row = el('div', 'chat-msg ' + (m.mine ? 'mine' : 'theirs'));
     row.setAttribute('data-msg-id', m.id);
+    // UNREAD VISIBILITY: incoming + still unread => darker blue bubble.
+    if (!m.mine && !m.is_read) row.classList.add('is-unread');
     var bubble = el('div', 'chat-bubble');
 
     // Formal inquiry card (structured meta from send-inquiry.php)
