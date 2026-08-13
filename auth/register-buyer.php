@@ -58,6 +58,7 @@ function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file
         <!-- ── Form card ── -->
         <main class="ka-form-side">
             <div class="ka-card">
+                <p class="ka-eyebrow"><i class="fas fa-gem"></i> Buyer Account</p>
                 <h2>Create Buyer Account</h2>
                 <p class="ka-sub">Free forever. No credit card required.</p>
 
@@ -123,9 +124,6 @@ function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file
                     <div class="ka-field" id="captcha-group">
                         <div id="captcha-container"></div>
                         <input type="hidden" id="captcha-token" name="captcha_token">
-                        <!-- FIX: shield icon now carries the gold accent
-                             (je-text-gold + inline fallback) instead of
-                             inheriting the grey hint colour. -->
                         <p class="ka-hint"><i class="fas fa-shield-alt je-text-gold" style="color:#C6A43F;"></i> Protected by reCAPTCHA.</p>
                     </div>
 
@@ -142,6 +140,12 @@ function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file
                     Already have an account? <a href="login.php" class="ka-link">Sign in</a>
                     <span class="ka-dot">·</span>
                     Want to sell? <a href="register.php" class="ka-link">Register as Agent</a>
+                </div>
+
+                <div class="ka-card-trust">
+                    <span><i class="fas fa-lock"></i>256-bit SSL encrypted</span>
+                    <span class="ka-dot">·</span>
+                    <span><i class="fas fa-shield-alt"></i>Your data is protected</span>
                 </div>
             </div>
         </main>
