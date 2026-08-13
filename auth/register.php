@@ -101,10 +101,12 @@ function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file
                         </div>
                     </div>
 
+                    <!-- Division select: NO lead icon (the old briefcase glyph
+                         read as a padlock). Left padding kept at 42px by .ka-select
+                         so its text aligns with the icon fields above/below. -->
                     <div class="ka-field">
                         <label for="division">Select Your Division</label>
                         <div class="ka-input-wrap">
-                            <i class="fas fa-briefcase ka-lead" aria-hidden="true"></i>
                             <select class="ka-select" id="division" name="division" required>
                                 <option value="">Choose your division</option>
                                 <?php foreach ($divisions as $key => $label): ?>
