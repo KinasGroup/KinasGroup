@@ -1,58 +1,30 @@
 <?php
-// Authenticated, per-session content — never cache this page.
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
-/**
-* KINAS GROUP - User Messages (Rebuilt Chat Interface)
-*
-* This page is now a lightweight shell. All conversation fetching,
-* rendering, sending, and media handling is driven by chat.js and
-* the /api/messages/ endpoints.
-*
-* WATCHDOG: if chat.js ever fails to build the UI (syntax error in a
-* bad copy, 404, blocked script), a visible diagnostic card is shown
-* inside #chatRoot instead of a blank white area.
-*/
 require_once '../includes/session.php';
 require_once '../includes/functions.php';
 require_once '../includes/helpers.php';
 require_once '../includes/security.php';
 require_once '../api/config/database.php';
-// Redirect if not logged in
-if (!SessionManager::isLoggedIn()) {
-header('Location: /auth/login.php');
-exit;
-}
+if (!SessionManager::isLoggedIn()) { header('Location: /auth/login.php'); exit; }
 $userId = SessionManager::getUserId();
-// Capture URL parameters for deep-linking into a specific thread
 $otherUserId = isset($_GET['user']) ? (int)$_GET['user'] : 0;
 $listingId   = isset($_GET['listing']) ? (int)$_GET['listing'] : 0;
 $listingType = '';
 if ($listingId > 0) {
-try {
-$db = Database::getInstance()->getConnection();
-$tables = [
-'car'         => 'car_listings',
-'property'    => 'property_listings',
-'solar'       => 'solar_listings',
-'marketplace' => 'marketplace_listings'
-];
-foreach ($tables as $type => $table) {
-$stmt = $db->prepare("SELECT id FROM {$table} WHERE id = ? LIMIT 1");
-$stmt->execute([$listingId]);
-if ($stmt->fetchColumn()) {
-$listingType = $type;
-break;
-}
-}
-} catch (Throwable $e) {
-// Ignore DB errors here; the JS/API will handle missing listings gracefully.
-}
+    try {
+        $db = Database::getInstance()->getConnection();
+        $tables = ['car' => 'car_listings', 'property' => 'property_listings', 'solar' => 'solar_listings', 'marketplace' => 'marketplace_listings'];
+        foreach ($tables as $type => $table) {
+            $stmt = $db->prepare("SELECT id FROM {$table} WHERE id = ? LIMIT 1");
+            $stmt->execute([$listingId]);
+            if ($stmt->fetchColumn()) { $listingType = $type; break; }
+        }
+    } catch (Throwable $e) { }
 }
 $pageTitle = 'Messages - My Dashboard';
 include '../templates/header.php';
 ?>
-<!-- Load the new Chat CSS (cache-busted for immediate deployment) -->
 <link rel="stylesheet" href="/assets/css/chat.css?v=<?= time() ?>">
 <div class="je-dash-shell">
 <?php include __DIR__ . '/../includes/partials/user-sidebar.php'; ?>
@@ -67,42 +39,40 @@ data-open-type="<?= htmlspecialchars($listingType) ?>">
 </div>
 </main>
 </div>
-<!-- WATCHDOG (part 1): catch script errors BEFORE chat.js runs and
-surface them visibly instead of a blank page. -->
 <script>
 window.__kinasChatBoot = false;
-window.addEventListener('error', function (e) {
-    if (window.__kinasChatBoot) return;
-    var root = document.getElementById('chatRoot');
-    if (root && !root.querySelector('.chat-app')) {
-        var file = (e.filename || '').split('/').pop() || 'script';
-        root.innerHTML =
-            '<div style="margin:24px auto;max-width:600px;background:#FEF2F2;border:1px solid #FECACA;color:#B71C1C;border-radius:12px;padding:18px 22px;font:13px/1.6 Inter,Arial,sans-serif;">' +
-            '<strong style="font-size:14px;">Messenger could not start.</strong><br>' +
-            escHtmlSafe(e.message || 'Unknown script error') + ' <small>(' + escHtmlSafe(file) + ':' + (e.lineno || '?') + ')</small><br>' +
-            '<small style="color:#7f1d1d;">Please screenshot this and send it to support.</small></div>';
-    }
-}, true);
+window.__kinasChatError = null;
 function escHtmlSafe(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
     });
 }
+window.addEventListener('error', function (e) {
+    if (window.__kinasChatBoot) return;
+    window.__kinasChatError = (e.message || 'Unknown script error') + ' @ ' + ((e.filename || '').split('/').pop() || 'script') + ':' + (e.lineno || '?');
+    var root = document.getElementById('chatRoot');
+    if (root && !root.querySelector('.chat-app')) {
+        root.innerHTML = '<div style="margin:24px auto;max-width:600px;background:#FEF2F2;border:1px solid #FECACA;color:#B71C1C;border-radius:12px;padding:18px 22px;font:13px/1.6 Inter,Arial,sans-serif;"><strong>Messenger hit a script error.</strong><br>' + escHtmlSafe(window.__kinasChatError) + '<br><small>Send this text to support — the chat.js copy on the server is likely corrupted.</small></div>';
+    }
+}, true);
 </script>
-<!-- Load the new Chat JS engine (deferred so it runs after the DOM is ready) -->
 <script src="/assets/js/chat.js?v=<?= time() ?>" defer></script>
-<!-- WATCHDOG (part 2): after full load, if chat.js never built the UI
-(missing file, 404, blocked), show a diagnostic card, never blank. -->
 <script>
 window.addEventListener('load', function () {
     setTimeout(function () {
         var root = document.getElementById('chatRoot');
-        if (root && !root.querySelector('.chat-app') && !window.__kinasChatBoot) {
-            root.innerHTML =
-                '<div style="margin:24px auto;max-width:600px;background:#FFF8E1;border:1px solid #FFE082;color:#5d4a00;border-radius:12px;padding:18px 22px;font:13px/1.6 Inter,Arial,sans-serif;">' +
-                '<strong style="font-size:14px;">Messenger script did not initialise.</strong><br>' +
-                'The file /assets/js/chat.js did not run. Check the Network tab that it returns 200, and that no ad-blocker or plugin is blocking it, then reload.</div>';
-        }
+        if (!root || root.querySelector('.chat-app')) return;   // UI built — fine
+        if (window.__kinasChatError) return;                    // red card already shown
+        fetch('/assets/js/chat.js?v=<?= time() ?>', { method: 'HEAD' }).then(function (r) {
+            var hint = r.status === 200
+                ? (window.__kinasChatJsLoaded
+                    ? 'The file loaded but stopped early — screenshot this card for support.'
+                    : 'The file returned 200 but never parsed — the copy on the server is truncated/corrupted. Re-upload the COMPLETE assets/js/chat.js exactly as provided.')
+                : 'The file is missing or blocked on the server (HTTP ' + r.status + '). Upload assets/js/chat.js.';
+            root.innerHTML = '<div style="margin:24px auto;max-width:600px;background:#FFF8E1;border:1px solid #FFE082;color:#5d4a00;border-radius:12px;padding:18px 22px;font:13px/1.6 Inter,Arial,sans-serif;"><strong>Messenger script did not initialise.</strong><br>chat.js HTTP status: ' + r.status + '<br>' + escHtmlSafe(hint) + '</div>';
+        }).catch(function () {
+            root.innerHTML = '<div style="margin:24px auto;max-width:600px;background:#FFF8E1;border:1px solid #FFE082;color:#5d4a00;border-radius:12px;padding:18px 22px;font:13px/1.6 Inter,Arial,sans-serif;"><strong>Messenger script did not initialise.</strong><br>Could not request /assets/js/chat.js (network error).</div>';
+        });
     }, 300);
 });
 </script>
