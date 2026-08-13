@@ -381,6 +381,13 @@ background: #f1f3f4;
 color: #1a1a2e;
 border-bottom-left-radius: 6px;
 }
+/* REVAMP: UNREAD incoming messages — darker blue bubble so new
+messages are instantly visible in the stack. The class is removed
+automatically once mark-read confirms them as read. */
+.chat-msg.theirs.is-unread .chat-bubble {
+background: #c9daf8;
+border: 1px solid #a8c7fa;
+}
 .chat-bubble .text {
 margin: 0;
 white-space: pre-wrap;
@@ -873,6 +880,7 @@ DARK MODE — force light styling (site is light-only)
 .chat-conv-item.is-active { background: #e8f0fe; }
 .chat-msg.mine .chat-bubble { background: #e8f0fe; }
 .chat-msg.theirs .chat-bubble { background: #f1f3f4; }
+.chat-msg.theirs.is-unread .chat-bubble { background: #c9daf8; }
 .chat-date-divider span { background: #ffffff; }
 .chat-date-divider::after { background: #e8eaed; }
 .chat-avatar { background: #dadce0; color: #3c4043; }
