@@ -8,8 +8,14 @@
  *   inquiry_meta = JSON {name,email,phone,subject,inquiry_type,
  *                  preferred_date,preferred_time,listing_title,sent_at}
  * which chat.js renders as a formal Gmail-style inquiry card.
- * GUEST SAFETY: messages.sender_id is NOT NULL — logged-out enquirers
- * now get the emails only (no chat row) instead of a silent 500.
+ *
+ * GUARDS (bug fix): messaging is strictly customer <-> agent.
+ *   • Logged-in senders who are NOT role "user" (agents/admins) are
+ *     rejected BEFORE any email/DB work — this kills the "agent
+ *     contacted himself" bug and all other dead-end threads.
+ *   • Explicit self-contact check as belt-and-braces.
+ *   • Guests (not logged in) still get emails only — no chat row —
+ *     because messages.sender_id is NOT NULL.
  */
 header('Content-Type: application/json');
 require_once '../config/database.php';
@@ -72,6 +78,8 @@ if ($inquiryType === 'viewing' && ($preferredDate === '' || $preferredTime === '
     exit;
 }
 
+$tableMap = ['car' => 'car_listings', 'property' => 'property_listings', 'marketplace' => 'KINAS_marketplace_fix', 'solar' => 'solar_listings'];
+// (corrected map below — the line above is intentionally replaced)
 $tableMap = ['car' => 'car_listings', 'property' => 'property_listings', 'marketplace' => 'marketplace_listings', 'solar' => 'solar_listings'];
 if (!array_key_exists($listingType, $tableMap)) {
     http_response_code(422);
@@ -90,6 +98,24 @@ try {
     if (!$listing || in_array((string)($listing['status'] ?? ''), ['removed', 'inactive'], true)) {
         http_response_code(404);
         echo json_encode(['error' => 'This listing is no longer available for inquiries.']);
+        exit;
+    }
+
+    // ============================================================
+    // GUARD: only customers (or guests) may send inquiries.
+    // Blocks agents/admins — including the listing's own agent —
+    // before any email or DB work happens.
+    // ============================================================
+    $senderId   = SessionManager::getUserId() ?: null;
+    $senderRole = (string)($_SESSION['user_role'] ?? '');
+    if ($senderId !== null && $senderRole !== 'user') {
+        http_response_code(403);
+        echo json_encode(['error' => 'Only customer accounts can send listing inquiries. Agents manage listings from their dashboard.']);
+        exit;
+    }
+    if ($senderId !== null && (int)$listing['agent_id'] === (int)$senderId) {
+        http_response_code(403);
+        echo json_encode(['error' => 'You cannot send an inquiry about your own listing.']);
         exit;
     }
 
@@ -213,9 +239,8 @@ try {
     }
 
     // ============================================================
-    // SAVE CHAT ROWS (logged-in senders only — sender_id is NOT NULL)
+    // SAVE CHAT ROWS (logged-in customers only — sender_id NOT NULL)
     // ============================================================
-    $senderId = SessionManager::getUserId() ?: null;
     if ($senderId !== null) {
         $stmt = $db->prepare("
             INSERT INTO messages (
