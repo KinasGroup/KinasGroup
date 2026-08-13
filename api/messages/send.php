@@ -1,14 +1,17 @@
 <?php
 /**
-* KINAS GROUP — Chat Send Endpoint (v4 — AUTHORITATIVE)
+* KINAS GROUP — Chat Send Endpoint (v5 — AUTHORITATIVE)
 * Any future messenger change must start from THIS file.
 *
-* v4 fixes:
-*  - AUDIO_MIMES now accepts container labels finfo reports for browser
-*    recordings (video/webm, video/mp4, application/ogg) — previously
-*    every webm voice note was rejected with 422.
-*  - When pre-uploaded image_urls are present, raw images[] are ignored
-*    (prevents double-attach / silent drop).
+* v5 fixes:
+*  - RELAXED pre-uploaded URL validation: accepts any chat_img_* image
+*    name (whatever suffix the storage layer generated) or any image
+*    stored under /uploads/chat/ — the old exact-length regex rejected
+*    perfectly good uploads ("An attached image URL was rejected").
+*    Still rejects traversal (..) and non-image names.
+*  - AUDIO_MIMES includes container labels finfo actually reports for
+*    browser recordings (video/webm, video/mp4, application/ogg).
+*  - When image_urls are present, raw images[] are ignored (no dupes).
 */
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -97,16 +100,21 @@ $fname = $prefix . date('Ymd_His') . '_' . bin2hex(random_bytes(8)) . '.' . $ext
 if (!@move_uploaded_file($file['tmp_name'], $dir . $fname)) return null;
 return '/uploads/chat/' . $fname;
 }
+/**
+ * v5 RELAXED validator: accepts any chat_img_* image basename (whatever
+ * suffix the storage layer produced) or any image under /uploads/chat/.
+ * Still blocks traversal and non-image files.
+ */
 function chat_validate_preuploaded_url(string $u): bool
 {
 if ($u === '' || str_contains($u, '..') || str_contains($u, "\0")) return false;
 $path = (string)(parse_url($u, PHP_URL_PATH) ?? '');
 $base = basename($path);
-return (bool)preg_match('/^chat_img_[0-9]{8}_[0-9]{6}_[0-9a-f]{16}\.(jpg|png|webp)$/', $base);
+if (preg_match('/^chat_img_[A-Za-z0-9_.\-]+\.(jpe?g|png|webp)$/i', $base)) return true;
+if (str_contains($path, '/uploads/chat/') && preg_match('/\.(jpe?g|png|webp)$/i', $base)) return true;
+return false;
 }
 $IMAGE_MIMES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-// v4: container aliases included — finfo labels browser recordings
-// video/webm (Matroska) or video/mp4, NOT audio/webm.
 $AUDIO_MIMES = [
 'audio/webm'      => 'webm',
 'video/webm'      => 'webm',
@@ -142,8 +150,6 @@ http_response_code(422);
 echo json_encode(['success' => false, 'error' => 'Message is too long (max 2000 characters).']);
 exit;
 }
-// Pre-uploaded image URLs (progress pipeline). v4: when present, raw
-// images[] are IGNORED so a message can never double-attach.
 $imageUrls = [];
 $postedUrls = $_POST['image_urls'] ?? null;
 if (is_string($postedUrls)) { $postedUrls = json_decode($postedUrls, true); }
@@ -156,6 +162,7 @@ exit;
 }
 foreach ($postedUrls as $u) {
 if (!chat_validate_preuploaded_url($u)) {
+error_log('chat send: rejected pre-uploaded URL: ' . $u);
 http_response_code(422);
 echo json_encode(['success' => false, 'error' => 'An attached image URL was rejected.']);
 exit;
