@@ -1,42 +1,27 @@
 <?php
 /**
- * KINAS GROUP — Chat media pre-upload endpoint (revamp)
- *
- * POST /api/messages/upload-media.php  (multipart: csrf_token, file)
- *
- * Stores ONE chat image (R2 first, local fallback) and returns its URL
- * immediately, so the client can show a thumbnail with real upload
- * progress and only enable Send once storage is confirmed.
- * Mirrors send.php's storage conventions (chat_img_ prefix).
+ * KINAS GROUP — Chat media pre-upload endpoint
+ * POST /api/messages/upload-media.php (multipart: csrf_token, file)
+ * Stores ONE chat image (R2 first, local fallback), returns its URL so
+ * the client can show a thumbnail with real round upload progress and
+ * only enable Send once storage is confirmed.
  */
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Pragma: no-cache');
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/security.php';
 if (file_exists(__DIR__ . '/../../includes/r2-upload.php')) {
     require_once __DIR__ . '/../../includes/r2-upload.php';
 }
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method not allowed.']);
-    exit;
-}
-if (!SessionManager::isLoggedIn()) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Please log in.']);
-    exit;
-}
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); echo json_encode(['success' => false, 'error' => 'Method not allowed.']); exit; }
+if (!SessionManager::isLoggedIn()) { http_response_code(401); echo json_encode(['success' => false, 'error' => 'Please log in.']); exit; }
 $csrf = (string)($_POST['csrf_token'] ?? '');
-if (!Security::verifyCSRFToken($csrf)) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'error' => 'Invalid security token. Please refresh and try again.']);
-    exit;
-}
+if (!Security::verifyCSRFToken($csrf)) { http_response_code(403); echo json_encode(['success' => false, 'error' => 'Invalid security token.']); exit; }
 $userId = (int)SessionManager::getUserId();
 Security::rateLimitDB('chat_upload_u' . $userId, 40, 600);
+
+$IMAGE_MIMES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
 
 function chatup_store(array $file, string $prefix, array $mimeMap, int $maxBytes): ?string
 {
@@ -51,13 +36,9 @@ function chatup_store(array $file, string $prefix, array $mimeMap, int $maxBytes
         try {
             $uploader = new R2Upload('general', $mimeMap, $maxBytes);
             $result = $uploader->upload($file, ['prefix' => $prefix]);
-            if (!empty($result['success']) && !empty($result['filepath'])) {
-                return (string)$result['filepath'];
-            }
+            if (!empty($result['success']) && !empty($result['filepath'])) return (string)$result['filepath'];
             error_log('chat upload: R2 failed — ' . ($result['error'] ?? 'unknown'));
-        } catch (Throwable $e) {
-            error_log('chat upload: R2 unavailable, local — ' . $e->getMessage());
-        }
+        } catch (Throwable $e) { error_log('chat upload: R2 unavailable, local — ' . $e->getMessage()); }
     }
     $dir = __DIR__ . '/../../uploads/chat/';
     if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
@@ -66,17 +47,7 @@ function chatup_store(array $file, string $prefix, array $mimeMap, int $maxBytes
     return '/uploads/chat/' . $fname;
 }
 
-$IMAGE_MIMES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-
-if (!isset($_FILES['file'])) {
-    http_response_code(422);
-    echo json_encode(['success' => false, 'error' => 'No file received.']);
-    exit;
-}
+if (!isset($_FILES['file'])) { http_response_code(422); echo json_encode(['success' => false, 'error' => 'No file received.']); exit; }
 $url = chatup_store($_FILES['file'], 'chat_img_', $IMAGE_MIMES, 10 * 1024 * 1024);
-if ($url === null) {
-    http_response_code(422);
-    echo json_encode(['success' => false, 'error' => 'Image rejected (type, size or upload error). Only JPG, PNG or WEBP up to 10MB.']);
-    exit;
-}
+if ($url === null) { http_response_code(422); echo json_encode(['success' => false, 'error' => 'Image rejected (type, size or upload error). Only JPG, PNG or WEBP up to 10MB.']); exit; }
 echo json_encode(['success' => true, 'url' => $url]);
