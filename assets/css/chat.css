@@ -1,7 +1,12 @@
 /* ============================================================
-KINAS GROUP — Rebuilt Messenger (chat.css) — REVAMP
+KINAS GROUP — Rebuilt Messenger (chat.css)
 Used by /user/messages.php and /agent/messages.php
 Pairs with assets/js/chat.js
+
+UNREAD VISIBILITY (enforced):
+• Conversation rows with unread messages get a darker blue tab.
+• Incoming unread bubbles in the stack get a darker blue bubble.
+Both clear automatically once the messages are marked read.
 ============================================================ */
 /* ------------------------------------------------------------
 APP SHELL (two panes)
@@ -35,10 +40,6 @@ padding: 16px 16px 10px 16px;
 background: #fff;
 border-bottom: 1px solid #e8eaed;
 flex-shrink: 0;
-display: flex;
-align-items: center;
-justify-content: space-between;
-gap: 8px;
 }
 .chat-list-title {
 font-size: 18px;
@@ -47,8 +48,6 @@ color: #1a1a2e;
 display: flex;
 align-items: center;
 gap: 8px;
-flex: 1;
-min-width: 0;
 }
 .chat-list-title i { color: #C6A43F; }
 .chat-list-count {
@@ -59,24 +58,6 @@ background: #f1f3f4;
 padding: 2px 10px;
 border-radius: 12px;
 }
-/* REVAMP: message-sound mute toggle */
-.chat-sound-btn {
-width: 34px;
-height: 34px;
-border-radius: 50%;
-border: none;
-background: #f1f3f4;
-color: #5f6368;
-font-size: 14px;
-cursor: pointer;
-flex-shrink: 0;
-display: flex;
-align-items: center;
-justify-content: center;
-transition: background 0.15s ease, color 0.15s ease;
-}
-.chat-sound-btn:hover { background: #e8eaed; color: #C6A43F; }
-.chat-sound-btn.is-muted { background: #FFEBEE; color: #C62828; }
 .chat-search {
 padding: 10px 12px;
 background: #fff;
@@ -124,6 +105,13 @@ color: inherit;
 background: #e8f0fe;
 box-shadow: inset 3px 0 0 #C6A43F;
 }
+/* UNREAD VISIBILITY — darker blue tab for conversations with new
+messages. Placed after .is-active so it wins when both apply. */
+.chat-conv-item.has-unread {
+background: #d2e3fc;
+box-shadow: inset 3px 0 0 #1a73e8;
+}
+.chat-conv-item.has-unread:hover { background: #c9daf8; }
 .chat-avatar {
 width: 40px;
 height: 40px;
@@ -138,7 +126,7 @@ font-size: 15px;
 flex-shrink: 0;
 position: relative;
 }
-.chat-avatar.is-unread { background: #C6A43F; color: #fff; }
+.chat-avatar.is-unread { background: #1a73e8; color: #fff; }
 .chat-conv-body { flex: 1; min-width: 0; }
 .chat-conv-top {
 display: flex;
@@ -164,7 +152,7 @@ color: #5f6368;
 white-space: nowrap;
 flex-shrink: 0;
 }
-.chat-conv-item.has-unread .chat-time { color: #C6A43F; font-weight: 700; }
+.chat-conv-item.has-unread .chat-time { color: #1a73e8; font-weight: 700; }
 /* Role badges */
 .chat-role-badge {
 font-size: 9px;
@@ -190,9 +178,7 @@ display: flex;
 align-items: center;
 gap: 6px;
 }
-.chat-conv-item.has-unread .chat-conv-preview { color: #1a1a2e; font-weight: 500; }
-/* REVAMP: lock badge for delisted-listing threads */
-.chat-conv-lock { color: #9aa0a6; font-size: 11px; flex-shrink: 0; }
+.chat-conv-item.has-unread .chat-conv-preview { color: #1a1a2e; font-weight: 600; }
 .chat-unread-count {
 display: inline-flex;
 align-items: center;
@@ -201,8 +187,8 @@ min-width: 18px;
 height: 18px;
 padding: 0 5px;
 border-radius: 999px;
-background: #C6A43F;
-color: #0A0A0A;
+background: #1a73e8;
+color: #ffffff;
 font-size: 10px;
 font-weight: 800;
 flex-shrink: 0;
@@ -381,9 +367,9 @@ background: #f1f3f4;
 color: #1a1a2e;
 border-bottom-left-radius: 6px;
 }
-/* REVAMP: UNREAD incoming messages — darker blue bubble so new
-messages are instantly visible in the stack. The class is removed
-automatically once mark-read confirms them as read. */
+/* UNREAD VISIBILITY — incoming messages that are still unread render
+with a clearly darker blue bubble so new messages are instantly
+recognisable in the stack. Cleared automatically once marked read. */
 .chat-msg.theirs.is-unread .chat-bubble {
 background: #c9daf8;
 border: 1px solid #a8c7fa;
@@ -392,54 +378,7 @@ border: 1px solid #a8c7fa;
 margin: 0;
 white-space: pre-wrap;
 }
-/* ------------------------------------------------------------
-REVAMP: FORMAL INQUIRY CARD (Gmail-style header block)
------------------------------------------------------------- */
-.chat-inquiry {
-border: 1px solid #E6D9B8;
-background: #FFFDF6;
-border-radius: 12px;
-padding: 12px 14px;
-margin: 2px 0 8px 0;
-min-width: 240px;
-}
-.chat-inquiry-head {
-display: flex;
-align-items: center;
-gap: 8px;
-font-size: 11px;
-font-weight: 700;
-letter-spacing: 0.8px;
-text-transform: uppercase;
-color: #92660A;
-padding-bottom: 8px;
-margin-bottom: 8px;
-border-bottom: 1px solid #F0E6C8;
-}
-.chat-inquiry-head i { color: #C6A43F; }
-.chat-inquiry-row {
-display: flex;
-gap: 10px;
-font-size: 12px;
-margin-bottom: 4px;
-line-height: 1.45;
-}
-.chat-inquiry-row .k {
-flex-shrink: 0;
-width: 74px;
-color: #8a8f98;
-font-weight: 700;
-text-transform: uppercase;
-font-size: 10px;
-letter-spacing: 0.4px;
-padding-top: 2px;
-}
-.chat-inquiry-row .v {
-color: #1a1a2e;
-word-break: break-word;
-min-width: 0;
-}
-/* Viewing-request badge inside a bubble (legacy rows) */
+/* Viewing-request badge inside a bubble */
 .chat-viewing-badge {
 display: inline-block;
 font-size: 11px;
@@ -622,9 +561,7 @@ transition: background 0.15s ease, transform 0.1s ease;
 .chat-send-btn:hover { background: #b8942f; }
 .chat-send-btn:active { transform: scale(0.94); }
 .chat-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-/* ------------------------------------------------------------
-REVAMP: PENDING MEDIA with upload progress overlay
------------------------------------------------------------- */
+/* Pending media previews (images selected, not yet sent) */
 .chat-pending-media {
 display: none;
 gap: 8px;
@@ -661,40 +598,6 @@ cursor: pointer;
 display: flex;
 align-items: center;
 justify-content: center;
-z-index: 2;
-}
-.chat-up-overlay {
-position: absolute;
-inset: 0;
-border-radius: 10px;
-background: rgba(10, 10, 10, 0.45);
-display: flex;
-align-items: center;
-justify-content: center;
-}
-.chat-pending-item.is-done .chat-up-overlay { background: rgba(27, 94, 32, 0.35); }
-.chat-pending-item.is-error .chat-up-overlay { background: rgba(183, 28, 28, 0.5); }
-.chat-up-overlay .chat-up-pct {
-color: #fff;
-font-size: 11px;
-font-weight: 800;
-font-variant-numeric: tabular-nums;
-}
-.chat-up-overlay .chat-up-status { color: #fff; font-size: 14px; }
-.chat-up-bar {
-position: absolute;
-left: 0; right: 0; bottom: 0;
-height: 4px;
-background: rgba(255, 255, 255, 0.35);
-border-radius: 0 0 10px 10px;
-overflow: hidden;
-}
-.chat-up-bar span {
-display: block;
-height: 100%;
-background: #C6A43F;
-width: 0%;
-transition: width 0.15s linear;
 }
 /* Recording UI (replaces composer row while recording) */
 .chat-recording {
@@ -733,10 +636,6 @@ white-space: nowrap;
 overflow: hidden;
 text-overflow: ellipsis;
 }
-.chat-composer.is-cancel-arm .chat-rec-hint {
-color: #C62828;
-font-weight: 700;
-}
 .chat-rec-cancel,
 .chat-rec-send {
 width: 38px;
@@ -754,28 +653,6 @@ flex-shrink: 0;
 .chat-rec-cancel:hover { background: #FFEBEE; color: #C62828; }
 .chat-rec-send { background: #C6A43F; color: #fff; }
 .chat-rec-send:hover { background: #b8942f; }
-/* REVAMP: pending voice note row (PC max-time overflow) */
-.chat-rec-pending {
-display: none;
-align-items: center;
-gap: 12px;
-flex: 1;
-padding: 4px 8px;
-}
-.chat-composer.has-pending-rec .chat-input,
-.chat-composer.has-pending-rec .chat-attach-btn,
-.chat-composer.has-pending-rec .chat-mic-btn,
-.chat-composer.has-pending-rec .chat-send-btn { display: none; }
-.chat-composer.has-pending-rec .chat-rec-pending { display: flex; }
-.chat-rec-pending-label {
-flex: 1;
-font-size: 13px;
-font-weight: 600;
-color: #1a1a2e;
-white-space: nowrap;
-overflow: hidden;
-text-overflow: ellipsis;
-}
 /* Composer disabled (not allowed to reply) */
 .chat-composer.is-disabled { opacity: 0.6; pointer-events: none; }
 .chat-composer-note {
@@ -786,12 +663,6 @@ color: #5d4a00;
 font-size: 12px;
 text-align: center;
 flex-shrink: 0;
-}
-/* REVAMP: delisted-closure variant */
-.chat-composer-note.is-closed {
-background: #FEF2F2;
-border-top: 1px solid #FECACA;
-color: #B71C1C;
 }
 /* ------------------------------------------------------------
 LIGHTBOX
@@ -849,16 +720,14 @@ RESPONSIVE — mobile list → thread navigation
 .chat-listing-ctx-title { font-size: 11px; }
 .chat-bubble { max-width: 86%; }
 .chat-messages { padding: 14px 12px; }
-.chat-mic-btn { touch-action: none; }
 }
 @media (max-width: 480px) {
 .chat-listing-ctx { display: none; }
 .chat-voice { min-width: 160px; }
-.chat-inquiry { min-width: 200px; }
-.chat-inquiry-row .k { width: 64px; }
 }
 /* ------------------------------------------------------------
-DARK MODE — force light styling (site is light-only)
+DARK MODE — force light styling (site is light-only), but KEEP
+the darker-blue unread treatments visible.
 ------------------------------------------------------------ */
 @media (prefers-color-scheme: dark) {
 .chat-app,
@@ -869,22 +738,22 @@ DARK MODE — force light styling (site is light-only)
 .chat-input,
 .chat-lightbox img { background-color: #ffffff; }
 .chat-list-pane { background: #f8f9fa; }
-.chat-list-head, .chat-search, .chat-thread-head, .chat-composer { background: #fafbfc; }
-.chat-list-title, .chat-conv-name, .chat-thread-name,
-.chat-listing-ctx-title, .chat-empty h3,
-.chat-msg.mine .chat-bubble, .chat-msg.theirs .chat-bubble { color: #1a1a2e; }
-.chat-conv-preview, .chat-time, .chat-thread-sub,
-.chat-list-count, .chat-empty, .chat-empty p,
-.chat-msg-meta, .chat-voice-time, .chat-rec-hint { color: #5f6368; }
-.chat-conv-item:hover { background: #f1f3f4; }
-.chat-conv-item.is-active { background: #e8f0fe; }
-.chat-msg.mine .chat-bubble { background: #e8f0fe; }
-.chat-msg.theirs .chat-bubble { background: #f1f3f4; }
-.chat-msg.theirs.is-unread .chat-bubble { background: #c9daf8; }
-.chat-date-divider span { background: #ffffff; }
-.chat-date-divider::after { background: #e8eaed; }
-.chat-avatar { background: #dadce0; color: #3c4043; }
-.chat-avatar.is-unread { background: #C6A43F; color: #fff; }
-.chat-inquiry { background: #FFFDF6; border-color: #E6D9B8; }
-.chat-inquiry-row .v { color: #1a1a2e; }
+ .chat-list-head, .chat-search, .chat-thread-head, .chat-composer { background: #fafbfc; }
+ .chat-list-title, .chat-conv-name, .chat-thread-name,
+ .chat-listing-ctx-title, .chat-empty h3,
+ .chat-msg.mine .chat-bubble, .chat-msg.theirs .chat-bubble { color: #1a1a2e; }
+ .chat-conv-preview, .chat-time, .chat-thread-sub,
+ .chat-list-count, .chat-empty, .chat-empty p,
+ .chat-msg-meta, .chat-voice-time, .chat-rec-hint { color: #5f6368; }
+ .chat-conv-item:hover { background: #f1f3f4; }
+ .chat-conv-item.is-active { background: #e8f0fe; }
+ .chat-conv-item.has-unread { background: #d2e3fc; }
+ .chat-conv-item.has-unread:hover { background: #c9daf8; }
+ .chat-msg.mine .chat-bubble { background: #e8f0fe; }
+ .chat-msg.theirs .chat-bubble { background: #f1f3f4; }
+ .chat-msg.theirs.is-unread .chat-bubble { background: #c9daf8; }
+ .chat-date-divider span { background: #ffffff; }
+ .chat-date-divider::after { background: #e8eaed; }
+ .chat-avatar { background: #dadce0; color: #3c4043; }
+ .chat-avatar.is-unread { background: #1a73e8; color: #fff; }
 }
