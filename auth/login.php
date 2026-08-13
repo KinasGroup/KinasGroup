@@ -66,7 +66,7 @@ function authCssV($file) { return @filemtime(__DIR__ . '/../assets/css/' . $file
                 <h1 class="ka-headline">Welcome<br><span class="ka-accent">Back!</span></h1>
                 <div class="ka-rule"></div>
                 <p class="ka-group"><span class="ka-accent">Kinas</span> Group</p>
-                <p class="ka-desc">One Company. Multiple Solutions. Delivering excellence across Real Estate, Automobiles, Solar Solutions, Hospitality, Global Trade and Commerce.</p>
+                <p class="ka-desc">One Company. Multiple Solutions. One Trusted Ecosystem. Delivering excellence across Real Estate, Automobiles, Solar Solutions, Hospitality, Global Trade and Commerce.</p>
             </div>
         </aside>
 
