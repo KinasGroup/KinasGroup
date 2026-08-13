@@ -254,8 +254,7 @@ try {
             return [$senderId, $receiver, $listingId, $listingType, $subj, $message, $isViewing ? 1 : 0, $preferredDate ?: null, $preferredTime ?: null];
         };
         if ($hasInquiryMeta) {
-            $sql = "INSERT INTO messages ($baseCols, inquiry_meta) VALUES ($basePh, ?)";
-            $stmt = $db->prepare($sql);
+            $stmt = $db->prepare("INSERT INTO messages ($baseCols, inquiry_meta) VALUES ($basePh, ?)");
             $stmt->execute(array_merge($baseVals($listing['agent_id'], $subject), [$inquiryMeta]));
         } else {
             $stmt = $db->prepare("INSERT INTO messages ($baseCols) VALUES ($basePh)");
