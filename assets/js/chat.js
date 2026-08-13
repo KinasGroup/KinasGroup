@@ -1,4 +1,5 @@
-// /assets/js/chat.js — KINAS GROUP Messenger (definitive v3)
+// /assets/js/chat.js — KINAS GROUP Messenger (v4 — AUTHORITATIVE)
+// Any future messenger change must start from THIS file.
 window.__kinasChatJsLoaded = true;
 (function () {
 'use strict';
@@ -40,19 +41,19 @@ function esc(s) {
 }
 function money(n) { return '₦' + Number(n || 0).toLocaleString('en-NG'); }
 function fmtDur(sec) { sec = Math.max(0, Math.round(sec || 0)); var m = Math.floor(sec / 60), s = sec % 60; return m + ':' + (s < 10 ? '0' : '') + s; }
-function fmtGmailDate(dt) {
-    var d = new Date(dt); if (!dt || isNaN(d.getTime())) return '';
-    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var h = d.getHours(); var ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12; if (h === 0) h = 12;
-    var min = d.getMinutes();
-    return days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ', ' + h + ':' + (min < 10 ? '0' : '') + min + ' ' + ampm;
-}
 function toast(msg, type) {
     if (typeof window.kinasToast === 'function') { window.kinasToast(msg, type || 'info'); return; }
     if (typeof window.showSuccessBanner === 'function') { window.showSuccessBanner(msg, type === 'error'); return; }
     console.warn('[chat]', msg);
 }
+// ALWAYS-VISIBLE notice bar (guaranteed feedback even if toast system is absent)
+function note(msg, isErr) {
+    if (!composerNote) return;
+    composerNote.textContent = msg;
+    composerNote.style.display = 'block';
+    composerNote.classList.toggle('is-closed', !!isErr);
+}
+function clearNote() { if (composerNote) composerNote.style.display = 'none'; }
 function roleBadgeClass(r) { return r === 'agent' ? 'role-agent' : r === 'admin' ? 'role-admin' : r === 'business' ? 'role-business' : 'role-user'; }
 function barsFor(seed, count) {
     var h = 0, i, out = [];
@@ -222,7 +223,7 @@ function loadThread(initial) {
             listingPrice.textContent = state.listing.listing_price ? money(state.listing.listing_price) : '';
             if (state.listing.listing_thumb) { listingThumb.src = state.listing.listing_thumb; listingThumb.style.display = 'block'; } else { listingThumb.style.display = 'none'; }
         } else { listingCtx.style.display = 'none'; }
-        if (state.canReply) { composer.style.display = 'flex'; composerNote.style.display = 'none'; }
+        if (state.canReply) { composer.style.display = 'flex'; if (!composerNote.textContent) composerNote.style.display = 'none'; }
         else {
             composer.style.display = 'none'; composerNote.style.display = 'block';
             if (state.closed) { composerNote.textContent = 'This listing has been delisted — messaging is now closed. History remains readable.'; composerNote.classList.add('is-closed'); }
@@ -308,6 +309,14 @@ function renderMessage(m) {
     bubble.appendChild(meta2); row.appendChild(bubble);
     return row;
 }
+function fmtGmailDate(dt) {
+    var d = new Date(dt); if (!dt || isNaN(d.getTime())) return '';
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var h = d.getHours(); var ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12; if (h === 0) h = 12;
+    var min = d.getMinutes();
+    return days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ', ' + h + ':' + (min < 10 ? '0' : '') + min + ' ' + ampm;
+}
 function voiceNode(url, seconds) {
     var wrap = el('div', 'chat-voice');
     var play = el('button', 'chat-voice-play'); play.type = 'button'; play.innerHTML = '<i class="fas fa-play"></i>';
@@ -349,7 +358,7 @@ function queueMarkRead() {
         fetch(CFG.epMarkRead, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () {});
     }, 400);
 }
-// ── Uploads with ROUND progress ring ──
+// ── Uploads with round progress ring ──
 function refreshSendState() { sendBtn.disabled = state.uploads.some(function (u) { return u.status === 'uploading'; }); }
 function ringMarkup(pct) {
     return '<svg class="chat-up-ring" viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.5"/><circle class="ring-fg" cx="18" cy="18" r="15.5" pathLength="100" style="stroke-dashoffset:' + (100 - pct) + '"/></svg><span class="chat-up-pct">' + pct + '%</span>';
@@ -366,6 +375,7 @@ function renderPending() {
         overlay.innerHTML = u.status === 'uploading' ? ringMarkup(u.progress)
             : (u.status === 'done' ? '<i class="fas fa-check chat-up-status"></i>' : '<i class="fas fa-exclamation chat-up-status"></i>');
         item.appendChild(overlay);
+        var bar = el('div', 'chat-up-bar'); bar.innerHTML = '<span style="width:' + u.progress + '%"></span>'; item.appendChild(bar);
         var rm = document.createElement('button'); rm.type = 'button'; rm.innerHTML = '<i class="fas fa-times"></i>'; rm.title = 'Remove image';
         rm.addEventListener('click', function () {
             if (u.xhr && u.status === 'uploading') { try { u.xhr.abort(); } catch (e) {} }
@@ -399,10 +409,10 @@ function startUpload(u) {
     xhr.onload = function () {
         var data = null; try { data = JSON.parse(xhr.responseText); } catch (e) {}
         if (xhr.status === 200 && data && data.success && data.url) { u.status = 'done'; u.serverUrl = data.url; u.progress = 100; }
-        else { u.status = 'error'; toast((data && data.error) || 'Image upload failed.', 'error'); }
+        else { u.status = 'error'; note('Image upload failed: ' + ((data && data.error) || 'server error ' + xhr.status), true); }
         updatePendingItem(u); refreshSendState();
     };
-    xhr.onerror = function () { u.status = 'error'; updatePendingItem(u); refreshSendState(); };
+    xhr.onerror = function () { u.status = 'error'; updatePendingItem(u); refreshSendState(); note('Image upload failed (network).', true); };
     xhr.send(fd);
 }
 attachBtn.addEventListener('click', function () { fileInput.click(); });
@@ -417,11 +427,23 @@ fileInput.addEventListener('change', function () {
     });
     fileInput.value = ''; renderPending();
 });
-// ── Voice recording: mobile hold-to-record, mouse click on ALL devices ──
+// ── Voice recording with guaranteed feedback ──
+function failRec(msg) {
+    composer.classList.remove('is-recording'); micBtn.classList.remove('is-active');
+    clearInterval(state.recTimer);
+    if (state.rec) { try { state.rec.stop(); } catch (e) {} state.rec = null; }
+    note(msg, true);
+}
 function startRecording(holdMode) {
     if (state.rec) return;
+    clearNote();
+    // Immediate visible feedback BEFORE any permission prompt resolves
+    composer.classList.add('is-recording'); micBtn.classList.add('is-active');
+    recTimeEl.textContent = '0:00';
+    recHint.textContent = 'Requesting microphone…';
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-        toast('Voice notes are not supported in this browser.', 'error'); return;
+        failRec('Voice notes require a modern browser over HTTPS (microphone API missing).');
+        return;
     }
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
         var mime = '';
@@ -430,9 +452,7 @@ function startRecording(holdMode) {
         state.recChunks = []; state.recMime = mime; state.recCancelled = false; state.recSeconds = 0;
         state.recHold = !!holdMode; state.recStopMode = 'send';
         recTimeEl.textContent = '0:00';
-        recHint.textContent = holdMode
-            ? 'Recording… release to send, slide ← to cancel'
-            : 'Recording… click send when done, or trash to discard';
+        recHint.textContent = holdMode ? 'Recording… release to send, slide ← to cancel' : 'Recording… click send when done, or trash to discard';
         var rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
         state.rec = rec;
         rec.ondataavailable = function (e) { if (e.data && e.data.size > 0) state.recChunks.push(e.data); };
@@ -449,13 +469,12 @@ function startRecording(holdMode) {
             doSend({ body: input.value.trim(), imageUrls: [], audio: { blob: blob, ext: ext, seconds: secs } });
         };
         rec.start();
-        composer.classList.add('is-recording'); micBtn.classList.add('is-active');
         state.recTimer = setInterval(function () {
             state.recSeconds++; recTimeEl.textContent = fmtDur(state.recSeconds);
-            if (state.recSeconds >= CFG.maxVoiceSeconds && state.rec && state.rec.state !== 'inactive') stopRecording('send');
+            if (state.recSeconds >= CFG.maxVoiceSeconds && state.rec && state.rec.state !== 'inactive') stopRecording(state.recHold ? 'send' : 'send');
         }, 1000);
     }).catch(function (err) {
-        toast('Microphone unavailable' + (err && err.name ? ' (' + err.name + ')' : '') + '. Check browser permissions (HTTPS required).', 'error');
+        failRec('Microphone unavailable (' + ((err && err.name) || 'error') + '). Allow mic permission for this site and try again.');
     });
 }
 function stopRecording(mode) {
@@ -481,9 +500,8 @@ micBtn.addEventListener('touchend', function (e) {
     e.preventDefault(); composer.classList.remove('is-cancel-arm');
     if (state.recTouchCancelled) stopRecording('cancel'); else stopRecording('send');
 }, { passive: false });
-// Mouse click works everywhere; ignore the synthetic click that follows a touch.
 micBtn.addEventListener('click', function () {
-    if (Date.now() - state.lastTouchStart < 700) return;
+    if (Date.now() - state.lastTouchStart < 700) return; // synthetic click after touch
     if (state.rec) return;
     startRecording(false);
 });
@@ -495,7 +513,7 @@ function doneUploadUrls() {
 }
 function doSend(opts) {
     if (!state.current || !state.canReply) return;
-    if (state.uploads.some(function (u) { return u.status === 'uploading'; })) { toast('Wait for image uploads to finish before sending.', 'warning'); return; }
+    if (state.uploads.some(function (u) { return u.status === 'uploading'; })) { note('Wait for image uploads to finish before sending.', true); return; }
     var fd = new FormData();
     fd.append('csrf_token', CFG.csrf);
     fd.append('receiver_id', state.current.other);
@@ -509,25 +527,35 @@ function doSend(opts) {
         fd.append('audio_duration', String(opts.audio.seconds || 0));
     }
     sendBtn.disabled = true;
-    fetch(CFG.epSend, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (data) {
-        refreshSendState();
-        if (data && data.success && data.message) {
-            playSend();
-            input.value = ''; input.style.height = '42px';
-            state.uploads.forEach(function (u) { try { URL.revokeObjectURL(u.objectUrl); } catch (e) {} });
-            state.uploads = []; renderPending();
-            applyMessages([data.message], false);
-            messagesWrap.scrollTop = messagesWrap.scrollHeight;
-            loadConversations();
-        } else { toast((data && data.error) || 'Could not send message.', 'error'); }
-    }).catch(function () { refreshSendState(); toast('Network error. Please try again.', 'error'); });
+    fetch(CFG.epSend, { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, data: j }; }); })
+        .then(function (res) {
+            refreshSendState();
+            var data = res.data || {};
+            if (res.ok && data.success && data.message) {
+                clearNote(); playSend();
+                input.value = ''; input.style.height = '42px';
+                state.uploads.forEach(function (u) { try { URL.revokeObjectURL(u.objectUrl); } catch (e) {} });
+                state.uploads = []; renderPending();
+                applyMessages([data.message], false);
+                messagesWrap.scrollTop = messagesWrap.scrollHeight;
+                loadConversations();
+            } else {
+                note('Send failed: ' + (data.error || ('server error ' + res.status)), true);
+                toast(data.error || 'Could not send message.', 'error');
+            }
+        })
+        .catch(function () {
+            refreshSendState();
+            note('Send failed: network error. Check your connection and try again.', true);
+        });
 }
 composer.addEventListener('submit', function (e) {
     e.preventDefault();
     var body = input.value.trim();
     var urls = doneUploadUrls();
-    if (state.uploads.some(function (u) { return u.status === 'error'; })) { toast('Remove the failed image upload(s) before sending.', 'warning'); return; }
-    if (!body && !urls.length) return;
+    if (state.uploads.some(function (u) { return u.status === 'error'; })) { note('Remove the failed image upload(s) before sending.', true); return; }
+    if (!body && !urls.length) { note('Type a message or attach an image first.', true); return; }
     doSend({ body: body, imageUrls: urls, audio: null });
 });
 input.addEventListener('keydown', function (e) {
@@ -543,8 +571,6 @@ setInterval(loadConversations, CFG.pollListMs);
 document.addEventListener('visibilitychange', function () { if (!document.hidden) { loadConversations(); if (state.current) loadThread(false); } });
 window.addEventListener('beforeunload', function () { state.uploads.forEach(function (u) { try { URL.revokeObjectURL(u.objectUrl); } catch (e) {} }); });
 
-try {
-    loadConversations();
-    if (CFG.openOther > 0) openConversation(CFG.openOther, CFG.openListing, CFG.openType);
-} catch (e) { if (window.console) console.error('[chat] init error:', e); }
+loadConversations();
+if (CFG.openOther > 0) openConversation(CFG.openOther, CFG.openListing, CFG.openType);
 })();
