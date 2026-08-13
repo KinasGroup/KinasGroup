@@ -1,21 +1,19 @@
 <?php
 /**
- * KINAS GROUP — Listing inquiry / viewing request (revamped)
+ * KINAS GROUP — Listing inquiry / viewing request (HARDENED)
  *
- * REVAMP: the chat row no longer stores the stripped email blob (the
- * "scattered header with stray syntax"). It stores:
- *   body         = the user's clean message text only
- *   inquiry_meta = JSON {name,email,phone,subject,inquiry_type,
- *                  preferred_date,preferred_time,listing_title,sent_at}
- * which chat.js renders as a formal Gmail-style inquiry card.
- *
- * GUARDS (bug fix): messaging is strictly customer <-> agent.
- *   • Logged-in senders who are NOT role "user" (agents/admins) are
- *     rejected BEFORE any email/DB work — this kills the "agent
- *     contacted himself" bug and all other dead-end threads.
- *   • Explicit self-contact check as belt-and-braces.
- *   • Guests (not logged in) still get emails only — no chat row —
- *     because messages.sender_id is NOT NULL.
+ * Regression-proof rules:
+ *  • Emails/SMS are BEST-EFFORT: a mail/SMTP failure can never abort
+ *    the request or block the chat row / success response.
+ *  • Guests (not logged in): emails are sent, NO chat row is written
+ *    (messages.sender_id is NOT NULL — inserting NULL was the old 500).
+ *  • Logged-in customers ('user' role): emails + chat row(s).
+ *  • Logged-in agents/admins: emails are delivered, NO chat row
+ *    (agent↔agent threads can never be replied to — they become
+ *    unread shells; this prevents that class of bug).
+ *  • Self-contact (the listing's own agent) is rejected up front.
+ *  • inquiry_meta is written ONLY when the column exists, so this file
+ *    works whether or not the 2026_08_13 migration has been run.
  */
 header('Content-Type: application/json');
 require_once '../config/database.php';
@@ -78,8 +76,6 @@ if ($inquiryType === 'viewing' && ($preferredDate === '' || $preferredTime === '
     exit;
 }
 
-$tableMap = ['car' => 'car_listings', 'property' => 'property_listings', 'marketplace' => 'KINAS_marketplace_fix', 'solar' => 'solar_listings'];
-// (corrected map below — the line above is intentionally replaced)
 $tableMap = ['car' => 'car_listings', 'property' => 'property_listings', 'marketplace' => 'marketplace_listings', 'solar' => 'solar_listings'];
 if (!array_key_exists($listingType, $tableMap)) {
     http_response_code(422);
@@ -88,59 +84,66 @@ if (!array_key_exists($listingType, $tableMap)) {
 }
 $table = $tableMap[$listingType];
 
+/** Best-effort notifier: never throws. */
+function inquiry_notify_safe(callable $fn): void
+{
+    try { $fn(); } catch (Throwable $e) { error_log('send-inquiry notify error: ' . $e->getMessage()); }
+}
+
 try {
     $db = Database::getInstance()->getConnection();
 
-    // Listing must be live to receive new inquiries
+    // Listing must exist and not be delisted/removed.
     $stmt = $db->prepare("SELECT agent_id, title, status FROM $table WHERE id = ?");
     $stmt->execute([$listingId]);
-    $listing = $stmt->fetch();
+    $listing = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$listing || in_array((string)($listing['status'] ?? ''), ['removed', 'inactive'], true)) {
         http_response_code(404);
         echo json_encode(['error' => 'This listing is no longer available for inquiries.']);
         exit;
     }
 
-    // ============================================================
-    // GUARD: only customers (or guests) may send inquiries.
-    // Blocks agents/admins — including the listing's own agent —
-    // before any email or DB work happens.
-    // ============================================================
+    // ── Sender identity & guards ─────────────────────────────
     $senderId   = SessionManager::getUserId() ?: null;
     $senderRole = (string)($_SESSION['user_role'] ?? '');
-    if ($senderId !== null && $senderRole !== 'user') {
-        http_response_code(403);
-        echo json_encode(['error' => 'Only customer accounts can send listing inquiries. Agents manage listings from their dashboard.']);
-        exit;
-    }
+
+    // The listing's own agent can never inquire on themselves.
     if ($senderId !== null && (int)$listing['agent_id'] === (int)$senderId) {
         http_response_code(403);
-        echo json_encode(['error' => 'You cannot send an inquiry about your own listing.']);
+        echo json_encode(['error' => 'This is your own listing — inquiries from yourself are not allowed.']);
         exit;
     }
 
+    // Does the messages table have the revamp inquiry_meta column?
+    $hasInquiryMeta = false;
+    try {
+        $cm = $db->prepare("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'messages' AND column_name = 'inquiry_meta'");
+        $cm->execute();
+        $hasInquiryMeta = ((int)$cm->fetchColumn()) > 0;
+    } catch (Throwable $e) { $hasInquiryMeta = false; }
+
     // ============================================================
-    // GET LISTING AGENT
+    // GET LISTING AGENT + SUPER AGENT
     // ============================================================
     $stmt = $db->prepare("SELECT id, email, name, phone, phone_verified_at FROM users WHERE id = ? AND status = 'active'");
     $stmt->execute([$listing['agent_id']]);
-    $listingAgent = $stmt->fetch();
+    $listingAgent = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    $superAgent = null;
+    try {
+        $stmt = $db->prepare("
+            SELECT u.id, u.email, u.name, u.phone, u.phone_verified_at
+            FROM users u
+            JOIN agent_profiles ap ON ap.user_id = u.id
+            WHERE ap.is_super_agent = 1 AND u.status = 'active'
+            LIMIT 1
+        ");
+        $stmt->execute();
+        $superAgent = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    } catch (Throwable $e) { $superAgent = null; }
 
     // ============================================================
-    // GET SUPER AGENT (is_super_agent = 1)
-    // ============================================================
-    $stmt = $db->prepare("
-        SELECT u.id, u.email, u.name, u.phone, u.phone_verified_at
-        FROM users u
-        JOIN agent_profiles ap ON u.id = ap.user_id
-        WHERE ap.is_super_agent = 1 AND u.status = 'active'
-        LIMIT 1
-    ");
-    $stmt->execute();
-    $superAgent = $stmt->fetch();
-
-    // ============================================================
-    // BUILD MESSAGE CONTENT (emails unchanged)
+    // BUILD MESSAGE CONTENT
     // ============================================================
     $isViewing = ($inquiryType === 'viewing');
     $subject = $isViewing
@@ -169,8 +172,6 @@ try {
 </html>
 ";
 
-    // Structured metadata stored with the chat row (rendered as the
-    // formal inquiry card by chat.js). Body stays CLEAN user text.
     $inquiryMeta = json_encode([
         'name'           => $name,
         'email'          => $email,
@@ -184,116 +185,113 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 
     // ============================================================
-    // SEND TO LISTING AGENT
+    // EMAILS / SMS — BEST EFFORT (never aborts the request)
     // ============================================================
     if ($listingAgent) {
-        Notify::email(
-            $listingAgent['email'],
-            $subject,
-            strip_tags(str_replace(['<br>', '</p>'], ["\n", "\n"], $emailBody)),
-            null,
-            SUPPORT_EMAIL,
-            'KINAS GROUP Notifications'
-        );
-        if ($isViewing) {
-            send_email(
+        inquiry_notify_safe(function () use ($listingAgent, $subject, $emailBody) {
+            Notify::email(
                 $listingAgent['email'],
-                $subject . " - Viewing Request",
-                $emailBody,
-                'no-reply@kinas-group.com'
+                $subject,
+                strip_tags(str_replace(['<br>', '</p>'], ["\n", "\n"], $emailBody)),
+                null,
+                SUPPORT_EMAIL,
+                'KINAS GROUP Notifications'
             );
+        });
+        if ($isViewing) {
+            inquiry_notify_safe(function () use ($listingAgent, $subject, $emailBody) {
+                send_email($listingAgent['email'], $subject . " - Viewing Request", $emailBody, 'no-reply@kinas-group.com');
+            });
         }
         if (!empty($listingAgent['phone']) && !empty($listingAgent['phone_verified_at'])) {
             $smsMsg = $isViewing
                 ? "New viewing request for {$listing['title']} from {$name} on {$preferredDate} at {$preferredTime}. Check your dashboard."
                 : "New inquiry on {$listing['title']} from {$name}. Open your dashboard to reply.";
-            Notify::sms($listingAgent['phone'], $smsMsg, 'NEW_INQUIRY');
+            inquiry_notify_safe(function () use ($listingAgent, $smsMsg) {
+                Notify::sms($listingAgent['phone'], $smsMsg, 'NEW_INQUIRY');
+            });
         }
     }
 
-    // ============================================================
-    // CONFIRMATION EMAIL TO THE REQUESTER
-    // ============================================================
+    // Confirmation to the requester
     $confirmSubject = $isViewing
         ? "Your viewing request for {$listing['title']} has been received"
         : "Your inquiry about {$listing['title']} has been received";
     $confirmBody = $isViewing
-        ? "Hi {$name},\nYour request to view \"{$listing['title']}\" on {$preferredDate} at {$preferredTime} has been sent to the listing agent.\nThey'll be in touch shortly to confirm the appointment. If the requested time doesn't work for them, they may suggest an alternative.\nYour message:\n{$message}"
+        ? "Hi {$name},\nYour request to view \"{$listing['title']}\" on {$preferredDate} at {$preferredTime} has been sent to the listing agent.\nThey'll be in touch shortly to confirm the appointment.\nYour message:\n{$message}"
         : "Hi {$name},\nYour inquiry about \"{$listing['title']}\" has been sent to the listing agent, who will respond directly to this email address.\nYour message:\n{$message}";
-    Notify::email($email, $confirmSubject, $confirmBody, null, INFO_EMAIL, 'KINAS GROUP');
+    inquiry_notify_safe(function () use ($email, $confirmSubject, $confirmBody) {
+        Notify::email($email, $confirmSubject, $confirmBody, null, INFO_EMAIL, 'KINAS GROUP');
+    });
 
-    // ============================================================
-    // SEND TO SUPER AGENT (if exists and different)
-    // ============================================================
-    if ($superAgent && ($superAgent['id'] != ($listingAgent['id'] ?? 0))) {
+    // Super agent copy
+    if ($superAgent && (int)$superAgent['id'] !== (int)($listingAgent['id'] ?? 0)) {
         $superSubject = $isViewing
             ? "🔔 Super Agent: New Viewing Request for {$listing['title']}"
             : "🔔 Super Agent: New Inquiry for {$listing['title']}";
-        send_email($superAgent['email'], $superSubject, $emailBody, 'no-reply@kinas-group.com');
+        inquiry_notify_safe(function () use ($superAgent, $superSubject, $emailBody) {
+            send_email($superAgent['email'], $superSubject, $emailBody, 'no-reply@kinas-group.com');
+        });
         if (!empty($superAgent['phone']) && !empty($superAgent['phone_verified_at'])) {
             $smsMsg = $isViewing
                 ? "Super Agent: New viewing request for {$listing['title']} from {$name} on {$preferredDate} at {$preferredTime}."
                 : "Super Agent: New inquiry on {$listing['title']} from {$name}.";
-            Notify::sms($superAgent['phone'], $smsMsg, 'NEW_INQUIRY');
+            inquiry_notify_safe(function () use ($superAgent, $smsMsg) {
+                Notify::sms($superAgent['phone'], $smsMsg, 'NEW_INQUIRY');
+            });
         }
     }
 
     // ============================================================
-    // SAVE CHAT ROWS (logged-in customers only — sender_id NOT NULL)
+    // CHAT ROWS — logged-in CUSTOMERS only (sender_id NOT NULL,
+    // and agent↔agent threads can never be replied to).
     // ============================================================
-    if ($senderId !== null) {
-        $stmt = $db->prepare("
-            INSERT INTO messages (
-                sender_id, receiver_id, listing_id, listing_type, subject, body,
-                inquiry_meta, is_viewing_request, preferred_date, preferred_time,
-                is_read, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())
-        ");
-        $stmt->execute([
-            $senderId,
-            $listing['agent_id'],
-            $listingId,
-            $listingType,
-            $subject,
-            $message,
-            $inquiryMeta,
-            $isViewing ? 1 : 0,
-            $preferredDate ?: null,
-            $preferredTime ?: null
-        ]);
+    $chatWritten = false;
+    if ($senderId !== null && $senderRole === 'user') {
+        $baseCols = "sender_id, receiver_id, listing_id, listing_type, subject, body, is_viewing_request, preferred_date, preferred_time, is_read, created_at";
+        $basePh   = "?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW()";
+        $baseVals = function (int $receiver, string $subj) use ($listingId, $listingType, $message, $isViewing, $preferredDate, $preferredTime, $senderId) {
+            return [$senderId, $receiver, $listingId, $listingType, $subj, $message, $isViewing ? 1 : 0, $preferredDate ?: null, $preferredTime ?: null];
+        };
+        if ($hasInquiryMeta) {
+            $sql = "INSERT INTO messages ($baseCols, inquiry_meta) VALUES ($basePh, ?)";
+            $stmt = $db->prepare($sql);
+            $stmt->execute(array_merge($baseVals($listing['agent_id'], $subject), [$inquiryMeta]));
+        } else {
+            $stmt = $db->prepare("INSERT INTO messages ($baseCols) VALUES ($basePh)");
+            $stmt->execute($baseVals($listing['agent_id'], $subject));
+        }
+        $chatWritten = true;
 
-        if ($superAgent && ($superAgent['id'] != ($listingAgent['id'] ?? 0))) {
-            $stmt = $db->prepare("
-                INSERT INTO messages (
-                    sender_id, receiver_id, listing_id, listing_type, subject, body,
-                    inquiry_meta, is_viewing_request, preferred_date, preferred_time,
-                    is_read, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())
-            ");
-            $stmt->execute([
-                $senderId,
-                $superAgent['id'],
-                $listingId,
-                $listingType,
-                $subject . " (Super Agent)",
-                $message,
-                $inquiryMeta,
-                $isViewing ? 1 : 0,
-                $preferredDate ?: null,
-                $preferredTime ?: null
-            ]);
+        if ($superAgent && (int)$superAgent['id'] !== (int)($listingAgent['id'] ?? 0)) {
+            if ($hasInquiryMeta) {
+                $stmt = $db->prepare("INSERT INTO messages ($baseCols, inquiry_meta) VALUES ($basePh, ?)");
+                $stmt->execute(array_merge($baseVals($superAgent['id'], $subject . " (Super Agent)"), [$inquiryMeta]));
+            } else {
+                $stmt = $db->prepare("INSERT INTO messages ($baseCols) VALUES ($basePh)");
+                $stmt->execute($baseVals($superAgent['id'], $subject . " (Super Agent)"));
+            }
         }
     }
 
     Security::logActivity(
-        SessionManager::getUserId(),
+        $senderId,
         $isViewing ? 'viewing_requested' : 'inquiry_sent',
         $isViewing
             ? "Viewing request for {$listingType} #{$listingId} from {$email} on {$preferredDate}"
             : "Inquiry for {$listingType} #{$listingId} from {$email}"
     );
 
-    echo json_encode(['success' => true, 'message' => $isViewing ? 'Viewing request sent successfully!' : 'Inquiry sent successfully']);
+    $note = '';
+    if ($senderId !== null && $senderRole !== 'user') {
+        $note = ' (delivered by email — chat threads are available between customers and agents only)';
+    } elseif (!$chatWritten && $senderId === null) {
+        $note = ' (create a free account to chat directly with agents)';
+    }
+    echo json_encode([
+        'success' => true,
+        'message' => ($isViewing ? 'Viewing request sent successfully!' : 'Inquiry sent successfully') . $note,
+    ]);
 } catch (Exception $e) {
     error_log('Inquiry error: ' . $e->getMessage());
     http_response_code(500);
