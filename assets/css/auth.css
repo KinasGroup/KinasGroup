@@ -1,19 +1,21 @@
 /* ============================================================
-KINAS AUTH — auth.css (v3)
+KINAS AUTH — auth.css (v5)
 Loaded ONLY on auth pages, AFTER style.css / james-edition.css /
 responsive.css so it wins the cascade without touching any other
 page. Design source: approved PC + mobile mockups.
-v2: hero painted on a dedicated full-bleed layer (.ka-hero) that
-spans the ENTIRE viewport width; secure-pill removed.
-v3: mobile brand band gets min-height + push-down gap so the
-"Welcome Back!" block no longer sticks to the logo.
+v2: full-bleed hero layer (.ka-hero); secure-pill removed.
+v3: mobile brand band min-height + push-down gap.
+v4: mobile spacing baked in + register-form styles.
+v5: PROFESSIONAL CARD PASS — Prata titles, eyebrow pill, gradient
+    hairline, uppercase micro-labels, premium CTA, card trust footer.
 ============================================================ */
 :root {
     --ka-orange:      #ED5B0C;
     --ka-orange-deep: #C94A08;
+    --ka-gold:        #C6A43F;
     --ka-night:       #050505;
-    --ka-card:        #FAFAFA;
-    --ka-line:        #D7DDE2;
+    --ka-card:        #FFFFFF;
+    --ka-line:        #E1E5EA;
 }
 
 /* Page base — must beat the site-wide force-light white background */
@@ -26,7 +28,7 @@ body { color: #ffffff !important; }
     }
 }
 
-/* ── Shell ─────────────────────────────────────────────── */
+/* ── Shell ────────────────────────────────────────────── */
 .ka-shell { min-height: 100vh; display: flex; flex-direction: column; background: var(--ka-night); }
 
 /* ── Main grid (full width) ────────────────────────────── */
@@ -47,7 +49,6 @@ body { color: #ffffff !important; }
     pointer-events: none;
     background: url('../images/hero/auth-hero-night.jpg') center center / cover no-repeat #050505;
 }
-/* Readability overlay: black left (text), house visible mid, dark right (card pops) */
 .ka-hero::after {
     content: '';
     position: absolute; inset: 0;
@@ -57,7 +58,7 @@ body { color: #ffffff !important; }
 }
 .ka-brand, .ka-form-side { position: relative; z-index: 1; }
 
-/* ── Left brand panel (transparent — hero lives on .ka-hero) ── */
+/* ── Left brand panel ──────────────────────────────────── */
 .ka-brand {
     padding: 52px 60px;
     display: flex; flex-direction: column;
@@ -72,20 +73,48 @@ body { color: #ffffff !important; }
 
 /* ── Right form side ───────────────────────────────────── */
 .ka-form-side { display: flex; align-items: center; justify-content: center; padding: 56px 48px; }
-.ka-card {
-    width: min(500px, 100%);
-    background: var(--ka-card); border-radius: 18px; padding: 40px 44px;
-    box-shadow: 0 30px 80px rgba(0,0,0,.55); color: #111;
-}
-.ka-card h2 { font-family: 'Inter', sans-serif; font-size: 30px; font-weight: 800; color: #111; }
-.ka-sub { color: #777; font-size: 13px; margin: 6px 0 26px; }
 
-.ka-alert { display: flex; align-items: center; gap: 8px; border-radius: 8px; padding: 11px 14px; font-size: 13px; margin-bottom: 16px; }
+/* v5 professional card */
+.ka-card {
+    width: min(520px, 100%);
+    background: var(--ka-card);
+    border: 1px solid rgba(10,10,10,.06);
+    border-radius: 20px;
+    padding: 42px 48px 30px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(16,24,40,.08), 0 24px 70px rgba(0,0,0,.55);
+    color: #111;
+}
+/* gradient hairline: orange → gold (the two brand accents) */
+.ka-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--ka-orange) 0%, var(--ka-gold) 100%);
+}
+.ka-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase;
+    color: var(--ka-orange);
+    background: rgba(237,91,12,.08);
+    border: 1px solid rgba(237,91,12,.18);
+    border-radius: 999px; padding: 6px 12px; margin-bottom: 18px;
+}
+.ka-eyebrow i { font-size: 11px; }
+.ka-card h2 { font-family: 'Prata', serif; font-size: 30px; font-weight: 400; color: #0A0A0A; letter-spacing: .2px; }
+.ka-sub { color: #77808A; font-size: 13.5px; margin: 8px 0 28px; line-height: 1.6; }
+
+.ka-alert { display: flex; align-items: center; gap: 8px; border-radius: 10px; padding: 11px 14px; font-size: 13px; margin-bottom: 16px; }
 .ka-alert.error   { background: #FEF2F2; border: 1px solid #FECACA; color: #B71C1C; }
 .ka-alert.success { background: #F0FDF4; border: 1px solid #BBF7D0; color: #1B5E20; }
 
+/* v5 uppercase micro-labels */
 .ka-field { margin-bottom: 16px; }
-.ka-field label { display: block; font-size: 13px; font-weight: 600; color: #222; margin-bottom: 6px; }
+.ka-field label {
+    display: block; font-size: 11px; font-weight: 700; color: #333;
+    letter-spacing: .8px; text-transform: uppercase; margin-bottom: 7px;
+}
 .ka-input-wrap { position: relative; }
 .ka-input-wrap .ka-lead {
     position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
@@ -93,15 +122,35 @@ body { color: #ffffff !important; }
 }
 .ka-input {
     width: 100%; padding: 13px 14px 13px 42px;
-    border: 1px solid var(--ka-line); border-radius: 8px;
-    background: #fff; color: #111;
+    border: 1px solid var(--ka-line); border-radius: 10px;
+    background: #FBFBFC; color: #111;
     font-family: 'Inter', sans-serif; font-size: 14px;
-    transition: border-color .2s, box-shadow .2s;
+    transition: border-color .2s, box-shadow .2s, background .2s;
 }
 .ka-input::placeholder { color: #A6AFB7; }
-.ka-input:focus { outline: none; border-color: var(--ka-orange); box-shadow: 0 0 0 3px rgba(237,91,12,.12); }
-/* keep clear of the eye toggle injected by includes/password-toggle.php */
+.ka-input:focus {
+    outline: none; border-color: var(--ka-orange); background: #fff;
+    box-shadow: 0 0 0 4px rgba(237,91,12,.10);
+}
 .ka-input-wrap.je-password-wrap .ka-input { padding-right: 44px; }
+
+.ka-select {
+    width: 100%; padding: 13px 36px 13px 42px;
+    border: 1px solid var(--ka-line); border-radius: 10px;
+    background: #FBFBFC; color: #111;
+    font-family: 'Inter', sans-serif; font-size: 14px;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+    cursor: pointer; transition: border-color .2s, box-shadow .2s, background .2s;
+}
+.ka-select:focus { outline: none; border-color: var(--ka-orange); background-color: #fff; box-shadow: 0 0 0 4px rgba(237,91,12,.10); }
+
+.ka-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+
+.ka-hint { font-size: 11px; color: #888; margin-top: 4px; }
+.ka-terms { font-size: 12px; color: #666; margin: 4px 0 18px; line-height: 1.5; }
+.ka-terms i { color: var(--ka-gold); }
 
 .ka-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 18px; font-size: 13px; }
 .ka-remember { display: flex; align-items: center; gap: 7px; color: #555; cursor: pointer; }
@@ -109,30 +158,47 @@ body { color: #ffffff !important; }
 .ka-link { color: var(--ka-orange); font-weight: 600; text-decoration: none; }
 .ka-link:hover { text-decoration: underline; }
 
+/* v5 premium CTA */
 .ka-btn-primary {
-    width: 100%; border: none; border-radius: 8px; cursor: pointer;
-    background: var(--ka-orange); color: #fff;
-    font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700;
-    padding: 14px; transition: background .2s, transform .15s;
-    min-height: 48px;
+    width: 100%; border: none; border-radius: 10px; cursor: pointer;
+    background: linear-gradient(180deg, #F4691A 0%, #E1560B 100%);
+    color: #fff;
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    padding: 16px; min-height: 50px;
+    box-shadow: 0 8px 20px rgba(237,91,12,.30), inset 0 1px 0 rgba(255,255,255,.18);
+    transition: all .2s;
 }
-.ka-btn-primary:hover { background: var(--ka-orange-deep); }
-.ka-btn-primary:disabled { opacity: .7; cursor: not-allowed; }
+.ka-btn-primary:hover {
+    background: linear-gradient(180deg, #F87527 0%, #ED5B0C 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(237,91,12,.36), inset 0 1px 0 rgba(255,255,255,.18);
+}
+.ka-btn-primary:disabled { opacity: .7; cursor: not-allowed; transform: none; }
 
 .ka-divider-or { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: #999; font-size: 12px; }
 .ka-divider-or::before, .ka-divider-or::after { content: ''; flex: 1; height: 1px; background: #E3E7EA; }
 
 .ka-btn-google {
     width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
-    background: #fff; border: 1px solid var(--ka-line); border-radius: 8px;
+    background: #fff; border: 1px solid var(--ka-line); border-radius: 10px;
     padding: 12px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #333;
     cursor: pointer; transition: background .2s; min-height: 48px;
 }
 .ka-btn-google:hover { background: #F6F8FA; }
 .ka-btn-google[hidden] { display: none; }
 
-.ka-switch { text-align: center; margin-top: 22px; font-size: 13px; color: #667078; }
+.ka-switch { text-align: center; margin-top: 20px; font-size: 13px; color: #667078; }
 .ka-switch .ka-dot { margin: 0 6px; color: #B9C2C9; }
+
+/* v5 card trust footer */
+.ka-card-trust {
+    display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;
+    margin-top: 20px; padding-top: 16px; border-top: 1px solid #EEF1F4;
+    font-size: 11px; color: #8A939C;
+}
+.ka-card-trust i { color: var(--ka-gold); font-size: 11px; margin-right: 5px; }
+.ka-card-trust .ka-dot { margin: 0 2px; color: #C9D2D9; }
 
 /* ── Trust bar (reuses existing assets/images/trust icons) ── */
 .ka-trust {
@@ -156,7 +222,7 @@ body { color: #ffffff !important; }
 .ka-footer a:hover { color: var(--ka-orange); }
 .ka-footer .ka-sep { margin: 0 10px; color: rgba(255,255,255,.25); }
 
-/* ── Responsive ────────────────────────────────────────── */
+/* ── Responsive ──────────────────────────────────────── */
 @media (max-width: 1100px) {
     .ka-headline { font-size: 44px; }
     .ka-brand { padding: 40px 44px; }
@@ -167,15 +233,13 @@ body { color: #ffffff !important; }
     .ka-hero::after {
         background: linear-gradient(180deg, rgba(5,5,5,.62) 0%, rgba(5,5,5,.55) 40%, rgba(5,5,5,.94) 100%);
     }
-    /* v3: give the brand band real height and push the copy down
-       so "Welcome Back!" no longer sticks to the logo on mobile */
     .ka-brand { padding: 34px 24px 30px; min-height: 410px; }
     .ka-brand-copy { margin: 0; padding-top: 64px; }
     .ka-logo img { height: 52px; }
     .ka-headline { font-size: 38px; }
     .ka-rule { margin: 16px 0 12px; }
     .ka-form-side { padding: 10px 16px 10px; }
-    .ka-card { padding: 30px 24px; }
+    .ka-card { padding: 32px 26px 24px; }
     .ka-trust { padding: 18px 20px; gap: 14px; }
 }
 @media (max-width: 560px) {
@@ -183,7 +247,8 @@ body { color: #ffffff !important; }
     .ka-brand-copy { padding-top: 48px; }
     .ka-headline { font-size: 32px; }
     .ka-desc { font-size: 12.5px; }
-    .ka-card { padding: 26px 18px; border-radius: 14px; }
+    .ka-grid-2 { grid-template-columns: 1fr; }
+    .ka-card { padding: 28px 18px 20px; border-radius: 16px; }
     .ka-card h2 { font-size: 25px; }
     .ka-trust { gap: 10px; padding: 16px 14px; }
     .ka-trust-item { gap: 8px; }
