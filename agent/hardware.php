@@ -26,39 +26,90 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'agent') {
 $db = Database::getInstance()->getConnection();
 $agentId = $_SESSION['user_id'];
 
-// Get all hardware
-$hardware = $db->query("
-    SELECT id, title, service_type, brand, capacity_kw, price, warranty_years, status, views, created_at
-    FROM solar_listings 
-    WHERE agent_id = $agentId 
-      AND service_type IN ('solar_panel', 'inverter', 'battery', 'charge_controller', 'mounting_structure')
-    ORDER BY created_at DESC
-")->fetchAll();
+// Get all hardware, including power stations.
+try {
+    $hardwareStmt = $db->prepare("
+        SELECT
+            id,
+            title,
+            service_type,
+            hardware_type,
+            brand,
+            panel_watts,
+            inverter_kva,
+            battery_kwh,
+            capacity_kw,
+            price,
+            warranty_years,
+            status,
+            views,
+            created_at
+        FROM solar_listings
+        WHERE agent_id = ?
+          AND (
+              hardware_type IN ('solar_panel', 'inverter', 'battery', 'power_station')
+              OR service_type IN ('solar_panel', 'inverter', 'battery', 'charge_controller', 'mounting_structure', 'power_station')
+          )
+        ORDER BY created_at DESC
+    ");
+
+    $hardwareStmt->execute([$agentId]);
+    $hardware = $hardwareStmt->fetchAll();
+} catch (Throwable $e) {
+    // Fallback if hardware partitioning columns are not available yet.
+    $hardwareStmt = $db->prepare("
+        SELECT
+            id,
+            title,
+            service_type,
+            brand,
+            capacity_kw,
+            price,
+            warranty_years,
+            status,
+            views,
+            created_at
+        FROM solar_listings
+        WHERE agent_id = ?
+          AND service_type IN ('solar_panel', 'inverter', 'battery', 'charge_controller', 'mounting_structure', 'power_station')
+        ORDER BY created_at DESC
+    ");
+
+    $hardwareStmt->execute([$agentId]);
+    $hardware = $hardwareStmt->fetchAll();
+}
+
+$formatCapacity = function ($value) {
+    return rtrim(rtrim(number_format((float)$value, 2, '.', ''), '0'), '.');
+};
 
 $pageTitle = 'Hardware Inventory - Agent Dashboard';
 include '../templates/header.php';
 ?>
-
 <style>
 .je-dash-shell {
     max-width: 100% !important;
     overflow-x: hidden !important;
 }
+
 .je-dash-main {
     overflow-x: hidden !important;
     width: 100% !important;
     max-width: 100% !important;
     padding: 15px !important;
 }
+
 .table-responsive {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
     width: 100% !important;
 }
+
 .je-table {
     min-width: 700px !important;
     width: 100% !important;
 }
+
 @media (max-width: 768px) {
     .je-dash-main { padding: 10px !important; }
     .je-table th, .je-table td { padding: 8px 8px; font-size: 11px; }
@@ -66,10 +117,12 @@ include '../templates/header.php';
     .je-table th:nth-child(4), .je-table td:nth-child(4) { display: none; }
     .je-table th:nth-child(5), .je-table td:nth-child(5) { display: none; }
 }
+
 @media (max-width: 480px) {
     .je-table th:nth-child(7), .je-table td:nth-child(7) { display: none; }
     .je-table th:nth-child(6), .je-table td:nth-child(6) { display: none; }
 }
+
 /* Action buttons */
 .action-btn {
     display: inline-flex;
@@ -88,11 +141,15 @@ include '../templates/header.php';
     min-height: 28px;
     margin: 2px;
 }
+
 .action-btn i { font-size: 11px; }
+
 .action-btn-view { background: #1565C0; color: #FFFFFF !important; }
 .action-btn-view:hover { background: #0D47A1; color: #FFFFFF !important; transform: translateY(-1px); }
+
 .action-btn-edit { background: #F57C00; color: #FFFFFF !important; }
 .action-btn-edit:hover { background: #E65100; color: #FFFFFF !important; transform: translateY(-1px); }
+
 .action-btn-delete { background: #C62828; color: #FFFFFF !important; }
 .action-btn-delete:hover { background: #B71C1C; color: #FFFFFF !important; transform: translateY(-1px); }
 
@@ -107,23 +164,42 @@ include '../templates/header.php';
     align-items: center;
     gap: 12px;
 }
+
 .listings-search-wrap .search-icon { color: #C6A43F; font-size: 15px; flex-shrink: 0; }
+
 .listings-search-wrap input[type="text"] {
-    flex: 1; border: none; outline: none;
-    font-family: 'Inter', sans-serif; font-size: 14px;
-    color: #0A0A0A; background: transparent;
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #0A0A0A;
+    background: transparent;
 }
+
 .listings-search-wrap input[type="text"]::placeholder { color: #aaa; }
+
 .listings-search-wrap .search-clear {
-    background: none; border: none; cursor: pointer;
-    color: #aaa; font-size: 16px; line-height: 1;
-    display: none; padding: 2px 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #aaa;
+    font-size: 16px;
+    line-height: 1;
+    display: none;
+    padding: 2px 4px;
 }
+
 .listings-search-wrap .search-clear:hover { color: #555; }
+
 .search-no-results {
-    display: none; text-align: center;
-    padding: 40px 20px; color: #888; font-size: 14px;
+    display: none;
+    text-align: center;
+    padding: 40px 20px;
+    color: #888;
+    font-size: 14px;
 }
+
 .search-no-results i { font-size: 32px; color: #C6A43F; display: block; margin-bottom: 12px; }
 
 /* ============================================================
@@ -134,16 +210,20 @@ include '../templates/header.php';
 @media (prefers-color-scheme: dark) {
     .action-btn-view { background: #1565C0 !important; color: #FFFFFF !important; }
     .action-btn-view:hover { background: #0D47A1 !important; color: #FFFFFF !important; }
+
     .action-btn-edit { background: #F57C00 !important; color: #FFFFFF !important; }
     .action-btn-edit:hover { background: #E65100 !important; color: #FFFFFF !important; }
+
     .action-btn-delete { background: #C62828 !important; color: #FFFFFF !important; }
     .action-btn-delete:hover { background: #B71C1C !important; color: #FFFFFF !important; }
+
     .listings-search-wrap { background: #fff !important; }
     .listings-search-wrap .search-icon { color: #C6A43F !important; }
     .listings-search-wrap input[type="text"] { color: #0A0A0A !important; }
     .listings-search-wrap input[type="text"]::placeholder { color: #aaa !important; }
     .listings-search-wrap .search-clear { color: #aaa !important; }
     .listings-search-wrap .search-clear:hover { color: #555 !important; }
+
     .search-no-results { color: #888 !important; }
     .search-no-results i { color: #C6A43F !important; }
 }
@@ -198,7 +278,6 @@ include '../templates/header.php';
                 </div>
             </div>
         <?php else: ?>
-
             <!-- Search Bar -->
             <div class="listings-search-wrap">
                 <i class="fas fa-search search-icon"></i>
@@ -209,52 +288,91 @@ include '../templates/header.php';
             <div class="je-panel" style="overflow-x: hidden;">
                 <div class="je-panel-body" style="overflow-x: hidden;">
                     <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
-                    <table class="je-table" id="hardwareTable" style="min-width: 700px; width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Title</th>
-                                <th>Type</th>
-                                <th>Brand</th>
-                                <th>Capacity</th>
-                                <th>Price</th>
-                                <th>Warranty</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="hardwareBody">
-                            <?php $i = 1; foreach ($hardware as $item): ?>
-                            <tr>
-                                <td><?php echo $i++; ?></td>
-                                <td><strong><?php echo htmlspecialchars($item['title']); ?></strong></td>
-                                <td><span style="background: #F0F0F0; padding: 2px 8px; border-radius: 4px; font-size: 11px;"><?php echo str_replace('_', ' ', $item['service_type']); ?></span></td>
-                                <td><?php echo htmlspecialchars($item['brand']); ?></td>
-                                <td><?php echo $item['capacity_kw']; ?> kW</td>
-                                <td>₦<?php echo number_format($item['price']); ?></td>
-                                <td><?php echo $item['warranty_years']; ?> years</td>
-                                <td><span class="je-status is-active">Active</span></td>
-                                <td>
-                                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                                        <a href="edit-listing.php?id=<?php echo $item['id']; ?>&division=solar" 
-                                           class="action-btn action-btn-edit">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </a>
-                                        <a href="delete-listing.php?id=<?php echo $item['id']; ?>&division=solar&csrf_token=<?php echo Security::generateCSRFToken(); ?>" 
-                                           class="action-btn action-btn-delete" 
-                                           data-kinas-confirm="Delete this hardware item? This cannot be undone." data-kinas-title="Delete Hardware Item" data-kinas-warning="This is a permanent, irreversible action.">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                    <div class="search-no-results" id="hardwareNoResults">
-                        <i class="fas fa-search"></i>
-                        No hardware items match your search.
-                    </div>
+                        <table class="je-table" id="hardwareTable" style="min-width: 700px; width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Brand</th>
+                                    <th>Capacity</th>
+                                    <th>Price</th>
+                                    <th>Warranty</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hardwareBody">
+                                <?php $i = 1; foreach ($hardware as $item): ?>
+                                    <?php
+                                        $hardwareDisplayType = strtolower((string)(($item['hardware_type'] ?? '') ?: ($item['service_type'] ?? '')));
+                                        $capacityLabel = '—';
+
+                                        if ($hardwareDisplayType === 'solar_panel' && !empty($item['panel_watts'])) {
+                                            $capacityLabel = $formatCapacity($item['panel_watts']) . ' W';
+                                        } elseif ($hardwareDisplayType === 'power_station') {
+                                            $parts = [];
+
+                                            if (!empty($item['inverter_kva'])) {
+                                                $parts[] = $formatCapacity($item['inverter_kva']) . ' kW';
+                                            }
+
+                                            if (!empty($item['battery_kwh'])) {
+                                                $parts[] = $formatCapacity($item['battery_kwh']) . ' kWh';
+                                            }
+
+                                            $capacityLabel = !empty($parts) ? implode(' / ', $parts) : '—';
+                                        } elseif ($hardwareDisplayType === 'inverter' && !empty($item['inverter_kva'])) {
+                                            $capacityLabel = $formatCapacity($item['inverter_kva']) . ' kW';
+                                        } elseif ($hardwareDisplayType === 'battery' && !empty($item['battery_kwh'])) {
+                                            $capacityLabel = $formatCapacity($item['battery_kwh']) . ' kWh';
+                                        } elseif (!empty($item['capacity_kw'])) {
+                                            $capacityLabel = $formatCapacity($item['capacity_kw']) . ' kW';
+                                        }
+                                    ?>
+                                    <tr>
+                                        <td><?php echo $i++; ?></td>
+                                        <td><strong><?php echo htmlspecialchars($item['title']); ?></strong></td>
+                                        <td>
+                                            <span style="background: #F0F0F0; padding: 2px 8px; border-radius: 4px; font-size: 11px;">
+                                                <?php echo htmlspecialchars(str_replace('_', ' ', $hardwareDisplayType)); ?>
+                                            </span>
+                                        </td>
+                                        <td><?php echo htmlspecialchars((string)($item['brand'] ?? '')); ?></td>
+                                        <td><?php echo htmlspecialchars($capacityLabel); ?></td>
+                                        <td>₦<?php echo number_format((float)$item['price']); ?></td>
+                                        <td>
+                                            <?php echo !empty($item['warranty_years']) ? htmlspecialchars((string)$item['warranty_years']) . ' years' : '—'; ?>
+                                        </td>
+                                        <td>
+                                            <span class="je-status <?php echo ($item['status'] ?? '') === 'active' ? 'is-active' : 'is-inactive'; ?>">
+                                                <?php echo htmlspecialchars(ucfirst((string)($item['status'] ?? 'unknown'))); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                                <a href="edit-listing.php?id=<?php echo $item['id']; ?>&division=solar"
+                                                   class="action-btn action-btn-edit">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                <a href="delete-listing.php?id=<?php echo $item['id']; ?>&division=solar&csrf_token=<?php echo Security::generateCSRFToken(); ?>"
+                                                   class="action-btn action-btn-delete"
+                                                   data-kinas-confirm="Delete this hardware item? This cannot be undone."
+                                                   data-kinas-title="Delete Hardware Item"
+                                                   data-kinas-warning="This is a permanent, irreversible action.">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+
+                        <div class="search-no-results" id="hardwareNoResults">
+                            <i class="fas fa-search"></i>
+                            No hardware items match your search.
+                        </div>
                     </div>
                 </div>
             </div>
@@ -265,22 +383,29 @@ include '../templates/header.php';
                 var clear = document.getElementById('hardwareSearchClear');
                 var tbody = document.getElementById('hardwareBody');
                 var noRes = document.getElementById('hardwareNoResults');
+
                 if (!input || !tbody) return;
 
                 function filterHardware() {
                     var q = input.value.trim().toLowerCase();
                     var rows = tbody.querySelectorAll('tr');
                     var visible = 0;
+
                     rows.forEach(function(row) {
                         var match = !q || row.textContent.toLowerCase().indexOf(q) !== -1;
                         row.style.display = match ? '' : 'none';
                         if (match) visible++;
                     });
+
                     clear.style.display = q ? 'block' : 'none';
-                    if (noRes) noRes.style.display = (visible === 0 && q) ? 'block' : 'none';
+
+                    if (noRes) {
+                        noRes.style.display = (visible === 0 && q) ? 'block' : 'none';
+                    }
                 }
 
                 input.addEventListener('input', filterHardware);
+
                 clear.addEventListener('click', function() {
                     input.value = '';
                     filterHardware();
@@ -288,7 +413,6 @@ include '../templates/header.php';
                 });
             })();
             </script>
-
         <?php endif; ?>
     </main>
 </div>
