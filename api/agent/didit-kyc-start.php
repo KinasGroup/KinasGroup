@@ -1,18 +1,22 @@
 <?php
 /**
-* KINAS GROUP — Start a Didit KYC (personal identity) verification.
-*
-* POST /api/agent/didit-kyc-start.php
-*   Body: { csrf_token }
-*   Returns: { success, sessionId, url }
-*
-* AMENDED FOR KYC NAME-MATCH ENFORCEMENT:
-* - Blocks KYC start if the account has no usable registered name.
-* - Captures the registered account name as expected_name.
-* - Sends expected_name in Didit metadata for audit/correlation.
-* - Resets name-match/rejection state when a fresh KYC attempt starts.
-* - Keeps existing idempotent session behaviour.
-*/
+ * KINAS GROUP — Start a Didit KYC (personal identity) verification.
+ *
+ * POST /api/agent/didit-kyc-start.php
+ *   Body: { csrf_token }
+ *   Returns: { success, sessionId, url }
+ *
+ * OPTION 1 KYC NAME RULE:
+ * - Registered account name is required before KYC can start.
+ * - Expected registered name is stored for audit/comparison.
+ * - A fresh KYC attempt resets previous name-match/rejection state.
+ *
+ * AMENDED:
+ * - Fixes the duplicate-session bug where ON DUPLICATE KEY UPDATE did not
+ *   update session_id, session_number, workflow_id, or status.
+ * - Resets Didit verification row fields for the new attempt.
+ * - Resets agent_profiles KYC attempt fields for the new attempt.
+ */
 
 header('Content-Type: application/json');
 
@@ -52,7 +56,6 @@ function didit_kyc_start_table_exists(PDO $db, string $table): bool
             WHERE table_schema = DATABASE()
               AND table_name = ?
         ");
-
         $stmt->execute([$table]);
 
         return ((int)$stmt->fetchColumn()) > 0;
@@ -74,7 +77,6 @@ function didit_kyc_start_column_exists(PDO $db, string $table, string $column): 
               AND table_name = ?
               AND column_name = ?
         ");
-
         $stmt->execute([$table, $column]);
 
         return ((int)$stmt->fetchColumn()) > 0;
@@ -89,7 +91,9 @@ try {
 
     if (!$didit->isKycEnabled()) {
         http_response_code(503);
-        echo json_encode(['error' => 'Identity verification is temporarily unavailable. Please contact support@kinas-group.com if this persists.']);
+        echo json_encode([
+            'error' => 'Identity verification is temporarily unavailable. Please contact support@kinas-group.com if this persists.',
+        ]);
         exit;
     }
 
@@ -102,14 +106,21 @@ try {
     // ------------------------------------------------------------
     // Current verification state
     // ------------------------------------------------------------
-    $stmt = $db->prepare("SELECT verification_status FROM agent_profiles WHERE user_id = ?");
-    $stmt->execute([$userId]);
 
+    $stmt = $db->prepare("
+        SELECT verification_status
+        FROM agent_profiles
+        WHERE user_id = ?
+    ");
+    $stmt->execute([$userId]);
     $profileStatus = (string)($stmt->fetchColumn() ?: '');
 
-    // Do not allow KYC to restart if identity has already been confirmed.
-    // - approved   = fully approved individual
-    // - kyc_passed = identity confirmed for a business account, awaiting KYB
+    /*
+     * Do not allow KYC to restart if identity has already been confirmed.
+     *
+     * - approved   = fully approved individual
+     * - kyc_passed = identity confirmed for a business account, awaiting KYB
+     */
     if (in_array($profileStatus, ['approved', 'kyc_passed'], true)) {
         http_response_code(409);
         echo json_encode(['error' => 'You are already verified.']);
@@ -123,7 +134,12 @@ try {
     // KYC must be compared against this name. If it is missing, KYC
     // must not be allowed to start.
     // ------------------------------------------------------------
-    $userRow = $db->prepare("SELECT email, name, phone FROM users WHERE id = ?");
+
+    $userRow = $db->prepare("
+        SELECT email, name, phone
+        FROM users
+        WHERE id = ?
+    ");
     $userRow->execute([$userId]);
     $u = $userRow->fetch(PDO::FETCH_ASSOC) ?: [];
 
@@ -154,16 +170,17 @@ try {
     // ------------------------------------------------------------
     // Create Didit session
     // ------------------------------------------------------------
+
     $contactDetails = array_filter([
         'email' => $u['email'] ?? '',
         'phone' => $u['phone'] ?? '',
     ]);
 
     $metadata = [
-        'user_id'          => $userId,
-        'platform'         => 'kinas-group',
-        'expected_name'    => $registeredName,
-        'kyc_name_source'  => 'users.name',
+        'user_id'         => $userId,
+        'platform'        => 'kinas-group',
+        'expected_name'   => $registeredName,
+        'kyc_name_source' => 'users.name',
     ];
 
     $result = $didit->createSession(
@@ -196,7 +213,15 @@ try {
 
     // ------------------------------------------------------------
     // Store Didit session and expected registered name
+    //
+    // IMPORTANT FIX:
+    // vendor_data is unique per user per session type: "kyc:{userId}".
+    //
+    // If the agent restarts KYC, the old row must be updated with the
+    // NEW session_id. The previous code only updated didit_status,
+    // which could leave the database pointing at an old Didit session.
     // ------------------------------------------------------------
+
     $hasExpectedNameColumn = didit_kyc_start_column_exists($db, 'didit_verifications', 'expected_name');
 
     $fields = [
@@ -229,12 +254,33 @@ try {
     $placeholders = implode(', ', array_fill(0, count($fields), '?'));
 
     $duplicateUpdates = [
+        'session_id = VALUES(session_id)',
+        'session_number = VALUES(session_number)',
+        'workflow_id = VALUES(workflow_id)',
+        'status = VALUES(status)',
         'didit_status = VALUES(didit_status)',
         'updated_at = NOW()',
     ];
 
     if ($hasExpectedNameColumn) {
         $duplicateUpdates[] = 'expected_name = VALUES(expected_name)';
+    }
+
+    /*
+     * Reset old attempt data where the columns exist.
+     */
+    $resetColumns = [
+        'last_event_id',
+        'completed_at',
+        'decision_payload',
+        'name_match',
+        'document_name',
+    ];
+
+    foreach ($resetColumns as $resetColumn) {
+        if (didit_kyc_start_column_exists($db, 'didit_verifications', $resetColumn)) {
+            $duplicateUpdates[] = $resetColumn . ' = NULL';
+        }
     }
 
     $sql = "
@@ -249,8 +295,9 @@ try {
     $db->prepare($sql)->execute($values);
 
     // ------------------------------------------------------------
-    // Update agent profile state
+    // Update agent profile state for the fresh KYC attempt
     // ------------------------------------------------------------
+
     $profileSets = [
         "verification_status = 'in_progress'",
     ];
@@ -267,7 +314,11 @@ try {
     }
 
     if (didit_kyc_start_column_exists($db, 'agent_profiles', 'kyc_submitted_at')) {
-        $profileSets[] = 'kyc_submitted_at = COALESCE(kyc_submitted_at, NOW())';
+        $profileSets[] = 'kyc_submitted_at = NOW()';
+    }
+
+    if (didit_kyc_start_column_exists($db, 'agent_profiles', 'kyc_decision_at')) {
+        $profileSets[] = 'kyc_decision_at = NULL';
     }
 
     $profileParams[] = $userId;
@@ -278,19 +329,32 @@ try {
         WHERE user_id = ?
     ")->execute($profileParams);
 
-    // Reset name-match enforcement fields for the fresh attempt.
+    // ------------------------------------------------------------
+    // Reset name-match enforcement fields for the fresh attempt
+    // ------------------------------------------------------------
+
+    $resetSets = [];
+
     if (didit_kyc_start_column_exists($db, 'agent_profiles', 'kyc_name_match')) {
-        $db->prepare("
-            UPDATE agent_profiles
-            SET kyc_name_match = 'not_checked'
-            WHERE user_id = ?
-        ")->execute([$userId]);
+        $resetSets[] = "kyc_name_match = 'not_checked'";
+    }
+
+    if (didit_kyc_start_column_exists($db, 'agent_profiles', 'kyc_name_mismatch')) {
+        $resetSets[] = 'kyc_name_mismatch = 0';
     }
 
     if (didit_kyc_start_column_exists($db, 'agent_profiles', 'kyc_rejection_reason')) {
+        $resetSets[] = 'kyc_rejection_reason = NULL';
+    }
+
+    if (didit_kyc_start_column_exists($db, 'agent_profiles', 'kyc_document_name')) {
+        $resetSets[] = 'kyc_document_name = NULL';
+    }
+
+    if (!empty($resetSets)) {
         $db->prepare("
             UPDATE agent_profiles
-            SET kyc_rejection_reason = NULL
+            SET " . implode(', ', $resetSets) . "
             WHERE user_id = ?
         ")->execute([$userId]);
     }
@@ -306,7 +370,6 @@ try {
         'sessionId' => $sessionId,
         'url'       => $result['url'],
     ]);
-
 } catch (Exception $e) {
     error_log('didit-kyc-start error: ' . $e->getMessage());
 
