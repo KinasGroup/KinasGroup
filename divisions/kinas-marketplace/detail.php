@@ -1,15 +1,21 @@
 <?php
 /**
+ * KINAS BUILD: 2026.08.15.09
+ * FILE: divisions/kinas-marketplace/detail.php
+ *
  * KINAS MARKETPLACE — Item detail
  *
- * COMPLETE AMENDED FILE
+ * RESTORED:
+ * - Contact Seller button.
+ * - Contact Seller inquiry modal.
  *
- * Amendments included:
- * - Product reviews remain available for sold/completed items.
- * - Related products use the dynamic weighted engine where available.
- * - Contact Seller / Inquiry button added.
- * - Contact Agent modal included.
- * - Agents can now inquire through the listing inquiry flow.
+ * KEEPS:
+ * - Buy Now.
+ * - Add to Cart.
+ * - Save.
+ * - Product reviews.
+ * - Dynamic related products.
+ * - Sold/completed public visibility for reviews.
  */
 
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -19,11 +25,10 @@ header('Expires: 0');
 require_once '../../includes/session.php';
 require_once '../../includes/functions.php';
 require_once '../../includes/helpers.php';
-require_once '../../includes/security.php';
 require_once '../../api/config/database.php';
 require_once '../../includes/je-components.php';
 
-// Related products engine
+// Related products engine.
 $kinasRelatedProductsEngine = __DIR__ . '/../../includes/related-products.php';
 if (file_exists($kinasRelatedProductsEngine)) {
     require_once $kinasRelatedProductsEngine;
@@ -72,7 +77,11 @@ $isPreview = !$isPublicStatus;
 
 // Only increment views for active listings.
 if (!$isPreview && ($item['status'] ?? '') === 'active') {
-    $db->prepare("UPDATE marketplace_listings SET views = views + 1 WHERE id = ?")->execute([$id]);
+    try {
+        $db->prepare("UPDATE marketplace_listings SET views = views + 1 WHERE id = ?")->execute([$id]);
+    } catch (Throwable $e) {
+        // Views column may not exist.
+    }
 }
 
 $images = $db->prepare("
@@ -86,7 +95,7 @@ $images->execute([$id]);
 $images = $images->fetchAll();
 
 // ============================================================
-// RELATED PRODUCTS — DYNAMIC WEIGHTED ENGINE
+// RELATED PRODUCTS
 // ============================================================
 $similar = [];
 
@@ -124,6 +133,7 @@ if (function_exists('kinas_get_related_marketplace_items')) {
 }
 
 $pageTitle = ($item['title'] ?? 'Item') . ' - KINAS Marketplace';
+
 $pageDescription = !empty($item['description'])
     ? substr(strip_tags($item['description']), 0, 160)
     : 'Shop ' . ($item['title'] ?? 'this item') . ' on KINAS Marketplace.';
@@ -136,14 +146,23 @@ $division = 'marketplace';
 
 include '../../templates/header.php';
 
-$locParts = array_filter([$item['city'] ?? null, $item['state'] ?? null, $item['country'] ?? null]);
+$locParts = array_filter([
+    $item['city'] ?? null,
+    $item['state'] ?? null,
+    $item['country'] ?? null,
+]);
+
 $location = implode(', ', $locParts);
 
 $listingId = (int)$item['id'];
 $agentId = (int)$item['agent_id'];
+
 $agentNameRaw = $item['agent_name'] ?? 'Seller';
+$listingTitleRaw = $item['title'] ?? 'Item';
+
 $agentName = htmlspecialchars($agentNameRaw, ENT_QUOTES, 'UTF-8');
-$listingTitle = htmlspecialchars($item['title'] ?? 'Item', ENT_QUOTES, 'UTF-8');
+$listingTitle = htmlspecialchars($listingTitleRaw, ENT_QUOTES, 'UTF-8');
+
 $agentVerified = !empty($item['agent_verified']);
 
 $alreadyInCart = false;
@@ -170,7 +189,8 @@ if (SessionManager::isLoggedIn()) {
 
         <?php if ($isPreview): ?>
             <div style="background:#FFF8E1; border:1px solid #F0C419; color:#7A5B00; padding:14px 18px; border-radius:4px; margin-bottom:20px; font-size:14px;">
-                <i class="fas fa-eye"></i> <strong>Preview only</strong> — this listing is <?= htmlspecialchars(ucfirst($item['status'])) ?> and not visible to the public yet. Only you and admins can see this page.
+                <i class="fas fa-eye"></i>
+                <strong>Preview only</strong> — this listing is <?= htmlspecialchars(ucfirst((string)($item['status'] ?? ''))) ?> and not visible to the public yet.
             </div>
         <?php endif; ?>
 
@@ -188,10 +208,14 @@ if (SessionManager::isLoggedIn()) {
             <a href="/divisions/kinas-marketplace/">KINAS MARKETPLACE</a>
             <span class="je-breadcrumb-sep">/</span>
             <a href="/divisions/kinas-marketplace/search.php">Search</a>
+
             <?php if (!empty($item['category_slug'])): ?>
                 <span class="je-breadcrumb-sep">/</span>
-                <a href="/divisions/kinas-marketplace/search.php?category=<?= (int)$item['category_id'] ?>"><?= htmlspecialchars($item['category_name']) ?></a>
+                <a href="/divisions/kinas-marketplace/search.php?category=<?= (int)$item['category_id'] ?>">
+                    <?= htmlspecialchars($item['category_name']) ?>
+                </a>
             <?php endif; ?>
+
             <span class="je-breadcrumb-sep">/</span>
             <span><?= htmlspecialchars($item['title'] ?? '') ?></span>
         </div>
@@ -204,7 +228,10 @@ if (SessionManager::isLoggedIn()) {
                     </div>
                 <?php else: ?>
                     <div class="je-gallery-main">
-                        <img id="jeMainImage" src="<?= htmlspecialchars($images[0]['url']) ?>" alt="" onerror="this.onerror=null; this.src='/assets/images/placeholder/product-placeholder.svg';">
+                        <img id="jeMainImage"
+                             src="<?= htmlspecialchars($images[0]['url']) ?>"
+                             alt="<?= htmlspecialchars($item['title'] ?? 'Item') ?>"
+                             onerror="this.onerror=null; this.src='/assets/images/placeholder/product-placeholder.svg';">
                     </div>
 
                     <?php if (count($images) > 1): ?>
@@ -214,7 +241,9 @@ if (SessionManager::isLoggedIn()) {
                                      onclick="document.getElementById('jeMainImage').src='<?= htmlspecialchars($img['url']) ?>';
                                               document.querySelectorAll('.je-gallery-thumb').forEach(t=>t.classList.remove('is-active'));
                                               this.classList.add('is-active');">
-                                    <img src="<?= htmlspecialchars($img['url']) ?>" alt="" onerror="this.onerror=null; this.src='/assets/images/placeholder/product-placeholder.svg';">
+                                    <img src="<?= htmlspecialchars($img['url']) ?>"
+                                         alt="thumb <?= $idx + 1 ?>"
+                                         onerror="this.onerror=null; this.src='/assets/images/placeholder/product-placeholder.svg';">
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -224,15 +253,27 @@ if (SessionManager::isLoggedIn()) {
 
             <aside class="je-spec-panel">
                 <div class="je-spec-eyebrow"><?= htmlspecialchars($item['category_name'] ?? 'Curated') ?></div>
+
                 <h1 class="je-spec-title"><?= htmlspecialchars($item['title'] ?? '') ?></h1>
 
                 <?php if ($location): ?>
                     <div style="font-size:13px;color:#888;margin-bottom:8px;">
-                        <i class="fas fa-map-marker-alt" style="color:#C6A43F"></i> <?= htmlspecialchars($location) ?>
+                        <i class="fas fa-map-marker-alt" style="color:#C6A43F"></i>
+                        <?= htmlspecialchars($location) ?>
                     </div>
                 <?php endif; ?>
 
-                <div class="je-spec-price"><?= formatPrice(marketplaceBuyerPrice((float)$item['price'])) ?></div>
+                <div class="je-spec-price">
+                    <?php
+                    if (function_exists('marketplaceBuyerPrice') && function_exists('formatPrice')) {
+                        echo formatPrice(marketplaceBuyerPrice((float)$item['price']));
+                    } elseif (function_exists('formatPrice')) {
+                        echo formatPrice((float)$item['price']);
+                    } else {
+                        echo '₦' . number_format((float)$item['price']);
+                    }
+                    ?>
+                </div>
 
                 <dl class="je-spec-key">
                     <?php
@@ -245,28 +286,31 @@ if (SessionManager::isLoggedIn()) {
                     foreach ($keys as $label => $val):
                         if (!$val) continue;
                     ?>
-                        <div><dt><?= htmlspecialchars($label) ?></dt><dd><?= htmlspecialchars(ucfirst($val)) ?></dd></div>
+                        <div>
+                            <dt><?= htmlspecialchars($label) ?></dt>
+                            <dd><?= htmlspecialchars(ucfirst($val)) ?></dd>
+                        </div>
                     <?php endforeach; ?>
                 </dl>
 
                 <!-- ============================================================ -->
-                <!-- BUTTONS - Cart & Checkout & Contact -->
+                <!-- BUTTONS -->
                 <!-- ============================================================ -->
-                <?php if ($isPreview || $item['status'] === 'sold'): ?>
+                <?php if ($isPreview || ($item['status'] ?? '') !== 'active'): ?>
                     <div class="je-cta-row">
                         <button class="je-cta-secondary" disabled style="opacity:.55;cursor:not-allowed;">
-                            <i class="fas fa-lock"></i> <?= $item['status'] === 'sold' ? 'Sold' : 'Not yet available' ?>
+                            <i class="fas fa-lock"></i>
+                            <?= ($item['status'] ?? '') === 'sold' ? 'Sold' : htmlspecialchars(ucfirst((string)($item['status'] ?? 'Unavailable'))) ?>
                         </button>
                     </div>
                 <?php else: ?>
                     <div class="je-cta-row">
-                        <!-- Buy Now -->
                         <button class="je-cta-primary" id="buyNowBtn" onclick="jeBuyNow(<?= $listingId ?>);">
                             <i class="fas fa-bolt"></i> Buy Now
                         </button>
 
-                        <!-- Add to Cart -->
-                        <button class="je-cta-secondary" id="addToCartBtn"
+                        <button class="je-cta-secondary"
+                                id="addToCartBtn"
                                 data-in-cart="<?= $alreadyInCart ? '1' : '0' ?>"
                                 onclick="jeAddToCart(<?= $listingId ?>);"
                                 <?= $alreadyInCart ? 'disabled' : '' ?>>
@@ -277,23 +321,12 @@ if (SessionManager::isLoggedIn()) {
                             <?php endif; ?>
                         </button>
 
-                        <!-- Save Listing -->
                         <button class="je-cta-secondary" id="saveBtn" onclick="jeSaveListing('marketplace', <?= $listingId ?>);">
                             <i class="far fa-heart"></i> Save
                         </button>
 
-                        <!-- Contact Seller / Inquiry -->
-                        <button class="je-cta-secondary"
-                                id="contactAgentBtn"
-                                onclick="openContactAgentModal(
-                                    <?= $listingId ?>,
-                                    'marketplace',
-                                    <?= $agentId ?>,
-                                    <?= htmlspecialchars(json_encode($agentNameRaw), ENT_QUOTES, 'UTF-8') ?>,
-                                    <?= $agentVerified ? 'true' : 'false' ?>,
-                                    'Marketplace'
-                                );">
-                            <i class="fas fa-envelope"></i> Contact Seller
+                        <button class="je-cta-secondary" id="contactSellerBtn" onclick="openMarketplaceContactModal();">
+                            <i class="far fa-envelope"></i> Contact Seller
                         </button>
                     </div>
                 <?php endif; ?>
@@ -303,15 +336,15 @@ if (SessionManager::isLoggedIn()) {
                         <?php if (!empty($item['agent_avatar'])): ?>
                             <img src="<?= htmlspecialchars($item['agent_avatar']) ?>" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
                         <?php else: ?>
-                            <?= strtoupper(substr($item['agent_name'] ?? 'A', 0, 1)) ?>
+                            <?= strtoupper(substr($agentNameRaw, 0, 1)) ?>
                         <?php endif; ?>
                     </div>
 
                     <div class="je-agent-info">
-                        <div class="je-agent-name"><?= htmlspecialchars($item['agent_name'] ?? 'Seller') ?></div>
+                        <div class="je-agent-name"><?= $agentName ?></div>
                         <div class="je-agent-meta">
                             <?= htmlspecialchars($item['agent_company'] ?? 'Verified Seller') ?>
-                            <?php if (!empty($item['agent_verified'])): ?>
+                            <?php if ($agentVerified): ?>
                                 · <span style="color:#1B5E20;font-weight:600;">✓ Verified</span>
                             <?php endif; ?>
                         </div>
@@ -322,6 +355,7 @@ if (SessionManager::isLoggedIn()) {
 
         <section class="je-section" style="padding-left:0;padding-right:0;border-top:1px solid #e8e8e8; margin-top:40px;">
             <h2>About this item</h2>
+
             <?php if (!empty($item['description'])): ?>
                 <p><?= nl2br(htmlspecialchars($item['description'])) ?></p>
             <?php else: ?>
@@ -329,10 +363,10 @@ if (SessionManager::isLoggedIn()) {
             <?php endif; ?>
         </section>
 
-        <!-- ── Similar listings ── -->
         <?php if (!empty($similar)): ?>
             <section class="je-section" style="padding-left:0;padding-right:0;border-top:1px solid #e8e8e8;">
                 <h2>You may also like</h2>
+
                 <?php
                 $simCards = array_map(function ($s) {
                     return [
@@ -355,7 +389,7 @@ if (SessionManager::isLoggedIn()) {
         <?php endif; ?>
 
         <!-- ============================================================ -->
-        <!-- KINAS PRODUCT REVIEWS -->
+        <!-- PRODUCT REVIEWS -->
         <!-- ============================================================ -->
         <?php if (!$isPreview): ?>
             <?php
@@ -374,10 +408,37 @@ if (SessionManager::isLoggedIn()) {
     </div>
 </div>
 
-<!-- ============================================================ -->
-<!-- ALL JAVASCRIPT -->
-<!-- ============================================================ -->
 <script>
+// ============================================================
+// SAFE PAGE CONSTANTS
+// ============================================================
+window.__kinasAgentName = <?= json_encode($agentNameRaw, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+window.__kinasListingTitle = <?= json_encode($listingTitleRaw, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+window.__kinasAgentVerified = <?= $agentVerified ? 'true' : 'false' ?>;
+
+function marketplaceEscapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = String(value ?? '');
+    return div.innerHTML;
+}
+
+function marketplaceNotify(message, isError) {
+    if (typeof window.showSuccessBanner === 'function') {
+        window.showSuccessBanner(message, !!isError);
+        return;
+    }
+
+    if (typeof kinasToast === 'function') {
+        kinasToast(message, isError ? 'error' : 'success');
+        return;
+    }
+
+    alert(message);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
 function isUserLoggedIn() {
     const meta = document.querySelector('meta[name="user-data"]');
 
@@ -394,17 +455,16 @@ function isUserLoggedIn() {
 }
 
 function showLoginRequired() {
-    if (typeof window.showSuccessBanner === 'function') {
-        window.showSuccessBanner('Please sign in to continue — redirecting you to login…', true);
-    } else if (typeof kinasToast === 'function') {
-        kinasToast('Please sign in to continue — redirecting you to login…', 'warning');
-    }
+    marketplaceNotify('Please sign in to continue — redirecting you to login…', true);
 
     setTimeout(function() {
         window.location.href = '/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
     }, 1500);
 }
 
+// ============================================================
+// ADD TO CART
+// ============================================================
 function jeAddToCart(listingId) {
     if (!isUserLoggedIn()) {
         showLoginRequired();
@@ -437,14 +497,14 @@ function jeAddToCart(listingId) {
             }
 
             updateCartBadge(data.cart_count);
-            showSuccessBanner('✅ Added to cart! <a href="/divisions/kinas-marketplace/cart.php" style="color:#155724;font-weight:700;text-decoration:underline;margin-left:6px;">View cart</a>', false);
+            marketplaceNotify('✅ Added to cart! <a href="/divisions/kinas-marketplace/cart.php" style="color:#155724;font-weight:700;text-decoration:underline;margin-left:6px;">View cart</a>', false);
         } else {
             if (btn) {
                 btn.innerHTML = original;
                 btn.disabled = false;
             }
 
-            showSuccessBanner('❌ ' + (data.error || 'Failed to add to cart'), true);
+            marketplaceNotify('❌ ' + (data.error || 'Failed to add to cart'), true);
         }
     })
     .catch(function() {
@@ -453,7 +513,7 @@ function jeAddToCart(listingId) {
             btn.disabled = false;
         }
 
-        showSuccessBanner('❌ Network error. Please try again.', true);
+        marketplaceNotify('❌ Network error. Please try again.', true);
     });
 }
 
@@ -480,6 +540,9 @@ function updateCartBadge(count) {
     }
 }
 
+// ============================================================
+// BUY NOW
+// ============================================================
 function jeBuyNow(listingId) {
     if (!isUserLoggedIn()) {
         showLoginRequired();
@@ -489,6 +552,9 @@ function jeBuyNow(listingId) {
     window.location.href = '/divisions/kinas-marketplace/checkout.php?buy_now=' + encodeURIComponent(listingId);
 }
 
+// ============================================================
+// SAVE LISTING
+// ============================================================
 function jeSaveListing(type, id) {
     if (!isUserLoggedIn()) {
         showLoginRequired();
@@ -523,7 +589,7 @@ function jeSaveListing(type, id) {
                     btn.style.border = '1px solid #28a745';
                 }
 
-                showSuccessBanner('✅ Added to favorites!', false);
+                marketplaceNotify('✅ Added to favorites!', false);
             } else {
                 if (btn) {
                     btn.innerHTML = '<i class="far fa-heart"></i> Save';
@@ -532,7 +598,7 @@ function jeSaveListing(type, id) {
                     btn.style.border = '';
                 }
 
-                showSuccessBanner('Removed from favorites', false);
+                marketplaceNotify('Removed from favorites', false);
             }
         } else {
             if (btn) {
@@ -542,10 +608,10 @@ function jeSaveListing(type, id) {
                 btn.style.border = '';
             }
 
-            showSuccessBanner('❌ ' + (data.error || 'Failed to update favorites'), true);
+            marketplaceNotify('❌ ' + (data.error || 'Failed to update favorites'), true);
         }
     })
-    .catch(function(error) {
+    .catch(function() {
         if (btn) {
             btn.innerHTML = originalHTML;
             btn.style.backgroundColor = '';
@@ -553,13 +619,151 @@ function jeSaveListing(type, id) {
             btn.style.border = '';
         }
 
-        showSuccessBanner('❌ Network error. Please try again.', true);
+        marketplaceNotify('❌ Network error. Please try again.', true);
     })
     .finally(function() {
         if (btn) btn.disabled = false;
     });
 }
 
+// ============================================================
+// CONTACT SELLER MODAL
+// ============================================================
+function openMarketplaceContactModal() {
+    const old = document.getElementById('marketplace-contact-modal');
+    if (old) old.remove();
+
+    const verifiedBadge = window.__kinasAgentVerified
+        ? '<span style="color:#1B5E20;">✓ Verified</span>'
+        : '';
+
+    const html = `
+    <div id="marketplace-contact-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999998;display:flex;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:12px;padding:30px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="margin:0;font-size:20px;">✉️ Contact Seller</h3>
+                <button onclick="document.getElementById('marketplace-contact-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
+            </div>
+
+            <div style="padding:12px;background:#f5f5f5;border-radius:8px;margin-bottom:20px;">
+                <strong>${marketplaceEscapeHtml(window.__kinasAgentName)}</strong> ${verifiedBadge} · Marketplace
+            </div>
+
+            <form id="marketplaceContactForm">
+                <input type="hidden" name="listing_id" value="<?= $listingId ?>">
+                <input type="hidden" name="listing_type" value="marketplace">
+                <input type="hidden" name="agent_id" value="<?= $agentId ?>">
+
+                <input type="text" name="website" value="" style="display:none !important;" tabindex="-1" autocomplete="off">
+
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Name *</label>
+                    <input type="text" name="name" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                </div>
+
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Email *</label>
+                    <input type="email" name="email" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                </div>
+
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Your Phone</label>
+                    <input type="tel" name="phone" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                </div>
+
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Subject</label>
+                    <input type="text" name="subject" value="Inquiry about marketplace item" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">Message *</label>
+                    <textarea name="message" rows="5" required placeholder="Hi, I'm interested in this item..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;resize:vertical;"></textarea>
+                </div>
+
+                <button type="submit" style="width:100%;padding:12px;background:#0A0A0A;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;">
+                    <i class="fas fa-paper-plane"></i> Send Inquiry
+                </button>
+
+                <div id="marketplaceContactMsg" style="margin-top:12px;padding:10px;border-radius:6px;display:none;"></div>
+            </form>
+        </div>
+    </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    const modal = document.getElementById('marketplace-contact-modal');
+
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+
+    const meta = document.querySelector('meta[name="user-data"]');
+    if (meta) {
+        try {
+            const data = JSON.parse(meta.content);
+            const form = document.getElementById('marketplaceContactForm');
+
+            if (form) {
+                form.querySelector('input[name="name"]').value = data.name || '';
+                form.querySelector('input[name="email"]').value = data.email || '';
+                form.querySelector('input[name="phone"]').value = data.phone || '';
+            }
+        } catch (e) {}
+    }
+
+    document.getElementById('marketplaceContactForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const btn = this.querySelector('button[type="submit"]');
+        const msg = document.getElementById('marketplaceContactMsg');
+        const original = btn.innerHTML;
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        btn.disabled = true;
+        msg.style.display = 'none';
+
+        const formData = new FormData(this);
+
+        try {
+            const res = await fetch('/api/messages/send-inquiry.php', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                const modal = document.getElementById('marketplace-contact-modal');
+                if (modal) modal.remove();
+
+                marketplaceNotify('✅ Inquiry sent successfully! The seller will contact you shortly.', false);
+            } else {
+                msg.style.display = 'block';
+                msg.style.background = '#f8d7da';
+                msg.style.color = '#721c24';
+                msg.textContent = data.error || 'Failed to send. Please try again.';
+                btn.innerHTML = original;
+                btn.disabled = false;
+            }
+        } catch (error) {
+            msg.style.display = 'block';
+            msg.style.background = '#f8d7da';
+            msg.style.color = '#721c24';
+            msg.textContent = 'Network error. Please try again.';
+            btn.innerHTML = original;
+            btn.disabled = false;
+        }
+    });
+}
+
+// ============================================================
+// CHECK FAVORITE STATE ON LOAD
+// ============================================================
 document.addEventListener('DOMContentLoaded', function() {
     const btn = document.getElementById('saveBtn');
     if (!btn) return;
@@ -589,5 +793,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include '../../templates/modal/contact-agent-modal.php'; ?>
 <?php include '../../templates/footer.php'; ?>
