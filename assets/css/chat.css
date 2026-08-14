@@ -1,4 +1,25 @@
-/* KINAS GROUP — Messenger UI */
+/* ============================================================
+   KINAS BUILD: 2026.08.15.05
+   FILE: assets/css/chat.css
+
+   Rebuilt messenger UI.
+
+   Includes:
+   - + attachment menu styling
+   - pending upload styling
+   - circular upload progress ring
+   - formal inquiry header
+   - document/video/audio media cards
+   - download buttons
+   - lightbox download toolbar
+   - unread conversation styling
+   - responsive messenger layout
+
+   Cache-busting note:
+   This file contains a build stamp for identification only.
+   The actual cache buster must be applied in user/messages.php
+   and agent/messages.php using ?v=... on the stylesheet URL.
+   ============================================================ */
 
 .chat-app {
     display: flex;
@@ -433,6 +454,99 @@
     white-space: pre-wrap;
 }
 
+/* ============================================================
+   Formal inquiry header
+   ============================================================ */
+
+.chat-inquiry-card {
+    border: 1px solid #E6E8EB;
+    border-left: 4px solid #C6A43F;
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.chat-inquiry-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #EDEFF2;
+    margin-bottom: 8px;
+}
+
+.chat-inquiry-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #0A0A0A;
+    text-transform: uppercase;
+    letter-spacing: 0.35px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.chat-inquiry-title i {
+    color: #C6A43F;
+}
+
+.chat-inquiry-time {
+    font-size: 11px;
+    color: #5f6368;
+    white-space: nowrap;
+}
+
+.chat-inquiry-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.chat-inquiry-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.chat-inquiry-label {
+    min-width: 110px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #5f6368;
+    text-transform: uppercase;
+    letter-spacing: 0.35px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chat-inquiry-label i {
+    color: #C6A43F;
+    width: 14px;
+    text-align: center;
+}
+
+.chat-inquiry-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1a1a2e;
+    text-align: right;
+    word-break: break-word;
+}
+
+.chat-inquiry-value a {
+    color: #1a73e8;
+    text-decoration: none;
+}
+
+.chat-inquiry-value a:hover {
+    text-decoration: underline;
+}
+
 .chat-viewing-badge {
     display: inline-block;
     font-size: 11px;
@@ -455,6 +569,10 @@
     color: #5f6368;
     margin-bottom: 4px;
 }
+
+/* ============================================================
+   Media messages
+   ============================================================ */
 
 .chat-msg-images {
     display: grid;
@@ -489,7 +607,46 @@
     margin: 6px 0 4px 0;
 }
 
-.chat-file-card {
+.chat-video-wrap {
+    margin: 6px 0 4px 0;
+}
+
+.chat-audio-wrap {
+    margin: 6px 0 4px 0;
+    min-width: 220px;
+}
+
+.chat-audio-wrap audio {
+    width: 100%;
+    max-width: 260px;
+    display: block;
+}
+
+.chat-media-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+
+.chat-media-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #C6A43F;
+    text-decoration: none;
+    border: 1px solid rgba(198, 164, 63, 0.35);
+    background: rgba(198, 164, 63, 0.08);
+    padding: 5px 10px;
+    border-radius: 999px;
+}
+
+.chat-media-download:hover {
+    background: rgba(198, 164, 63, 0.16);
+}
+
+.chat-document-card {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -497,9 +654,7 @@
     border-radius: 10px;
     background: #fff;
     border: 1px solid #e8eaed;
-    text-decoration: none;
-    color: inherit;
-    max-width: 260px;
+    max-width: 300px;
     margin: 6px 0 4px 0;
 }
 
@@ -515,6 +670,11 @@
     flex-shrink: 0;
 }
 
+.chat-file-text {
+    min-width: 0;
+    flex: 1;
+}
+
 .chat-file-name {
     font-size: 12px;
     font-weight: 600;
@@ -528,55 +688,31 @@
     color: #5f6368;
 }
 
-.chat-voice {
+.chat-file-actions {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 200px;
-    max-width: 260px;
-    margin: 4px 0 2px 0;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
 }
 
-.chat-voice-play {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    border: none;
-    background: #C6A43F;
-    color: #0A0A0A;
-    font-size: 13px;
-    cursor: pointer;
-    flex-shrink: 0;
-    display: flex;
+.chat-file-action {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-}
-
-.chat-voice-bars {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    height: 26px;
-    overflow: hidden;
-}
-
-.chat-voice-bars span {
-    width: 3px;
-    border-radius: 2px;
-    background: #9aa0a6;
-}
-
-.chat-voice-bars span.played {
-    background: #C6A43F;
-}
-
-.chat-voice-time {
+    gap: 6px;
     font-size: 11px;
-    color: #5f6368;
-    flex-shrink: 0;
-    min-width: 32px;
-    text-align: right;
+    font-weight: 700;
+    color: #0A0A0A;
+    text-decoration: none;
+    border: 1px solid #e8eaed;
+    background: #fff;
+    padding: 5px 10px;
+    border-radius: 999px;
+}
+
+.chat-file-action:hover {
+    border-color: #C6A43F;
+    color: #C6A43F;
 }
 
 .chat-msg-meta {
@@ -629,6 +765,10 @@
     max-width: 300px;
 }
 
+/* ============================================================
+   Composer + attachment menu
+   ============================================================ */
+
 .chat-composer {
     display: flex;
     align-items: flex-end;
@@ -640,8 +780,7 @@
     position: relative;
 }
 
-.chat-attach-btn,
-.chat-mic-btn {
+.chat-attach-btn {
     width: 38px;
     height: 38px;
     border-radius: 50%;
@@ -656,15 +795,9 @@
     justify-content: center;
 }
 
-.chat-attach-btn:hover,
-.chat-mic-btn:hover {
+.chat-attach-btn:hover {
     background: #f1f3f4;
     color: #C6A43F;
-}
-
-.chat-mic-btn.is-active {
-    background: #FFEBEE;
-    color: #C62828;
 }
 
 .chat-attach-menu {
@@ -751,6 +884,20 @@
     cursor: not-allowed;
 }
 
+.chat-composer-note {
+    padding: 10px 16px;
+    background: #FFF8E1;
+    border-top: 1px solid #FFE082;
+    color: #5d4a00;
+    font-size: 12px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   Pending uploads + circular progress
+   ============================================================ */
+
 .chat-pending-media {
     display: none;
     gap: 8px;
@@ -779,7 +926,7 @@
 }
 
 .chat-pending-item button,
-.chat-pending-file button {
+.chat-pending-file button.chat-file-remove {
     position: absolute;
     top: -6px;
     right: -6px;
@@ -794,6 +941,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 4;
 }
 
 .chat-pending-file {
@@ -805,90 +953,78 @@
     border: 1px solid #e8eaed;
     border-radius: 10px;
     background: #fff;
-    max-width: 280px;
+    max-width: 340px;
 }
 
-.chat-pending-file button {
-    position: static;
-    margin-left: auto;
-}
-
-.chat-recording {
-    display: none;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    padding: 4px 8px;
-}
-
-.chat-composer.is-recording .chat-input,
-.chat-composer.is-recording .chat-attach-btn,
-.chat-composer.is-recording .chat-attach-menu,
-.chat-composer.is-recording .chat-mic-btn,
-.chat-composer.is-recording .chat-send-btn {
-    display: none;
-}
-
-.chat-composer.is-recording .chat-recording {
-    display: flex;
-}
-
-.chat-rec-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #C62828;
-    animation: chatPulse 1s ease-in-out infinite;
+.chat-file-progress {
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
+    position: relative;
 }
 
-.chat-rec-time {
-    font-size: 14px;
-    font-weight: 600;
-    color: #C62828;
-    flex-shrink: 0;
-    min-width: 44px;
+.chat-file-progress .chat-progress-overlay {
+    position: relative;
+    inset: auto;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border-radius: 0;
 }
 
-.chat-rec-hint {
-    flex: 1;
-    font-size: 12px;
-    color: #5f6368;
+.chat-file-progress .chat-progress-label {
+    color: #C6A43F;
 }
 
-.chat-rec-cancel,
-.chat-rec-send {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    display: flex;
+.chat-file-progress .chat-progress-bg {
+    stroke: #e8eaed;
+}
+
+.chat-progress-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 3;
+    border-radius: 10px;
 }
 
-.chat-rec-cancel {
-    background: #f1f3f4;
-    color: #5f6368;
+.chat-progress-ring {
+    width: 34px;
+    height: 34px;
+    transform: rotate(-90deg);
+    position: absolute;
 }
 
-.chat-rec-send {
-    background: #C6A43F;
+.chat-progress-ring circle {
+    fill: none;
+    stroke-width: 3;
+}
+
+.chat-progress-bg {
+    stroke: rgba(255, 255, 255, 0.35);
+}
+
+.chat-progress-fg {
+    stroke: #C6A43F;
+    stroke-linecap: round;
+    stroke-dasharray: 100.53;
+    stroke-dashoffset: 100.53;
+}
+
+.chat-progress-label {
+    position: relative;
+    z-index: 2;
     color: #fff;
+    font-size: 10px;
+    font-weight: 800;
 }
 
-.chat-composer-note {
-    padding: 10px 16px;
-    background: #FFF8E1;
-    border-top: 1px solid #FFE082;
-    color: #5d4a00;
-    font-size: 12px;
-    text-align: center;
-    flex-shrink: 0;
-}
+/* ============================================================
+   Lightbox
+   ============================================================ */
 
 .chat-lightbox {
     display: none;
@@ -907,41 +1043,52 @@
 
 .chat-lightbox img {
     max-width: 92vw;
-    max-height: 88vh;
+    max-height: 82vh;
     border-radius: 10px;
 }
 
-.chat-lightbox-close {
+.chat-lightbox-toolbar {
     position: absolute;
     top: 18px;
     right: 22px;
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 26px;
-    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 2;
 }
+
+.chat-lightbox-btn {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 999px;
+    padding: 8px 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-lightbox-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================
+   Animations + responsive
+   ============================================================ */
 
 @keyframes chatFadeIn {
     from {
         opacity: 0;
         transform: translateY(5px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
-    }
-}
-
-@keyframes chatPulse {
-    0%,
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.35);
-        opacity: 0.6;
     }
 }
 
@@ -981,13 +1128,17 @@
         display: none;
     }
 
-    .chat-voice {
-        min-width: 160px;
-    }
-
     .chat-attach-menu {
         left: 10px;
         right: 10px;
         min-width: 0;
+    }
+
+    .chat-document-card {
+        max-width: 100%;
+    }
+
+    .chat-file-actions {
+        flex-direction: row;
     }
 }
