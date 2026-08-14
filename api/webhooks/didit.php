@@ -8,15 +8,18 @@
  * (Business Console → API & Webhooks), subscribed to at least
  * "status.updated".
  *
- * AMENDED FOR KYC NAME-MATCH ENFORCEMENT:
- * - Extracts the name read from the submitted identity document.
- * - Compares it against the registered account name.
- * - If the names do not correspond, KYC is declined/rejected.
- * - If the document name cannot be read, KYC is held for manual review.
- * - Stores match result and reason where supported by the schema.
+ * OPTION 1 KYC NAME RULE:
+ * - Didit approved + registered name matches ID document name => approved/kyc_passed
+ * - Didit approved + ID document name does not match => rejected
+ * - Didit approved + ID document name cannot be read => review_needed
  *
- * Always returns 2xx quickly (Didit's delivery timeout is 5 seconds)
- * so it stops retrying, even for events we choose not to act on.
+ * BUSINESS RULES:
+ * - KYC approved => users.verified = 1 for identity verification.
+ * - Business + KYC approved + KYB not approved => verification_status 'kyc_passed'.
+ * - KYB approved while status is 'kyc_passed' => promote to full 'approved'.
+ *
+ * Always returns 2xx quickly where possible so Didit stops retrying,
+ * except for invalid payload/signature cases.
  */
 
 require_once '../config/database.php';
@@ -46,9 +49,7 @@ function didit_webhook_column_exists($db, string $table, string $column): bool
               AND table_name = ?
               AND column_name = ?
         ");
-
         $stmt->execute([$table, $column]);
-
         $cache[$key] = ((int)$stmt->fetchColumn()) > 0;
     } catch (Throwable $e) {
         $cache[$key] = false;
@@ -61,8 +62,7 @@ function didit_webhook_column_exists($db, string $table, string $column): bool
  * Fallback name comparison.
  *
  * Used only if DiditService::namesLikelyMatch() is unavailable.
- * It is intentionally conservative, but the preferred implementation
- * should live in includes/didit.php.
+ * The preferred implementation lives in includes/didit.php.
  */
 function didit_webhook_fallback_names_match(string $registeredName, string $documentName): bool
 {
@@ -81,20 +81,16 @@ function didit_webhook_fallback_names_match(string $registeredName, string $docu
 
         if (function_exists('transliterator_transliterate')) {
             $converted = @transliterator_transliterate('Any-Latin; Latin-ASCII', $name);
-
             if (is_string($converted)) {
                 $name = $converted;
             }
         } elseif (function_exists('iconv')) {
             $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
-
             if ($converted !== false) {
                 $name = $converted;
             }
         }
 
-        // Remove common honorifics / suffixes / titles that are not part
-        // of the core identity name.
         $ignoreWords = [
             'mr', 'mrs', 'ms', 'miss', 'dr', 'engr', 'chief', 'prince',
             'princess', 'alhaji', 'alhaja', 'hajiya', 'barr', 'prof',
@@ -134,7 +130,18 @@ function didit_webhook_fallback_names_match(string $registeredName, string $docu
         return false;
     }
 
-    return ($overlap / $shorter) >= 0.7;
+    /*
+     * Fallback is intentionally a little stricter than the main
+     * DiditService comparison, but still tolerant of middle-name
+     * omission and ordering differences.
+     */
+    $score = $overlap / $shorter;
+
+    if ($shorter === 1) {
+        return $overlap >= 1;
+    }
+
+    return $overlap >= min(2, $shorter) && $score >= 0.60;
 }
 
 // ============================================================
@@ -166,7 +173,15 @@ $eventId     = (string)($event['event_id'] ?? '');
 
 $didit = new DiditService();
 
-if ($didit->isEnabled() && !$didit->verifyWebhookSignature($rawBody, $signature, $signatureSimple, $timestamp, $sessionId, $diditStatus, $webhookType)) {
+if ($didit->isEnabled() && !$didit->verifyWebhookSignature(
+    $rawBody,
+    $signature,
+    $signatureSimple,
+    $timestamp,
+    $sessionId,
+    $diditStatus,
+    $webhookType
+)) {
     http_response_code(401);
     echo json_encode(['error' => 'Invalid signature']);
     exit;
@@ -179,7 +194,6 @@ $lookup = $db->prepare("
     FROM didit_verifications
     WHERE session_id = ?
 ");
-
 $lookup->execute([$sessionId]);
 $verification = $lookup->fetch(PDO::FETCH_ASSOC);
 
@@ -224,7 +238,7 @@ $internalStatus = DiditService::mapStatus($diditStatus);
 $now            = date('Y-m-d H:i:s');
 
 // ============================================================
-// KYC NAME-MATCH ENFORCEMENT
+// OPTION 1 — KYC NAME-MATCH ENFORCEMENT
 // ============================================================
 
 $registeredName     = '';
@@ -253,7 +267,11 @@ if ($sessionType === 'kyc' && is_array($decision)) {
 
     // Get registered account name.
     try {
-        $userRow = $db->prepare("SELECT name FROM users WHERE id = ?");
+        $userRow = $db->prepare("
+            SELECT name
+            FROM users
+            WHERE id = ?
+        ");
         $userRow->execute([$userId]);
         $registeredName = trim((string)($userRow->fetchColumn() ?: ''));
     } catch (Throwable $e) {
@@ -287,7 +305,7 @@ if ($sessionType === 'kyc' && is_array($decision)) {
                 $nameMatchState = 'matched';
             } else {
                 $nameMatchState = 'mismatched';
-                $nameMismatch = 1;
+                $nameMismatch   = 1;
                 $internalStatus = 'rejected';
                 $kycRejectionReason = 'ID document name does not correspond with the registered account name.';
 
@@ -302,7 +320,8 @@ if ($sessionType === 'kyc' && is_array($decision)) {
     }
 }
 
-$isFinal = in_array($internalStatus, ['approved', 'rejected'], true);
+$isDecision = in_array($internalStatus, ['approved', 'rejected'], true);
+$isTerminal = $isDecision || $internalStatus === 'expired';
 
 // ============================================================
 // PERSIST RESULT
@@ -332,13 +351,13 @@ try {
     $params = [
         $internalStatus,
         $diditStatus,
-        $decisionPayload,
+        $decisionPayload !== false ? $decisionPayload : null,
         $eventId !== '' ? $eventId : null,
-        $isFinal ? $now : null,
+        $isTerminal ? $now : null,
     ];
 
     if (didit_webhook_column_exists($db, 'didit_verifications', 'expected_name')) {
-        $sets[] = 'expected_name = ?';
+        $sets[] = 'expected_name = COALESCE(?, expected_name)';
         $params[] = $registeredName !== '' ? $registeredName : null;
     }
 
@@ -352,7 +371,12 @@ try {
         $params[] = $nameMatchState;
     }
 
-    $sql = "UPDATE didit_verifications SET " . implode(', ', $sets) . " WHERE session_id = ?";
+    $sql = "
+        UPDATE didit_verifications
+        SET " . implode(', ', $sets) . "
+        WHERE session_id = ?
+    ";
+
     $params[] = $sessionId;
 
     $db->prepare($sql)->execute($params);
@@ -367,33 +391,41 @@ try {
             FROM agent_profiles
             WHERE user_id = ?
         ");
-
         $profileRow->execute([$userId]);
         $profile = $profileRow->fetch(PDO::FETCH_ASSOC) ?: [];
 
-        $isBusiness = trim((string)($profile['company_name'] ?? '')) !== '';
+        $isBusiness         = trim((string)($profile['company_name'] ?? '')) !== '';
         $kybAlreadyApproved = (($profile['kyb_status'] ?? '') === 'approved');
 
-        // A business registration does not get the verified badge from KYC
-        // alone — KYB must also pass.
+        /*
+         * KYC approval means the person's identity has been verified.
+         *
+         * For business accounts, full account approval still requires KYB,
+         * so verification_status becomes 'kyc_passed' until KYB clears.
+         */
         $kycStatusToStore = $internalStatus;
-        $grantsVerified = false;
+        $grantsVerified   = false;
 
         if ($internalStatus === 'approved') {
             if ($isBusiness && !$kybAlreadyApproved) {
                 $kycStatusToStore = 'kyc_passed';
-            } else {
-                $grantsVerified = true;
             }
+
+            $grantsVerified = true;
         }
 
-        $profileSets = ['verification_status = ?'];
-        $profileParams = [$kycStatusToStore];
+        $profileSets = [
+            'verification_status = ?',
+        ];
+
+        $profileParams = [
+            $kycStatusToStore,
+        ];
 
         if (didit_webhook_column_exists($db, 'agent_profiles', 'kyc_decision_at')) {
             $profileSets[] = 'kyc_decision_at = CASE WHEN ? THEN ? ELSE kyc_decision_at END';
-            $profileParams[] = $isFinal ? 1 : 0;
-            $profileParams[] = $isFinal ? $now : null;
+            $profileParams[] = $isDecision ? 1 : 0;
+            $profileParams[] = $isDecision ? $now : null;
         }
 
         if (didit_webhook_column_exists($db, 'agent_profiles', 'kyc_submitted_at')) {
@@ -411,26 +443,47 @@ try {
             $profileParams[] = $nameMatchState;
         }
 
+        if (didit_webhook_column_exists($db, 'agent_profiles', 'kyc_name_mismatch')) {
+            $profileSets[] = 'kyc_name_mismatch = ?';
+            $profileParams[] = $nameMismatch;
+        }
+
         if (didit_webhook_column_exists($db, 'agent_profiles', 'kyc_rejection_reason')) {
             $profileSets[] = 'kyc_rejection_reason = ?';
             $profileParams[] = $kycRejectionReason;
         }
 
-        $profileSql = "UPDATE agent_profiles SET " . implode(', ', $profileSets) . " WHERE user_id = ?";
+        if (didit_webhook_column_exists($db, 'agent_profiles', 'kyc_provider')) {
+            $profileSets[] = "kyc_provider = 'didit'";
+        }
+
+        $profileSql = "
+            UPDATE agent_profiles
+            SET " . implode(', ', $profileSets) . "
+            WHERE user_id = ?
+        ";
+
         $profileParams[] = $userId;
 
         $db->prepare($profileSql)->execute($profileParams);
 
         if ($grantsVerified) {
-            $db->prepare("UPDATE users SET verified = 1, status = 'active' WHERE id = ?")
-                ->execute([$userId]);
+            $db->prepare("
+                UPDATE users
+                SET verified = 1,
+                    status = 'active'
+                WHERE id = ?
+            ")->execute([$userId]);
 
             if (isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] === $userId) {
                 $_SESSION['user_verified'] = true;
             }
         } elseif ($internalStatus === 'rejected') {
-            $db->prepare("UPDATE users SET verified = 0 WHERE id = ?")
-                ->execute([$userId]);
+            $db->prepare("
+                UPDATE users
+                SET verified = 0
+                WHERE id = ?
+            ")->execute([$userId]);
 
             if (isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] === $userId) {
                 $_SESSION['user_verified'] = false;
@@ -455,13 +508,18 @@ try {
             );
         }
 
-        $kybSets = ['kyb_status = ?'];
-        $kybParams = [$kybStatus];
+        $kybSets = [
+            'kyb_status = ?',
+        ];
+
+        $kybParams = [
+            $kybStatus,
+        ];
 
         if (didit_webhook_column_exists($db, 'agent_profiles', 'kyb_decision_at')) {
             $kybSets[] = 'kyb_decision_at = CASE WHEN ? THEN ? ELSE kyb_decision_at END';
-            $kybParams[] = $isFinal ? 1 : 0;
-            $kybParams[] = $isFinal ? $now : null;
+            $kybParams[] = $isDecision ? 1 : 0;
+            $kybParams[] = $isDecision ? $now : null;
         }
 
         if (didit_webhook_column_exists($db, 'agent_profiles', 'kyb_submitted_at')) {
@@ -474,24 +532,42 @@ try {
             $kybParams[] = $registrySnapshot;
         }
 
-        $kybSql = "UPDATE agent_profiles SET " . implode(', ', $kybSets) . " WHERE user_id = ?";
+        $kybSql = "
+            UPDATE agent_profiles
+            SET " . implode(', ', $kybSets) . "
+            WHERE user_id = ?
+        ";
+
         $kybParams[] = $userId;
 
         $db->prepare($kybSql)->execute($kybParams);
 
-        // KYB just cleared — if identity (KYC) already passed too, this
-        // business account is now fully approved.
+        /*
+         * KYB just cleared — if identity (KYC) already passed too, this
+         * business account is now fully approved.
+         */
         if ($kybStatus === 'approved') {
-            $kycRow = $db->prepare("SELECT verification_status FROM agent_profiles WHERE user_id = ?");
+            $kycRow = $db->prepare("
+                SELECT verification_status
+                FROM agent_profiles
+                WHERE user_id = ?
+            ");
             $kycRow->execute([$userId]);
-            $kycState = $kycRow->fetchColumn();
+            $kycState = (string)$kycRow->fetchColumn();
 
             if ($kycState === 'kyc_passed') {
-                $db->prepare("UPDATE agent_profiles SET verification_status = 'approved' WHERE user_id = ?")
-                    ->execute([$userId]);
+                $db->prepare("
+                    UPDATE agent_profiles
+                    SET verification_status = 'approved'
+                    WHERE user_id = ?
+                ")->execute([$userId]);
 
-                $db->prepare("UPDATE users SET verified = 1, status = 'active' WHERE id = ?")
-                    ->execute([$userId]);
+                $db->prepare("
+                    UPDATE users
+                    SET verified = 1,
+                        status = 'active'
+                    WHERE id = ?
+                ")->execute([$userId]);
 
                 if (isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] === $userId) {
                     $_SESSION['user_verified'] = true;
@@ -506,11 +582,13 @@ try {
         $logMessage .= " (name mismatch: registered=\"$registeredName\", document=\"$documentName\")";
     }
 
-    Security::logActivity(
-        $userId,
-        $sessionType . '_' . $internalStatus,
-        $logMessage
-    );
+    if (class_exists('Security')) {
+        Security::logActivity(
+            $userId,
+            $sessionType . '_' . $internalStatus,
+            $logMessage
+        );
+    }
 
     $db->commit();
 } catch (Exception $e) {
