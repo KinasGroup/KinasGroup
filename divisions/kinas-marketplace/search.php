@@ -4,6 +4,12 @@
 * Tokenized matching: every word of the query must appear somewhere in
 * the listing (title / description / brand / category / condition /
 * city / state), with singular/plural tolerance, ranked by relevance.
+*
+* AMENDED:
+*  - FIX 1: Main query now joins marketplace_categories as `mc` (was `c`),
+*    matching the `mc.name` reference used by the tokenized WHERE clause.
+*  - FIX 2: PDO positional params now bound in SQL order: WHERE params
+*    first, then ORDER BY relevance params (was reversed).
 */
 require_once '../../includes/session.php';
 require_once '../../includes/functions.php';
@@ -11,7 +17,6 @@ require_once '../../includes/helpers.php';
 require_once '../../api/config/database.php';
 require_once '../../includes/je-components.php';
 $db = Database::getInstance()->getConnection();
-
 $q         = trim($_GET['q'] ?? '');
 $category  = (int)($_GET['category'] ?? 0);
 $brand     = trim($_GET['brand'] ?? '');
@@ -24,7 +29,6 @@ $sort      = $_GET['sort'] ?? 'newest';
 $page      = max(1, (int)($_GET['page'] ?? 1));
 $per_page  = 12;
 $offset    = ($page - 1) * $per_page;
-
 // ============================================
 // INTELLIGENT TOKENIZED SEARCH
 // ============================================
@@ -32,30 +36,29 @@ $where  = ["m.status = 'active'"];
 $whereParams = [];
 $tokens = [];
 if ($q !== '') {
-    $tokens = preg_split('/[^a-z0-9]+/i', $q, -1, PREG_SPLIT_NO_EMPTY);
-    $tokens = array_values(array_unique(array_map('strtolower', $tokens)));
-    $tokens = array_values(array_filter($tokens, function ($t) { return strlen($t) >= 2; }));
-    if (!empty($tokens)) {
-        $fields = ['m.title', 'm.description', 'm.brand', 'm.condition_status', 'm.city', 'm.state', 'mc.name'];
-        $tokenConds = [];
-        foreach ($tokens as $t) {
-            $variants = ['%' . $t . '%'];
-            if (strlen($t) > 3 && substr($t, -1) === 's') {
-                $variants[] = '%' . substr($t, 0, -1) . '%';
-            }
-            $conds = [];
-            foreach ($variants as $v) {
-                foreach ($fields as $f) {
-                    $conds[] = "$f LIKE ?";
-                    $whereParams[] = $v;
-                }
-            }
-            $tokenConds[] = '(' . implode(' OR ', $conds) . ')';
-        }
-        $where[] = implode(' AND ', $tokenConds);
-    }
+$tokens = preg_split('/[^a-z0-9]+/i', $q, -1, PREG_SPLIT_NO_EMPTY);
+$tokens = array_values(array_unique(array_map('strtolower', $tokens)));
+$tokens = array_values(array_filter($tokens, function ($t) { return strlen($t) >= 2; }));
+if (!empty($tokens)) {
+$fields = ['m.title', 'm.description', 'm.brand', 'm.condition_status', 'm.city', 'm.state', 'mc.name'];
+$tokenConds = [];
+foreach ($tokens as $t) {
+$variants = ['%' . $t . '%'];
+if (strlen($t) > 3 && substr($t, -1) === 's') {
+$variants[] = '%' . substr($t, 0, -1) . '%';
 }
-
+$conds = [];
+foreach ($variants as $v) {
+foreach ($fields as $f) {
+$conds[] = "$f LIKE ?";
+$whereParams[] = $v;
+}
+}
+$tokenConds[] = '(' . implode(' OR ', $conds) . ')';
+}
+$where[] = implode(' AND ', $tokenConds);
+}
+}
 if ($category > 0)         { $where[] = "m.category_id = ?";      $whereParams[] = $category; }
 if ($brand !== '')         { $where[] = "m.brand = ?";            $whereParams[] = $brand; }
 if ($condition !== '')     { $where[] = "m.condition_status = ?"; $whereParams[] = $condition; }
@@ -64,19 +67,17 @@ if ($max_price !== '' && is_numeric($max_price)) { $where[] = "m.price <= ?"; $w
 if ($city !== '')          { $where[] = "m.city = ?";  $whereParams[] = $city; }
 if ($state !== '')         { $where[] = "m.state = ?"; $whereParams[] = $state; }
 $whereSql = implode(' AND ', $where);
-
 // Relevance ranking: exact title match > title prefix > title contains first token > rest.
 $firstToken = $tokens[0] ?? $q;
 $relevanceSQL = "
 CASE
-  WHEN m.title = ? THEN 0
-  WHEN m.title LIKE ? THEN 1
-  WHEN m.title LIKE ? THEN 2
-  ELSE 3
+WHEN m.title = ? THEN 0
+WHEN m.title LIKE ? THEN 1
+WHEN m.title LIKE ? THEN 2
+ELSE 3
 END
 ";
 $relevanceParams = [$q, $q . '%', '%' . $firstToken . '%'];
-
 // Count
 $countStmt = $db->prepare("SELECT COUNT(*) FROM marketplace_listings m LEFT JOIN marketplace_categories mc ON mc.id = m.category_id WHERE $whereSql");
 $countStmt->execute($whereParams);
@@ -84,24 +85,25 @@ $total = (int)$countStmt->fetchColumn();
 $totalPages = max(1, (int)ceil($total / $per_page));
 $page = min($page, $totalPages);
 $offset = ($page - 1) * $per_page;
-
 $orderBy = match ($sort) {
 'price_low'  => 'm.price ASC',
 'price_high' => 'm.price DESC',
 default      => "$relevanceSQL ASC, m.featured DESC, m.created_at DESC",
 };
+/* FIX 2: WHERE placeholders appear in the SQL before ORDER BY placeholders,
+   so WHERE params must be bound first, then relevance params. */
 $selectParams = ($sort === 'price_low' || $sort === 'price_high')
 ? $whereParams
-: array_merge($relevanceParams, $whereParams);
-
+: array_merge($whereParams, $relevanceParams);
+/* FIX 1: category table joined as `mc` to match the token WHERE clause (mc.name) */
 $sql = "
 SELECT m.id, m.title, m.category_id, m.price, m.brand, m.condition_status,
 m.city, m.state, m.country, m.featured, m.views,
-c.name AS category_name, c.slug AS category_slug,
+mc.name AS category_name, mc.slug AS category_slug,
 a.verified AS agent_verified,
 (SELECT url FROM listing_images WHERE listing_id = m.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) AS thumbnail
 FROM marketplace_listings m
-LEFT JOIN marketplace_categories c ON m.category_id = c.id
+LEFT JOIN marketplace_categories mc ON mc.id = m.category_id
 LEFT JOIN users a ON m.agent_id = a.id
 WHERE $whereSql
 ORDER BY $orderBy
@@ -110,7 +112,6 @@ LIMIT $per_page OFFSET $offset
 $stmt = $db->prepare($sql);
 $stmt->execute($selectParams);
 $rows = $stmt->fetchAll();
-
 // Categories + facets
 $categories = $db->query("SELECT id, name FROM marketplace_categories ORDER BY name")->fetchAll();
 $facet = function (string $col) use ($db): array {
@@ -122,7 +123,6 @@ $brands     = $facet('brand');
 $conditions = $facet('condition_status');
 $cities     = $facet('city');
 $states     = $facet('state');
-
 $pageTitle = 'Search Curated Goods - KINAS Marketplace';
 $pageDescription = 'Browse luxury watches, jewelry, art, fashion, and more. Filter by category, brand, condition, price, location and more.';
 include '../../templates/header.php';
