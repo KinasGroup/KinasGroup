@@ -1,17 +1,30 @@
-// /assets/js/chat.js
-// KINAS GROUP — Messenger client
-// Supports:
-// - text
-// - images
-// - voice notes
-// - uploaded audio files
-// - video files
-// - documents: doc, docx, pdf, ppt, pptx
-// - send/receive sounds
-// - new + attachment menu
+// ============================================================
+// KINAS BUILD: 2026.08.15.05
+// FILE: assets/js/chat.js
+//
+// Rebuilt messenger client.
+//
+// Includes:
+// - No microphone / voice recording button.
+// - + attachment menu: Photo, Video, Audio, Document.
+// - Document restriction: doc, docx, pdf, ppt, pptx only.
+// - Circular upload progress counter.
+// - Formal inquiry header restored from inquiry_meta.
+// - Download ability for uploaded items.
+// - Send/receive sounds.
+// - Listing-bound messenger behaviour.
+//
+// Cache-busting note:
+// This file contains a build stamp for identification only.
+// The actual cache buster must be applied in user/messages.php
+// and agent/messages.php using ?v=... on the script URL.
+// ============================================================
 
 (function () {
     'use strict';
+
+    window.__kinasChatBuild = '2026.08.15.05';
+    window.__kinasChatBoot = false;
 
     var root = document.getElementById('chatRoot');
     if (!root) return;
@@ -36,8 +49,7 @@
         maxImageBytes: 10 * 1024 * 1024,
         maxVideoBytes: 25 * 1024 * 1024,
         maxAudioBytes: 10 * 1024 * 1024,
-        maxDocBytes: 20 * 1024 * 1024,
-        maxVoiceSeconds: 180
+        maxDocBytes: 20 * 1024 * 1024
     };
 
     var state = {
@@ -50,21 +62,13 @@
         msgEls: {},
 
         pendingImages: [],
-        pendingUrls: [],
         pendingFile: null,
-        pendingFileUrl: null,
 
         search: '',
         currentAudioStop: null,
-
-        rec: null,
-        recChunks: [],
-        recMime: '',
-        recSeconds: 0,
-        recTimer: null,
-        recCancelled: false,
-
         markReadQueued: false,
+        sending: false,
+
         soundEnabled: true,
         lastSoundAt: 0
     };
@@ -93,22 +97,56 @@
         return '₦' + Number(n || 0).toLocaleString('en-NG');
     }
 
-    function fmtDur(sec) {
-        sec = Math.max(0, Math.round(sec || 0));
-        var m = Math.floor(sec / 60), s = sec % 60;
-        return m + ':' + (s < 10 ? '0' : '') + s;
-    }
-
     function formatBytes(bytes) {
         bytes = Number(bytes || 0);
         if (!bytes) return '';
+
         var units = ['B', 'KB', 'MB', 'GB'];
         var i = 0;
+
         while (bytes >= 1024 && i < units.length - 1) {
             bytes /= 1024;
             i++;
         }
+
         return bytes.toFixed(1) + ' ' + units[i];
+    }
+
+    function fileNameFromUrl(url, fallback) {
+        try {
+            var parts = String(url || '').split('/');
+            var last = parts[parts.length - 1] || '';
+            last = last.split('?')[0];
+
+            if (last) {
+                return decodeURIComponent(last);
+            }
+        } catch (e) {}
+
+        return fallback || 'download';
+    }
+
+    function formatTimestamp(s) {
+        if (!s) return '';
+
+        var d = new Date(String(s).replace(' ', 'T'));
+
+        if (isNaN(d.getTime())) {
+            d = new Date(s);
+        }
+
+        if (isNaN(d.getTime())) {
+            return String(s);
+        }
+
+        return d.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        }) + ', ' + d.toLocaleTimeString(undefined, {
+            hour: 'numeric',
+            minute: '2-digit'
+        });
     }
 
     function toast(msg, type) {
@@ -116,10 +154,12 @@
             window.kinasToast(msg, type || 'info');
             return;
         }
+
         if (typeof window.showSuccessBanner === 'function') {
             window.showSuccessBanner(msg, type === 'error');
             return;
         }
+
         console.warn('[chat]', msg);
     }
 
@@ -130,21 +170,18 @@
         return 'role-user';
     }
 
-    function barsFor(seed, count) {
-        var h = 0, i;
-        for (i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
-
-        var out = [];
-        for (i = 0; i < count; i++) {
-            h = (h * 1103515245 + 12345) | 0;
-            out.push(6 + (Math.abs(h >> 16) % 19));
-        }
-        return out;
+    function fileIconForKind(kind) {
+        if (kind === 'video') return '<i class="fas fa-video"></i>';
+        if (kind === 'audio') return '<i class="fas fa-music"></i>';
+        if (kind === 'document') return '<i class="fas fa-file-alt"></i>';
+        return '<i class="fas fa-image"></i>';
     }
 
     function stopCurrentAudio() {
         if (state.currentAudioStop) {
-            try { state.currentAudioStop(); } catch (e) {}
+            try {
+                state.currentAudioStop();
+            } catch (e) {}
             state.currentAudioStop = null;
         }
     }
@@ -183,6 +220,7 @@
 
         var now = Date.now();
         if (now - state.lastSoundAt < 250) return;
+
         state.lastSoundAt = now;
 
         try {
@@ -207,9 +245,7 @@
                 osc.start(t);
                 osc.stop(t + totalDuration + 0.02);
             });
-        } catch (e) {
-            // Sound must never break messaging.
-        }
+        } catch (e) {}
     }
 
     function playSendSound() {
@@ -283,24 +319,20 @@
                     '<input type="file" id="chatFileAudio" accept=".mp3,.wav,.m4a,.ogg,.aac,audio/*" hidden>' +
                     '<input type="file" id="chatFileDoc" accept=".doc,.docx,.pdf,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden>' +
 
-                    '<button type="button" class="chat-mic-btn" id="chatMicBtn" title="Record voice note"><i class="fas fa-microphone"></i></button>' +
                     '<textarea class="chat-input" id="chatInput" rows="1" placeholder="Type a message…"></textarea>' +
                     '<button type="submit" class="chat-send-btn" id="chatSendBtn" title="Send"><i class="fas fa-paper-plane"></i></button>' +
-
-                    '<div class="chat-recording">' +
-                        '<span class="chat-rec-dot"></span>' +
-                        '<span class="chat-rec-time" id="chatRecTime">0:00</span>' +
-                        '<span class="chat-rec-hint">Recording voice note… max 3:00</span>' +
-                        '<button type="button" class="chat-rec-cancel" id="chatRecCancel" title="Discard"><i class="fas fa-trash"></i></button>' +
-                        '<button type="button" class="chat-rec-send" id="chatRecSend" title="Send"><i class="fas fa-paper-plane"></i></button>' +
-                    '</div>' +
                 '</form>' +
             '</div>' +
         '</div>' +
 
         '<div class="chat-lightbox" id="chatLightbox">' +
+            '<div class="chat-lightbox-toolbar">' +
+                '<a href="#" id="chatLightboxDownload" class="chat-lightbox-btn" target="_blank" rel="noopener" download>' +
+                    '<i class="fas fa-download"></i> Download' +
+                '</a>' +
+                '<button type="button" class="chat-lightbox-btn" id="chatLightboxClose" title="Close">✕</button>' +
+            '</div>' +
             '<img id="chatLightboxImg" src="" alt="">' +
-            '<button type="button" class="chat-lightbox-close" id="chatLightboxClose" title="Close">✕</button>' +
         '</div>';
 
     var app = qs('chatApp'),
@@ -326,15 +358,67 @@
         fileVideo = qs('chatFileVideo'),
         fileAudio = qs('chatFileAudio'),
         fileDoc = qs('chatFileDoc'),
-        micBtn = qs('chatMicBtn'),
         pendingWrap = qs('chatPendingMedia'),
-        recTimeEl = qs('chatRecTime'),
-        recCancel = qs('chatRecCancel'),
-        recSend = qs('chatRecSend'),
         backBtn = qs('chatBackBtn'),
         lightbox = qs('chatLightbox'),
         lightboxImg = qs('chatLightboxImg'),
-        lightboxClose = qs('chatLightboxClose');
+        lightboxClose = qs('chatLightboxClose'),
+        lightboxDownload = qs('chatLightboxDownload');
+
+    // ------------------------------------------------------------
+    // Upload progress ring helpers
+    // ------------------------------------------------------------
+
+    function progressRingHtml() {
+        return '<div class="chat-progress-overlay" style="display:none">' +
+            '<svg class="chat-progress-ring" viewBox="0 0 36 36">' +
+                '<circle class="chat-progress-bg" cx="18" cy="18" r="16"></circle>' +
+                '<circle class="chat-progress-fg" cx="18" cy="18" r="16"></circle>' +
+            '</svg>' +
+            '<span class="chat-progress-label">0%</span>' +
+        '</div>';
+    }
+
+    function setRingProgress(overlay, pct) {
+        if (!overlay) return;
+
+        var fg = overlay.querySelector('.chat-progress-fg');
+        var label = overlay.querySelector('.chat-progress-label');
+
+        var circumference = 100.53;
+        var offset = circumference * (1 - (pct / 100));
+
+        if (fg) {
+            fg.style.strokeDasharray = String(circumference);
+            fg.style.strokeDashoffset = String(offset);
+        }
+
+        if (label) {
+            label.textContent = pct + '%';
+        }
+    }
+
+    function setPendingUploading(isUploading) {
+        var overlays = document.querySelectorAll('.chat-progress-overlay');
+
+        overlays.forEach(function (overlay) {
+            overlay.style.display = isUploading ? 'flex' : 'none';
+
+            if (isUploading) {
+                setRingProgress(overlay, 0);
+            }
+        });
+    }
+
+    function updatePendingProgress(pct) {
+        pct = Math.max(0, Math.min(100, Math.round(pct)));
+
+        var overlays = document.querySelectorAll('.chat-progress-overlay');
+
+        overlays.forEach(function (overlay) {
+            setRingProgress(overlay, pct);
+        });
+    }
 
     // ------------------------------------------------------------
     // Conversation list
@@ -353,9 +437,11 @@
 
     function totalUnread() {
         var n = 0;
+
         state.conversations.forEach(function (c) {
             n += (c.unread_count || 0);
         });
+
         return n;
     }
 
@@ -368,10 +454,12 @@
 
         var q = state.search.toLowerCase();
         listWrap.innerHTML = '';
+
         var shown = 0;
 
         state.conversations.forEach(function (c) {
             var hay = ((c.other_name || '') + ' ' + (c.last_preview || '') + ' ' + (c.listing_title || '')).toLowerCase();
+
             if (q && hay.indexOf(q) === -1) return;
 
             shown++;
@@ -588,6 +676,93 @@
         t.classList.toggle('is-read', !!isRead);
     }
 
+    // ------------------------------------------------------------
+    // Inquiry header
+    // ------------------------------------------------------------
+
+    function renderInquiryCard(m) {
+        var meta = m.inquiry_meta || null;
+        if (!meta) return null;
+
+        var card = el('div', 'chat-inquiry-card');
+
+        var title = 'Formal Inquiry';
+
+        if (m.is_viewing_request || meta.inquiry_type === 'viewing') {
+            title = 'Viewing Request';
+        }
+
+        var timestamp = formatTimestamp(meta.sent_at || m.created_at || '');
+
+        var html =
+            '<div class="chat-inquiry-head">' +
+                '<div class="chat-inquiry-title"><i class="fas fa-envelope-open-text"></i> ' + esc(title) + '</div>' +
+                '<div class="chat-inquiry-time">' + esc(timestamp) + '</div>' +
+            '</div>' +
+            '<div class="chat-inquiry-meta">';
+
+        if (meta.name) {
+            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-user"></i> Name</span><span class="chat-inquiry-value">' + esc(meta.name) + '</span></div>';
+        }
+
+        if (meta.email) {
+            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-envelope"></i> Email</span><span class="chat-inquiry-value"><a href="mailto:' + esc(meta.email) + '">' + esc(meta.email) + '</a></span></div>';
+        }
+
+        if (meta.phone) {
+            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-phone"></i> Phone</span><span class="chat-inquiry-value">' + esc(meta.phone) + '</span></div>';
+        }
+
+        if (meta.preferred_date || m.preferred_date) {
+            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-calendar"></i> Preferred Date</span><span class="chat-inquiry-value">' + esc(meta.preferred_date || m.preferred_date) + '</span></div>';
+        }
+
+        if (meta.preferred_time || m.preferred_time) {
+            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-clock"></i> Preferred Time</span><span class="chat-inquiry-value">' + esc(meta.preferred_time || m.preferred_time) + '</span></div>';
+        }
+
+        if (meta.subject) {
+            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-heading"></i> Subject</span><span class="chat-inquiry-value">' + esc(meta.subject) + '</span></div>';
+        }
+
+        html += '</div>';
+
+        card.innerHTML = html;
+
+        return card;
+    }
+
+    // ------------------------------------------------------------
+    // Media renderers + download actions
+    // ------------------------------------------------------------
+
+    function downloadAnchor(url, filename, label) {
+        var a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.className = 'chat-media-download';
+
+        if (filename) {
+            a.setAttribute('download', filename);
+        }
+
+        a.innerHTML = '<i class="fas fa-download"></i> ' + esc(label || 'Download');
+
+        return a;
+    }
+
+    function openLightbox(url) {
+        lightboxImg.src = url;
+
+        if (lightboxDownload) {
+            lightboxDownload.href = url;
+            lightboxDownload.setAttribute('download', fileNameFromUrl(url, 'image'));
+        }
+
+        lightbox.classList.add('is-open');
+    }
+
     function renderMessage(m) {
         var row = el('div', 'chat-msg ' + (m.mine ? 'mine' : 'theirs'));
         row.setAttribute('data-msg-id', m.id);
@@ -596,7 +771,12 @@
 
         var bubble = el('div', 'chat-bubble');
 
-        if (m.is_viewing_request) {
+        var inquiryCard = renderInquiryCard(m);
+        if (inquiryCard) {
+            bubble.appendChild(inquiryCard);
+        }
+
+        if (m.is_viewing_request && !m.inquiry_meta) {
             var vb = el('div', 'chat-viewing-badge');
             vb.innerHTML = '<i class="fas fa-calendar-check"></i> Viewing Request';
             bubble.appendChild(vb);
@@ -616,6 +796,7 @@
 
         var urls = m.media_urls || [];
 
+        // Images
         if (m.message_type === 'image' && urls.length) {
             var grid = el('div', 'chat-msg-images' + (urls.length === 1 ? ' single' : ''));
 
@@ -626,59 +807,94 @@
                 img.alt = 'Attached image';
 
                 img.addEventListener('click', function () {
-                    lightboxImg.src = u;
-                    lightbox.classList.add('is-open');
+                    openLightbox(u);
                 });
 
                 grid.appendChild(img);
             });
 
             bubble.appendChild(grid);
+
+            var imageActions = el('div', 'chat-media-actions');
+            imageActions.appendChild(downloadAnchor(urls[0], fileNameFromUrl(urls[0], 'image'), 'Download'));
+            bubble.appendChild(imageActions);
         }
 
+        // Video
         if (m.message_type === 'video' && urls.length) {
+            var videoWrap = el('div', 'chat-video-wrap');
+
             var video = document.createElement('video');
             video.className = 'chat-msg-video';
             video.src = urls[0];
             video.controls = true;
             video.preload = 'metadata';
-            bubble.appendChild(video);
+
+            var videoActions = el('div', 'chat-media-actions');
+            videoActions.appendChild(downloadAnchor(urls[0], m.media_name || fileNameFromUrl(urls[0], 'video'), 'Download'));
+
+            videoWrap.appendChild(video);
+            videoWrap.appendChild(videoActions);
+
+            bubble.appendChild(videoWrap);
         }
 
+        // Document
         if (m.message_type === 'document' && urls.length) {
-            var a = el('a', 'chat-file-card');
-            a.href = urls[0];
-            a.target = '_blank';
-            a.rel = 'noopener';
+            var docCard = el('div', 'chat-document-card');
 
-            var icon = el('div', 'chat-file-icon');
-            icon.innerHTML = '<i class="fas fa-file-alt"></i>';
+            var docIcon = el('div', 'chat-file-icon');
+            docIcon.innerHTML = '<i class="fas fa-file-alt"></i>';
 
-            var textBox = document.createElement('div');
+            var docText = document.createElement('div');
 
-            var name = el('div', 'chat-file-name');
-            name.textContent = m.media_name || 'Document';
+            var docName = el('div', 'chat-file-name');
+            docName.textContent = m.media_name || fileNameFromUrl(urls[0], 'Document');
 
-            var meta = el('div', 'chat-file-meta');
-            meta.textContent = formatBytes(m.media_size);
+            var docMeta = el('div', 'chat-file-meta');
+            docMeta.textContent = formatBytes(m.media_size);
 
-            textBox.appendChild(name);
-            textBox.appendChild(meta);
+            docText.appendChild(docName);
+            docText.appendChild(docMeta);
 
-            a.appendChild(icon);
-            a.appendChild(textBox);
+            var docActions = el('div', 'chat-file-actions');
 
-            bubble.appendChild(a);
+            var openLink = document.createElement('a');
+            openLink.href = urls[0];
+            openLink.target = '_blank';
+            openLink.rel = 'noopener';
+            openLink.className = 'chat-file-action';
+            openLink.innerHTML = '<i class="fas fa-eye"></i> View';
+
+            var docDownload = downloadAnchor(urls[0], m.media_name || fileNameFromUrl(urls[0], 'document'), 'Download');
+            docDownload.className = 'chat-file-action';
+
+            docActions.appendChild(openLink);
+            docActions.appendChild(docDownload);
+
+            docCard.appendChild(docIcon);
+            docCard.appendChild(docText);
+            docCard.appendChild(docActions);
+
+            bubble.appendChild(docCard);
         }
 
+        // Audio — uploaded audio files and legacy voice notes
         if (m.message_type === 'audio' && urls.length) {
-            if (m.media_name) {
-                var audioName = el('div', 'chat-file-name');
-                audioName.textContent = m.media_name;
-                bubble.appendChild(audioName);
-            }
+            var audioWrap = el('div', 'chat-audio-wrap');
 
-            bubble.appendChild(voiceNode(urls[0], m.media_duration_sec));
+            var audio = document.createElement('audio');
+            audio.controls = true;
+            audio.src = urls[0];
+            audio.preload = 'metadata';
+
+            var audioActions = el('div', 'chat-media-actions');
+            audioActions.appendChild(downloadAnchor(urls[0], m.media_name || fileNameFromUrl(urls[0], 'audio'), 'Download'));
+
+            audioWrap.appendChild(audio);
+            audioWrap.appendChild(audioActions);
+
+            bubble.appendChild(audioWrap);
         }
 
         var metaRow = el('div', 'chat-msg-meta');
@@ -689,86 +905,6 @@
         row.appendChild(bubble);
 
         return row;
-    }
-
-    function voiceNode(url, seconds) {
-        var wrap = el('div', 'chat-voice');
-        var play = el('button', 'chat-voice-play');
-        play.type = 'button';
-        play.innerHTML = '<i class="fas fa-play"></i>';
-
-        var bars = el('div', 'chat-voice-bars');
-
-        barsFor(url, 27).forEach(function (h) {
-            var s = document.createElement('span');
-            s.style.height = h + 'px';
-            bars.appendChild(s);
-        });
-
-        var time = el('span', 'chat-voice-time');
-        time.textContent = fmtDur(seconds);
-
-        wrap.appendChild(play);
-        wrap.appendChild(bars);
-        wrap.appendChild(time);
-
-        var audio = null;
-        var playing = false;
-
-        function stop() {
-            if (audio) {
-                audio.pause();
-                audio = null;
-            }
-
-            playing = false;
-            play.innerHTML = '<i class="fas fa-play"></i>';
-
-            var spans = bars.querySelectorAll('span');
-            for (var i = 0; i < spans.length; i++) spans[i].classList.remove('played');
-
-            time.textContent = fmtDur(seconds);
-
-            if (state.currentAudioStop === stop) state.currentAudioStop = null;
-        }
-
-        play.addEventListener('click', function () {
-            if (playing) {
-                stop();
-                return;
-            }
-
-            stopCurrentAudio();
-
-            audio = new Audio(url);
-            playing = true;
-            state.currentAudioStop = stop;
-
-            play.innerHTML = '<i class="fas fa-pause"></i>';
-
-            audio.addEventListener('timeupdate', function () {
-                var d = audio.duration || seconds || 0;
-                var ratio = d ? (audio.currentTime / d) : 0;
-
-                var spans = bars.querySelectorAll('span');
-                var n = Math.floor(ratio * spans.length);
-
-                for (var i = 0; i < spans.length; i++) {
-                    spans[i].classList.toggle('played', i < n);
-                }
-
-                time.textContent = fmtDur(audio.currentTime);
-            });
-
-            audio.addEventListener('ended', stop);
-
-            audio.play().catch(function () {
-                toast('Could not play audio.', 'error');
-                stop();
-            });
-        });
-
-        return wrap;
     }
 
     function queueMarkRead() {
@@ -796,22 +932,33 @@
     }
 
     // ------------------------------------------------------------
-    // Attachments
+    // Pending attachments
     // ------------------------------------------------------------
 
-    function clearPendingFileUrl() {
-        if (state.pendingFileUrl) {
-            try { URL.revokeObjectURL(state.pendingFileUrl); } catch (e) {}
-            state.pendingFileUrl = null;
+    function revokePendingUrls() {
+        state.pendingImages.forEach(function (item) {
+            try {
+                URL.revokeObjectURL(item.url);
+            } catch (e) {}
+        });
+
+        if (state.pendingFile && state.pendingFile.url) {
+            try {
+                URL.revokeObjectURL(state.pendingFile.url);
+            } catch (e) {}
         }
     }
 
-    function renderPending() {
-        state.pendingUrls.forEach(function (u) {
-            try { URL.revokeObjectURL(u); } catch (e) {}
-        });
-        state.pendingUrls = [];
+    function clearPending() {
+        revokePendingUrls();
 
+        state.pendingImages = [];
+        state.pendingFile = null;
+
+        renderPending();
+    }
+
+    function renderPending() {
         pendingWrap.innerHTML = '';
 
         if (!state.pendingImages.length && !state.pendingFile) {
@@ -821,13 +968,12 @@
 
         pendingWrap.classList.add('has-items');
 
-        state.pendingImages.forEach(function (f, idx) {
-            var item = el('div', 'chat-pending-item');
+        state.pendingImages.forEach(function (item, idx) {
+            var pendingItem = el('div', 'chat-pending-item');
 
             var img = document.createElement('img');
-            var u = URL.createObjectURL(f);
-            state.pendingUrls.push(u);
-            img.src = u;
+            img.src = item.url;
+            img.alt = 'Pending image';
 
             var rm = document.createElement('button');
             rm.type = 'button';
@@ -835,34 +981,34 @@
             rm.title = 'Remove image';
 
             rm.addEventListener('click', function () {
+                if (state.sending) return;
+
+                try {
+                    URL.revokeObjectURL(item.url);
+                } catch (e) {}
+
                 state.pendingImages.splice(idx, 1);
                 renderPending();
             });
 
-            item.appendChild(img);
-            item.appendChild(rm);
+            pendingItem.appendChild(img);
+            pendingItem.appendChild(rm);
 
-            pendingWrap.appendChild(item);
+            var ringWrap = document.createElement('div');
+            ringWrap.innerHTML = progressRingHtml();
+            pendingItem.appendChild(ringWrap.firstChild);
+
+            pendingWrap.appendChild(pendingItem);
         });
 
         if (state.pendingFile) {
-            clearPendingFileUrl();
-
-            var item = el('div', 'chat-pending-file');
+            var fileItem = el('div', 'chat-pending-file');
 
             var icon = el('div', 'chat-file-icon');
-
-            if (state.pendingFile.kind === 'video') {
-                icon.innerHTML = '<i class="fas fa-video"></i>';
-            } else if (state.pendingFile.kind === 'audio') {
-                icon.innerHTML = '<i class="fas fa-music"></i>';
-            } else if (state.pendingFile.kind === 'document') {
-                icon.innerHTML = '<i class="fas fa-file-alt"></i>';
-            } else {
-                icon.innerHTML = '<i class="fas fa-image"></i>';
-            }
+            icon.innerHTML = fileIconForKind(state.pendingFile.kind);
 
             var textBox = document.createElement('div');
+            textBox.className = 'chat-file-text';
 
             var name = el('div', 'chat-file-name');
             name.textContent = state.pendingFile.file.name;
@@ -873,24 +1019,40 @@
             textBox.appendChild(name);
             textBox.appendChild(meta);
 
-            var rm = document.createElement('button');
-            rm.type = 'button';
-            rm.innerHTML = '<i class="fas fa-times"></i>';
-            rm.title = 'Remove file';
+            var progressWrap = el('div', 'chat-file-progress');
+            progressWrap.innerHTML = progressRingHtml();
 
-            rm.addEventListener('click', function () {
+            var rmFile = document.createElement('button');
+            rmFile.type = 'button';
+            rmFile.className = 'chat-file-remove';
+            rmFile.innerHTML = '<i class="fas fa-times"></i>';
+            rmFile.title = 'Remove file';
+
+            rmFile.addEventListener('click', function () {
+                if (state.sending) return;
+
+                if (state.pendingFile && state.pendingFile.url) {
+                    try {
+                        URL.revokeObjectURL(state.pendingFile.url);
+                    } catch (e) {}
+                }
+
                 state.pendingFile = null;
-                clearPendingFileUrl();
                 renderPending();
             });
 
-            item.appendChild(icon);
-            item.appendChild(textBox);
-            item.appendChild(rm);
+            fileItem.appendChild(icon);
+            fileItem.appendChild(textBox);
+            fileItem.appendChild(progressWrap.firstChild);
+            fileItem.appendChild(rmFile);
 
-            pendingWrap.appendChild(item);
+            pendingWrap.appendChild(fileItem);
         }
     }
+
+    // ------------------------------------------------------------
+    // Attachment menu
+    // ------------------------------------------------------------
 
     function toggleAttachMenu(force) {
         if (typeof force === 'boolean') {
@@ -916,6 +1078,8 @@
             var kind = btn.getAttribute('data-kind');
             toggleAttachMenu(false);
 
+            if (state.sending) return;
+
             if (kind === 'image') fileImage.click();
             if (kind === 'video') fileVideo.click();
             if (kind === 'audio') fileAudio.click();
@@ -924,6 +1088,8 @@
     });
 
     fileImage.addEventListener('change', function () {
+        if (state.sending) return;
+
         if (state.pendingFile) {
             toast('Remove the selected file before adding photos.', 'warning');
             this.value = '';
@@ -939,6 +1105,7 @@
             }
 
             var allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
             if (allowed.indexOf(f.type) === -1) {
                 toast('Only JPG, PNG, WEBP or GIF images.', 'error');
                 return;
@@ -949,7 +1116,11 @@
                 return;
             }
 
-            state.pendingImages.push(f);
+            state.pendingImages.push({
+                file: f,
+                url: URL.createObjectURL(f),
+                progress: 0
+            });
         });
 
         this.value = '';
@@ -957,6 +1128,8 @@
     });
 
     function selectSingleFile(input, kind, maxBytes, allowedExts) {
+        if (state.sending) return;
+
         if (state.pendingImages.length) {
             toast('Remove pending photos before adding another attachment.', 'warning');
             input.value = '';
@@ -986,7 +1159,13 @@
             return;
         }
 
-        state.pendingFile = { file: f, kind: kind };
+        state.pendingFile = {
+            file: f,
+            kind: kind,
+            url: URL.createObjectURL(f),
+            progress: 0
+        };
+
         renderPending();
         input.value = '';
     }
@@ -1004,120 +1183,17 @@
     });
 
     // ------------------------------------------------------------
-    // Voice notes
-    // ------------------------------------------------------------
-
-    function startRecording() {
-        if (state.rec) return;
-
-        if (state.pendingImages.length || state.pendingFile) {
-            toast('Remove pending attachments before recording a voice note.', 'warning');
-            return;
-        }
-
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-            toast('Voice notes not supported.', 'error');
-            return;
-        }
-
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(function (stream) {
-                var mime = '';
-                var candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
-
-                for (var i = 0; i < candidates.length; i++) {
-                    if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(candidates[i])) {
-                        mime = candidates[i];
-                        break;
-                    }
-                }
-
-                state.recChunks = [];
-                state.recMime = mime;
-                state.recCancelled = false;
-                state.recSeconds = 0;
-
-                recTimeEl.textContent = '0:00';
-
-                var rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
-                state.rec = rec;
-
-                rec.ondataavailable = function (e) {
-                    if (e.data && e.data.size > 0) state.recChunks.push(e.data);
-                };
-
-                rec.onstop = function () {
-                    stream.getTracks().forEach(function (t) {
-                        t.stop();
-                    });
-
-                    clearInterval(state.recTimer);
-                    composer.classList.remove('is-recording');
-                    micBtn.classList.remove('is-active');
-
-                    var secs = state.recSeconds;
-                    state.recSeconds = 0;
-                    state.rec = null;
-
-                    if (state.recCancelled) {
-                        state.recCancelled = false;
-                        state.recChunks = [];
-                        return;
-                    }
-
-                    if (!state.recChunks.length) return;
-
-                    var blob = new Blob(state.recChunks, { type: state.recMime || 'audio/webm' });
-                    state.recChunks = [];
-
-                    var ext = state.recMime.indexOf('mp4') > -1
-                        ? 'mp4'
-                        : (state.recMime.indexOf('ogg') > -1 ? 'ogg' : 'webm');
-
-                    doSend({
-                        body: input.value.trim(),
-                        images: [],
-                        attachment: null,
-                        audio: { blob: blob, ext: ext, seconds: secs }
-                    });
-                };
-
-                rec.start();
-
-                composer.classList.add('is-recording');
-                micBtn.classList.add('is-active');
-
-                state.recTimer = setInterval(function () {
-                    state.recSeconds++;
-                    recTimeEl.textContent = fmtDur(state.recSeconds);
-
-                    if (state.recSeconds >= CFG.maxVoiceSeconds && state.rec && state.rec.state !== 'inactive') {
-                        state.rec.stop();
-                    }
-                }, 1000);
-            })
-            .catch(function (err) {
-                toast('Microphone unavailable (' + (err && err.name ? err.name : 'error') + ').', 'error');
-            });
-    }
-
-    micBtn.addEventListener('click', startRecording);
-
-    recCancel.addEventListener('click', function () {
-        state.recCancelled = true;
-        if (state.rec && state.rec.state !== 'inactive') state.rec.stop();
-    });
-
-    recSend.addEventListener('click', function () {
-        if (state.rec && state.rec.state !== 'inactive') state.rec.stop();
-    });
-
-    // ------------------------------------------------------------
-    // Send
+    // Send with circular upload progress
     // ------------------------------------------------------------
 
     function doSend(opts) {
-        if (!state.current || !state.canReply) return;
+        if (!state.current || !state.canReply || state.sending) return;
+
+        state.sending = true;
+        sendBtn.disabled = true;
+
+        setPendingUploading(true);
+        updatePendingProgress(0);
 
         var fd = new FormData();
 
@@ -1127,8 +1203,8 @@
         fd.append('listing_type', state.current.type || '');
         fd.append('body', opts.body || '');
 
-        (opts.images || []).forEach(function (f) {
-            fd.append('images[]', f, f.name);
+        (opts.images || []).forEach(function (item) {
+            fd.append('images[]', item.file, item.file.name);
         });
 
         if (opts.attachment) {
@@ -1136,51 +1212,66 @@
             fd.append('attachment_kind', opts.attachment.kind);
         }
 
-        if (opts.audio) {
-            var fname = 'voice-note-' + Date.now() + '.' + opts.audio.ext;
-            fd.append('audio', new File([opts.audio.blob], fname, { type: opts.audio.blob.type }), fname);
-            fd.append('audio_duration', String(opts.audio.seconds || 0));
-        }
+        var xhr = new XMLHttpRequest();
 
-        sendBtn.disabled = true;
+        xhr.open('POST', CFG.epSend);
+        xhr.withCredentials = true;
 
-        fetch(CFG.epSend, {
-            method: 'POST',
-            body: fd,
-            credentials: 'same-origin'
-        })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                sendBtn.disabled = false;
+        xhr.upload.onprogress = function (e) {
+            if (e.lengthComputable) {
+                var pct = Math.round((e.loaded / e.total) * 100);
+                updatePendingProgress(pct);
+            }
+        };
 
-                if (data && data.success && data.message) {
-                    playSendSound();
+        xhr.onload = function () {
+            state.sending = false;
+            sendBtn.disabled = false;
 
-                    input.value = '';
-                    input.style.height = '40px';
+            setPendingUploading(false);
 
-                    state.pendingImages = [];
-                    state.pendingFile = null;
-                    clearPendingFileUrl();
+            var data = null;
 
-                    renderPending();
+            try {
+                data = JSON.parse(xhr.responseText);
+            } catch (e) {
+                toast('Unexpected server response.', 'error');
+                return;
+            }
 
-                    applyMessages([data.message], false);
-                    messagesWrap.scrollTop = messagesWrap.scrollHeight;
+            if (xhr.status >= 200 && xhr.status < 300 && data && data.success && data.message) {
+                playSendSound();
 
-                    loadConversations();
-                } else {
-                    toast((data && data.error) || 'Could not send.', 'error');
-                }
-            })
-            .catch(function () {
-                sendBtn.disabled = false;
-                toast('Network error.', 'error');
-            });
+                input.value = '';
+                input.style.height = '40px';
+
+                clearPending();
+
+                applyMessages([data.message], false);
+                messagesWrap.scrollTop = messagesWrap.scrollHeight;
+
+                loadConversations();
+            } else {
+                toast((data && data.error) || 'Could not send.', 'error');
+            }
+        };
+
+        xhr.onerror = function () {
+            state.sending = false;
+            sendBtn.disabled = false;
+
+            setPendingUploading(false);
+
+            toast('Network error.', 'error');
+        };
+
+        xhr.send(fd);
     }
 
     composer.addEventListener('submit', function (e) {
         e.preventDefault();
+
+        if (state.sending) return;
 
         var body = input.value.trim();
 
@@ -1188,8 +1279,7 @@
             doSend({
                 body: body,
                 images: [],
-                attachment: state.pendingFile,
-                audio: null
+                attachment: state.pendingFile
             });
             return;
         }
@@ -1198,8 +1288,7 @@
             doSend({
                 body: body,
                 images: state.pendingImages.slice(),
-                attachment: null,
-                audio: null
+                attachment: null
             });
             return;
         }
@@ -1209,8 +1298,7 @@
         doSend({
             body: body,
             images: [],
-            attachment: null,
-            audio: null
+            attachment: null
         });
     });
 
@@ -1227,7 +1315,7 @@
     });
 
     // ------------------------------------------------------------
-    // Lightbox/navigation
+    // Lightbox / navigation
     // ------------------------------------------------------------
 
     lightboxClose.addEventListener('click', function () {
@@ -1265,10 +1353,7 @@
     });
 
     window.addEventListener('beforeunload', function () {
-        state.pendingUrls.forEach(function (u) {
-            try { URL.revokeObjectURL(u); } catch (e) {}
-        });
-        clearPendingFileUrl();
+        revokePendingUrls();
     });
 
     // ------------------------------------------------------------
@@ -1281,5 +1366,6 @@
         openConversation(CFG.openOther, CFG.openListing, CFG.openType);
     }
 
+    window.__kinasChatBoot = true;
     window.__kinasChatJsLoaded = true;
 })();
