@@ -5,11 +5,17 @@
  * Docs: https://docs.didit.me
  * API:  https://verification.didit.me/v3
  *
- * AMENDED FOR KYC NAME-MATCH ENFORCEMENT:
- * - Adds stronger document-name extraction.
- * - Adds normalized name comparison helpers.
- * - Adds a central KYC name check method for use by the webhook.
- * - Keeps existing Didit session/webhook behaviour intact.
+ * OPTION 1 KYC NAME RULE:
+ * - Registered name and ID document name must match.
+ * - Mismatch = rejected.
+ * - Unreadable document name = manual review.
+ *
+ * AMENDED:
+ * - More tolerant Didit status mapping.
+ * - Stronger document-name extraction.
+ * - Safer extraction that avoids using our own metadata as the document name.
+ * - More realistic name comparison, tolerant of missing middle names but
+ *   still strict enough to block different identities.
  */
 
 class DiditService
@@ -60,17 +66,6 @@ class DiditService
     // Sessions
     // ──────────────────────────────────────────────────────────
 
-    /**
-     * Create a verification session on a given workflow (KYC or KYB —
-     * whichever workflow_id you pass in).
-     *
-     * @param string $workflowId   getKycWorkflowId() or getKybWorkflowId()
-     * @param string $vendorData   our internal reference (we use "kyc:{userId}" / "kyb:{userId}")
-     * @param string $callbackUrl  where the user lands after finishing the hosted flow
-     * @param array  $metadata     arbitrary JSON, echoed back in webhooks — for correlation only, never trusted
-     * @param array  $contactDetails  ['email' => ..., 'phone' => ...] optional prefill
-     * @return array{success: bool, session_id: ?string, session_token: ?string, url: ?string, status: ?string, error: ?string}
-     */
     public function createSession(
         string $workflowId,
         string $vendorData,
@@ -82,9 +77,11 @@ class DiditService
             return [
                 'success' => false,
                 'session_id' => null,
+                'session_number' => null,
                 'session_token' => null,
                 'url' => null,
                 'status' => null,
+                'workflow_id' => null,
                 'error' => 'Didit is not configured',
             ];
         }
@@ -111,9 +108,11 @@ class DiditService
             return [
                 'success' => false,
                 'session_id' => null,
+                'session_number' => null,
                 'session_token' => null,
                 'url' => null,
                 'status' => null,
+                'workflow_id' => null,
                 'error' => $e->getMessage(),
             ];
         }
@@ -122,9 +121,11 @@ class DiditService
             return [
                 'success' => false,
                 'session_id' => null,
+                'session_number' => null,
                 'session_token' => null,
                 'url' => null,
                 'status' => null,
+                'workflow_id' => null,
                 'error' => $res['detail'] ?? 'Unable to create verification session',
             ];
         }
@@ -141,10 +142,6 @@ class DiditService
         ];
     }
 
-    /**
-     * Fetch the authoritative decision for a session — used both for
-     * on-demand status checks and to re-verify what a webhook claims.
-     */
     public function getDecision(string $sessionId): array
     {
         if (!$this->enabled) {
@@ -190,13 +187,6 @@ class DiditService
     // Webhooks
     // ──────────────────────────────────────────────────────────
 
-    /**
-     * Verify a Didit webhook. Prefers X-Signature (HMAC over the raw
-     * bytes); falls back to X-Signature-Simple (HMAC over a fixed
-     * "timestamp:session_id:status:webhook_type" string) if the first
-     * doesn't match — Didit sends both on every delivery. Either way,
-     * requests older than 5 minutes are rejected to block replays.
-     */
     public function verifyWebhookSignature(
         string $rawBody,
         ?string $signature,
@@ -235,60 +225,69 @@ class DiditService
     }
 
     /**
-     * Map Didit's exact, case-sensitive session status strings to our
-     * internal vocabulary (mirrors MetaMapService::mapStatus so both
-     * providers feed the same agent_profiles state machine).
+     * More tolerant mapping of Didit statuses.
      */
     public static function mapStatus(string $diditStatus): string
     {
-        switch ($diditStatus) {
-            case 'Approved':
+        $status = strtolower(trim($diditStatus));
+        $status = preg_replace('/[^a-z0-9\s]+/', ' ', $status);
+        $status = preg_replace('/\s+/', ' ', trim((string)$status));
+
+        switch ($status) {
+            case 'approved':
+            case 'approve':
+            case 'success':
+            case 'succeeded':
+            case 'completed':
+            case 'complete':
+            case 'verified':
+            case 'kyc approved':
+            case 'id approved':
+            case 'identity approved':
                 return 'approved';
 
-            case 'Declined':
+            case 'declined':
+            case 'rejected':
+            case 'failed':
+            case 'failure':
+            case 'kyc declined':
+            case 'id declined':
+            case 'identity declined':
                 return 'rejected';
 
-            case 'In Review':
+            case 'in review':
+            case 'review':
+            case 'manual review':
+            case 'requires review':
+            case 'under review':
+            case 'pending review':
                 return 'review_needed';
 
-            case 'In Progress':
-            case 'Awaiting User':
-            case 'Resubmitted':
+            case 'in progress':
+            case 'awaiting user':
+            case 'resubmitted':
+            case 'pending user':
+            case 'user pending':
+            case 'started':
                 return 'in_progress';
 
-            case 'Abandoned':
-            case 'Expired':
-            case 'Kyc Expired':
+            case 'abandoned':
+            case 'expired':
+            case 'kyc expired':
+            case 'session expired':
                 return 'expired';
 
-            case 'Not Started':
+            case 'not started':
+            case 'created':
             default:
                 return 'created';
         }
     }
 
     // ──────────────────────────────────────────────────────────
-    // Identity cross-check (registered name vs. scanned ID document)
+    // Identity cross-check
     // ──────────────────────────────────────────────────────────
 
-    /**
-     * Central KYC name check.
-     *
-     * This is the method the webhook should use. It extracts the name
-     * from the Didit decision payload and compares it against the
-     * registered account name.
-     *
-     * Returns:
-     * [
-     *   'match' => bool,
-     *   'document_name' => ?string,
-     *   'score' => float,
-     *   'reason' => string,
-     *   'registered_tokens' => array,
-     *   'document_tokens' => array,
-     *   'matched_tokens' => array,
-     * ]
-     */
     public static function kycNameCheck(array $decision, string $registeredName): array
     {
         $documentName = self::extractDocumentName($decision);
@@ -311,35 +310,17 @@ class DiditService
         return $comparison;
     }
 
-    /**
-     * Best-effort extraction of the full name Didit read off the scanned
-     * ID document. Tries the shapes Didit's decision payload is known to
-     * use, most specific first. Returns null if no name field is found
-     * anywhere — callers must treat null as "cannot confirm", not as a
-     * pass.
-     */
     public static function extractDocumentName(array $decision): ?string
     {
         return self::extractNameFromArray($decision, 0);
     }
 
-    /**
-     * Loose but controlled name match.
-     *
-     * Tolerant of reordering, extra middle names, common honorifics,
-     * punctuation/case differences, but strict about the actual name
-     * tokens differing.
-     */
     public static function namesLikelyMatch(string $registeredName, string $documentName): bool
     {
         $result = self::compareNames($registeredName, $documentName);
-
         return !empty($result['match']);
     }
 
-    /**
-     * Compare two names and return structured match information.
-     */
     public static function compareNames(string $registeredName, ?string $documentName): array
     {
         $registeredTokens = self::normalizeName($registeredName);
@@ -388,18 +369,22 @@ class DiditService
         $match = false;
         $reason = 'Insufficient name overlap between registered name and ID document name.';
 
-        if ($registeredCount === 1) {
-            // Single-name accounts are rare but possible. Require the
-            // registered token to exist in the document name.
-            $match = $matchedCount === 1;
+        if ($registeredCount === 1 || $documentCount === 1) {
+            $match = $matchedCount >= 1;
             $reason = $match
-                ? 'Single registered name token matched the document name.'
-                : 'The registered single name was not found on the document.';
+                ? 'Single-name token matched.'
+                : 'No matching name token found.';
         } else {
-            // For normal multi-token names, require at least two matching
-            // tokens and a strong overlap ratio. This prevents
-            // "Tango Delta" from matching "Alpha Delta".
-            $match = $matchedCount >= 2 && $score >= 0.75;
+            /*
+             * Option 1 rule:
+             * - Two-name accounts must match both names.
+             * - Longer names may omit a middle name on the ID, so we allow
+             *   a strong partial match.
+             * - Different first/last identities should still fail.
+             */
+            $requiredMatches = min(2, $denominator);
+
+            $match = $matchedCount >= $requiredMatches && $score >= 0.60;
 
             if ($match) {
                 $reason = 'Registered name tokens sufficiently match the document name.';
@@ -419,9 +404,6 @@ class DiditService
         ];
     }
 
-    /**
-     * Normalize a name into comparable lowercase ASCII tokens.
-     */
     public static function normalizeName(string $name): array
     {
         $name = strtolower(trim($name));
@@ -430,23 +412,18 @@ class DiditService
             return [];
         }
 
-        // Convert accented/non-ASCII characters to ASCII where possible.
         if (function_exists('transliterator_transliterate')) {
             $converted = @transliterator_transliterate('Any-Latin; Latin-ASCII', $name);
-
             if (is_string($converted)) {
                 $name = $converted;
             }
         } elseif (function_exists('iconv')) {
             $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
-
             if ($converted !== false) {
                 $name = $converted;
             }
         }
 
-        // Remove common honorifics/titles/suffixes that can appear on IDs
-        // or account names but are not part of the core identity.
         $ignoreWords = [
             'mr', 'mrs', 'ms', 'miss', 'dr', 'engr', 'chief', 'prince',
             'princess', 'alhaji', 'alhaja', 'hajiya', 'barr', 'prof',
@@ -475,30 +452,123 @@ class DiditService
         return $tokens;
     }
 
-    /**
-     * Extract a human name from a nested Didit payload array.
-     */
     private static function extractNameFromArray(array $data, int $depth = 0): ?string
     {
-        if ($depth > 4) {
+        if ($depth > 6) {
             return null;
         }
 
         $candidates = [];
 
-        // Direct full-name style fields.
-        foreach (['full_name', 'fullName', 'name', 'complete_name', 'legal_name', 'holder_name', 'document_name'] as $key) {
+        /*
+         * Direct full-name style fields.
+         *
+         * At root level, we avoid using a bare "name" key because it may be
+         * a workflow name, event name, or other non-identity field.
+         * In nested arrays, bare "name" is much more likely to be identity data.
+         */
+        $fullNameKeys = [
+            'full_name',
+            'fullName',
+            'fullname',
+            'complete_name',
+            'completeName',
+            'legal_name',
+            'legalName',
+            'holder_name',
+            'holderName',
+            'document_name',
+            'documentName',
+            'name_on_document',
+            'nameOnDocument',
+            'name_on_id',
+            'nameOnId',
+            'document_holder_name',
+            'documentHolderName',
+            'person_name',
+            'personName',
+            'applicant_name',
+            'applicantName',
+            'customer_name',
+            'customerName',
+            'identity_name',
+            'identityName',
+        ];
+
+        if ($depth > 0) {
+            $fullNameKeys[] = 'name';
+        }
+
+        foreach ($fullNameKeys as $key) {
             if (isset($data[$key])) {
-                $candidates[] = self::cleanNameString($data[$key]);
+                $candidate = self::cleanNameString($data[$key]);
+                if ($candidate !== null && $candidate !== '') {
+                    $candidates[] = $candidate;
+                }
             }
         }
 
-        // First/middle/last style fields.
+        // First / middle / last style fields.
         $nameParts = [];
 
-        foreach (['first_name', 'firstName', 'given_name', 'givenName', 'middle_name', 'middleName', 'last_name', 'lastName', 'surname', 'family_name', 'familyName'] as $partKey) {
-            if (isset($data[$partKey]) && is_string($data[$partKey]) && trim($data[$partKey]) !== '') {
-                $nameParts[] = trim($data[$partKey]);
+        $firstKeys = [
+            'first_name',
+            'firstName',
+            'given_name',
+            'givenName',
+            'given_names',
+            'givenNames',
+            'name1',
+            'first_name_1',
+            'firstName1',
+        ];
+
+        $middleKeys = [
+            'middle_name',
+            'middleName',
+            'middle_names',
+            'middleNames',
+            'second_name',
+            'secondName',
+            'name2',
+            'patronymic',
+        ];
+
+        $lastKeys = [
+            'last_name',
+            'lastName',
+            'surname',
+            'family_name',
+            'familyName',
+            'family_name1',
+            'lastName1',
+            'name3',
+        ];
+
+        foreach ($firstKeys as $key) {
+            if (isset($data[$key])) {
+                $value = self::cleanNameString($data[$key]);
+                if ($value !== null) {
+                    $nameParts[] = $value;
+                }
+            }
+        }
+
+        foreach ($middleKeys as $key) {
+            if (isset($data[$key])) {
+                $value = self::cleanNameString($data[$key]);
+                if ($value !== null) {
+                    $nameParts[] = $value;
+                }
+            }
+        }
+
+        foreach ($lastKeys as $key) {
+            if (isset($data[$key])) {
+                $value = self::cleanNameString($data[$key]);
+                if ($value !== null) {
+                    $nameParts[] = $value;
+                }
             }
         }
 
@@ -511,8 +581,9 @@ class DiditService
             $nameArrayParts = [];
 
             foreach ($data['names'] as $nameValue) {
-                if (is_string($nameValue) && trim($nameValue) !== '') {
-                    $nameArrayParts[] = trim($nameValue);
+                $value = self::cleanNameString($nameValue);
+                if ($value !== null) {
+                    $nameArrayParts[] = $value;
                 }
             }
 
@@ -533,22 +604,73 @@ class DiditService
             'ID_VERIFICATION',
             'identity',
             'identity_verification',
+            'identity_data',
             'document',
+            'documents',
             'id_document',
             'document_data',
+            'document_information',
+            'extracted_data',
+            'extraction',
+            'ocr',
             'data',
             'result',
+            'results',
             'verification',
             'details',
             'person',
+            'person_data',
+            'person_details',
+            'personal_information',
             'customer',
             'user',
+            'applicant',
+            'application',
+            'candidate',
+            'record',
+            'records',
+            'check',
+            'checks',
+            'output',
+            'outputs',
+            'decision',
         ];
 
         foreach ($nestedKeys as $nestedKey) {
             if (!empty($data[$nestedKey]) && is_array($data[$nestedKey])) {
                 $found = self::extractNameFromArray($data[$nestedKey], $depth + 1);
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+        }
 
+        /*
+         * Generic recursive search.
+         *
+         * Skip fields that contain our own metadata or non-identity data.
+         */
+        $skipKeys = [
+            'metadata',
+            'vendor_data',
+            'callback',
+            'contact_details',
+            'expected_name',
+            'webhook',
+            'event',
+            'session_data',
+            'workflow',
+            'status',
+            'error',
+        ];
+
+        foreach ($data as $key => $value) {
+            if (is_string($key) && in_array(strtolower($key), $skipKeys, true)) {
+                continue;
+            }
+
+            if (is_array($value)) {
+                $found = self::extractNameFromArray($value, $depth + 1);
                 if ($found !== null) {
                     return $found;
                 }
@@ -558,11 +680,20 @@ class DiditService
         return null;
     }
 
-    /**
-     * Clean a possible name string.
-     */
     private static function cleanNameString($value): ?string
     {
+        if (is_array($value)) {
+            $parts = [];
+
+            array_walk_recursive($value, static function ($item) use (&$parts) {
+                if (is_string($item) && trim($item) !== '') {
+                    $parts[] = trim($item);
+                }
+            });
+
+            $value = implode(' ', $parts);
+        }
+
         if (!is_string($value)) {
             return null;
         }
@@ -609,9 +740,6 @@ class DiditService
 
         $decoded = json_decode($raw, true);
 
-        // Didit returns 403 (not 401) for any auth problem, and 400 for
-        // insufficient credits — both are still "the call failed",
-        // surfaced generically here; callers check for missing expected fields.
         if ($code >= 400) {
             $msg = $decoded['detail'] ?? $raw;
 
