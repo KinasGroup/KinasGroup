@@ -1,29 +1,19 @@
 // ============================================================
-// KINAS BUILD: 2026.08.15.05
+// KINAS BUILD: 2026.08.15.11
 // FILE: assets/js/chat.js
 //
-// Rebuilt messenger client.
-//
-// Includes:
-// - No microphone / voice recording button.
-// - + attachment menu: Photo, Video, Audio, Document.
-// - Document restriction: doc, docx, pdf, ppt, pptx only.
-// - Circular upload progress counter.
-// - Formal inquiry header restored from inquiry_meta.
-// - Download ability for uploaded items.
-// - Send/receive sounds.
-// - Listing-bound messenger behaviour.
-//
-// Cache-busting note:
-// This file contains a build stamp for identification only.
-// The actual cache buster must be applied in user/messages.php
-// and agent/messages.php using ?v=... on the script URL.
+// FIXES:
+// - Pending image thumbnails now use FileReader data URLs.
+//   This avoids blob: URLs being blocked by CSP.
+// - Adds circular upload progress bar during send.
+// - Removes microphone / voice recording button.
+// - Keeps + attachment menu for Photo, Video, Audio, Document.
 // ============================================================
 
 (function () {
     'use strict';
 
-    window.__kinasChatBuild = '2026.08.15.05';
+    window.__kinasChatBuild = '2026.08.15.11';
     window.__kinasChatBoot = false;
 
     var root = document.getElementById('chatRoot');
@@ -65,9 +55,8 @@
         pendingFile: null,
 
         search: '',
-        currentAudioStop: null,
-        markReadQueued: false,
         sending: false,
+        markReadQueued: false,
 
         soundEnabled: true,
         lastSoundAt: 0
@@ -112,43 +101,6 @@
         return bytes.toFixed(1) + ' ' + units[i];
     }
 
-    function fileNameFromUrl(url, fallback) {
-        try {
-            var parts = String(url || '').split('/');
-            var last = parts[parts.length - 1] || '';
-            last = last.split('?')[0];
-
-            if (last) {
-                return decodeURIComponent(last);
-            }
-        } catch (e) {}
-
-        return fallback || 'download';
-    }
-
-    function formatTimestamp(s) {
-        if (!s) return '';
-
-        var d = new Date(String(s).replace(' ', 'T'));
-
-        if (isNaN(d.getTime())) {
-            d = new Date(s);
-        }
-
-        if (isNaN(d.getTime())) {
-            return String(s);
-        }
-
-        return d.toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        }) + ', ' + d.toLocaleTimeString(undefined, {
-            hour: 'numeric',
-            minute: '2-digit'
-        });
-    }
-
     function toast(msg, type) {
         if (typeof window.kinasToast === 'function') {
             window.kinasToast(msg, type || 'info');
@@ -168,22 +120,6 @@
         if (role === 'admin') return 'role-admin';
         if (role === 'business') return 'role-business';
         return 'role-user';
-    }
-
-    function fileIconForKind(kind) {
-        if (kind === 'video') return '<i class="fas fa-video"></i>';
-        if (kind === 'audio') return '<i class="fas fa-music"></i>';
-        if (kind === 'document') return '<i class="fas fa-file-alt"></i>';
-        return '<i class="fas fa-image"></i>';
-    }
-
-    function stopCurrentAudio() {
-        if (state.currentAudioStop) {
-            try {
-                state.currentAudioStop();
-            } catch (e) {}
-            state.currentAudioStop = null;
-        }
     }
 
     // ------------------------------------------------------------
@@ -366,7 +302,7 @@
         lightboxDownload = qs('chatLightboxDownload');
 
     // ------------------------------------------------------------
-    // Upload progress ring helpers
+    // Progress ring helpers
     // ------------------------------------------------------------
 
     function progressRingHtml() {
@@ -401,7 +337,7 @@
     function setPendingUploading(isUploading) {
         var overlays = document.querySelectorAll('.chat-progress-overlay');
 
-        overlays.forEach(function (overlay) {
+        Array.prototype.forEach.call(overlays, function (overlay) {
             overlay.style.display = isUploading ? 'flex' : 'none';
 
             if (isUploading) {
@@ -415,10 +351,258 @@
 
         var overlays = document.querySelectorAll('.chat-progress-overlay');
 
-        overlays.forEach(function (overlay) {
+        Array.prototype.forEach.call(overlays, function (overlay) {
             setRingProgress(overlay, pct);
         });
     }
+
+    // ------------------------------------------------------------
+    // Pending attachments
+    // ------------------------------------------------------------
+
+    function clearPending() {
+        state.pendingImages = [];
+        state.pendingFile = null;
+        renderPending();
+    }
+
+    function renderPending() {
+        pendingWrap.innerHTML = '';
+
+        if (!state.pendingImages.length && !state.pendingFile) {
+            pendingWrap.classList.remove('has-items');
+            return;
+        }
+
+        pendingWrap.classList.add('has-items');
+
+        state.pendingImages.forEach(function (item, idx) {
+            var pendingItem = el('div', 'chat-pending-item');
+
+            var img = document.createElement('img');
+            img.src = item.preview;
+            img.alt = 'Pending upload';
+
+            var rm = document.createElement('button');
+            rm.type = 'button';
+            rm.innerHTML = '<i class="fas fa-times"></i>';
+            rm.title = 'Remove image';
+
+            rm.addEventListener('click', function () {
+                if (state.sending) return;
+
+                state.pendingImages.splice(idx, 1);
+                renderPending();
+            });
+
+            pendingItem.appendChild(img);
+            pendingItem.appendChild(rm);
+
+            var ringWrap = document.createElement('div');
+            ringWrap.innerHTML = progressRingHtml();
+            pendingItem.appendChild(ringWrap.firstChild);
+
+            pendingWrap.appendChild(pendingItem);
+        });
+
+        if (state.pendingFile) {
+            var fileItem = el('div', 'chat-pending-file');
+
+            var icon = el('div', 'chat-file-icon');
+
+            if (state.pendingFile.kind === 'video') {
+                icon.innerHTML = '<i class="fas fa-video"></i>';
+            } else if (state.pendingFile.kind === 'audio') {
+                icon.innerHTML = '<i class="fas fa-music"></i>';
+            } else if (state.pendingFile.kind === 'document') {
+                icon.innerHTML = '<i class="fas fa-file-alt"></i>';
+            } else {
+                icon.innerHTML = '<i class="fas fa-image"></i>';
+            }
+
+            var textBox = document.createElement('div');
+            textBox.className = 'chat-file-text';
+
+            var name = el('div', 'chat-file-name');
+            name.textContent = state.pendingFile.file.name;
+
+            var meta = el('div', 'chat-file-meta');
+            meta.textContent = formatBytes(state.pendingFile.file.size);
+
+            textBox.appendChild(name);
+            textBox.appendChild(meta);
+
+            var progressWrap = el('div', 'chat-file-progress');
+            progressWrap.innerHTML = progressRingHtml();
+
+            var rmFile = document.createElement('button');
+            rmFile.type = 'button';
+            rmFile.className = 'chat-file-remove';
+            rmFile.innerHTML = '<i class="fas fa-times"></i>';
+            rmFile.title = 'Remove file';
+
+            rmFile.addEventListener('click', function () {
+                if (state.sending) return;
+
+                state.pendingFile = null;
+                renderPending();
+            });
+
+            fileItem.appendChild(icon);
+            fileItem.appendChild(textBox);
+            fileItem.appendChild(progressWrap.firstChild);
+            fileItem.appendChild(rmFile);
+
+            pendingWrap.appendChild(fileItem);
+        }
+    }
+
+    // ------------------------------------------------------------
+    // Image preview using FileReader data URLs.
+    // This fixes broken blob: thumbnails caused by CSP.
+    // ------------------------------------------------------------
+
+    function addImageFiles(fileList) {
+        if (state.sending) return;
+
+        var files = Array.prototype.slice.call(fileList || []);
+
+        files.forEach(function (f) {
+            if (state.pendingFile) {
+                toast('Remove the selected file before adding photos.', 'warning');
+                return;
+            }
+
+            if (state.pendingImages.length >= CFG.maxImages) {
+                toast('Max ' + CFG.maxImages + ' images.', 'error');
+                return;
+            }
+
+            var allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+            if (allowed.indexOf(f.type) === -1) {
+                toast('Only JPG, PNG, WEBP or GIF images.', 'error');
+                return;
+            }
+
+            if (f.size > CFG.maxImageBytes) {
+                toast('Image too large. Max 10MB.', 'error');
+                return;
+            }
+
+            var reader = new FileReader();
+
+            reader.onload = function (e) {
+                state.pendingImages.push({
+                    file: f,
+                    preview: e.target.result
+                });
+
+                renderPending();
+            };
+
+            reader.onerror = function () {
+                toast('Could not read the selected image.', 'error');
+            };
+
+            reader.readAsDataURL(f);
+        });
+    }
+
+    function selectSingleFile(inputEl, kind, maxBytes, allowedExts) {
+        if (state.sending) return;
+
+        if (state.pendingImages.length) {
+            toast('Remove pending photos before adding another attachment.', 'warning');
+            inputEl.value = '';
+            return;
+        }
+
+        if (state.pendingFile) {
+            toast('Only one attachment is allowed.', 'warning');
+            inputEl.value = '';
+            return;
+        }
+
+        var f = inputEl.files && inputEl.files[0];
+        if (!f) return;
+
+        var ext = (f.name.split('.').pop() || '').toLowerCase();
+
+        if (allowedExts.indexOf(ext) === -1) {
+            toast('Unsupported file type.', 'error');
+            inputEl.value = '';
+            return;
+        }
+
+        if (f.size > maxBytes) {
+            toast('File too large.', 'error');
+            inputEl.value = '';
+            return;
+        }
+
+        state.pendingFile = {
+            file: f,
+            kind: kind
+        };
+
+        renderPending();
+        inputEl.value = '';
+    }
+
+    // ------------------------------------------------------------
+    // Attachment menu
+    // ------------------------------------------------------------
+
+    function toggleAttachMenu(force) {
+        if (typeof force === 'boolean') {
+            attachMenu.classList.toggle('is-open', force);
+        } else {
+            attachMenu.classList.toggle('is-open');
+        }
+    }
+
+    attachBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        toggleAttachMenu();
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!attachMenu.contains(e.target) && e.target !== attachBtn) {
+            attachMenu.classList.remove('is-open');
+        }
+    });
+
+    Array.prototype.forEach.call(attachMenu.querySelectorAll('button'), function (btn) {
+        btn.addEventListener('click', function () {
+            var kind = btn.getAttribute('data-kind');
+            toggleAttachMenu(false);
+
+            if (state.sending) return;
+
+            if (kind === 'image') fileImage.click();
+            if (kind === 'video') fileVideo.click();
+            if (kind === 'audio') fileAudio.click();
+            if (kind === 'document') fileDoc.click();
+        });
+    });
+
+    fileImage.addEventListener('change', function () {
+        addImageFiles(this.files);
+        this.value = '';
+    });
+
+    fileVideo.addEventListener('change', function () {
+        selectSingleFile(this, 'video', CFG.maxVideoBytes, ['mp4', 'webm', 'mov']);
+    });
+
+    fileAudio.addEventListener('change', function () {
+        selectSingleFile(this, 'audio', CFG.maxAudioBytes, ['mp3', 'wav', 'm4a', 'ogg', 'aac']);
+    });
+
+    fileDoc.addEventListener('change', function () {
+        selectSingleFile(this, 'document', CFG.maxDocBytes, ['doc', 'docx', 'pdf', 'ppt', 'pptx']);
+    });
 
     // ------------------------------------------------------------
     // Conversation list
@@ -676,65 +860,19 @@
         t.classList.toggle('is-read', !!isRead);
     }
 
-    // ------------------------------------------------------------
-    // Inquiry header
-    // ------------------------------------------------------------
+    function fileNameFromUrl(url, fallback) {
+        try {
+            var parts = String(url || '').split('/');
+            var last = parts[parts.length - 1] || '';
+            last = last.split('?')[0];
 
-    function renderInquiryCard(m) {
-        var meta = m.inquiry_meta || null;
-        if (!meta) return null;
+            if (last) {
+                return decodeURIComponent(last);
+            }
+        } catch (e) {}
 
-        var card = el('div', 'chat-inquiry-card');
-
-        var title = 'Formal Inquiry';
-
-        if (m.is_viewing_request || meta.inquiry_type === 'viewing') {
-            title = 'Viewing Request';
-        }
-
-        var timestamp = formatTimestamp(meta.sent_at || m.created_at || '');
-
-        var html =
-            '<div class="chat-inquiry-head">' +
-                '<div class="chat-inquiry-title"><i class="fas fa-envelope-open-text"></i> ' + esc(title) + '</div>' +
-                '<div class="chat-inquiry-time">' + esc(timestamp) + '</div>' +
-            '</div>' +
-            '<div class="chat-inquiry-meta">';
-
-        if (meta.name) {
-            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-user"></i> Name</span><span class="chat-inquiry-value">' + esc(meta.name) + '</span></div>';
-        }
-
-        if (meta.email) {
-            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-envelope"></i> Email</span><span class="chat-inquiry-value"><a href="mailto:' + esc(meta.email) + '">' + esc(meta.email) + '</a></span></div>';
-        }
-
-        if (meta.phone) {
-            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-phone"></i> Phone</span><span class="chat-inquiry-value">' + esc(meta.phone) + '</span></div>';
-        }
-
-        if (meta.preferred_date || m.preferred_date) {
-            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-calendar"></i> Preferred Date</span><span class="chat-inquiry-value">' + esc(meta.preferred_date || m.preferred_date) + '</span></div>';
-        }
-
-        if (meta.preferred_time || m.preferred_time) {
-            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-clock"></i> Preferred Time</span><span class="chat-inquiry-value">' + esc(meta.preferred_time || m.preferred_time) + '</span></div>';
-        }
-
-        if (meta.subject) {
-            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-heading"></i> Subject</span><span class="chat-inquiry-value">' + esc(meta.subject) + '</span></div>';
-        }
-
-        html += '</div>';
-
-        card.innerHTML = html;
-
-        return card;
+        return fallback || 'download';
     }
-
-    // ------------------------------------------------------------
-    // Media renderers + download actions
-    // ------------------------------------------------------------
 
     function downloadAnchor(url, filename, label) {
         var a = document.createElement('a');
@@ -771,21 +909,34 @@
 
         var bubble = el('div', 'chat-bubble');
 
-        var inquiryCard = renderInquiryCard(m);
-        if (inquiryCard) {
-            bubble.appendChild(inquiryCard);
-        }
+        if (m.inquiry_meta) {
+            var inquiryCard = el('div', 'chat-inquiry-card');
 
-        if (m.is_viewing_request && !m.inquiry_meta) {
-            var vb = el('div', 'chat-viewing-badge');
-            vb.innerHTML = '<i class="fas fa-calendar-check"></i> Viewing Request';
-            bubble.appendChild(vb);
+            var meta = m.inquiry_meta || {};
+            var title = meta.inquiry_type === 'viewing' ? 'Viewing Request' : 'Formal Inquiry';
 
-            if (m.preferred_date) {
-                var vd = el('div', 'chat-viewing-details');
-                vd.textContent = '📅 ' + m.preferred_date + (m.preferred_time ? ' at ' + m.preferred_time : '');
-                bubble.appendChild(vd);
+            var html =
+                '<div class="chat-inquiry-head">' +
+                    '<div class="chat-inquiry-title"><i class="fas fa-envelope-open-text"></i> ' + esc(title) + '</div>' +
+                '</div>' +
+                '<div class="chat-inquiry-meta">';
+
+            if (meta.name) {
+                html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label">Name</span><span class="chat-inquiry-value">' + esc(meta.name) + '</span></div>';
             }
+
+            if (meta.email) {
+                html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label">Email</span><span class="chat-inquiry-value">' + esc(meta.email) + '</span></div>';
+            }
+
+            if (meta.phone) {
+                html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label">Phone</span><span class="chat-inquiry-value">' + esc(meta.phone) + '</span></div>';
+            }
+
+            html += '</div>';
+
+            inquiryCard.innerHTML = html;
+            bubble.appendChild(inquiryCard);
         }
 
         if (m.body) {
@@ -796,7 +947,6 @@
 
         var urls = m.media_urls || [];
 
-        // Images
         if (m.message_type === 'image' && urls.length) {
             var grid = el('div', 'chat-msg-images' + (urls.length === 1 ? ' single' : ''));
 
@@ -820,7 +970,6 @@
             bubble.appendChild(imageActions);
         }
 
-        // Video
         if (m.message_type === 'video' && urls.length) {
             var videoWrap = el('div', 'chat-video-wrap');
 
@@ -839,7 +988,6 @@
             bubble.appendChild(videoWrap);
         }
 
-        // Document
         if (m.message_type === 'document' && urls.length) {
             var docCard = el('div', 'chat-document-card');
 
@@ -879,7 +1027,6 @@
             bubble.appendChild(docCard);
         }
 
-        // Audio — uploaded audio files and legacy voice notes
         if (m.message_type === 'audio' && urls.length) {
             var audioWrap = el('div', 'chat-audio-wrap');
 
@@ -930,257 +1077,6 @@
                 .catch(function () {});
         }, 400);
     }
-
-    // ------------------------------------------------------------
-    // Pending attachments
-    // ------------------------------------------------------------
-
-    function revokePendingUrls() {
-        state.pendingImages.forEach(function (item) {
-            try {
-                URL.revokeObjectURL(item.url);
-            } catch (e) {}
-        });
-
-        if (state.pendingFile && state.pendingFile.url) {
-            try {
-                URL.revokeObjectURL(state.pendingFile.url);
-            } catch (e) {}
-        }
-    }
-
-    function clearPending() {
-        revokePendingUrls();
-
-        state.pendingImages = [];
-        state.pendingFile = null;
-
-        renderPending();
-    }
-
-    function renderPending() {
-        pendingWrap.innerHTML = '';
-
-        if (!state.pendingImages.length && !state.pendingFile) {
-            pendingWrap.classList.remove('has-items');
-            return;
-        }
-
-        pendingWrap.classList.add('has-items');
-
-        state.pendingImages.forEach(function (item, idx) {
-            var pendingItem = el('div', 'chat-pending-item');
-
-            var img = document.createElement('img');
-            img.src = item.url;
-            img.alt = 'Pending image';
-
-            var rm = document.createElement('button');
-            rm.type = 'button';
-            rm.innerHTML = '<i class="fas fa-times"></i>';
-            rm.title = 'Remove image';
-
-            rm.addEventListener('click', function () {
-                if (state.sending) return;
-
-                try {
-                    URL.revokeObjectURL(item.url);
-                } catch (e) {}
-
-                state.pendingImages.splice(idx, 1);
-                renderPending();
-            });
-
-            pendingItem.appendChild(img);
-            pendingItem.appendChild(rm);
-
-            var ringWrap = document.createElement('div');
-            ringWrap.innerHTML = progressRingHtml();
-            pendingItem.appendChild(ringWrap.firstChild);
-
-            pendingWrap.appendChild(pendingItem);
-        });
-
-        if (state.pendingFile) {
-            var fileItem = el('div', 'chat-pending-file');
-
-            var icon = el('div', 'chat-file-icon');
-            icon.innerHTML = fileIconForKind(state.pendingFile.kind);
-
-            var textBox = document.createElement('div');
-            textBox.className = 'chat-file-text';
-
-            var name = el('div', 'chat-file-name');
-            name.textContent = state.pendingFile.file.name;
-
-            var meta = el('div', 'chat-file-meta');
-            meta.textContent = formatBytes(state.pendingFile.file.size);
-
-            textBox.appendChild(name);
-            textBox.appendChild(meta);
-
-            var progressWrap = el('div', 'chat-file-progress');
-            progressWrap.innerHTML = progressRingHtml();
-
-            var rmFile = document.createElement('button');
-            rmFile.type = 'button';
-            rmFile.className = 'chat-file-remove';
-            rmFile.innerHTML = '<i class="fas fa-times"></i>';
-            rmFile.title = 'Remove file';
-
-            rmFile.addEventListener('click', function () {
-                if (state.sending) return;
-
-                if (state.pendingFile && state.pendingFile.url) {
-                    try {
-                        URL.revokeObjectURL(state.pendingFile.url);
-                    } catch (e) {}
-                }
-
-                state.pendingFile = null;
-                renderPending();
-            });
-
-            fileItem.appendChild(icon);
-            fileItem.appendChild(textBox);
-            fileItem.appendChild(progressWrap.firstChild);
-            fileItem.appendChild(rmFile);
-
-            pendingWrap.appendChild(fileItem);
-        }
-    }
-
-    // ------------------------------------------------------------
-    // Attachment menu
-    // ------------------------------------------------------------
-
-    function toggleAttachMenu(force) {
-        if (typeof force === 'boolean') {
-            attachMenu.classList.toggle('is-open', force);
-        } else {
-            attachMenu.classList.toggle('is-open');
-        }
-    }
-
-    attachBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        toggleAttachMenu();
-    });
-
-    document.addEventListener('click', function (e) {
-        if (!attachMenu.contains(e.target) && e.target !== attachBtn) {
-            attachMenu.classList.remove('is-open');
-        }
-    });
-
-    Array.prototype.forEach.call(attachMenu.querySelectorAll('button'), function (btn) {
-        btn.addEventListener('click', function () {
-            var kind = btn.getAttribute('data-kind');
-            toggleAttachMenu(false);
-
-            if (state.sending) return;
-
-            if (kind === 'image') fileImage.click();
-            if (kind === 'video') fileVideo.click();
-            if (kind === 'audio') fileAudio.click();
-            if (kind === 'document') fileDoc.click();
-        });
-    });
-
-    fileImage.addEventListener('change', function () {
-        if (state.sending) return;
-
-        if (state.pendingFile) {
-            toast('Remove the selected file before adding photos.', 'warning');
-            this.value = '';
-            return;
-        }
-
-        var files = Array.prototype.slice.call(this.files || []);
-
-        files.forEach(function (f) {
-            if (state.pendingImages.length >= CFG.maxImages) {
-                toast('Max ' + CFG.maxImages + ' images.', 'error');
-                return;
-            }
-
-            var allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-
-            if (allowed.indexOf(f.type) === -1) {
-                toast('Only JPG, PNG, WEBP or GIF images.', 'error');
-                return;
-            }
-
-            if (f.size > CFG.maxImageBytes) {
-                toast('Image too large. Max 10MB.', 'error');
-                return;
-            }
-
-            state.pendingImages.push({
-                file: f,
-                url: URL.createObjectURL(f),
-                progress: 0
-            });
-        });
-
-        this.value = '';
-        renderPending();
-    });
-
-    function selectSingleFile(input, kind, maxBytes, allowedExts) {
-        if (state.sending) return;
-
-        if (state.pendingImages.length) {
-            toast('Remove pending photos before adding another attachment.', 'warning');
-            input.value = '';
-            return;
-        }
-
-        if (state.pendingFile) {
-            toast('Only one attachment is allowed.', 'warning');
-            input.value = '';
-            return;
-        }
-
-        var f = input.files && input.files[0];
-        if (!f) return;
-
-        var ext = (f.name.split('.').pop() || '').toLowerCase();
-
-        if (allowedExts.indexOf(ext) === -1) {
-            toast('Unsupported file type.', 'error');
-            input.value = '';
-            return;
-        }
-
-        if (f.size > maxBytes) {
-            toast('File too large.', 'error');
-            input.value = '';
-            return;
-        }
-
-        state.pendingFile = {
-            file: f,
-            kind: kind,
-            url: URL.createObjectURL(f),
-            progress: 0
-        };
-
-        renderPending();
-        input.value = '';
-    }
-
-    fileVideo.addEventListener('change', function () {
-        selectSingleFile(this, 'video', CFG.maxVideoBytes, ['mp4', 'webm', 'mov']);
-    });
-
-    fileAudio.addEventListener('change', function () {
-        selectSingleFile(this, 'audio', CFG.maxAudioBytes, ['mp3', 'wav', 'm4a', 'ogg', 'aac']);
-    });
-
-    fileDoc.addEventListener('change', function () {
-        selectSingleFile(this, 'document', CFG.maxDocBytes, ['doc', 'docx', 'pdf', 'ppt', 'pptx']);
-    });
 
     // ------------------------------------------------------------
     // Send with circular upload progress
@@ -1350,10 +1246,6 @@
             loadConversations();
             if (state.current) loadThread(false);
         }
-    });
-
-    window.addEventListener('beforeunload', function () {
-        revokePendingUrls();
     });
 
     // ------------------------------------------------------------
