@@ -1,24 +1,32 @@
 /* ============================================================
-   KINAS BUILD: 2026.08.15.05
+   KINAS BUILD: 2026.08.15.12
    FILE: assets/css/chat.css
 
-   Rebuilt messenger UI.
+   COMPLETE MESSENGER STYLESHEET
 
    Includes:
-   - + attachment menu styling
-   - pending upload styling
-   - circular upload progress ring
-   - formal inquiry header
-   - document/video/audio media cards
-   - download buttons
-   - lightbox download toolbar
-   - unread conversation styling
-   - responsive messenger layout
+   - Original chat layout styles
+   - Conversation list styles
+   - Unread states
+   - Thread header styles
+   - Message bubble styles
+   - Image grid styles
+   - Voice/audio message styles
+   - Composer styles
+   - Lightbox styles
+   - Mobile responsive rules
 
-   Cache-busting note:
-   This file contains a build stamp for identification only.
-   The actual cache buster must be applied in user/messages.php
-   and agent/messages.php using ?v=... on the stylesheet URL.
+   Added/restored:
+   - + attachment menu
+   - pending image/file previews
+   - circular upload progress bar
+   - document/video/audio attachment display
+   - download buttons
+   - formal inquiry header
+   ============================================================ */
+
+/* ============================================================
+   MAIN APP LAYOUT
    ============================================================ */
 
 .chat-app {
@@ -34,6 +42,10 @@
     margin: 0 auto;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
+
+/* ============================================================
+   LEFT SIDEBAR / CONVERSATION LIST
+   ============================================================ */
 
 .chat-list-pane {
     width: 340px;
@@ -267,6 +279,10 @@
     margin-bottom: 12px;
 }
 
+/* ============================================================
+   RIGHT SIDE / THREAD PANE
+   ============================================================ */
+
 .chat-thread-pane {
     flex: 1;
     display: flex;
@@ -373,6 +389,10 @@
     font-weight: 700;
 }
 
+/* ============================================================
+   MESSAGE AREA
+   ============================================================ */
+
 .chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -455,8 +475,31 @@
 }
 
 /* ============================================================
-   Formal inquiry header
+   VIEWING REQUEST / INQUIRY HEADER
    ============================================================ */
+
+.chat-viewing-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 12px;
+    border-radius: 12px;
+    margin-bottom: 6px;
+    background: #C6A43F;
+    color: #fff;
+}
+
+.chat-msg.theirs .chat-viewing-badge {
+    background: #f1f3f4;
+    color: #C6A43F;
+    border: 1px solid #C6A43F;
+}
+
+.chat-viewing-details {
+    font-size: 12px;
+    color: #5f6368;
+    margin-bottom: 4px;
+}
 
 .chat-inquiry-card {
     border: 1px solid #E6E8EB;
@@ -547,31 +590,8 @@
     text-decoration: underline;
 }
 
-.chat-viewing-badge {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 12px;
-    border-radius: 12px;
-    margin-bottom: 6px;
-    background: #C6A43F;
-    color: #fff;
-}
-
-.chat-msg.theirs .chat-viewing-badge {
-    background: #f1f3f4;
-    color: #C6A43F;
-    border: 1px solid #C6A43F;
-}
-
-.chat-viewing-details {
-    font-size: 12px;
-    color: #5f6368;
-    margin-bottom: 4px;
-}
-
 /* ============================================================
-   Media messages
+   MESSAGE MEDIA
    ============================================================ */
 
 .chat-msg-images {
@@ -598,16 +618,16 @@
     padding: 0;
 }
 
+.chat-video-wrap {
+    margin: 6px 0 4px 0;
+}
+
 .chat-msg-video {
     width: 100%;
     max-width: 280px;
     border-radius: 12px;
     background: #000;
     display: block;
-    margin: 6px 0 4px 0;
-}
-
-.chat-video-wrap {
     margin: 6px 0 4px 0;
 }
 
@@ -622,29 +642,60 @@
     display: block;
 }
 
-.chat-media-actions {
+.chat-voice {
     display: flex;
-    justify-content: flex-end;
-    margin-top: 6px;
-}
-
-.chat-media-download {
-    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #C6A43F;
-    text-decoration: none;
-    border: 1px solid rgba(198, 164, 63, 0.35);
-    background: rgba(198, 164, 63, 0.08);
-    padding: 5px 10px;
-    border-radius: 999px;
+    gap: 10px;
+    min-width: 200px;
+    max-width: 260px;
+    margin: 4px 0 2px 0;
 }
 
-.chat-media-download:hover {
-    background: rgba(198, 164, 63, 0.16);
+.chat-voice-play {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: #C6A43F;
+    color: #0A0A0A;
+    font-size: 13px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+
+.chat-voice-bars {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 26px;
+    overflow: hidden;
+}
+
+.chat-voice-bars span {
+    width: 3px;
+    border-radius: 2px;
+    background: #9aa0a6;
+}
+
+.chat-voice-bars span.played {
+    background: #C6A43F;
+}
+
+.chat-voice-time {
+    font-size: 11px;
+    color: #5f6368;
+    flex-shrink: 0;
+    min-width: 32px;
+    text-align: right;
+}
+
+/* ============================================================
+   DOCUMENT CARD / FILE ACTIONS / DOWNLOAD
+   ============================================================ */
 
 .chat-document-card {
     display: flex;
@@ -715,6 +766,34 @@
     color: #C6A43F;
 }
 
+.chat-media-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+
+.chat-media-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #C6A43F;
+    text-decoration: none;
+    border: 1px solid rgba(198, 164, 63, 0.35);
+    background: rgba(198, 164, 63, 0.08);
+    padding: 5px 10px;
+    border-radius: 999px;
+}
+
+.chat-media-download:hover {
+    background: rgba(198, 164, 63, 0.16);
+}
+
+/* ============================================================
+   MESSAGE META
+   ============================================================ */
+
 .chat-msg-meta {
     display: flex;
     align-items: center;
@@ -734,6 +813,10 @@
 .chat-ticks.is-read {
     color: #1a73e8;
 }
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
 
 .chat-empty {
     flex: 1;
@@ -766,7 +849,7 @@
 }
 
 /* ============================================================
-   Composer + attachment menu
+   COMPOSER
    ============================================================ */
 
 .chat-composer {
@@ -780,7 +863,8 @@
     position: relative;
 }
 
-.chat-attach-btn {
+.chat-attach-btn,
+.chat-mic-btn {
     width: 38px;
     height: 38px;
     border-radius: 50%;
@@ -795,57 +879,15 @@
     justify-content: center;
 }
 
-.chat-attach-btn:hover {
+.chat-attach-btn:hover,
+.chat-mic-btn:hover {
     background: #f1f3f4;
     color: #C6A43F;
 }
 
-.chat-attach-menu {
-    position: absolute;
-    bottom: 56px;
-    left: 14px;
-    background: #fff;
-    border: 1px solid #e8eaed;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-    display: none;
-    z-index: 30;
-    min-width: 190px;
-    padding: 6px;
-}
-
-.chat-attach-menu.is-open {
-    display: block;
-}
-
-.chat-attach-menu button {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 12px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-size: 14px;
-    color: #1a1a2e;
-    border-radius: 8px;
-    font-family: 'Inter', sans-serif;
-}
-
-.chat-attach-menu button:hover {
-    background: #f1f3f4;
-    color: #C6A43F;
-}
-
-.chat-attach-menu button i {
-    width: 18px;
-    text-align: center;
-    color: #5f6368;
-}
-
-.chat-attach-menu button:hover i {
-    color: #C6A43F;
+.chat-mic-btn.is-active {
+    background: #FFEBEE;
+    color: #C62828;
 }
 
 .chat-input {
@@ -895,7 +937,59 @@
 }
 
 /* ============================================================
-   Pending uploads + circular progress
+   ATTACHMENT MENU
+   ============================================================ */
+
+.chat-attach-menu {
+    position: absolute;
+    bottom: 56px;
+    left: 14px;
+    background: #fff;
+    border: 1px solid #e8eaed;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    display: none;
+    z-index: 30;
+    min-width: 190px;
+    padding: 6px;
+}
+
+.chat-attach-menu.is-open {
+    display: block;
+}
+
+.chat-attach-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #1a1a2e;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+}
+
+.chat-attach-menu button:hover {
+    background: #f1f3f4;
+    color: #C6A43F;
+}
+
+.chat-attach-menu button i {
+    width: 18px;
+    text-align: center;
+    color: #5f6368;
+}
+
+.chat-attach-menu button:hover i {
+    color: #C6A43F;
+}
+
+/* ============================================================
+   PENDING UPLOAD PREVIEWS
    ============================================================ */
 
 .chat-pending-media {
@@ -923,6 +1017,7 @@
     border-radius: 10px;
     border: 1px solid #e8eaed;
     display: block;
+    background: #f1f3f4;
 }
 
 .chat-pending-item button,
@@ -980,6 +1075,10 @@
     stroke: #e8eaed;
 }
 
+/* ============================================================
+   CIRCULAR UPLOAD PROGRESS
+   ============================================================ */
+
 .chat-progress-overlay {
     position: absolute;
     inset: 0;
@@ -1023,7 +1122,79 @@
 }
 
 /* ============================================================
-   Lightbox
+   LEGACY RECORDING UI
+   Kept for backward compatibility with old voice-note markup.
+   The microphone button itself has been removed from the new UI.
+   ============================================================ */
+
+.chat-recording {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    padding: 4px 8px;
+}
+
+.chat-composer.is-recording .chat-input,
+.chat-composer.is-recording .chat-attach-btn,
+.chat-composer.is-recording .chat-mic-btn,
+.chat-composer.is-recording .chat-send-btn {
+    display: none;
+}
+
+.chat-composer.is-recording .chat-recording {
+    display: flex;
+}
+
+.chat-rec-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #C62828;
+    animation: chatPulse 1s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+.chat-rec-time {
+    font-size: 14px;
+    font-weight: 600;
+    color: #C62828;
+    flex-shrink: 0;
+    min-width: 44px;
+}
+
+.chat-rec-hint {
+    flex: 1;
+    font-size: 12px;
+    color: #5f6368;
+}
+
+.chat-rec-cancel,
+.chat-rec-send {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.chat-rec-cancel {
+    background: #f1f3f4;
+    color: #5f6368;
+}
+
+.chat-rec-send {
+    background: #C6A43F;
+    color: #fff;
+}
+
+/* ============================================================
+   LIGHTBOX
    ============================================================ */
 
 .chat-lightbox {
@@ -1045,6 +1216,17 @@
     max-width: 92vw;
     max-height: 82vh;
     border-radius: 10px;
+}
+
+.chat-lightbox-close {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 26px;
+    cursor: pointer;
 }
 
 .chat-lightbox-toolbar {
@@ -1077,7 +1259,7 @@
 }
 
 /* ============================================================
-   Animations + responsive
+   ANIMATIONS
    ============================================================ */
 
 @keyframes chatFadeIn {
@@ -1091,6 +1273,23 @@
         transform: translateY(0);
     }
 }
+
+@keyframes chatPulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.35);
+        opacity: 0.6;
+    }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
 
 @media (max-width: 900px) {
     .chat-app {
@@ -1128,6 +1327,10 @@
         display: none;
     }
 
+    .chat-voice {
+        min-width: 160px;
+    }
+
     .chat-attach-menu {
         left: 10px;
         right: 10px;
@@ -1140,5 +1343,51 @@
 
     .chat-file-actions {
         flex-direction: row;
+    }
+}
+
+/* ============================================================
+   FORCE LIGHT MODE
+   Prevents browser dark-mode inversion from breaking the UI.
+   ============================================================ */
+
+@media (prefers-color-scheme: dark) {
+    .chat-app,
+    .chat-thread-pane,
+    .chat-messages,
+    .chat-search input,
+    .chat-listing-ctx,
+    .chat-input,
+    .chat-lightbox img {
+        background-color: #ffffff;
+    }
+
+    .chat-list-pane {
+        background: #f8f9fa;
+    }
+
+    .chat-msg.mine .chat-bubble {
+        background: #e8f0fe;
+    }
+
+    .chat-msg.theirs .chat-bubble {
+        background: #f1f3f4;
+    }
+
+    .chat-msg.theirs.is-unread .chat-bubble {
+        background: #c9daf8;
+    }
+
+    .chat-conv-item.has-unread {
+        background: #d2e3fc;
+    }
+
+    .chat-conv-item.has-unread:hover {
+        background: #c9daf8;
+    }
+
+    .chat-avatar.is-unread {
+        background: #1a73e8;
+        color: #fff;
     }
 }
