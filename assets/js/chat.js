@@ -1,19 +1,26 @@
 // ============================================================
-// KINAS BUILD: 2026.08.15.11
+// KINAS BUILD: 2026.08.15.14
 // FILE: assets/js/chat.js
 //
-// FIXES:
-// - Pending image thumbnails now use FileReader data URLs.
-//   This avoids blob: URLs being blocked by CSP.
-// - Adds circular upload progress bar during send.
-// - Removes microphone / voice recording button.
-// - Keeps + attachment menu for Photo, Video, Audio, Document.
+// COMPLETE MESSENGER CLIENT
+//
+// Includes:
+// - No microphone / voice recording button
+// - + attachment menu
+// - Image thumbnails using FileReader data URLs
+// - Circular upload progress bar
+// - Failed/interrupted upload retry icon
+// - Conversation list
+// - Thread loading
+// - Send/receive sounds
+// - Image/video/audio/document rendering
+// - Inquiry metadata rendering
 // ============================================================
 
 (function () {
     'use strict';
 
-    window.__kinasChatBuild = '2026.08.15.11';
+    window.__kinasChatBuild = '2026.08.15.14';
     window.__kinasChatBoot = false;
 
     var root = document.getElementById('chatRoot');
@@ -99,6 +106,43 @@
         }
 
         return bytes.toFixed(1) + ' ' + units[i];
+    }
+
+    function fileNameFromUrl(url, fallback) {
+        try {
+            var parts = String(url || '').split('/');
+            var last = parts[parts.length - 1] || '';
+            last = last.split('?')[0];
+
+            if (last) {
+                return decodeURIComponent(last);
+            }
+        } catch (e) {}
+
+        return fallback || 'download';
+    }
+
+    function formatTimestamp(s) {
+        if (!s) return '';
+
+        var d = new Date(String(s).replace(' ', 'T'));
+
+        if (isNaN(d.getTime())) {
+            d = new Date(s);
+        }
+
+        if (isNaN(d.getTime())) {
+            return String(s);
+        }
+
+        return d.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        }) + ', ' + d.toLocaleTimeString(undefined, {
+            hour: 'numeric',
+            minute: '2-digit'
+        });
     }
 
     function toast(msg, type) {
@@ -301,12 +345,14 @@
         lightboxClose = qs('chatLightboxClose'),
         lightboxDownload = qs('chatLightboxDownload');
 
+    window.__kinasChatBoot = true;
+
     // ------------------------------------------------------------
-    // Progress ring helpers
+    // PROGRESS RING HELPERS
     // ------------------------------------------------------------
 
     function progressRingHtml() {
-        return '<div class="chat-progress-overlay" style="display:none">' +
+        return '<div class="chat-progress-overlay">' +
             '<svg class="chat-progress-ring" viewBox="0 0 36 36">' +
                 '<circle class="chat-progress-bg" cx="18" cy="18" r="16"></circle>' +
                 '<circle class="chat-progress-fg" cx="18" cy="18" r="16"></circle>' +
@@ -315,11 +361,11 @@
         '</div>';
     }
 
-    function setRingProgress(overlay, pct) {
-        if (!overlay) return;
+    function setRingProgress(containerEl, pct) {
+        if (!containerEl) return;
 
-        var fg = overlay.querySelector('.chat-progress-fg');
-        var label = overlay.querySelector('.chat-progress-label');
+        var fg = containerEl.querySelector('.chat-progress-fg');
+        var label = containerEl.querySelector('.chat-progress-label');
 
         var circumference = 100.53;
         var offset = circumference * (1 - (pct / 100));
@@ -334,30 +380,18 @@
         }
     }
 
-    function setPendingUploading(isUploading) {
-        var overlays = document.querySelectorAll('.chat-progress-overlay');
-
-        Array.prototype.forEach.call(overlays, function (overlay) {
-            overlay.style.display = isUploading ? 'flex' : 'none';
-
-            if (isUploading) {
-                setRingProgress(overlay, 0);
-            }
-        });
-    }
-
     function updatePendingProgress(pct) {
         pct = Math.max(0, Math.min(100, Math.round(pct)));
 
-        var overlays = document.querySelectorAll('.chat-progress-overlay');
+        var uploadingItems = document.querySelectorAll('.chat-pending-item.is-uploading, .chat-pending-file.is-uploading');
 
-        Array.prototype.forEach.call(overlays, function (overlay) {
-            setRingProgress(overlay, pct);
+        Array.prototype.forEach.call(uploadingItems, function (item) {
+            setRingProgress(item, pct);
         });
     }
 
     // ------------------------------------------------------------
-    // Pending attachments
+    // PENDING ATTACHMENTS
     // ------------------------------------------------------------
 
     function clearPending() {
@@ -377,7 +411,17 @@
         pendingWrap.classList.add('has-items');
 
         state.pendingImages.forEach(function (item, idx) {
-            var pendingItem = el('div', 'chat-pending-item');
+            var itemClass = 'chat-pending-item';
+
+            if (item.status === 'uploading') {
+                itemClass += ' is-uploading';
+            }
+
+            if (item.status === 'failed') {
+                itemClass += ' is-failed';
+            }
+
+            var pendingItem = el('div', itemClass);
 
             var img = document.createElement('img');
             img.src = item.preview;
@@ -385,10 +429,14 @@
 
             var rm = document.createElement('button');
             rm.type = 'button';
+            rm.className = 'chat-remove';
             rm.innerHTML = '<i class="fas fa-times"></i>';
             rm.title = 'Remove image';
 
-            rm.addEventListener('click', function () {
+            rm.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
                 if (state.sending) return;
 
                 state.pendingImages.splice(idx, 1);
@@ -396,17 +444,41 @@
             });
 
             pendingItem.appendChild(img);
-            pendingItem.appendChild(rm);
 
             var ringWrap = document.createElement('div');
             ringWrap.innerHTML = progressRingHtml();
             pendingItem.appendChild(ringWrap.firstChild);
 
+            var retry = document.createElement('button');
+            retry.type = 'button';
+            retry.className = 'chat-retry-upload';
+            retry.title = 'Upload failed — click to retry';
+            retry.innerHTML = '<i class="fas fa-rotate-right"></i>';
+
+            retry.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                retryPendingUploads();
+            });
+
+            pendingItem.appendChild(retry);
+            pendingItem.appendChild(rm);
+
             pendingWrap.appendChild(pendingItem);
         });
 
         if (state.pendingFile) {
-            var fileItem = el('div', 'chat-pending-file');
+            var fileClass = 'chat-pending-file';
+
+            if (state.pendingFile.status === 'uploading') {
+                fileClass += ' is-uploading';
+            }
+
+            if (state.pendingFile.status === 'failed') {
+                fileClass += ' is-failed';
+            }
+
+            var fileItem = el('div', fileClass);
 
             var icon = el('div', 'chat-file-icon');
 
@@ -441,38 +513,60 @@
             rmFile.innerHTML = '<i class="fas fa-times"></i>';
             rmFile.title = 'Remove file';
 
-            rmFile.addEventListener('click', function () {
+            rmFile.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
                 if (state.sending) return;
 
                 state.pendingFile = null;
                 renderPending();
             });
 
+            var retryFile = document.createElement('button');
+            retryFile.type = 'button';
+            retryFile.className = 'chat-retry-upload';
+            retryFile.title = 'Upload failed — click to retry';
+            retryFile.innerHTML = '<i class="fas fa-rotate-right"></i>';
+
+            retryFile.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                retryPendingUploads();
+            });
+
             fileItem.appendChild(icon);
             fileItem.appendChild(textBox);
             fileItem.appendChild(progressWrap.firstChild);
+            fileItem.appendChild(retryFile);
             fileItem.appendChild(rmFile);
 
             pendingWrap.appendChild(fileItem);
         }
     }
 
-    // ------------------------------------------------------------
-    // Image preview using FileReader data URLs.
-    // This fixes broken blob: thumbnails caused by CSP.
-    // ------------------------------------------------------------
+    function hasFailedPendingImages() {
+        return state.pendingImages.some(function (item) {
+            return item.status === 'failed';
+        });
+    }
 
     function addImageFiles(fileList) {
         if (state.sending) return;
 
+        if (state.pendingFile) {
+            toast('Remove the selected file before adding photos.', 'warning');
+            return;
+        }
+
+        if (hasFailedPendingImages()) {
+            toast('Remove or retry failed images before adding more.', 'warning');
+            return;
+        }
+
         var files = Array.prototype.slice.call(fileList || []);
 
         files.forEach(function (f) {
-            if (state.pendingFile) {
-                toast('Remove the selected file before adding photos.', 'warning');
-                return;
-            }
-
             if (state.pendingImages.length >= CFG.maxImages) {
                 toast('Max ' + CFG.maxImages + ' images.', 'error');
                 return;
@@ -495,7 +589,8 @@
             reader.onload = function (e) {
                 state.pendingImages.push({
                     file: f,
-                    preview: e.target.result
+                    preview: e.target.result,
+                    status: 'pending'
                 });
 
                 renderPending();
@@ -543,15 +638,55 @@
 
         state.pendingFile = {
             file: f,
-            kind: kind
+            kind: kind,
+            status: 'pending'
         };
 
         renderPending();
         inputEl.value = '';
     }
 
+    function retryPendingUploads() {
+        if (state.sending) return;
+
+        var failedImages = state.pendingImages.filter(function (item) {
+            return item.status === 'failed';
+        });
+
+        var failedFile = state.pendingFile && state.pendingFile.status === 'failed';
+
+        if (failedImages.length) {
+            state.pendingImages.forEach(function (item) {
+                if (item.status === 'failed') {
+                    item.status = 'pending';
+                }
+            });
+
+            renderPending();
+
+            doSend({
+                body: input.value.trim(),
+                images: state.pendingImages.slice(),
+                attachment: null
+            });
+
+            return;
+        }
+
+        if (failedFile) {
+            state.pendingFile.status = 'pending';
+            renderPending();
+
+            doSend({
+                body: input.value.trim(),
+                images: [],
+                attachment: state.pendingFile
+            });
+        }
+    }
+
     // ------------------------------------------------------------
-    // Attachment menu
+    // ATTACHMENT MENU
     // ------------------------------------------------------------
 
     function toggleAttachMenu(force) {
@@ -605,7 +740,7 @@
     });
 
     // ------------------------------------------------------------
-    // Conversation list
+    // CONVERSATION LIST
     // ------------------------------------------------------------
 
     function loadConversations() {
@@ -725,7 +860,7 @@
     }
 
     // ------------------------------------------------------------
-    // Thread
+    // THREAD
     // ------------------------------------------------------------
 
     function loadThread(initial) {
@@ -860,20 +995,6 @@
         t.classList.toggle('is-read', !!isRead);
     }
 
-    function fileNameFromUrl(url, fallback) {
-        try {
-            var parts = String(url || '').split('/');
-            var last = parts[parts.length - 1] || '';
-            last = last.split('?')[0];
-
-            if (last) {
-                return decodeURIComponent(last);
-            }
-        } catch (e) {}
-
-        return fallback || 'download';
-    }
-
     function downloadAnchor(url, filename, label) {
         var a = document.createElement('a');
         a.href = url;
@@ -901,6 +1022,53 @@
         lightbox.classList.add('is-open');
     }
 
+    function renderInquiryCard(m) {
+        var meta = m.inquiry_meta || null;
+        if (!meta) return null;
+
+        var card = el('div', 'chat-inquiry-card');
+
+        var title = meta.inquiry_type === 'viewing' ? 'Viewing Request' : 'Formal Inquiry';
+        var timestamp = formatTimestamp(meta.sent_at || m.created_at || '');
+
+        var html =
+            '<div class="chat-inquiry-head">' +
+                '<div class="chat-inquiry-title"><i class="fas fa-envelope-open-text"></i> ' + esc(title) + '</div>' +
+                '<div class="chat-inquiry-time">' + esc(timestamp) + '</div>' +
+            '</div>' +
+            '<div class="chat-inquiry-meta">';
+
+        if (meta.name) {
+            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-user"></i> Name</span><span class="chat-inquiry-value">' + esc(meta.name) + '</span></div>';
+        }
+
+        if (meta.email) {
+            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-envelope"></i> Email</span><span class="chat-inquiry-value"><a href="mailto:' + esc(meta.email) + '">' + esc(meta.email) + '</a></span></div>';
+        }
+
+        if (meta.phone) {
+            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-phone"></i> Phone</span><span class="chat-inquiry-value">' + esc(meta.phone) + '</span></div>';
+        }
+
+        if (meta.preferred_date || m.preferred_date) {
+            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-calendar"></i> Preferred Date</span><span class="chat-inquiry-value">' + esc(meta.preferred_date || m.preferred_date) + '</span></div>';
+        }
+
+        if (meta.preferred_time || m.preferred_time) {
+            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-clock"></i> Preferred Time</span><span class="chat-inquiry-value">' + esc(meta.preferred_time || m.preferred_time) + '</span></div>';
+        }
+
+        if (meta.subject) {
+            html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label"><i class="fas fa-heading"></i> Subject</span><span class="chat-inquiry-value">' + esc(meta.subject) + '</span></div>';
+        }
+
+        html += '</div>';
+
+        card.innerHTML = html;
+
+        return card;
+    }
+
     function renderMessage(m) {
         var row = el('div', 'chat-msg ' + (m.mine ? 'mine' : 'theirs'));
         row.setAttribute('data-msg-id', m.id);
@@ -909,34 +1077,21 @@
 
         var bubble = el('div', 'chat-bubble');
 
-        if (m.inquiry_meta) {
-            var inquiryCard = el('div', 'chat-inquiry-card');
-
-            var meta = m.inquiry_meta || {};
-            var title = meta.inquiry_type === 'viewing' ? 'Viewing Request' : 'Formal Inquiry';
-
-            var html =
-                '<div class="chat-inquiry-head">' +
-                    '<div class="chat-inquiry-title"><i class="fas fa-envelope-open-text"></i> ' + esc(title) + '</div>' +
-                '</div>' +
-                '<div class="chat-inquiry-meta">';
-
-            if (meta.name) {
-                html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label">Name</span><span class="chat-inquiry-value">' + esc(meta.name) + '</span></div>';
-            }
-
-            if (meta.email) {
-                html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label">Email</span><span class="chat-inquiry-value">' + esc(meta.email) + '</span></div>';
-            }
-
-            if (meta.phone) {
-                html += '<div class="chat-inquiry-row"><span class="chat-inquiry-label">Phone</span><span class="chat-inquiry-value">' + esc(meta.phone) + '</span></div>';
-            }
-
-            html += '</div>';
-
-            inquiryCard.innerHTML = html;
+        var inquiryCard = renderInquiryCard(m);
+        if (inquiryCard) {
             bubble.appendChild(inquiryCard);
+        }
+
+        if (m.is_viewing_request && !m.inquiry_meta) {
+            var vb = el('div', 'chat-viewing-badge');
+            vb.innerHTML = '<i class="fas fa-calendar-check"></i> Viewing Request';
+            bubble.appendChild(vb);
+
+            if (m.preferred_date) {
+                var vd = el('div', 'chat-viewing-details');
+                vd.textContent = '📅 ' + m.preferred_date + (m.preferred_time ? ' at ' + m.preferred_time : '');
+                bubble.appendChild(vd);
+            }
         }
 
         if (m.body) {
@@ -1079,8 +1234,20 @@
     }
 
     // ------------------------------------------------------------
-    // Send with circular upload progress
+    // SEND WITH PROGRESS + RETRY
     // ------------------------------------------------------------
+
+    function setPendingStatus(status) {
+        state.pendingImages.forEach(function (item) {
+            item.status = status;
+        });
+
+        if (state.pendingFile) {
+            state.pendingFile.status = status;
+        }
+
+        renderPending();
+    }
 
     function doSend(opts) {
         if (!state.current || !state.canReply || state.sending) return;
@@ -1088,8 +1255,12 @@
         state.sending = true;
         sendBtn.disabled = true;
 
-        setPendingUploading(true);
-        updatePendingProgress(0);
+        var hasImages = !!(opts.images && opts.images.length);
+        var hasAttachment = !!opts.attachment;
+
+        if (hasImages || hasAttachment) {
+            setPendingStatus('uploading');
+        }
 
         var fd = new FormData();
 
@@ -1112,6 +1283,7 @@
 
         xhr.open('POST', CFG.epSend);
         xhr.withCredentials = true;
+        xhr.timeout = 120000;
 
         xhr.upload.onprogress = function (e) {
             if (e.lengthComputable) {
@@ -1120,18 +1292,27 @@
             }
         };
 
-        xhr.onload = function () {
+        function handleUploadFailure(message) {
             state.sending = false;
             sendBtn.disabled = false;
 
-            setPendingUploading(false);
+            if (hasImages || hasAttachment) {
+                setPendingStatus('failed');
+            }
+
+            toast(message || 'Upload failed or was interrupted. Tap the retry icon to try again.', 'error');
+        }
+
+        xhr.onload = function () {
+            state.sending = false;
+            sendBtn.disabled = false;
 
             var data = null;
 
             try {
                 data = JSON.parse(xhr.responseText);
             } catch (e) {
-                toast('Unexpected server response.', 'error');
+                handleUploadFailure('Unexpected server response.');
                 return;
             }
 
@@ -1148,17 +1329,20 @@
 
                 loadConversations();
             } else {
-                toast((data && data.error) || 'Could not send.', 'error');
+                handleUploadFailure((data && data.error) || 'Could not send message.');
             }
         };
 
         xhr.onerror = function () {
-            state.sending = false;
-            sendBtn.disabled = false;
+            handleUploadFailure('Network error while uploading. Tap the retry icon to try again.');
+        };
 
-            setPendingUploading(false);
+        xhr.onabort = function () {
+            handleUploadFailure('Upload interrupted. Tap the retry icon to try again.');
+        };
 
-            toast('Network error.', 'error');
+        xhr.ontimeout = function () {
+            handleUploadFailure('Upload timed out. Tap the retry icon to try again.');
         };
 
         xhr.send(fd);
@@ -1211,7 +1395,7 @@
     });
 
     // ------------------------------------------------------------
-    // Lightbox / navigation
+    // LIGHTBOX / NAVIGATION / SEARCH / POLLING
     // ------------------------------------------------------------
 
     lightboxClose.addEventListener('click', function () {
@@ -1249,7 +1433,7 @@
     });
 
     // ------------------------------------------------------------
-    // Boot
+    // BOOT
     // ------------------------------------------------------------
 
     loadConversations();
@@ -1258,6 +1442,5 @@
         openConversation(CFG.openOther, CFG.openListing, CFG.openType);
     }
 
-    window.__kinasChatBoot = true;
     window.__kinasChatJsLoaded = true;
 })();
