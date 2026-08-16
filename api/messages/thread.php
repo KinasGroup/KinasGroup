@@ -1,14 +1,9 @@
 <?php
 /**
- * KINAS GROUP — Chat Thread Endpoint
- *
- * Option A rules:
- * - Customer <-> agent listing conversations allowed.
- * - Agent <-> customer allowed for the agent's own listing.
- * - Agent <-> agent allowed only when listing-bound and one side is the listing agent.
- * - Random agent-to-agent messaging remains blocked.
- */
-
+* KINAS GROUP — Chat Thread Endpoint
+*
+* AMENDED: returns @username as other_name when available.
+*/
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
@@ -35,12 +30,10 @@ function chat_media_urls($raw): array
 {
     $raw = (string)($raw ?? '');
     if ($raw === '') return [];
-
     if ($raw[0] === '[') {
         $arr = json_decode($raw, true);
         return is_array($arr) ? array_values(array_filter($arr, 'is_string')) : [];
     }
-
     return [$raw];
 }
 
@@ -48,12 +41,9 @@ function chat_date_label($datetime): string
 {
     $ts = strtotime((string)$datetime);
     if (!$ts) return '';
-
     $today = strtotime('today');
-
     if ($ts >= $today) return 'Today';
     if ($ts >= strtotime('-1 day', $today)) return 'Yesterday';
-
     return date('M j, Y', $ts);
 }
 
@@ -76,8 +66,8 @@ try {
     exit;
 }
 
-// Other user
-$uStmt = $db->prepare("SELECT id, name, role FROM users WHERE id = ?");
+// AMENDED: include username in the other user query
+$uStmt = $db->prepare("SELECT id, name, username, role FROM users WHERE id = ?");
 $uStmt->execute([$otherId]);
 $other = $uStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -89,7 +79,6 @@ if (!$other) {
 
 $senderRole = (string)($_SESSION['user_role'] ?? '');
 $otherRole  = (string)($other['role'] ?? '');
-
 $agentToAgent = ($senderRole === 'agent' && $otherRole === 'agent');
 
 $pairValid =
@@ -98,31 +87,26 @@ $pairValid =
     ($senderRole === 'agent' && $otherRole === 'user') ||
     $agentToAgent;
 
-// ------------------------------------------------------------
-// LISTING-LOCK: a listing=0 open resolves to the pair's most
-// recent listing thread so threads can never mix listings.
-// ------------------------------------------------------------
+// LISTING-LOCK
 if ($listingId === 0) {
     $rStmt = $db->prepare("
         SELECT listing_id, listing_type
         FROM messages
         WHERE (
-                (sender_id = ? AND receiver_id = ?)
-             OR (sender_id = ? AND receiver_id = ?)
-              )
-          AND listing_id > 0
+            (sender_id = ? AND receiver_id = ?)
+            OR (sender_id = ? AND receiver_id = ?)
+        )
+        AND listing_id > 0
         ORDER BY id DESC
         LIMIT 1
     ");
     $rStmt->execute([$userId, $otherId, $otherId, $userId]);
     $resolved = $rStmt->fetch(PDO::FETCH_ASSOC);
-
     if ($resolved) {
         $listingId = (int)$resolved['listing_id'];
     }
 }
 
-// Listing meta + closure state
 $listingMeta    = null;
 $listingClosed  = true;
 $listingAgentId = 0;
@@ -134,7 +118,6 @@ if ($listingId > 0) {
         'solar'       => 'solar_listings',
         'marketplace' => 'marketplace_listings',
     ];
-
     $folderMap = [
         'car'         => 'kinas-automobile',
         'property'    => 'williams-connect-home',
@@ -145,7 +128,6 @@ if ($listingId > 0) {
     $ltStmt = $db->prepare("SELECT listing_type FROM messages WHERE listing_id = ? LIMIT 1");
     $ltStmt->execute([$listingId]);
     $lt = (string)$ltStmt->fetchColumn();
-
     $type = isset($tableMap[$lt]) ? $lt : 'marketplace';
 
     try {
@@ -171,8 +153,7 @@ if ($listingId > 0) {
                 $im = $db->prepare("SELECT url FROM listing_images WHERE listing_type = ? AND listing_id = ? ORDER BY sort_order ASC LIMIT 1");
                 $im->execute([$type, $listingId]);
                 $listingMeta['listing_thumb'] = $im->fetchColumn() ?: null;
-            } catch (Throwable $e) {
-            }
+            } catch (Throwable $e) {}
         } else {
             $listingClosed = true;
             $listingMeta = [
@@ -184,28 +165,24 @@ if ($listingId > 0) {
                 'listing_status' => 'removed',
             ];
         }
-    } catch (Throwable $e) {
-    }
+    } catch (Throwable $e) {}
 }
 
-// Existing thread?
 $hasThread = false;
-
 if ($listingId > 0) {
     $threadStmt = $db->prepare("
         SELECT COUNT(*)
         FROM messages
         WHERE listing_id = ?
-          AND (
-                (sender_id = ? AND receiver_id = ?)
-             OR (sender_id = ? AND receiver_id = ?)
-              )
+        AND (
+            (sender_id = ? AND receiver_id = ?)
+            OR (sender_id = ? AND receiver_id = ?)
+        )
     ");
     $threadStmt->execute([$listingId, $userId, $otherId, $otherId, $userId]);
     $hasThread = ((int)$threadStmt->fetchColumn()) > 0;
 }
 
-// Agent-to-agent is allowed only when it is listing-bound and one side is the listing agent.
 $agentToAgentAllowed = $agentToAgent
     && $listingId > 0
     && ($userId === $listingAgentId || $otherId === $listingAgentId);
@@ -224,37 +201,36 @@ $mayStart = $pairAllowed && !$listingClosed && $listingId > 0 && (
 
 $canReply = $pairAllowed && !$listingClosed && $listingId > 0 && ($hasThread || $mayStart);
 
-// Messages — strict listing match.
+// Messages
 try {
     if ($listingId > 0) {
         $mStmt = $db->prepare("
-            SELECT m.*, u.name AS sender_name
+            SELECT m.*, u.name AS sender_name, u.username AS sender_username
             FROM messages m
             LEFT JOIN users u ON u.id = m.sender_id
             WHERE m.id > ?
-              AND (
-                    (m.sender_id = ? AND m.receiver_id = ?)
-                 OR (m.sender_id = ? AND m.receiver_id = ?)
-                  )
-              AND m.listing_id = ?
+            AND (
+                (m.sender_id = ? AND m.receiver_id = ?)
+                OR (m.sender_id = ? AND m.receiver_id = ?)
+            )
+            AND m.listing_id = ?
             ORDER BY m.id ASC
         ");
         $mStmt->execute([$sinceId, $userId, $otherId, $otherId, $userId, $listingId]);
     } else {
         $mStmt = $db->prepare("
-            SELECT m.*, u.name AS sender_name
+            SELECT m.*, u.name AS sender_name, u.username AS sender_username
             FROM messages m
             LEFT JOIN users u ON u.id = m.sender_id
             WHERE m.id > ?
-              AND (
-                    (m.sender_id = ? AND m.receiver_id = ?)
-                 OR (m.sender_id = ? AND m.receiver_id = ?)
-                  )
+            AND (
+                (m.sender_id = ? AND m.receiver_id = ?)
+                OR (m.sender_id = ? AND m.receiver_id = ?)
+            )
             ORDER BY m.id ASC
         ");
         $mStmt->execute([$sinceId, $userId, $otherId, $otherId, $userId]);
     }
-
     $rows = $mStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 } catch (Throwable $e) {
     error_log('thread.php query error: ' . $e->getMessage());
@@ -268,19 +244,22 @@ if ($sinceId === 0 && count($rows) > 200) {
 }
 
 $messages = [];
-
 foreach ($rows as $m) {
     $meta = null;
-
     if (!empty($m['inquiry_meta'])) {
         $decoded = json_decode((string)$m['inquiry_meta'], true);
         if (is_array($decoded)) $meta = $decoded;
     }
 
+    // AMENDED: prefer @username for sender display
+    $senderUsername = $m['sender_username'] ?? '';
+    $senderFullName = $m['sender_name'] ?? 'Unknown';
+    $senderDisplayName = ($senderUsername !== '') ? ('@' . $senderUsername) : ($senderFullName !== '' ? $senderFullName : 'Unknown');
+
     $messages[] = [
         'id'                 => (int)$m['id'],
         'mine'               => (int)$m['sender_id'] === $userId,
-        'sender_name'        => $m['sender_name'] ?? 'Unknown',
+        'sender_name'        => $senderDisplayName,
         'body'               => (string)($m['body'] ?? ''),
         'message_type'       => (string)($m['message_type'] ?? 'text'),
         'media_urls'         => chat_media_urls($m['media_url'] ?? null),
@@ -300,16 +279,21 @@ foreach ($rows as $m) {
     ];
 }
 
+// AMENDED: prefer @username for the conversation header
+$otherUsername = trim((string)($other['username'] ?? ''));
+$otherFullName = trim((string)($other['name'] ?? ''));
+$otherDisplayName = ($otherUsername !== '') ? ('@' . $otherUsername) : ($otherFullName !== '' ? $otherFullName : 'Unknown');
+
 echo json_encode([
     'success'      => true,
     'conversation' => [
-        'other_user_id' => $otherId,
-        'other_name'    => $other['name'] ?? 'Unknown',
-        'other_role'    => $otherRole,
-        'can_reply'     => $canReply,
-        'closed'        => $listingClosed,
-        'closed_reason' => $listingClosed ? 'delisted' : null,
-        'listing'       => $listingMeta,
+        'other_user_id'  => $otherId,
+        'other_name'     => $otherDisplayName,
+        'other_role'     => $otherRole,
+        'can_reply'      => $canReply,
+        'closed'         => $listingClosed,
+        'closed_reason'  => $listingClosed ? 'delisted' : null,
+        'listing'        => $listingMeta,
     ],
     'messages'     => $messages,
 ]);
