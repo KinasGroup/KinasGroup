@@ -1,36 +1,40 @@
 <?php
 /**
- * KINAS BUILD: 2026.08.15.08
- * FILE: divisions/kinas-automobile/detail.php
- *
- * KINAS AUTOMOBILE — Listing detail page
- *
- * RESTORED FEATURES:
- * - Full car details panel.
- * - Rental booking widget for rental listings.
- * - Schedule viewing.
- * - Paid inspection fee / Paystack flow.
- * - Inline contact agent modal.
- * - Save/favourite button.
- * - Finance calculator.
- * - Map.
- * - Features & equipment.
- * - Similar cars.
- * - Owner/admin preview for non-active listings.
- *
- * VISIBILITY:
- * - Restored to original behaviour:
- *   only active listings are public.
- * - Pending/flagged/sold/removed listings are only visible
- *   to the listing owner or admin.
- */
-
+* KINAS BUILD: 2026.08.15.08
+* FILE: divisions/kinas-automobile/detail.php
+*
+* KINAS AUTOMOBILE — Listing detail page
+*
+* RESTORED FEATURES:
+* - Full car details panel.
+* - Rental booking widget for rental listings.
+* - Schedule viewing.
+* - Paid inspection fee / Paystack flow.
+* - Inline contact agent modal.
+* - Save/favourite button.
+* - Finance calculator.
+* - Map.
+* - Features & equipment.
+* - Similar cars.
+* - Owner/admin preview for non-active listings.
+*
+* VISIBILITY:
+* - Restored to original behaviour:
+*   only active listings are public.
+* - Pending/flagged/sold/removed listings are only visible
+*   to the listing owner or admin.
+*
+* AMENDED:
+* - Public display now prefers the agent's username (@username)
+*   where available, while preserving all original functionality.
+*/
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 
 require_once '../../includes/session.php';
 require_once '../../includes/functions.php';
 require_once '../../includes/helpers.php';
+require_once '../../includes/public-identity.php';
 require_once '../../api/config/database.php';
 require_once '../../includes/je-components.php';
 
@@ -42,18 +46,20 @@ $id = (int)($_GET['id'] ?? 0);
 $db = Database::getInstance()->getConnection();
 
 $stmt = $db->prepare("
-    SELECT c.*,
-           a.verified AS agent_verified,
-           a.name AS agent_name,
-           a.email AS agent_email,
-           a.phone AS agent_phone,
-           ap.company_name AS agent_company,
-           ap.avatar AS agent_avatar
-    FROM car_listings c
-    LEFT JOIN users a ON c.agent_id = a.id
-    LEFT JOIN agent_profiles ap ON a.id = ap.user_id
-    WHERE c.id = ?
+SELECT c.*,
+       a.verified AS agent_verified,
+       a.name AS agent_name,
+       a.username AS agent_username,
+       a.email AS agent_email,
+       a.phone AS agent_phone,
+       ap.company_name AS agent_company,
+       ap.avatar AS agent_avatar
+FROM car_listings c
+LEFT JOIN users a ON c.agent_id = a.id
+LEFT JOIN agent_profiles ap ON a.id = ap.user_id
+WHERE c.id = ?
 ");
+
 $stmt->execute([$id]);
 $item = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -79,37 +85,40 @@ if (!$isPreview) {
 }
 
 $images = $db->prepare("
-    SELECT *
-    FROM listing_images
-    WHERE listing_id = ?
-      AND listing_type = 'car'
-    ORDER BY sort_order
+SELECT *
+FROM listing_images
+WHERE listing_id = ?
+AND listing_type = 'car'
+ORDER BY sort_order
 ");
+
 $images->execute([$id]);
 $images = $images->fetchAll(PDO::FETCH_ASSOC);
 
 $similar = $db->prepare("
-    SELECT c.id, c.title, c.brand, c.model, c.year, c.price,
-           (
-               SELECT url
-               FROM listing_images
-               WHERE listing_id = c.id
-                 AND listing_type = 'car'
-               ORDER BY sort_order
-               LIMIT 1
-           ) AS thumbnail
-    FROM car_listings c
-    WHERE c.id != ?
-      AND c.status = 'active'
-      AND (c.brand = ? OR c.body_type = ?)
-    ORDER BY c.featured DESC, c.created_at DESC
-    LIMIT 4
+SELECT c.id, c.title, c.brand, c.model, c.year, c.price,
+(
+    SELECT url
+    FROM listing_images
+    WHERE listing_id = c.id
+    AND listing_type = 'car'
+    ORDER BY sort_order
+    LIMIT 1
+) AS thumbnail
+FROM car_listings c
+WHERE c.id != ?
+AND c.status = 'active'
+AND (c.brand = ? OR c.body_type = ?)
+ORDER BY c.featured DESC, c.created_at DESC
+LIMIT 4
 ");
+
 $similar->execute([
     $id,
     (string)($item['brand'] ?? ''),
     (string)($item['body_type'] ?? ''),
 ]);
+
 $similar = $similar->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
 $features = [];
@@ -155,20 +164,27 @@ $listingId = (int)$item['id'];
 $agentId = (int)$item['agent_id'];
 
 $agentNameRaw = $item['agent_name'] ?? 'Agent';
+$agentUsername = (string)($item['agent_username'] ?? '');
+
+$agentDisplayName = function_exists('kinas_public_display_name')
+    ? kinas_public_display_name($agentUsername !== '' ? $agentUsername : null, $agentNameRaw)
+    : ($agentUsername !== '' ? '@' . $agentUsername : $agentNameRaw);
+
+$agentInitialSource = ltrim($agentDisplayName, '@');
+
 $listingTitleRaw = trim(($item['brand'] ?? '') . ' ' . ($item['model'] ?? '') . ' ' . ($item['year'] ?? '')) ?: ($item['title'] ?? 'Car');
 
 $agentVerified = !empty($item['agent_verified']);
 $inspectionFee = (float)($item['inspection_fee'] ?? 0);
 ?>
-
 <div class="je-page">
     <div class="je-detail-wrap">
 
         <?php if ($isPreview): ?>
-            <div style="background:#FFF8E1; border:1px solid #F0C419; color:#7A5B00; padding:14px 18px; border-radius:4px; margin-bottom:20px; font-size:14px;">
-                <i class="fas fa-eye"></i>
-                <strong>Preview only</strong> — this listing is <?= htmlspecialchars(ucfirst((string)$item['status'])) ?> and not visible to the public yet.
-            </div>
+        <div style="background:#FFF8E1; border:1px solid #F0C419; color:#7A5B00; padding:14px 18px; border-radius:4px; margin-bottom:20px; font-size:14px;">
+            <i class="fas fa-eye"></i>
+            <strong>Preview only</strong> — this listing is <?= htmlspecialchars(ucfirst((string)$item['status'])) ?> and not visible to the public yet.
+        </div>
         <?php endif; ?>
 
         <div class="je-breadcrumb">
@@ -182,6 +198,7 @@ $inspectionFee = (float)($item['inspection_fee'] ?? 0);
         </div>
 
         <div class="je-detail-grid">
+
             <!-- Gallery -->
             <div>
                 <?php if (empty($images)): ?>
@@ -344,7 +361,6 @@ $inspectionFee = (float)($item['inspection_fee'] ?? 0);
                                 <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Start Date</label>
                                 <input type="date" id="rbStartDate" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
                             </div>
-
                             <div>
                                 <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">End Date</label>
                                 <input type="date" id="rbEndDate" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
@@ -472,7 +488,7 @@ $inspectionFee = (float)($item['inspection_fee'] ?? 0);
                             id="contactBtn"
                             onclick="openContactAgent(
                                 <?= $agentId ?>,
-                                <?= htmlspecialchars(json_encode($agentNameRaw, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>,
+                                <?= htmlspecialchars(json_encode($agentDisplayName, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>,
                                 'car'
                             );">
                         <i class="far fa-envelope"></i> Contact Agent
@@ -490,12 +506,12 @@ $inspectionFee = (float)($item['inspection_fee'] ?? 0);
                         <?php if (!empty($item['agent_avatar'])): ?>
                             <img src="<?= htmlspecialchars($item['agent_avatar']) ?>" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
                         <?php else: ?>
-                            <?= strtoupper(substr($agentNameRaw, 0, 1)) ?>
+                            <?= strtoupper(substr($agentInitialSource, 0, 1)) ?>
                         <?php endif; ?>
                     </div>
 
                     <div class="je-agent-info">
-                        <div class="je-agent-name"><?= htmlspecialchars($agentNameRaw) ?></div>
+                        <div class="je-agent-name"><?= htmlspecialchars($agentDisplayName) ?></div>
                         <div class="je-agent-meta">
                             <?= htmlspecialchars($item['agent_company'] ?? 'Independent Agent') ?>
                             <?php if ($agentVerified): ?>
@@ -519,7 +535,6 @@ $inspectionFee = (float)($item['inspection_fee'] ?? 0);
 
             <?php if (!empty($features)): ?>
                 <h2 style="margin-top:32px;">Features &amp; Equipment</h2>
-
                 <div class="je-features-grid">
                     <?php foreach ($features as $f): ?>
                         <div class="je-feature-pill">
@@ -532,13 +547,11 @@ $inspectionFee = (float)($item['inspection_fee'] ?? 0);
 
             <?php if (!empty($item['latitude']) && !empty($item['longitude'])): ?>
                 <h2 style="margin-top:32px;">Location</h2>
-
                 <div id="listing-map"
                      data-lat="<?= htmlspecialchars($item['latitude']) ?>"
                      data-lng="<?= htmlspecialchars($item['longitude']) ?>"
                      data-title="<?= htmlspecialchars($item['title'] ?? '') ?>"
                      style="height:360px;border-radius:8px;overflow:hidden;border:1px solid #e8e8e8;"></div>
-
                 <script src="/assets/js/map.js"></script>
             <?php endif; ?>
 
@@ -653,17 +666,18 @@ $inspectionFee = (float)($item['inspection_fee'] ?? 0);
                     je_render_listing_grid($simCards);
                 } else {
                     echo '<div class="je-listings-grid" style="grid-template-columns:repeat(4,1fr);">';
+
                     foreach ($simCards as $c) {
                         if (function_exists('je_render_card')) {
                             je_render_card($c);
                         }
                     }
+
                     echo '</div>';
                 }
                 ?>
             </section>
         <?php endif; ?>
-
     </div>
 </div>
 
@@ -671,7 +685,7 @@ $inspectionFee = (float)($item['inspection_fee'] ?? 0);
 // ============================================================
 // SAFE PAGE CONSTANTS
 // ============================================================
-window.__kinasAgentName = <?= json_encode($agentNameRaw, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+window.__kinasAgentName = <?= json_encode($agentDisplayName, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 window.__kinasListingTitle = <?= json_encode($listingTitleRaw, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 window.__kinasAgentVerified = <?= $agentVerified ? 'true' : 'false' ?>;
 
@@ -703,6 +717,26 @@ function showLoginRequired() {
     setTimeout(function() {
         window.location.href = '/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
     }, 1500);
+}
+
+function getKinasPublicNameFromMeta() {
+    try {
+        const meta = document.querySelector('meta[name="user-data"]');
+
+        if (!meta) {
+            return '';
+        }
+
+        const data = JSON.parse(meta.content);
+
+        if (data.username) {
+            return String(data.username).startsWith('@') ? data.username : '@' + data.username;
+        }
+
+        return data.name || '';
+    } catch (e) {
+        return '';
+    }
 }
 
 // ============================================================
@@ -739,11 +773,11 @@ function openScheduleViewing(listingId, listingType, agentId, inspectionFee) {
             </div>
 
             ${inspectionFee > 0 ? `
-                <div style="padding:12px;background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;margin-bottom:20px;font-size:13px;color:#5d4a00;">
-                    <i class="fas fa-clipboard-check"></i>
-                    This listing requires a ₦${Math.round(inspectionFee).toLocaleString('en-NG')} inspection fee, paid online.
-                    Your appointment is confirmed automatically once payment succeeds.
-                </div>
+            <div style="padding:12px;background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;margin-bottom:20px;font-size:13px;color:#5d4a00;">
+                <i class="fas fa-clipboard-check"></i>
+                This listing requires a ₦${Math.round(inspectionFee).toLocaleString('en-NG')} inspection fee, paid online.
+                Your appointment is confirmed automatically once payment succeeds.
+            </div>
             ` : ''}
 
             <form id="scheduleForm">
@@ -812,19 +846,23 @@ function openScheduleViewing(listingId, listingType, agentId, inspectionFee) {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const dateInput = document.getElementById('prefDate');
+
     if (dateInput) {
         dateInput.min = tomorrow.toISOString().split('T')[0];
         dateInput.value = tomorrow.toISOString().split('T')[0];
     }
 
     const meta = document.querySelector('meta[name="user-data"]');
+
     if (meta) {
         try {
             const data = JSON.parse(meta.content);
             const form = document.getElementById('scheduleForm');
 
             if (form) {
-                form.querySelector('input[name="name"]').value = data.name || '';
+                const publicName = getKinasPublicNameFromMeta();
+
+                form.querySelector('input[name="name"]').value = publicName || data.name || '';
                 form.querySelector('input[name="email"]').value = data.email || '';
                 form.querySelector('input[name="phone"]').value = data.phone || '';
             }
@@ -895,12 +933,10 @@ function openScheduleViewing(listingId, listingType, agentId, inspectionFee) {
                             }
                         });
                     },
-
                     onCancel: function() {
                         btn.innerHTML = original;
                         btn.disabled = false;
                     },
-
                     onError: function(error) {
                         msg.style.display = 'block';
                         msg.style.background = '#f8d7da';
@@ -925,6 +961,7 @@ function openScheduleViewing(listingId, listingType, agentId, inspectionFee) {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
         const notes = formData.get('message') || '';
+
         if (!notes.trim()) {
             formData.set('message', 'I would like to schedule a viewing for this car.');
         }
@@ -1034,13 +1071,16 @@ function openContactAgent(agentId, agentName, division) {
     document.body.insertAdjacentHTML('beforeend', html);
 
     const meta = document.querySelector('meta[name="user-data"]');
+
     if (meta) {
         try {
             const data = JSON.parse(meta.content);
             const form = document.getElementById('contactForm');
 
             if (form) {
-                form.querySelector('input[name="name"]').value = data.name || '';
+                const publicName = getKinasPublicNameFromMeta();
+
+                form.querySelector('input[name="name"]').value = publicName || data.name || '';
                 form.querySelector('input[name="email"]').value = data.email || '';
                 form.querySelector('input[name="phone"]').value = data.phone || '';
             }
@@ -1181,6 +1221,7 @@ function jeSaveListing(type, id) {
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
     const btn = document.getElementById('saveBtn');
+
     if (!btn) return;
 
     const formData = new FormData();
