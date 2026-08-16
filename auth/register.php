@@ -52,20 +52,157 @@ function authCssV($file)
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        .ka-phone-row {
-            display: grid;
-            grid-template-columns: minmax(230px, 280px) 1fr;
-            gap: 10px;
+        .ka-phone-combo {
+            position: relative;
+            display: flex;
             align-items: stretch;
+            border: 1px solid var(--ka-line);
+            border-radius: 10px;
+            background: #FBFBFC;
+            transition: border-color .2s, box-shadow .2s, background .2s;
         }
 
-        .ka-phone-code-wrap .ka-select {
-            padding-left: 14px;
+        .ka-phone-combo:focus-within {
+            border-color: var(--ka-orange);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(237,91,12,.10);
+        }
+
+        .ka-phone-code-btn {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 0 12px;
+            border: none;
+            background: transparent;
+            border-right: 1px solid var(--ka-line);
+            color: #111;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            min-width: 86px;
+            white-space: nowrap;
+        }
+
+        .ka-phone-code-btn i {
+            font-size: 11px;
+            color: #9AA3AB;
+        }
+
+        .ka-phone-input {
+            flex: 1;
+            min-width: 0;
+            border: none;
+            outline: none;
+            background: transparent;
+            padding: 13px 14px;
+            color: #111;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        }
+
+        .ka-phone-input::placeholder {
+            color: #A6AFB7;
+        }
+
+        .ka-phone-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: min(320px, calc(100vw - 40px));
+            background: #fff;
+            border: 1px solid #E1E5EA;
+            border-radius: 12px;
+            box-shadow: 0 18px 50px rgba(0,0,0,.18);
+            z-index: 50;
+            display: none;
+            overflow: hidden;
+        }
+
+        .ka-phone-dropdown.open {
+            display: block;
+        }
+
+        .ka-phone-search-wrap {
+            position: relative;
+            padding: 10px;
+            border-bottom: 1px solid #EEF1F4;
+        }
+
+        .ka-phone-search-wrap i {
+            position: absolute;
+            left: 22px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9AA3AB;
+            font-size: 13px;
+            pointer-events: none;
+        }
+
+        .ka-phone-search {
+            width: 100%;
+            border: 1px solid var(--ka-line);
+            border-radius: 8px;
+            padding: 9px 12px 9px 32px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            color: #111;
+            background: #FBFBFC;
+        }
+
+        .ka-phone-search:focus {
+            outline: none;
+            border-color: var(--ka-orange);
+            background: #fff;
+        }
+
+        .ka-phone-options {
+            max-height: 260px;
+            overflow: auto;
+        }
+
+        .ka-phone-option {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            text-align: left;
+            font-family: 'Inter', sans-serif;
+            font-size: 13.5px;
+        }
+
+        .ka-phone-option:hover {
+            background: #F8F9FB;
+        }
+
+        .ka-phone-option.selected {
+            background: rgba(237,91,12,.08);
+        }
+
+        .ka-phone-option-flag {
+            width: 24px;
+            flex-shrink: 0;
+        }
+
+        .ka-phone-option-name {
+            flex: 1;
+            color: #111;
+        }
+
+        .ka-phone-option-dial {
+            color: #667078;
+            font-weight: 600;
+            white-space: nowrap;
         }
 
         @media (max-width: 560px) {
-            .ka-phone-row {
-                grid-template-columns: 1fr;
+            .ka-phone-dropdown {
+                width: 100%;
             }
         }
     </style>
@@ -134,24 +271,46 @@ function authCssV($file)
                             <div class="ka-field">
                                 <label for="phone">Phone</label>
 
-                                <div class="ka-phone-row">
-                                    <div class="ka-input-wrap ka-phone-code-wrap">
-                                        <select class="ka-select" id="phone_country" name="phone_country" required aria-label="Country code">
-                                            <?php foreach ($countries as $country): ?>
-                                                <option
-                                                    value="<?= htmlspecialchars($country['iso2']) ?>"
-                                                    data-dial="+<?= htmlspecialchars($country['dial']) ?>"
-                                                    <?= $country['iso2'] === 'NG' ? 'selected' : '' ?>
-                                                >
-                                                    <?= htmlspecialchars($country['flag'] . ' ' . $country['name'] . ' (+' . $country['dial'] . ')') ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
+                                <div class="ka-phone-combo" id="phoneCountryCombo">
+                                    <button type="button" class="ka-phone-code-btn" id="phoneCountryBtn" aria-haspopup="listbox" aria-expanded="false">
+                                        <span class="ka-phone-dial-label">+234</span>
+                                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                    </button>
 
-                                    <div class="ka-input-wrap">
-                                        <i class="fas fa-phone ka-lead" aria-hidden="true"></i>
-                                        <input class="ka-input" type="tel" id="phone" name="phone" placeholder="800 000 0000" required autocomplete="tel-national">
+                                    <input type="hidden" id="phone_country" name="phone_country" value="NG">
+
+                                    <input
+                                        class="ka-phone-input"
+                                        type="tel"
+                                        id="phone"
+                                        name="phone"
+                                        placeholder="800 000 0000"
+                                        required
+                                        autocomplete="tel-national"
+                                        inputmode="tel"
+                                    >
+
+                                    <div class="ka-phone-dropdown" id="phoneCountryDropdown" aria-hidden="true">
+                                        <div class="ka-phone-search-wrap">
+                                            <i class="fas fa-search" aria-hidden="true"></i>
+                                            <input type="text" class="ka-phone-search" placeholder="Search country" autocomplete="off">
+                                        </div>
+
+                                        <div class="ka-phone-options">
+                                            <?php foreach ($countries as $country): ?>
+                                                <button
+                                                    type="button"
+                                                    class="ka-phone-option<?= $country['iso2'] === 'NG' ? ' selected' : '' ?>"
+                                                    data-iso2="<?= htmlspecialchars($country['iso2']) ?>"
+                                                    data-dial="<?= htmlspecialchars($country['dial']) ?>"
+                                                    data-name="<?= htmlspecialchars($country['name']) ?>"
+                                                >
+                                                    <span class="ka-phone-option-flag"><?= htmlspecialchars($country['flag']) ?></span>
+                                                    <span class="ka-phone-option-name"><?= htmlspecialchars($country['name']) ?></span>
+                                                    <span class="ka-phone-option-dial">+<?= htmlspecialchars($country['dial']) ?></span>
+                                                </button>
+                                            <?php endforeach; ?>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -249,6 +408,8 @@ function authCssV($file)
         </footer>
     </div>
 
+    <?php require_once __DIR__ . '/../includes/kinas-ui.php'; ?>
+
     <script>
         const captchaSiteKey = '<?= htmlspecialchars(get_captcha_site_key()) ?>';
         const isCaptchaConfigured = captchaSiteKey && captchaSiteKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX' && captchaSiteKey.length > 30;
@@ -277,6 +438,19 @@ function authCssV($file)
                     callback: r => document.getElementById('captcha-token').value = r,
                     'expired-callback': () => document.getElementById('captcha-token').value = ''
                 });
+            }
+        }
+
+        function registerNotify(message, type) {
+            try {
+                if (typeof window.kinasToast === 'function') {
+                    window.kinasToast(message, type || 'error', 5000);
+                } else {
+                    alert(message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert(message);
             }
         }
 
@@ -315,15 +489,116 @@ function authCssV($file)
             });
         })();
 
+        (function () {
+            const combo = document.getElementById('phoneCountryCombo');
+
+            if (!combo) return;
+
+            const btn = combo.querySelector('.ka-phone-code-btn');
+            const dropdown = combo.querySelector('.ka-phone-dropdown');
+            const hiddenInput = combo.querySelector('input[name="phone_country"]');
+            const dialLabel = combo.querySelector('.ka-phone-dial-label');
+            const phoneInput = combo.querySelector('.ka-phone-input');
+            const searchInput = combo.querySelector('.ka-phone-search');
+            const options = Array.from(combo.querySelectorAll('.ka-phone-option'));
+
+            function openDropdown() {
+                dropdown.classList.add('open');
+                dropdown.setAttribute('aria-hidden', 'false');
+                btn.setAttribute('aria-expanded', 'true');
+
+                searchInput.value = '';
+                filterOptions('');
+
+                const selected = combo.querySelector('.ka-phone-option.selected');
+
+                if (selected) {
+                    selected.scrollIntoView({ block: 'nearest' });
+                }
+
+                setTimeout(function() {
+                    searchInput.focus();
+                }, 30);
+            }
+
+            function closeDropdown() {
+                dropdown.classList.remove('open');
+                dropdown.setAttribute('aria-hidden', 'true');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+
+            function filterOptions(query) {
+                query = query.toLowerCase();
+
+                options.forEach(function(option) {
+                    const name = (option.dataset.name || '').toLowerCase();
+                    const dial = (option.dataset.dial || '').toLowerCase();
+
+                    option.style.display = (name.includes(query) || dial.includes(query)) ? '' : 'none';
+                });
+            }
+
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+
+                if (dropdown.classList.contains('open')) {
+                    closeDropdown();
+                } else {
+                    openDropdown();
+                }
+            });
+
+            searchInput.addEventListener('input', function() {
+                filterOptions(this.value.trim());
+            });
+
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                }
+            });
+
+            phoneInput.addEventListener('focus', closeDropdown);
+
+            options.forEach(function(option) {
+                option.addEventListener('click', function() {
+                    hiddenInput.value = option.dataset.iso2;
+                    dialLabel.textContent = '+' + option.dataset.dial;
+
+                    options.forEach(function(opt) {
+                        opt.classList.remove('selected');
+                    });
+
+                    option.classList.add('selected');
+
+                    closeDropdown();
+                    phoneInput.focus();
+                });
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!combo.contains(e.target)) {
+                    closeDropdown();
+                }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeDropdown();
+                }
+            });
+        })();
+
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const form = this;
             const submitBtn = document.getElementById('submitBtn');
+            const originalBtnHtml = submitBtn.innerHTML;
 
             const name = form.name.value.trim();
             const email = form.email.value.trim();
-            const phoneCountry = form.phone_country ? form.phone_country.value : '';
+            const phoneCountry = form.elements.phone_country ? form.elements.phone_country.value : '';
             const phone = form.phone.value.trim();
             const username = form.username.value.trim().replace(/^@/, '').toLowerCase();
             const division = form.division.value;
@@ -331,34 +606,36 @@ function authCssV($file)
             const passwordConfirmation = form.password_confirmation.value;
 
             if (!name || !username || !email || !phoneCountry || !phone || !division || !password || !passwordConfirmation) {
-                kinasToast('Please fill in all required fields', 'error');
+                registerNotify('Please fill in all required fields', 'error');
                 return;
             }
 
             const phoneDigits = phone.replace(/\D+/g, '');
 
             if (phoneDigits.length < 5 || phoneDigits.length > 15) {
-                kinasToast('Please enter a valid phone number', 'error');
+                registerNotify('Please enter a valid phone number', 'error');
                 return;
             }
 
             if (password !== passwordConfirmation) {
-                kinasToast('Passwords do not match', 'error');
+                registerNotify('Passwords do not match', 'error');
                 return;
             }
 
             if (password.length < 8) {
-                kinasToast('Password must be at least 8 characters', 'error');
+                registerNotify('Password must be at least 8 characters', 'error');
                 return;
             }
 
             if (isCaptchaConfigured && !document.getElementById('captcha-token').value) {
-                kinasToast('Please complete the CAPTCHA verification', 'warning');
+                registerNotify('Please complete the CAPTCHA verification', 'warning');
                 return;
             }
 
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account…';
+
+            let willRedirect = false;
 
             try {
                 const res = await fetch(form.action, {
@@ -384,29 +661,33 @@ function authCssV($file)
                 const data = await res.json();
 
                 if (data.success) {
+                    willRedirect = true;
+
                     const successMessage = data.message || 'Registration successful! Please login to continue.';
                     window.location.href = 'login.php?registered=1&message=' + encodeURIComponent(successMessage);
-                } else {
-                    let errorMsg = data.error || 'Registration failed';
 
-                    if (data.errors) {
-                        errorMsg = Object.values(data.errors).join(', ');
-                    }
-
-                    kinasToast(errorMsg, 'error');
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Create Account &amp; Continue';
+                    return;
                 }
+
+                let errorMsg = data.error || 'Registration failed';
+
+                if (data.errors) {
+                    errorMsg = Object.values(data.errors).join(', ');
+                }
+
+                registerNotify(errorMsg, 'error');
             } catch (err) {
                 console.error(err);
-                kinasToast('Network error. Please try again.', 'error');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Create Account &amp; Continue';
+                registerNotify('Network error. Please try again.', 'error');
+            } finally {
+                if (!willRedirect) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHtml;
+                }
             }
         });
     </script>
 
-    <?php require_once __DIR__ . '/../includes/kinas-ui.php'; ?>
     <?php require_once __DIR__ . '/../includes/password-toggle.php'; ?>
 </body>
 </html>
