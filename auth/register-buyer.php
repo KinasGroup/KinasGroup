@@ -179,8 +179,20 @@ function authCssV($file)
         }
 
         .ka-phone-option-flag {
-            width: 24px;
+            width: 26px;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .ka-phone-option-flag img {
+            width: 22px;
+            height: 15px;
+            object-fit: cover;
+            border-radius: 2px;
+            box-shadow: 0 0 0 1px rgba(0,0,0,.08);
+            display: block;
         }
 
         .ka-phone-option-name {
@@ -223,7 +235,6 @@ function authCssV($file)
                 <div class="ka-card">
                     <p class="ka-eyebrow"><i class="fas fa-gem"></i> Buyer Account</p>
                     <h2>Create Buyer Account</h2>
-                    <p class="ka-sub">Free forever. No credit card required.</p>
 
                     <?php if ($errorMessage): ?>
                         <div class="ka-alert error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div>
@@ -253,63 +264,70 @@ function authCssV($file)
                             <p class="ka-hint" id="usernameHint">3–20 chars: letters, numbers, "_" and ".". This is how other members see you.</p>
                         </div>
 
-                        <div class="ka-grid-2">
-                            <div class="ka-field">
-                                <label for="email">Email</label>
-                                <div class="ka-input-wrap">
-                                    <i class="fas fa-envelope ka-lead" aria-hidden="true"></i>
-                                    <input class="ka-input" type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
-                                </div>
+                        <div class="ka-field">
+                            <label for="email">Email</label>
+                            <div class="ka-input-wrap">
+                                <i class="fas fa-envelope ka-lead" aria-hidden="true"></i>
+                                <input class="ka-input" type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
                             </div>
+                        </div>
 
-                            <div class="ka-field">
-                                <label for="phone">Phone</label>
+                        <div class="ka-field">
+                            <label for="phone">Phone</label>
 
-                                <div class="ka-phone-combo" id="phoneCountryCombo">
-                                    <button type="button" class="ka-phone-code-btn" id="phoneCountryBtn" aria-haspopup="listbox" aria-expanded="false">
-                                        <span class="ka-phone-dial-label">+234</span>
-                                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                                    </button>
+                            <div class="ka-phone-combo" id="phoneCountryCombo">
+                                <button type="button" class="ka-phone-code-btn" id="phoneCountryBtn" aria-haspopup="listbox" aria-expanded="false">
+                                    <span class="ka-phone-dial-label">+234</span>
+                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                </button>
 
-                                    <input type="hidden" id="phone_country" name="phone_country" value="NG">
+                                <input type="hidden" id="phone_country" name="phone_country" value="NG">
 
-                                    <input
-                                        class="ka-phone-input"
-                                        type="tel"
-                                        id="phone"
-                                        name="phone"
-                                        placeholder="800 000 0000"
-                                        required
-                                        autocomplete="tel-national"
-                                        inputmode="tel"
-                                    >
+                                <input
+                                    class="ka-phone-input"
+                                    type="tel"
+                                    id="phone"
+                                    name="phone"
+                                    placeholder="800 000 0000"
+                                    required
+                                    autocomplete="tel-national"
+                                    inputmode="tel"
+                                >
 
-                                    <div class="ka-phone-dropdown" id="phoneCountryDropdown" aria-hidden="true">
-                                        <div class="ka-phone-search-wrap">
-                                            <i class="fas fa-search" aria-hidden="true"></i>
-                                            <input type="text" class="ka-phone-search" placeholder="Search country" autocomplete="off">
-                                        </div>
+                                <div class="ka-phone-dropdown" id="phoneCountryDropdown" aria-hidden="true">
+                                    <div class="ka-phone-search-wrap">
+                                        <i class="fas fa-search" aria-hidden="true"></i>
+                                        <input type="text" class="ka-phone-search" placeholder="Search country" autocomplete="off">
+                                    </div>
 
-                                        <div class="ka-phone-options">
-                                            <?php foreach ($countries as $country): ?>
-                                                <button
-                                                    type="button"
-                                                    class="ka-phone-option<?= $country['iso2'] === 'NG' ? ' selected' : '' ?>"
-                                                    data-iso2="<?= htmlspecialchars($country['iso2']) ?>"
-                                                    data-dial="<?= htmlspecialchars($country['dial']) ?>"
-                                                    data-name="<?= htmlspecialchars($country['name']) ?>"
-                                                >
-                                                    <span class="ka-phone-option-flag"><?= htmlspecialchars($country['flag']) ?></span>
-                                                    <span class="ka-phone-option-name"><?= htmlspecialchars($country['name']) ?></span>
-                                                    <span class="ka-phone-option-dial">+<?= htmlspecialchars($country['dial']) ?></span>
-                                                </button>
-                                            <?php endforeach; ?>
-                                        </div>
+                                    <div class="ka-phone-options">
+                                        <?php foreach ($countries as $country): ?>
+                                            <button
+                                                type="button"
+                                                class="ka-phone-option<?= $country['iso2'] === 'NG' ? ' selected' : '' ?>"
+                                                data-iso2="<?= htmlspecialchars($country['iso2']) ?>"
+                                                data-dial="<?= htmlspecialchars($country['dial']) ?>"
+                                                data-name="<?= htmlspecialchars($country['name']) ?>"
+                                            >
+                                                <span class="ka-phone-option-flag">
+                                                    <img
+                                                        src="https://flagcdn.com/w40/<?= strtolower(htmlspecialchars($country['iso2'])) ?>.png"
+                                                        alt=""
+                                                        width="22"
+                                                        height="15"
+                                                        loading="lazy"
+                                                        onerror="this.style.display='none'"
+                                                    >
+                                                </span>
+                                                <span class="ka-phone-option-name"><?= htmlspecialchars($country['name']) ?></span>
+                                                <span class="ka-phone-option-dial">+<?= htmlspecialchars($country['dial']) ?></span>
+                                            </button>
+                                        <?php endforeach; ?>
                                     </div>
                                 </div>
-
-                                <p class="ka-hint">Select your country, then enter your phone number without the country code.</p>
                             </div>
+
+                            <p class="ka-hint">Select your country, then enter your phone number without the country code.</p>
                         </div>
 
                         <div class="ka-grid-2">
