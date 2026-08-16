@@ -115,7 +115,7 @@ function authCssV($file)
             border: 1px solid #E1E5EA;
             border-radius: 12px;
             box-shadow: 0 18px 50px rgba(0,0,0,.18);
-            z-index: 50;
+            z-index: 99999 !important;
             display: none;
             overflow: hidden;
         }
