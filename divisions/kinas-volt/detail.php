@@ -1,44 +1,49 @@
 <?php
 /**
- * KINAS BUILD: 2026.08.15.09
- * FILE: divisions/kinas-volt/detail.php
- *
- * KINAS VOLT — Solar listing detail
- *
- * RESTORED / ADDED:
- * - Free scheduling.
- * - Contact Provider modal.
- * - Save listing.
- * - Solar financing calculator.
- *
- * NOT ADDED:
- * - Reviews.
- */
-
+* KINAS BUILD: 2026.08.16.01
+* FILE: divisions/kinas-volt/detail.php
+*
+* KINAS VOLT — Solar listing detail
+*
+* AMENDED:
+* - Agent/public identity now prefers @username where available.
+* - Inquiry and schedule forms prefill the logged-in user's public username.
+*
+* RESTORED / ADDED:
+* - Free scheduling.
+* - Contact Provider modal.
+* - Save listing.
+* - Solar financing calculator.
+*
+* NOT ADDED:
+* - Reviews.
+*/
 require_once '../../includes/session.php';
 require_once '../../includes/functions.php';
 require_once '../../includes/helpers.php';
 require_once '../../api/config/database.php';
 require_once '../../includes/je-components.php';
 require_once '../../includes/security.php';
+require_once '../../includes/public-identity.php';
 
 $id = (int)($_GET['id'] ?? 0);
-
 $db = Database::getInstance()->getConnection();
 
 $stmt = $db->prepare("
-    SELECT s.*,
-           a.verified as agent_verified,
-           a.name as agent_name,
-           a.email as agent_email,
-           a.phone as agent_phone,
-           ap.company_name as agent_company,
-           ap.avatar as agent_avatar
-    FROM solar_listings s
-    LEFT JOIN users a ON s.agent_id = a.id
-    LEFT JOIN agent_profiles ap ON a.id = ap.user_id
-    WHERE s.id = ?
+SELECT s.*,
+       a.verified AS agent_verified,
+       a.name AS agent_name,
+       a.username AS agent_username,
+       a.email AS agent_email,
+       a.phone AS agent_phone,
+       ap.company_name AS agent_company,
+       ap.avatar AS agent_avatar
+FROM solar_listings s
+LEFT JOIN users a ON s.agent_id = a.id
+LEFT JOIN agent_profiles ap ON a.id = ap.user_id
+WHERE s.id = ?
 ");
+
 $stmt->execute([$id]);
 $item = $stmt->fetch();
 
@@ -62,37 +67,40 @@ if (!$isPreview) {
 }
 
 $images = $db->prepare("
-    SELECT *
-    FROM listing_images
-    WHERE listing_id = ?
-      AND listing_type = 'solar'
-    ORDER BY sort_order
+SELECT *
+FROM listing_images
+WHERE listing_id = ?
+AND listing_type = 'solar'
+ORDER BY sort_order
 ");
+
 $images->execute([$id]);
 $images = $images->fetchAll();
 
 $similar = $db->prepare("
-    SELECT s.id, s.title, s.service_type, s.price, s.brand, s.capacity_kw,
-           (
-               SELECT url
-               FROM listing_images
-               WHERE listing_id = s.id
-                 AND listing_type = 'solar'
-               ORDER BY sort_order
-               LIMIT 1
-           ) AS thumbnail
-    FROM solar_listings s
-    WHERE s.id != ?
-      AND s.status = 'active'
-      AND (s.brand = ? OR s.service_type = ?)
-    ORDER BY s.created_at DESC
-    LIMIT 4
+SELECT s.id, s.title, s.service_type, s.price, s.brand, s.capacity_kw,
+(
+    SELECT url
+    FROM listing_images
+    WHERE listing_id = s.id
+    AND listing_type = 'solar'
+    ORDER BY sort_order
+    LIMIT 1
+) AS thumbnail
+FROM solar_listings s
+WHERE s.id != ?
+AND s.status = 'active'
+AND (s.brand = ? OR s.service_type = ?)
+ORDER BY s.created_at DESC
+LIMIT 4
 ");
+
 $similar->execute([
     $id,
     (string)($item['brand'] ?? ''),
     (string)($item['service_type'] ?? ''),
 ]);
+
 $similar = $similar->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
 $features = [];
@@ -129,19 +137,25 @@ $listingId = (int)$item['id'];
 $agentId = (int)$item['agent_id'];
 
 $agentNameRaw = $item['agent_name'] ?? 'Provider';
-$listingTitleRaw = $item['title'] ?? 'Solar System';
+$agentUsername = (string)($item['agent_username'] ?? '');
 
+$agentDisplayName = function_exists('kinas_public_display_name')
+    ? kinas_public_display_name($agentUsername !== '' ? $agentUsername : null, $agentNameRaw)
+    : ($agentUsername !== '' ? '@' . $agentUsername : $agentNameRaw);
+
+$agentInitialSource = ltrim($agentDisplayName, '@');
+
+$listingTitleRaw = $item['title'] ?? 'Solar System';
 $agentVerified = !empty($item['agent_verified']);
 ?>
-
 <div class="je-page">
     <div class="je-detail-wrap">
 
         <?php if ($isPreview): ?>
-            <div style="background:#FFF8E1; border:1px solid #F0C419; color:#7A5B00; padding:14px 18px; border-radius:4px; margin-bottom:20px; font-size:14px;">
-                <i class="fas fa-eye"></i>
-                <strong>Preview only</strong> — this listing is <?= htmlspecialchars(ucfirst((string)$item['status'])) ?> and not visible to the public yet.
-            </div>
+        <div style="background:#FFF8E1; border:1px solid #F0C419; color:#7A5B00; padding:14px 18px; border-radius:4px; margin-bottom:20px; font-size:14px;">
+            <i class="fas fa-eye"></i>
+            <strong>Preview only</strong> — this listing is <?= htmlspecialchars(ucfirst((string)$item['status'])) ?> and not visible to the public yet.
+        </div>
         <?php endif; ?>
 
         <div class="je-breadcrumb">
@@ -173,7 +187,7 @@ $agentVerified = !empty($item['agent_verified']);
                             <?php foreach ($images as $idx => $img): ?>
                                 <div class="je-gallery-thumb <?= $idx === 0 ? 'is-active' : '' ?>"
                                      onclick="document.getElementById('jeMainImage').src='<?= htmlspecialchars($img['url']) ?>';
-                                              document.querySelectorAll('.je-gallery-thumb').forEach(t=>t.classList.remove('is-active'));
+                                              document.querySelectorAll('.je-gallery-thumbs').forEach(t=>t.classList.remove('is-active'));
                                               this.classList.add('is-active');">
                                     <img src="<?= htmlspecialchars($img['url']) ?>"
                                          alt="thumb <?= $idx + 1 ?>"
@@ -243,7 +257,11 @@ $agentVerified = !empty($item['agent_verified']);
 
                     <button class="je-cta-secondary"
                             id="contactBtn"
-                            onclick="window.openContactAgent(<?= $agentId ?>, <?= htmlspecialchars(json_encode($agentNameRaw, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>, 'solar');">
+                            onclick="window.openContactAgent(
+                                <?= $agentId ?>,
+                                <?= htmlspecialchars(json_encode($agentDisplayName, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>,
+                                'solar'
+                            );">
                         <i class="far fa-envelope"></i> Contact Provider
                     </button>
 
@@ -259,12 +277,12 @@ $agentVerified = !empty($item['agent_verified']);
                         <?php if (!empty($item['agent_avatar'])): ?>
                             <img src="<?= htmlspecialchars($item['agent_avatar']) ?>" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
                         <?php else: ?>
-                            <?= strtoupper(substr($agentNameRaw, 0, 1)) ?>
+                            <?= strtoupper(substr($agentInitialSource, 0, 1)) ?>
                         <?php endif; ?>
                     </div>
 
                     <div class="je-agent-info">
-                        <div class="je-agent-name"><?= htmlspecialchars($agentNameRaw) ?></div>
+                        <div class="je-agent-name"><?= htmlspecialchars($agentDisplayName) ?></div>
                         <div class="je-agent-meta">
                             <?= htmlspecialchars($item['agent_company'] ?? 'Independent Provider') ?>
                             <?php if ($agentVerified): ?>
@@ -287,7 +305,6 @@ $agentVerified = !empty($item['agent_verified']);
 
             <?php if (!empty($features)): ?>
                 <h2 style="margin-top:32px;">What's included</h2>
-
                 <div class="je-features-grid">
                     <?php foreach ($features as $f): ?>
                         <div class="je-feature-pill">
@@ -381,7 +398,6 @@ $agentVerified = !empty($item['agent_verified']);
                 ?>
             </section>
         <?php endif; ?>
-
     </div>
 </div>
 
@@ -389,7 +405,7 @@ $agentVerified = !empty($item['agent_verified']);
 // ============================================================
 // SAFE PAGE CONSTANTS
 // ============================================================
-window.__kinasAgentName = <?= json_encode($agentNameRaw, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+window.__kinasAgentName = <?= json_encode($agentDisplayName, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 window.__kinasListingTitle = <?= json_encode($listingTitleRaw, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 window.__kinasAgentVerified = <?= $agentVerified ? 'true' : 'false' ?>;
 
@@ -397,6 +413,26 @@ function voltEscapeHtml(value) {
     const div = document.createElement('div');
     div.textContent = String(value ?? '');
     return div.innerHTML;
+}
+
+function getKinasPublicNameFromMeta() {
+    try {
+        const meta = document.querySelector('meta[name="user-data"]');
+
+        if (!meta) {
+            return '';
+        }
+
+        const data = JSON.parse(meta.content);
+
+        if (data.username) {
+            return String(data.username).startsWith('@') ? data.username : '@' + data.username;
+        }
+
+        return data.name || '';
+    } catch (e) {
+        return '';
+    }
 }
 
 // ============================================================
@@ -522,19 +558,23 @@ window.showScheduleModal = function(listingId, listingType, agentId) {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const dateInput = document.getElementById('prefDate');
+
     if (dateInput) {
         dateInput.min = tomorrow.toISOString().split('T')[0];
         dateInput.value = tomorrow.toISOString().split('T')[0];
     }
 
     const meta = document.querySelector('meta[name="user-data"]');
+
     if (meta) {
         try {
             const data = JSON.parse(meta.content);
             const form = document.getElementById('scheduleForm');
 
             if (form) {
-                form.querySelector('input[name="name"]').value = data.name || '';
+                const publicName = getKinasPublicNameFromMeta();
+
+                form.querySelector('input[name="name"]').value = publicName || data.name || '';
                 form.querySelector('input[name="email"]').value = data.email || '';
                 form.querySelector('input[name="phone"]').value = data.phone || '';
             }
@@ -555,6 +595,7 @@ window.showScheduleModal = function(listingId, listingType, agentId) {
         const formData = new FormData(this);
 
         const notes = formData.get('message') || '';
+
         if (!notes.trim()) {
             formData.set('message', 'I would like to schedule a viewing for this solar system.');
         }
@@ -669,13 +710,16 @@ window.openContactAgent = function(agentId, agentName, division) {
     document.body.insertAdjacentHTML('beforeend', html);
 
     const meta = document.querySelector('meta[name="user-data"]');
+
     if (meta) {
         try {
             const data = JSON.parse(meta.content);
             const form = document.getElementById('contactForm');
 
             if (form) {
-                form.querySelector('input[name="name"]').value = data.name || '';
+                const publicName = getKinasPublicNameFromMeta();
+
+                form.querySelector('input[name="name"]').value = publicName || data.name || '';
                 form.querySelector('input[name="email"]').value = data.email || '';
                 form.querySelector('input[name="phone"]').value = data.phone || '';
             }
