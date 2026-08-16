@@ -86,7 +86,7 @@ function authCssV($file)
             <main class="ka-form-side">
                 <div class="ka-card">
                     <h2>Log In</h2>
-                    <p class="ka-sub">Enter your details to access your account, saved listings and messages.</p>
+                    <p class="ka-sub">Enter your details to access your account.</p>
 
                     <?php if ($errorMessage): ?>
                         <div class="ka-alert error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div>
