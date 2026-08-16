@@ -1,23 +1,22 @@
 <?php
 /**
- * KINAS BUILD: 2026.08.15.09
- * FILE: divisions/kinas-marketplace/detail.php
- *
- * KINAS MARKETPLACE — Item detail
- *
- * RESTORED:
- * - Contact Seller button.
- * - Contact Seller inquiry modal.
- *
- * KEEPS:
- * - Buy Now.
- * - Add to Cart.
- * - Save.
- * - Product reviews.
- * - Dynamic related products.
- * - Sold/completed public visibility for reviews.
- */
-
+* KINAS BUILD: 2026.08.16.01
+* FILE: divisions/kinas-marketplace/detail.php
+*
+* KINAS MARKETPLACE — Item detail
+*
+* AMENDED:
+* - Agent/seller public identity now prefers @username where available.
+* - Contact Seller form prefills logged-in user's public username.
+*
+* KEEPS:
+* - Buy Now.
+* - Add to Cart.
+* - Save.
+* - Product reviews.
+* - Dynamic related products.
+* - Sold/completed public visibility for reviews.
+*/
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
@@ -25,6 +24,7 @@ header('Expires: 0');
 require_once '../../includes/session.php';
 require_once '../../includes/functions.php';
 require_once '../../includes/helpers.php';
+require_once '../../includes/public-identity.php';
 require_once '../../api/config/database.php';
 require_once '../../includes/je-components.php';
 
@@ -35,18 +35,22 @@ if (file_exists($kinasRelatedProductsEngine)) {
 }
 
 $id = (int)($_GET['id'] ?? 0);
-
 $db = Database::getInstance()->getConnection();
 
 $stmt = $db->prepare("
-    SELECT m.*, c.name AS category_name, c.slug AS category_slug,
-           a.verified as agent_verified, a.name as agent_name, a.email as agent_email, a.phone as agent_phone,
-           ap.company_name as agent_company, ap.avatar as agent_avatar
-    FROM marketplace_listings m
-    LEFT JOIN marketplace_categories c ON m.category_id = c.id
-    LEFT JOIN users a ON m.agent_id = a.id
-    LEFT JOIN agent_profiles ap ON a.id = ap.user_id
-    WHERE m.id = ?
+SELECT m.*, c.name AS category_name, c.slug AS category_slug,
+a.verified as agent_verified,
+a.name as agent_name,
+a.username as agent_username,
+a.email as agent_email,
+a.phone as agent_phone,
+ap.company_name as agent_company,
+ap.avatar as agent_avatar
+FROM marketplace_listings m
+LEFT JOIN marketplace_categories c ON m.category_id = c.id
+LEFT JOIN users a ON m.agent_id = a.id
+LEFT JOIN agent_profiles ap ON a.id = ap.user_id
+WHERE m.id = ?
 ");
 $stmt->execute([$id]);
 $item = $stmt->fetch();
@@ -85,11 +89,11 @@ if (!$isPreview && ($item['status'] ?? '') === 'active') {
 }
 
 $images = $db->prepare("
-    SELECT *
-    FROM listing_images
-    WHERE listing_id = ?
-      AND listing_type = 'marketplace'
-    ORDER BY sort_order
+SELECT *
+FROM listing_images
+WHERE listing_id = ?
+AND listing_type = 'marketplace'
+ORDER BY sort_order
 ");
 $images->execute([$id]);
 $images = $images->fetchAll();
@@ -118,16 +122,17 @@ if (function_exists('kinas_get_related_marketplace_items')) {
     $whereSimilar = !empty($clauses) ? ' AND (' . implode(' OR ', $clauses) . ')' : '';
 
     $similarStmt = $db->prepare("
-        SELECT m.id, m.title, m.price, m.brand, m.category_id, c.name AS category_name,
-               (SELECT url FROM listing_images WHERE listing_id = m.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) AS thumbnail
-        FROM marketplace_listings m
-        LEFT JOIN marketplace_categories c ON m.category_id = c.id
-        WHERE m.id != ?
-          AND m.status = 'active'
-          {$whereSimilar}
-        ORDER BY RAND()
-        LIMIT 4
+    SELECT m.id, m.title, m.price, m.brand, m.category_id, c.name AS category_name,
+    (SELECT url FROM listing_images WHERE listing_id = m.id AND listing_type = 'marketplace' ORDER BY sort_order LIMIT 1) AS thumbnail
+    FROM marketplace_listings m
+    LEFT JOIN marketplace_categories c ON m.category_id = c.id
+    WHERE m.id != ?
+    AND m.status = 'active'
+    {$whereSimilar}
+    ORDER BY RAND()
+    LIMIT 4
     ");
+
     $similarStmt->execute($params);
     $similar = $similarStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
@@ -158,9 +163,21 @@ $listingId = (int)$item['id'];
 $agentId = (int)$item['agent_id'];
 
 $agentNameRaw = $item['agent_name'] ?? 'Seller';
+$agentUsername = (string)($item['agent_username'] ?? '');
+
+$agentDisplayName = function_exists('kinas_public_display_name')
+    ? kinas_public_display_name($agentUsername !== '' ? $agentUsername : null, $agentNameRaw)
+    : ($agentUsername !== '' ? '@' . $agentUsername : $agentNameRaw);
+
+$agentInitialSource = ltrim($agentDisplayName, '@');
+
+if ($agentInitialSource === '') {
+    $agentInitialSource = $agentNameRaw ?: 'Seller';
+}
+
 $listingTitleRaw = $item['title'] ?? 'Item';
 
-$agentName = htmlspecialchars($agentNameRaw, ENT_QUOTES, 'UTF-8');
+$agentName = htmlspecialchars($agentDisplayName, ENT_QUOTES, 'UTF-8');
 $listingTitle = htmlspecialchars($listingTitleRaw, ENT_QUOTES, 'UTF-8');
 
 $agentVerified = !empty($item['agent_verified']);
@@ -170,12 +187,13 @@ $alreadyInCart = false;
 if (SessionManager::isLoggedIn()) {
     try {
         $cartCheckStmt = $db->prepare("
-            SELECT 1
-            FROM cart_items
-            WHERE buyer_id = ?
-              AND listing_id = ?
-              AND listing_type = 'marketplace'
+        SELECT 1
+        FROM cart_items
+        WHERE buyer_id = ?
+        AND listing_id = ?
+        AND listing_type = 'marketplace'
         ");
+
         $cartCheckStmt->execute([SessionManager::getUserId(), $listingId]);
         $alreadyInCart = (bool)$cartCheckStmt->fetchColumn();
     } catch (Throwable $e) {
@@ -183,23 +201,22 @@ if (SessionManager::isLoggedIn()) {
     }
 }
 ?>
-
 <div class="je-page">
     <div class="je-detail-wrap">
 
         <?php if ($isPreview): ?>
-            <div style="background:#FFF8E1; border:1px solid #F0C419; color:#7A5B00; padding:14px 18px; border-radius:4px; margin-bottom:20px; font-size:14px;">
-                <i class="fas fa-eye"></i>
-                <strong>Preview only</strong> — this listing is <?= htmlspecialchars(ucfirst((string)($item['status'] ?? ''))) ?> and not visible to the public yet.
-            </div>
+        <div style="background:#FFF8E1; border:1px solid #F0C419; color:#7A5B00; padding:14px 18px; border-radius:4px; margin-bottom:20px; font-size:14px;">
+            <i class="fas fa-eye"></i>
+            <strong>Preview only</strong> — this listing is <?= htmlspecialchars(ucfirst((string)($item['status'] ?? ''))) ?> and not visible to the public yet.
+        </div>
         <?php endif; ?>
 
         <?php if (!$isPreview && ($item['status'] ?? '') !== 'active'): ?>
-            <div style="background:#F5F5F5; border:1px solid #E0E0E0; color:#555; padding:12px 16px; border-radius:4px; margin-bottom:20px; font-size:13px;">
-                <i class="fas fa-info-circle"></i>
-                This listing is currently marked as <strong><?= htmlspecialchars(ucfirst((string)$item['status'])) ?></strong>.
-                Verified customers can still leave a review below.
-            </div>
+        <div style="background:#F5F5F5; border:1px solid #E0E0E0; color:#555; padding:12px 16px; border-radius:4px; margin-bottom:20px; font-size:13px;">
+            <i class="fas fa-info-circle"></i>
+            This listing is currently marked as <strong><?= htmlspecialchars(ucfirst((string)$item['status'])) ?></strong>.
+            Verified customers can still leave a review below.
+        </div>
         <?php endif; ?>
 
         <div class="je-breadcrumb">
@@ -208,14 +225,12 @@ if (SessionManager::isLoggedIn()) {
             <a href="/divisions/kinas-marketplace/">KINAS MARKETPLACE</a>
             <span class="je-breadcrumb-sep">/</span>
             <a href="/divisions/kinas-marketplace/search.php">Search</a>
-
             <?php if (!empty($item['category_slug'])): ?>
                 <span class="je-breadcrumb-sep">/</span>
                 <a href="/divisions/kinas-marketplace/search.php?category=<?= (int)$item['category_id'] ?>">
                     <?= htmlspecialchars($item['category_name']) ?>
                 </a>
             <?php endif; ?>
-
             <span class="je-breadcrumb-sep">/</span>
             <span><?= htmlspecialchars($item['title'] ?? '') ?></span>
         </div>
@@ -239,7 +254,7 @@ if (SessionManager::isLoggedIn()) {
                             <?php foreach ($images as $idx => $img): ?>
                                 <div class="je-gallery-thumb <?= $idx === 0 ? 'is-active' : '' ?>"
                                      onclick="document.getElementById('jeMainImage').src='<?= htmlspecialchars($img['url']) ?>';
-                                              document.querySelectorAll('.je-gallery-thumb').forEach(t=>t.classList.remove('is-active'));
+                                              document.querySelectorAll('.je-gallery-thumbs').forEach(t=>t.classList.remove('is-active'));
                                               this.classList.add('is-active');">
                                     <img src="<?= htmlspecialchars($img['url']) ?>"
                                          alt="thumb <?= $idx + 1 ?>"
@@ -336,7 +351,7 @@ if (SessionManager::isLoggedIn()) {
                         <?php if (!empty($item['agent_avatar'])): ?>
                             <img src="<?= htmlspecialchars($item['agent_avatar']) ?>" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
                         <?php else: ?>
-                            <?= strtoupper(substr($agentNameRaw, 0, 1)) ?>
+                            <?= strtoupper(substr($agentInitialSource, 0, 1)) ?>
                         <?php endif; ?>
                     </div>
 
@@ -404,7 +419,6 @@ if (SessionManager::isLoggedIn()) {
             }
             ?>
         <?php endif; ?>
-
     </div>
 </div>
 
@@ -412,7 +426,7 @@ if (SessionManager::isLoggedIn()) {
 // ============================================================
 // SAFE PAGE CONSTANTS
 // ============================================================
-window.__kinasAgentName = <?= json_encode($agentNameRaw, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+window.__kinasAgentName = <?= json_encode($agentDisplayName, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 window.__kinasListingTitle = <?= json_encode($listingTitleRaw, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 window.__kinasAgentVerified = <?= $agentVerified ? 'true' : 'false' ?>;
 
@@ -454,8 +468,28 @@ function isUserLoggedIn() {
     return document.querySelector('meta[name="user-id"]')?.content ? true : false;
 }
 
+function getKinasPublicNameFromMeta() {
+    try {
+        const meta = document.querySelector('meta[name="user-data"]');
+
+        if (!meta) {
+            return '';
+        }
+
+        const data = JSON.parse(meta.content);
+
+        if (data.username) {
+            return String(data.username).startsWith('@') ? data.username : '@' + data.username;
+        }
+
+        return data.name || '';
+    } catch (e) {
+        return '';
+    }
+}
+
 function showLoginRequired() {
-    marketplaceNotify('Please sign in to continue — redirecting you to login…', true);
+    marketplaceNotify('Please login to continue', true);
 
     setTimeout(function() {
         window.location.href = '/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
@@ -497,6 +531,7 @@ function jeAddToCart(listingId) {
             }
 
             updateCartBadge(data.cart_count);
+
             marketplaceNotify('✅ Added to cart! <a href="/divisions/kinas-marketplace/cart.php" style="color:#155724;font-weight:700;text-decoration:underline;margin-left:6px;">View cart</a>', false);
         } else {
             if (btn) {
@@ -561,7 +596,7 @@ function jeSaveListing(type, id) {
         return;
     }
 
-    const btn = document.getElementById('saveBtn');
+    const btn = document.querySelector(`button[onclick*="jeSaveListing('${type}', ${id})"]`);
     const originalHTML = btn ? btn.innerHTML : '';
 
     if (btn) {
@@ -653,7 +688,6 @@ function openMarketplaceContactModal() {
                 <input type="hidden" name="listing_id" value="<?= $listingId ?>">
                 <input type="hidden" name="listing_type" value="marketplace">
                 <input type="hidden" name="agent_id" value="<?= $agentId ?>">
-
                 <input type="text" name="website" value="" style="display:none !important;" tabindex="-1" autocomplete="off">
 
                 <div style="margin-bottom:12px;">
@@ -702,13 +736,16 @@ function openMarketplaceContactModal() {
     });
 
     const meta = document.querySelector('meta[name="user-data"]');
+
     if (meta) {
         try {
             const data = JSON.parse(meta.content);
             const form = document.getElementById('marketplaceContactForm');
 
             if (form) {
-                form.querySelector('input[name="name"]').value = data.name || '';
+                const publicName = getKinasPublicNameFromMeta();
+
+                form.querySelector('input[name="name"]').value = publicName || data.name || '';
                 form.querySelector('input[name="email"]').value = data.email || '';
                 form.querySelector('input[name="phone"]').value = data.phone || '';
             }
@@ -747,6 +784,7 @@ function openMarketplaceContactModal() {
                 msg.style.background = '#f8d7da';
                 msg.style.color = '#721c24';
                 msg.textContent = data.error || 'Failed to send. Please try again.';
+
                 btn.innerHTML = original;
                 btn.disabled = false;
             }
@@ -755,6 +793,7 @@ function openMarketplaceContactModal() {
             msg.style.background = '#f8d7da';
             msg.style.color = '#721c24';
             msg.textContent = 'Network error. Please try again.';
+
             btn.innerHTML = original;
             btn.disabled = false;
         }
