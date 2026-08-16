@@ -46,6 +46,10 @@ function authCssV($file)
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        .ka-card h2 {
+            margin-bottom: 30px;
+        }
+
         .ka-phone-combo {
             position: relative;
             display: flex;
@@ -109,7 +113,7 @@ function authCssV($file)
             border: 1px solid #E1E5EA;
             border-radius: 12px;
             box-shadow: 0 18px 50px rgba(0,0,0,.18);
-            z-index: 50;
+            z-index: 99999 !important;
             display: none;
             overflow: hidden;
         }
