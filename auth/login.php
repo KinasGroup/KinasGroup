@@ -85,7 +85,6 @@ function authCssV($file)
             <!-- ── Form card ── -->
             <main class="ka-form-side">
                 <div class="ka-card">
-                    <p class="ka-eyebrow"><i class="fas fa-shield-alt"></i> Secure Client Access</p>
                     <h2>Log In</h2>
                     <p class="ka-sub">Enter your details to access your account, saved listings and messages.</p>
 
