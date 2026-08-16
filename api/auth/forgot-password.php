@@ -12,72 +12,90 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// SECURED: Use DB-backed rate limiting instead of session-based
+// SECURED: Use DB-backed rate limiting
 $ip = Security::getClientIP();
 Security::rateLimitDB('forgot_password_' . $ip, MAX_LOGIN_ATTEMPTS, LOGIN_TIMEOUT);
 
-$data = json_decode(file_get_contents('php://input'), true);
+// FIX: Accept both JSON and standard Form submissions
+$contentType = $_SERVER['HTTP_CONTENT_TYPE'] ?? '';
+$isJson = stripos($contentType, 'application/json') !== false;
+if ($isJson) {
+    $data = json_decode(file_get_contents('php://input'), true) ?: [];
+} else {
+    $data = $_POST;
+}
 
 if (!$data) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Invalid JSON data']);
+    if ($isJson) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid JSON data']);
+    } else {
+        SessionManager::setFlash('error', 'Invalid request data.');
+        header('Location: /auth/forgot-password.php');
+    }
     exit;
 }
 
 $email = trim($data['email'] ?? '');
-
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(422);
-    echo json_encode(['error' => 'Please enter a valid email address']);
+    if ($isJson) {
+        http_response_code(422);
+        echo json_encode(['error' => 'Please enter a valid email address']);
+    } else {
+        SessionManager::setFlash('error', 'Please enter a valid email address.');
+        header('Location: /auth/forgot-password.php');
+    }
     exit;
 }
 
 try {
     $db = Database::getInstance()->getConnection();
-
-    // Look up user by email (case-insensitive)
     $stmt = $db->prepare("SELECT id, name, email, status FROM users WHERE LOWER(email) = LOWER(?)");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
     if ($user && $user['status'] === 'active') {
-        // Generate reset token
         $resetToken = Security::generateToken(32);
         $tokenExpiry = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
-        // Store token with expiry
+        // FIX: Store the raw token (64-char hex) so it can be searched in SQL later.
         $stmt = $db->prepare("UPDATE users SET reset_token = ?, reset_token_expiry = ?, reset_token_used = 0 WHERE id = ?");
-        $stmt->execute([password_hash($resetToken, PASSWORD_BCRYPT), $tokenExpiry, $user['id']]);
+        $stmt->execute([$resetToken, $tokenExpiry, $user['id']]);
 
-        // Log activity
         Security::logActivity($user['id'], 'password_reset_request', 'Password reset requested from ' . $ip);
 
-        // Send reset email
         try {
             $svc = new EmailService();
             $resetLink = $svc->getSiteUrl() . '/auth/reset-password.php?token=' . urlencode($resetToken);
-            $body = "Hi {$user['name']},\n\nWe received a request to reset your KINAS GROUP password. Click the link below to choose a new one:\n\n{$resetLink}\n\nThis link expires in 1 hour. If you didn't request this, you can safely ignore this email — your password won't be changed.";
-            // sendPasswordReset() was never a real method on EmailService —
-            // this call fatal-errored (an Error, not an Exception, so the
-            // catch below never actually caught it) on every single
-            // password reset request.
+            $body = "Hi {$user['name']},\n\nWe received a request to reset your KINAS GROUP password. Click the link below to choose a new one:\n{$resetLink}\n\nThis link expires in 1 hour. If you didn't request this, you can safely ignore this email.";
+            
             $svc->send($user['email'], $user['name'], 'Reset your KINAS GROUP password', nl2br(htmlspecialchars($body)), $body, INFO_EMAIL, 'KINAS GROUP');
         } catch (Exception $e) {
             error_log('Email send failed: ' . $e->getMessage());
-            // Continue - don't expose email failure
         }
     }
 
     // Always return success to prevent email enumeration
-    // This is intentional - don't reveal whether email exists
-    http_response_code(200);
-    echo json_encode([
-        'success' => true,
-        'message' => 'If an account exists with this email, you will receive password reset instructions.'
-    ]);
+    if ($isJson) {
+        http_response_code(200);
+        echo json_encode([
+            'success' => true,
+            'message' => 'If an account exists with this email, you will receive password reset instructions.'
+        ]);
+    } else {
+        SessionManager::setFlash('success', 'If an account exists with this email, you will receive password reset instructions.');
+        header('Location: /auth/forgot-password.php');
+    }
+    exit;
 
 } catch (Exception $e) {
     error_log('Password reset error: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['error' => 'Failed to process request']);
+    if ($isJson) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to process request']);
+    } else {
+        SessionManager::setFlash('error', 'An error occurred. Please try again.');
+        header('Location: /auth/forgot-password.php');
+    }
+    exit;
 }
