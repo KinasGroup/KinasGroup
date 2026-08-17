@@ -239,7 +239,6 @@ function authCssV($file)
 
             <main class="ka-form-side">
                 <div class="ka-card">
-                    <p class="ka-eyebrow"><i class="fas fa-user-plus"></i> Agent Onboarding</p>
                     <h2>Create Agent Account</h2>
                     <p class="ka-sub">After registration you'll complete identity verification — usually under 2 minutes.</p>
 
