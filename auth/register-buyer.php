@@ -237,7 +237,6 @@ function authCssV($file)
 
             <main class="ka-form-side">
                 <div class="ka-card">
-                    <p class="ka-eyebrow"><i class="fas fa-gem"></i> Buyer Account</p>
                     <h2>Create Buyer Account</h2>
 
                     <?php if ($errorMessage): ?>
