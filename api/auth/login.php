@@ -22,7 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 /**
  * Always return JSON and include a fresh CSRF token where possible.
- * This prevents the frontend from getting stuck with an invalid/expired token.
  */
 function login_json_error(int $status, string $error, ?array $extra = null): void
 {
@@ -157,11 +156,53 @@ try {
     // Check user status
     $status = (string)($user['status'] ?? 'active');
 
+    // ============================================================
+    // DELETED ACCOUNT REACTIVATION FLOW
+    // ============================================================
+    // Deleted users are allowed to authenticate with the correct
+    // password, but they are NOT given a normal logged-in session.
+    // Instead, they receive a limited pending-reactivation session
+    // and are redirected to the reactivation page.
+    // ============================================================
+    if ($status === 'deleted') {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
+
+        // Ensure no normal login session exists.
+        $_SESSION = [];
+
+        $_SESSION['pending_reactivation_user_id'] = (int)$user['id'];
+        $_SESSION['pending_reactivation_email'] = (string)$user['email'];
+        $_SESSION['pending_reactivation_name'] = (string)$user['name'];
+        $_SESSION['pending_reactivation_username'] = (string)($user['username'] ?? '');
+        $_SESSION['pending_reactivation_role'] = (string)($user['role'] ?? 'user');
+        $_SESSION['pending_reactivation_at'] = time();
+
+        unset($_SESSION['csrf_token']);
+        $reactivationCsrf = Security::generateCSRFToken();
+
+        Security::logActivity(
+            (int)$user['id'],
+            'login_deleted_account',
+            "Deleted account login for reactivation: $identifier from $ip"
+        );
+
+        echo json_encode([
+            'success' => true,
+            'requires_reactivation' => true,
+            'csrf_token' => $reactivationCsrf,
+            'redirect' => '/auth/reactivate-account.php',
+            'message' => 'This account has been deleted. You can reactivate it.',
+        ]);
+
+        exit;
+    }
+
     if ($status !== 'active') {
         $statusMessages = [
             'suspended' => 'Your account has been suspended. Please contact support.',
             'inactive' => 'Your account is inactive. Please contact support.',
-            'deleted' => 'Your account has been deleted. Please contact support.',
         ];
 
         $statusMessage = $statusMessages[$status] ?? 'Your account is ' . $status . '. Please contact support.';
@@ -200,7 +241,7 @@ try {
     try {
         // Clean up expired sessions for this user (best-effort)
         $db->prepare("DELETE FROM sessions WHERE user_id = ? AND expires_at < NOW()")
-            ->execute([$user['id']]);
+           ->execute([$user['id']]);
 
         $db->prepare(
             "INSERT INTO sessions (user_id, token, expires_at, ip_address, user_agent)
