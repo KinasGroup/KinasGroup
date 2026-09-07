@@ -14,7 +14,16 @@ include '../../templates/header.php';
 ?>
 
 <div class="je-dash-shell">
-<?php include __DIR__ . '/../../includes/partials/user-sidebar.php'; ?>
+<?php 
+$sidebarRole = $_SESSION['user_role'] ?? 'user';
+if ($sidebarRole === 'agent') {
+    include __DIR__ . '/../../includes/partials/agent-sidebar.php';
+} elseif ($sidebarRole === 'admin') {
+    include __DIR__ . '/../../includes/partials/admin-sidebar.php';
+} else {
+    include __DIR__ . '/../../includes/partials/user-sidebar.php';
+}
+?>
 <main style="padding-top:80px">
 <div class="je-page">
 <div class="je-cart-wrap">
