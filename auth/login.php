@@ -85,8 +85,9 @@ function authCssV($file)
             <!-- ── Form card ── -->
             <main class="ka-form-side">
                 <div class="ka-card">
+                    <p class="ka-eyebrow"><i class="fas fa-shield-alt"></i> Secure Client Access</p>
                     <h2>Log In</h2>
-                    <p class="ka-sub">Enter your details to access your account.</p>
+                    <p class="ka-sub">Enter your details to access your account, saved listings and messages.</p>
 
                     <?php if ($errorMessage): ?>
                         <div class="ka-alert error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMessage) ?></div>
@@ -305,6 +306,13 @@ function authCssV($file)
                 }
 
                 if (data.success) {
+                    // Deleted account reactivation flow
+                    if (data.requires_reactivation) {
+                        willRedirect = true;
+                        window.location.href = data.redirect || '/auth/reactivate-account.php';
+                        return;
+                    }
+
                     willRedirect = true;
 
                     if (data.token) {
