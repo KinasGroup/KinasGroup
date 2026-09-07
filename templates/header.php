@@ -7,7 +7,10 @@
 * - Open Graph / Twitter Card meta tags
 * - Mobile navigation drawer & overlay
 * - Desktop navigation with notification bell & cart badge
-* - Real-time session-based notification polling
+* - Real-time session-based notification polling (15-second interval)
+* - Facebook-style louder notification sound
+* - Permanent floating toast notification for new messages
+* - Hamburger menu badge for mobile (visible without opening menu)
 *
 * AMENDED: user-data meta now carries the public username; legacy
 * sessions (pre-username) are resolved once against the DB and cached.
@@ -212,6 +215,113 @@ display: none;
 .mobile-nav-drawer .notification-mobile-link:hover { color: #C6A43F; }
 .mobile-nav-drawer .notification-mobile-badge { background: #dc3545; color: #ffffff; border-radius: 50%; padding: 1px 8px; font-size: 12px; font-weight: 700; min-width: 22px; height: 22px; text-align: center; line-height: 22px; display: none; }
 .mobile-nav-drawer .notification-mobile-badge.show { display: inline-block; }
+
+/* ============================================================
+   HAMBURGER MENU BADGE — visible on mobile without opening menu
+   ============================================================ */
+.mobile-menu-btn .hamburger-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: #dc3545;
+    color: #ffffff;
+    border-radius: 50%;
+    min-width: 18px;
+    height: 18px;
+    font-size: 10px;
+    font-weight: 700;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 18px;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    z-index: 10;
+    font-family: 'Inter', Arial, sans-serif;
+}
+.mobile-menu-btn .hamburger-badge.show {
+    display: flex;
+    animation: notificationPulse 0.5s ease-in-out 2;
+}
+
+/* ============================================================
+   PERMANENT FLOATING NEW MESSAGE TOAST
+   Stays until user clicks it, dismisses it, or reads messages.
+   ============================================================ */
+.kinas-msg-toast {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 999999;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-left: 4px solid #C6A43F;
+    border-radius: 12px;
+    padding: 14px 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 380px;
+    transform: translateX(120%);
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+}
+.kinas-msg-toast.visible {
+    transform: translateX(0);
+}
+.kinas-msg-toast .toast-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #C6A43F;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.kinas-msg-toast .toast-content {
+    flex: 1;
+    min-width: 0;
+}
+.kinas-msg-toast .toast-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0A0A0A;
+    margin-bottom: 2px;
+}
+.kinas-msg-toast .toast-body {
+    font-size: 12px;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.kinas-msg-toast .toast-close {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    flex-shrink: 0;
+    transition: color 0.2s;
+}
+.kinas-msg-toast .toast-close:hover {
+    color: #0A0A0A;
+}
+
+@media (max-width: 768px) {
+    .kinas-msg-toast {
+        top: 70px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+}
 </style>
 <!-- ============================================================ -->
 <!-- WHATSAPP SITE CONSTANTS + SCRIPT  (LOGGED-IN ONLY) -->
@@ -282,6 +392,7 @@ elseif ($userRole === 'admin') { $messagesLink = '/admin/messages.php'; }
 <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu" aria-expanded="false">
 <span class="menu-icon" aria-hidden="true">☰</span>
 <span class="menu-icon-close" style="display:none;" aria-hidden="true">✕</span>
+<span class="hamburger-badge" id="hamburgerBadge">0</span>
 </button>
 <nav class="header-nav" id="mainNav">
 <a href="/divisions/kinas-automobile/">KINAS AUTOMOBILE</a>
@@ -339,6 +450,17 @@ data-kinas-whatsapp-global="1">
 </a>
 <?php endif; ?>
 <main>
+<!-- ============================================================ -->
+<!-- PERMANENT FLOATING NEW MESSAGE TOAST -->
+<!-- ============================================================ -->
+<div class="kinas-msg-toast" id="kinasMsgToast">
+    <div class="toast-icon"><i class="fas fa-envelope"></i></div>
+    <div class="toast-content">
+        <div class="toast-title">New Message</div>
+        <div class="toast-body" id="toastBody">You have a new message</div>
+    </div>
+    <button class="toast-close" id="toastClose" title="Dismiss">✕</button>
+</div>
 <script>
 (function() {
 var badge = document.getElementById('jeCartBadge');
@@ -398,85 +520,224 @@ if (e.key === 'Escape' && drawer.classList.contains('open')) closeMenu();
 if (closeIcon) closeIcon.style.display = 'none';
 if (menuIcon) menuIcon.style.display = 'block';
 })();
+// ============================================================
+// NOTIFICATION SYSTEM — 15-SECOND POLLING + FACEBOOK SOUND + TOAST
+// ============================================================
 (function() {
 'use strict';
 var isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
 if (!isLoggedIn) return;
+
 var CONFIG = {
-refreshInterval: 30000,
-apiEndpoint: '/api/messages/unread-count.php',
+    refreshInterval: 15000,
+    apiEndpoint: '/api/messages/unread-count.php',
 };
+
 var timeout = null;
 var lastCount = -1;
-function updateBadges() {
-fetch(CONFIG.apiEndpoint, {
-credentials: 'same-origin',
-headers: { 'Content-Type': 'application/json' }
-})
-.then(function(response) {
-if (response.status === 401 || response.status === 403) { return; }
-if (!response.ok) throw new Error('Failed to fetch');
-return response.json();
-})
-.then(function(data) {
-if (data && data.success) {
-var count = data.unread_count || 0;
-var badge = document.getElementById('notificationBadge');
-var mobileBadge = document.getElementById('notificationMobileBadge');
-if (badge) {
-if (count > 0) {
-badge.textContent = count > 99 ? '99+' : count;
-badge.style.display = 'inline-block';
-badge.classList.add('show');
-} else {
-badge.style.display = 'none';
-badge.classList.remove('show');
-}
-}
-if (mobileBadge) {
-if (count > 0) {
-mobileBadge.textContent = count > 99 ? '99+' : count;
-mobileBadge.style.display = 'inline-block';
-mobileBadge.classList.add('show');
-} else {
-mobileBadge.style.display = 'none';
-mobileBadge.classList.remove('show');
-}
-}
-if (lastCount !== -1 && count > lastCount) { playNotificationSound(); }
-lastCount = count;
-}
-})
-.catch(function(error) { });
-}
+var audioCtx = null;
+var toastDismissed = false;
+var toastTimeout = null;
+
+var messagesUrl = '<?php
+    $msgLink = '/user/messages.php';
+    if ($userRole === 'agent') $msgLink = '/agent/messages.php';
+    elseif ($userRole === 'admin') $msgLink = '/admin/messages.php';
+    echo $msgLink;
+?>';
+
+// ============================================================
+// FACEBOOK-STYLE NOTIFICATION SOUND (louder, two-tone ding)
+// ============================================================
 function playNotificationSound() {
-try {
-var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-var oscillator = audioCtx.createOscillator();
-var gainNode = audioCtx.createGain();
-oscillator.connect(gainNode);
-gainNode.connect(audioCtx.destination);
-oscillator.frequency.value = 800;
-oscillator.type = 'sine';
-gainNode.gain.value = 0.1;
-oscillator.start();
-setTimeout(function() { oscillator.stop(); }, 200);
-} catch (e) {}
+    try {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        var now = audioCtx.currentTime;
+
+        // First tone: bright pop at ~830Hz
+        var osc1 = audioCtx.createOscillator();
+        var gain1 = audioCtx.createGain();
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(830, now);
+        gain1.gain.setValueAtTime(0.5, now);
+        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc1.start(now);
+        osc1.stop(now + 0.15);
+
+        // Second tone: higher ding at ~1245Hz
+        var osc2 = audioCtx.createOscillator();
+        var gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1245, now + 0.08);
+        gain2.gain.setValueAtTime(0.001, now + 0.08);
+        gain2.gain.exponentialRampToValueAtTime(0.4, now + 0.1);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc2.start(now + 0.08);
+        osc2.stop(now + 0.3);
+
+        // Third harmonic for richness
+        var osc3 = audioCtx.createOscillator();
+        var gain3 = audioCtx.createGain();
+        osc3.connect(gain3);
+        gain3.connect(audioCtx.destination);
+        osc3.type = 'triangle';
+        osc3.frequency.setValueAtTime(1660, now + 0.08);
+        gain3.gain.setValueAtTime(0.001, now + 0.08);
+        gain3.gain.exponentialRampToValueAtTime(0.15, now + 0.1);
+        gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc3.start(now + 0.08);
+        osc3.stop(now + 0.25);
+
+    } catch (e) {}
 }
+
+// ============================================================
+// PERMANENT TOAST — stays until user deals with it
+// ============================================================
+function showToast(count) {
+    var toast = document.getElementById('kinasMsgToast');
+    var toastBody = document.getElementById('toastBody');
+    if (!toast) return;
+
+    toastBody.textContent = count === 1
+        ? 'You have 1 new message'
+        : 'You have ' + count + ' new messages';
+
+    toast.classList.add('visible');
+    toastDismissed = false;
+}
+
+function hideToast() {
+    var toast = document.getElementById('kinasMsgToast');
+    if (toast) {
+        toast.classList.remove('visible');
+    }
+}
+
+// Toast click → navigate to Messages
+var toastEl = document.getElementById('kinasMsgToast');
+if (toastEl) {
+    toastEl.addEventListener('click', function(e) {
+        if (e.target.closest('.toast-close')) return;
+        window.location.href = messagesUrl;
+    });
+}
+
+// Toast close button → dismiss
+var toastCloseBtn = document.getElementById('toastClose');
+if (toastCloseBtn) {
+    toastCloseBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toastDismissed = true;
+        hideToast();
+    });
+}
+
+// ============================================================
+// UPDATE ALL BADGES
+// ============================================================
+function updateBadges() {
+    fetch(CONFIG.apiEndpoint, {
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(response) {
+        if (response.status === 401 || response.status === 403) return;
+        if (!response.ok) throw new Error('Failed to fetch');
+        return response.json();
+    })
+    .then(function(data) {
+        if (!data || !data.success) return;
+
+        var count = data.unread_count || 0;
+
+        // Desktop header badge
+        var badge = document.getElementById('notificationBadge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'inline-block';
+                badge.classList.add('show');
+            } else {
+                badge.style.display = 'none';
+                badge.classList.remove('show');
+            }
+        }
+
+        // Mobile drawer badge
+        var mobileBadge = document.getElementById('notificationMobileBadge');
+        if (mobileBadge) {
+            if (count > 0) {
+                mobileBadge.textContent = count > 99 ? '99+' : count;
+                mobileBadge.style.display = 'inline-block';
+                mobileBadge.classList.add('show');
+            } else {
+                mobileBadge.style.display = 'none';
+                mobileBadge.classList.remove('show');
+            }
+        }
+
+        // HAMBURGER MENU BADGE (visible on mobile without opening menu)
+        var hamburgerBadge = document.getElementById('hamburgerBadge');
+        if (hamburgerBadge) {
+            if (count > 0) {
+                hamburgerBadge.textContent = count > 99 ? '99+' : count;
+                hamburgerBadge.classList.add('show');
+            } else {
+                hamburgerBadge.classList.remove('show');
+            }
+        }
+
+        // ============================================================
+        // TOAST LOGIC — PERMANENT UNTIL DEALT WITH
+        // ============================================================
+        if (count === 0) {
+            // All messages read → hide toast permanently
+            hideToast();
+            toastDismissed = false;
+        } else if (lastCount !== -1 && count > lastCount) {
+            // NEW message arrived → show toast + play sound
+            playNotificationSound();
+            showToast(count);
+        } else if (count > 0 && !toastDismissed) {
+            // Unread exists and toast was never dismissed → keep showing
+            var toast = document.getElementById('kinasMsgToast');
+            if (toast && !toast.classList.contains('visible')) {
+                showToast(count);
+            }
+        }
+
+        lastCount = count;
+    })
+    .catch(function(error) { });
+}
+
 if (document.readyState === 'loading') {
-document.addEventListener('DOMContentLoaded', function() {
-updateBadges();
-timeout = setInterval(updateBadges, CONFIG.refreshInterval);
-});
+    document.addEventListener('DOMContentLoaded', function() {
+        updateBadges();
+        timeout = setInterval(updateBadges, CONFIG.refreshInterval);
+    });
 } else {
-updateBadges();
-timeout = setInterval(updateBadges, CONFIG.refreshInterval);
+    updateBadges();
+    timeout = setInterval(updateBadges, CONFIG.refreshInterval);
 }
+
 window.addEventListener('beforeunload', function() {
-if (timeout) { clearInterval(timeout); timeout = null; }
+    if (timeout) { clearInterval(timeout); timeout = null; }
 });
+
 document.addEventListener('visibilitychange', function() {
-if (!document.hidden) { updateBadges(); }
+    if (!document.hidden) { updateBadges(); }
 });
 })();
 </script>
