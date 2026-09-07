@@ -4,13 +4,15 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 
 /**
-* KINAS GROUP — Agent Profile
-*
-* AMENDED:
-* - Username is displayed as read-only.
-* - Extra business fields added:
-*   Company Legal Name, CAC Number, TIN, Tax ID, Company Email.
-*/
+ * KINAS GROUP — Agent Profile
+ *
+ * FIXED:
+ * - Removed nested Danger Zone form from inside the main profile form.
+ * - Added frontend avatar validation.
+ * - Prevented duplicate hidden "name" input creation.
+ * - Safer stats loading.
+ */
+
 require_once __DIR__ . '/../api/config/database.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
@@ -36,24 +38,53 @@ if (!$user) {
 }
 
 // Load profile row.
-$profStmt = $db->prepare("SELECT * FROM agent_profiles WHERE user_id = ?");
-$profStmt->execute([$userId]);
-$profile = $profStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+try {
+    $profStmt = $db->prepare("SELECT * FROM agent_profiles WHERE user_id = ?");
+    $profStmt->execute([$userId]);
+    $profile = $profStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+} catch (Throwable $e) {
+    $profile = [];
+}
 
 // Stats.
 $stats = [
-    'listings' => (int)$db->query("
-        SELECT
-        (SELECT COUNT(*) FROM car_listings WHERE agent_id = $userId) +
-        (SELECT COUNT(*) FROM property_listings WHERE agent_id = $userId) +
-        (SELECT COUNT(*) FROM solar_listings WHERE agent_id = $userId) +
-        (SELECT COUNT(*) FROM marketplace_listings WHERE agent_id = $userId)
-    ")->fetchColumn(),
-
-    'inquiries' => (int)$db->query("SELECT COUNT(*) FROM inquiries WHERE agent_id = $userId")->fetchColumn(),
-
-    'unread' => (int)$db->query("SELECT COUNT(*) FROM messages WHERE receiver_id = $userId AND is_read = 0")->fetchColumn(),
+    'listings'  => 0,
+    'inquiries' => 0,
+    'unread'    => 0,
 ];
+
+$listingTables = [
+    'car_listings',
+    'property_listings',
+    'solar_listings',
+    'marketplace_listings',
+];
+
+foreach ($listingTables as $table) {
+    try {
+        $stmt = $db->prepare("SELECT COUNT(*) FROM `$table` WHERE agent_id = ?");
+        $stmt->execute([$userId]);
+        $stats['listings'] += (int)$stmt->fetchColumn();
+    } catch (Throwable $e) {
+        // Ignore missing table.
+    }
+}
+
+try {
+    $stmt = $db->prepare("SELECT COUNT(*) FROM inquiries WHERE agent_id = ?");
+    $stmt->execute([$userId]);
+    $stats['inquiries'] = (int)$stmt->fetchColumn();
+} catch (Throwable $e) {
+    $stats['inquiries'] = 0;
+}
+
+try {
+    $stmt = $db->prepare("SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND is_read = 0");
+    $stmt->execute([$userId]);
+    $stats['unread'] = (int)$stmt->fetchColumn();
+} catch (Throwable $e) {
+    $stats['unread'] = 0;
+}
 
 // Decode name into first/last.
 $nameParts = explode(' ', $user['name'] ?? '', 2);
@@ -70,27 +101,89 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 
 $csrf = Security::generateCSRFToken();
 
+$headerDepth = '../';
+$pageTitle = 'Agent Profile - KINAS GROUP';
+
 require_once __DIR__ . '/../templates/header.php';
 ?>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
-.agent-container { max-width: 1200px; margin: 0 auto; padding: 30px; }
+body {
+    font-family: 'Inter', sans-serif;
+    background: #F5F7FA;
+}
 
-.agent-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-.agent-header h1 { font-family: 'Prata', serif; font-size: 28px; color: #0A0A0A; }
-.agent-header h1 i { color: #C6A43F; margin-right: 12px; }
+.agent-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px;
+}
 
-.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.agent-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
 
-.profile-card { background: white; border-radius: 20px; border: 1px solid #E0E0E0; padding: 28px; }
-.profile-card h3 { font-size: 16px; font-weight: 600; color: #0A0A0A; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #C6A43F; display: inline-block; }
-.profile-card h3 i { color: #C6A43F; margin-right: 8px; }
+.agent-header h1 {
+    font-family: 'Prata', serif;
+    font-size: 28px;
+    color: #0A0A0A;
+}
 
-.form-group { margin-bottom: 18px; }
-.form-group label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 6px; }
-.form-group label i { color: #C6A43F; margin-right: 6px; }
+.agent-header h1 i {
+    color: #C6A43F;
+    margin-right: 12px;
+}
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.profile-card {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #E0E0E0;
+    padding: 28px;
+}
+
+.profile-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #0A0A0A;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #C6A43F;
+    display: inline-block;
+}
+
+.profile-card h3 i {
+    color: #C6A43F;
+    margin-right: 8px;
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.form-group label i {
+    color: #C6A43F;
+    margin-right: 6px;
+}
 
 .form-group input,
 .form-group select,
@@ -102,6 +195,7 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     box-sizing: border-box;
+    background: #fff;
 }
 
 .form-group input:focus,
@@ -118,16 +212,66 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     cursor: not-allowed;
 }
 
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
 
-.btn-save { background: #C6A43F; border: none; color: #0A0A0A; padding: 10px 22px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
-.btn-save:hover { background: #A8882E; }
+.btn-save {
+    background: #C6A43F;
+    border: none;
+    color: #0A0A0A;
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
 
-.btn-secondary { background: #F5F5F5; color: #333; border: 1px solid #E0E0E0; padding: 10px 18px; border-radius: 10px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.btn-save:hover {
+    background: #A8882E;
+}
 
-.btn-danger { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; padding: 10px 18px; border-radius: 10px; cursor: pointer; font-size: 13px; }
+.btn-secondary {
+    background: #F5F5F5;
+    color: #333;
+    border: 1px solid #E0E0E0;
+    padding: 10px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+}
 
-.profile-photo-section { display: flex; align-items: center; gap: 20px; }
+.btn-danger {
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+    padding: 10px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-danger:hover {
+    background: #FEE2E2;
+}
+
+.profile-photo-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
 
 .profile-avatar-large {
     width: 96px;
@@ -144,36 +288,190 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
     overflow: hidden;
 }
 
-.profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; }
+.profile-avatar-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 
-.btn-upload { background: #F5F5F5; color: #333; border: 1px solid #E0E0E0; padding: 9px 18px; border-radius: 10px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
-.btn-upload:hover { background: #E8E8E8; }
+.btn-upload {
+    background: #F5F5F5;
+    color: #333;
+    border: 1px solid #E0E0E0;
+    padding: 9px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
 
-.photo-note { font-size: 11px; color: #999; margin-top: 6px; }
-.account-meta { font-size: 12px; color: #888; margin-top: 4px; }
+.btn-upload:hover {
+    background: #E8E8E8;
+}
 
-.status-pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-left: 8px; vertical-align: middle; }
-.status-active { background: #E8F5E9; color: #2E7D32; }
-.status-suspended { background: #FEF2F2; color: #DC2626; }
-.status-pending { background: #FFF3E0; color: #F57C00; }
+.photo-note {
+    font-size: 11px;
+    color: #999;
+    margin-top: 6px;
+}
 
-.flash { padding: 14px 18px; border-radius: 12px; margin-bottom: 20px; font-weight: 600; }
-.flash.success { background: #E8F5E9; color: #2E7D32; border: 1px solid #C8E6C9; }
-.flash.error { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+.account-meta {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+}
 
-.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+.status-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+    vertical-align: middle;
+}
 
-.stat-mini { background: white; border-radius: 16px; border: 1px solid #E0E0E0; padding: 18px 22px; display: flex; align-items: center; gap: 14px; }
-.stat-mini .icon { font-size: 24px; color: #C6A43F; }
-.stat-mini .info strong { display: block; font-size: 20px; color: #0A0A0A; font-family: 'Prata', serif; }
-.stat-mini .info small { font-size: 11px; color: #666; }
+.status-active {
+    background: #E8F5E9;
+    color: #2E7D32;
+}
 
-.full-width { grid-column: 1 / -1; }
+.status-suspended {
+    background: #FEF2F2;
+    color: #DC2626;
+}
+
+.status-pending {
+    background: #FFF3E0;
+    color: #F57C00;
+}
+
+.flash {
+    padding: 14px 18px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.flash.success {
+    background: #E8F5E9;
+    color: #2E7D32;
+    border: 1px solid #C8E6C9;
+}
+
+.flash.error {
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+}
+
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.stat-mini {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #E0E0E0;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.stat-mini .icon {
+    font-size: 24px;
+    color: #C6A43F;
+}
+
+.stat-mini .info strong {
+    display: block;
+    font-size: 20px;
+    color: #0A0A0A;
+    font-family: 'Prata', serif;
+}
+
+.stat-mini .info small {
+    font-size: 11px;
+    color: #666;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.danger-zone-card {
+    background: #FFF5F5;
+    border: 1px solid #FECACA;
+    margin-top: 20px;
+}
+
+.danger-zone-card h3 {
+    color: #DC2626;
+    border-bottom: 2px solid #FECACA;
+    display: inline-block;
+}
+
+.danger-zone-card h3 i {
+    color: #DC2626;
+}
+
+.danger-zone-note {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 12px;
+}
+
+.je-password-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.je-password-wrap input {
+    padding-right: 44px !important;
+}
+
+.je-password-toggle {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    padding: 8px;
+    font-size: 16px;
+}
+
+.je-password-toggle:hover {
+    color: #666;
+}
 
 @media (max-width: 900px) {
-    .profile-grid { grid-template-columns: 1fr; }
-    .stats-row { grid-template-columns: 1fr; }
-    .form-row { grid-template-columns: 1fr; }
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .agent-container {
+        padding: 20px;
+    }
+
+    .agent-header h1 {
+        font-size: 22px;
+    }
 }
 </style>
 
@@ -182,23 +480,31 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
     <main class="je-dash-main">
         <div class="agent-container">
+
             <?php if ($flashSuccess): ?>
-                <div class="flash success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($flashSuccess) ?></div>
+                <div class="flash success">
+                    <i class="fas fa-check-circle"></i> <?= htmlspecialchars($flashSuccess) ?>
+                </div>
             <?php endif; ?>
 
             <?php if ($flashError): ?>
-                <div class="flash error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($flashError) ?></div>
+                <div class="flash error">
+                    <i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($flashError) ?>
+                </div>
             <?php endif; ?>
 
             <div class="agent-header">
                 <h1>
                     <i class="fas fa-user-circle"></i> Agent Profile
+
                     <span class="status-pill status-<?= htmlspecialchars($user['status'] ?? 'pending') ?>">
                         <?= htmlspecialchars(ucfirst($user['status'] ?? 'pending')) ?>
                     </span>
 
                     <?php if (!empty($user['verified'])): ?>
-                        <span class="status-pill status-active"><i class="fas fa-check-circle"></i> Verified</span>
+                        <span class="status-pill status-active">
+                            <i class="fas fa-check-circle"></i> Verified
+                        </span>
                     <?php endif; ?>
                 </h1>
 
@@ -334,7 +640,9 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
                             foreach ($opts as $val => $label):
                             ?>
-                                <option value="<?= $val ?>" <?= $yib === $val ? 'selected' : '' ?>><?= $label ?></option>
+                                <option value="<?= $val ?>" <?= $yib === $val ? 'selected' : '' ?>>
+                                    <?= $label ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -354,20 +662,26 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                     <h3><i class="fas fa-camera"></i> Profile Photo</h3>
 
                     <div class="profile-photo-section">
-                        <div class="profile-avatar-large">
+                        <div class="profile-avatar-large" id="avatarPreview">
                             <?php if (!empty($user['avatar'])): ?>
                                 <img src="<?= htmlspecialchars($user['avatar']) ?>" alt="">
                             <?php else: ?>
-                                <?= strtoupper(substr($user['name'], 0, 1)) ?>
+                                <?= htmlspecialchars(strtoupper(substr($user['name'], 0, 1))) ?>
                             <?php endif; ?>
                         </div>
 
                         <div>
-                            <input type="file" name="avatar" id="avatarUpload" accept="image/*" style="display: none;">
+                            <input type="file" name="avatar" id="avatarUpload" accept="image/jpeg,image/png,image/webp,image/gif" style="display: none;">
+
                             <button type="button" class="btn-upload" onclick="document.getElementById('avatarUpload').click()">
                                 <i class="fas fa-camera"></i> Choose Photo
                             </button>
-                            <p class="photo-note">Recommended: Square image, at least 300×300px. Max 5MB.</p>
+
+                            <p class="photo-note">
+                                Recommended: Square image, at least 300×300px.<br>
+                                Allowed formats: JPG, PNG, WEBP, GIF.<br>
+                                Max size: 5MB.
+                            </p>
                         </div>
                     </div>
 
@@ -404,20 +718,27 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
                     <div class="form-group">
                         <label>Current Password</label>
+
                         <div class="je-password-wrap">
-                            <input type="password" name="current_password" placeholder="Enter current password to make changes" autocomplete="current-password">
+                            <input type="password" name="current_password" placeholder="Enter current password to change password" autocomplete="current-password">
+
                             <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
                                 <i class="fas fa-eye" aria-hidden="true"></i>
                             </button>
                         </div>
-                        <div class="photo-note">Leave blank to keep your current password. Required to set a new one.</div>
+
+                        <div class="photo-note">
+                            Leave blank to keep your current password. Required only if you are setting a new password.
+                        </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label>New Password</label>
+
                             <div class="je-password-wrap">
                                 <input type="password" name="new_password" placeholder="Min. 8 characters" minlength="8" autocomplete="new-password">
+
                                 <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
                                     <i class="fas fa-eye" aria-hidden="true"></i>
                                 </button>
@@ -426,8 +747,10 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
 
                         <div class="form-group">
                             <label>Confirm New Password</label>
+
                             <div class="je-password-wrap">
                                 <input type="password" name="confirm_password" placeholder="Repeat the new password" minlength="8" autocomplete="new-password">
+
                                 <button type="button" class="je-password-toggle" aria-label="Show password" aria-pressed="false" tabindex="0">
                                     <i class="fas fa-eye" aria-hidden="true"></i>
                                 </button>
@@ -436,62 +759,137 @@ body { font-family: 'Inter', sans-serif; background: #F5F7FA; }
                     </div>
 
                     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;">
-                        <button type="submit" class="btn-save"><i class="fas fa-save"></i> Save All Changes</button>
-                        <a href="/agent/dashboard.php" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+                        <button type="submit" class="btn-save">
+                            <i class="fas fa-save"></i> Save All Changes
+                        </button>
+
+                        <a href="/agent/dashboard.php" class="btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
                     </div>
-
-                    <h3 style="margin-top:32px; color:#DC2626; border-bottom-color:#FECACA;">
-                        <i class="fas fa-exclamation-triangle" style="color:#DC2626;"></i> Danger Zone
-                    </h3>
-
-                    <p style="font-size:13px; color:#666; margin-bottom:12px;">
-                        Deactivating your account hides all your listings but preserves your data. To permanently delete, contact support.
-                    </p>
-
-                    <form method="POST" action="/api/agent/deactivate.php"
-                          data-kinas-confirm="Deactivating will hide all your listings from public view. Continue?"
-                          data-kinas-title="Deactivate Account"
-                          data-kinas-label="Deactivate"
-                          data-kinas-variant="warning"
-                          data-kinas-icon="fa-user-slash"
-                          style="display:inline;">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                        <button type="submit" class="btn-danger"><i class="fas fa-user-slash"></i> Deactivate Account</button>
-                    </form>
                 </div>
             </form>
+
+            <!-- Danger Zone intentionally placed OUTSIDE the main profile form -->
+            <div class="profile-card danger-zone-card">
+                <h3>
+                    <i class="fas fa-exclamation-triangle"></i> Danger Zone
+                </h3>
+
+                <p class="danger-zone-note">
+                    Deactivating your account hides all your listings but preserves your data.
+                    To permanently delete your account, contact support.
+                </p>
+
+                <form method="POST" action="/api/agent/deactivate.php"
+                      data-kinas-confirm="Deactivating will hide all your listings from public view. Continue?"
+                      data-kinas-title="Deactivate Account"
+                      data-kinas-label="Deactivate"
+                      data-kinas-variant="warning"
+                      data-kinas-icon="fa-user-slash"
+                      style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+
+                    <button type="submit" class="btn-danger">
+                        <i class="fas fa-user-slash"></i> Deactivate Account
+                    </button>
+                </form>
+            </div>
+
         </div>
 
         <script>
-        document.getElementById('avatarUpload')?.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                var reader = new FileReader();
+        (function() {
+            var avatarUpload = document.getElementById('avatarUpload');
+            var avatarPreview = document.getElementById('avatarPreview');
+            var profileForm = document.getElementById('profileForm');
 
-                reader.onload = function(e) {
-                    var img = document.querySelector('.profile-avatar-large');
-                    img.innerHTML = '<img src="' + e.target.result + '" alt="">';
-                };
+            var allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+            var maxSize = 5 * 1024 * 1024;
 
-                reader.readAsDataURL(this.files[0]);
+            function showAvatarError(message) {
+                if (typeof window.kinasToast === 'function') {
+                    window.kinasToast(message, 'error', 6000);
+                } else {
+                    alert(message);
+                }
             }
-        });
 
-        // Combine first + last name into a single "name" field on submit.
-        document.getElementById('profileForm')?.addEventListener('submit', function() {
-            var first = this.querySelector('[name="name_first"]')?.value.trim() || '';
-            var last  = this.querySelector('[name="name_last"]')?.value.trim()  || '';
+            function validateAvatarFile(file) {
+                if (!file) {
+                    return 'No file selected.';
+                }
 
-            if (first || last) {
-                var combined = (first + ' ' + last).trim();
+                if (!allowedTypes.includes(file.type)) {
+                    return 'Invalid image type. Allowed formats: JPG, PNG, WEBP, GIF.';
+                }
 
-                var hidden = document.createElement('input');
-                hidden.type = 'hidden';
-                hidden.name = 'name';
-                hidden.value = combined;
+                if (file.size > maxSize) {
+                    return 'Image is too large. Maximum allowed size is 5MB.';
+                }
 
-                this.appendChild(hidden);
+                return null;
             }
-        });
+
+            if (avatarUpload) {
+                avatarUpload.addEventListener('change', function() {
+                    var file = this.files && this.files[0] ? this.files[0] : null;
+
+                    if (!file) {
+                        return;
+                    }
+
+                    var error = validateAvatarFile(file);
+
+                    if (error) {
+                        showAvatarError(error);
+                        this.value = '';
+                        return;
+                    }
+
+                    var reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        if (avatarPreview) {
+                            avatarPreview.innerHTML = '<img src="' + e.target.result + '" alt="">';
+                        }
+                    };
+
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            if (profileForm) {
+                profileForm.addEventListener('submit', function(e) {
+                    if (avatarUpload && avatarUpload.files && avatarUpload.files[0]) {
+                        var avatarError = validateAvatarFile(avatarUpload.files[0]);
+
+                        if (avatarError) {
+                            e.preventDefault();
+                            showAvatarError(avatarError);
+                            return;
+                        }
+                    }
+
+                    var firstInput = profileForm.querySelector('[name="name_first"]');
+                    var lastInput = profileForm.querySelector('[name="name_last"]');
+
+                    var first = firstInput ? firstInput.value.trim() : '';
+                    var last = lastInput ? lastInput.value.trim() : '';
+
+                    var hidden = profileForm.querySelector('input[type="hidden"][name="name"]');
+
+                    if (!hidden) {
+                        hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'name';
+                        profileForm.appendChild(hidden);
+                    }
+
+                    hidden.value = (first + ' ' + last).trim();
+                });
+            }
+        })();
         </script>
     </main>
 </div>
