@@ -1,15 +1,17 @@
 <?php
 /**
-* KINAS GROUP — Dashboard sidebar component
-* Used by all user/agent/admin dashboards.
-*
-* Call:
-*   je_render_sidebar('user', 'dashboard.php');
-*   je_render_sidebar('agent', 'listings.php');
-*   je_render_sidebar('admin', 'dashboard.php');
-*
-* AMENDED: displays @username below the brand label when available.
-*/
+ * KINAS GROUP — Dashboard sidebar component
+ * Used by all user/agent/admin dashboards.
+ *
+ * Call:
+ *   je_render_sidebar('user', 'dashboard.php');
+ *   je_render_sidebar('agent', 'listings.php');
+ *   je_render_sidebar('admin', 'dashboard.php');
+ *
+ * AMENDED: displays @username below the brand label when available.
+ * FIX 1: Added 'My Orders' link for agents to support agent buying flow.
+ */
+
 // Ensure database is loaded before using it
 if (!class_exists('Database')) {
     require_once __DIR__ . '/../api/config/database.php';
@@ -63,6 +65,7 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
         ['key' => 'saved',        'icon' => 'heart',            'label' => 'Saved Listings', 'href' => 'saved-listings.php'],
         ['key' => 'inquiries',    'icon' => 'envelope',         'label' => 'My Inquiries',   'href' => 'my-inquiries.php'],
         ['key' => 'messages',     'icon' => 'comments',         'label' => 'Messages',       'href' => 'messages.php'],
+        ['key' => 'orders',       'icon' => 'receipt',          'label' => 'My Orders',      'href' => 'orders.php'],
         ['key' => 'profile',      'icon' => 'user-circle',      'label' => 'Profile',        'href' => 'profile.php'],
         ['key' => 'settings',     'icon' => 'cog',              'label' => 'Settings',       'href' => 'settings.php'],
     ];
@@ -73,6 +76,7 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
         ['key' => 'add',          'icon' => 'plus-circle',      'label' => 'Add Listing',   'href' => 'add-listing.php'],
         ['key' => 'verification', 'icon' => 'shield-alt',       'label' => 'Verification',  'href' => 'verification.php'],
         ['key' => 'messages',     'icon' => 'comments',         'label' => 'Messages',      'href' => 'messages.php'],
+        ['key' => 'orders',       'icon' => 'receipt',          'label' => 'My Orders',     'href' => 'orders.php'], // 🛒 NEW: Agent buying flow
         ['key' => 'rental-bookings', 'icon' => 'key',           'label' => 'Rental Bookings', 'href' => 'rental-bookings.php'],
         ['key' => 'sales',        'icon' => 'box',              'label' => 'Marketplace Sales', 'href' => 'sales.php'],
         ['key' => 'analytics',    'icon' => 'chart-line',       'label' => 'Analytics',     'href' => 'analytics.php'],
@@ -133,9 +137,9 @@ function je_render_sidebar(string $role, string $currentPage, int $headerDepth =
             <i class="fas fa-gem" style="color:#C6A43F;"></i> <?= htmlspecialchars($brandLabel) ?>
         </div>
         <?php if ($sidebarDisplayName !== ''): ?>
-        <div class="je-dash-sidebar-username" style="padding:8px 18px 12px;font-size:12px;color:#C6A43F;border-bottom:1px solid rgba(255,255,255,0.05);font-family:'Inter',sans-serif;font-weight:600;letter-spacing:0.3px;">
-            <?= htmlspecialchars($sidebarDisplayName) ?>
-        </div>
+            <div class="je-dash-sidebar-username" style="padding:8px 18px 12px;font-size:12px;color:#C6A43F;border-bottom:1px solid rgba(255,255,255,0.05);font-family:'Inter',sans-serif;font-weight:600;letter-spacing:0.3px;">
+                <?= htmlspecialchars($sidebarDisplayName) ?>
+            </div>
         <?php endif; ?>
         <ul class="je-dash-nav">
             <?php foreach ($nav as $item): ?>
