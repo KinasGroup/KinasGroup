@@ -9,25 +9,33 @@ require_once '../config/constants.php';
 require_once '../../includes/session.php';
 require_once '../../includes/security.php';
 
+// CORS headers for API access
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 
+// Handle preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
+/**
+* Always return JSON and include a fresh CSRF token where possible.
+*/
 function login_json_error(int $status, string $error, ?array $extra = null): void
 {
     http_response_code($status);
+
     $payload = [
         'error' => $error,
         'csrf_token' => Security::generateCSRFToken(),
     ];
+
     if ($extra !== null) {
         $payload = array_merge($payload, $extra);
     }
+
     echo json_encode($payload);
     exit;
 }
@@ -36,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     login_json_error(405, 'Method not allowed');
 }
 
+// IP-based rate limiting
 $ip = Security::getClientIP();
 Security::rateLimitDB('login_' . $ip, MAX_LOGIN_ATTEMPTS, LOGIN_TIMEOUT);
 
@@ -45,16 +54,20 @@ if (!is_array($data)) {
     login_json_error(400, 'Invalid JSON data');
 }
 
+// The identifier may be an email address OR a username.
 $identifier = strtolower(trim((string)($data['email'] ?? $data['username'] ?? '')));
 $password = (string)($data['password'] ?? '');
 
+// Allow CSRF token from JSON body or X-CSRF-Token header.
 $headerCsrf = (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
 $csrfToken = trim((string)($data['csrf_token'] ?? $headerCsrf));
 
+// Validate CSRF token without destroying it before login is complete.
 if ($csrfToken === '' || !Security::verifyCSRFToken($csrfToken)) {
     login_json_error(403, 'Please refresh the page and try again.');
 }
 
+// CAPTCHA verification
 $captchaToken = (string)($data['captcha_token'] ?? '');
 $captchaSecretKey = get_captcha_secret_key();
 $captchaEnabled = !empty($captchaSecretKey) && $captchaSecretKey !== '6LeXXXXXXXXXXXXXXXXXXXXXXXX';
@@ -71,8 +84,13 @@ if ($captchaEnabled) {
     ]);
 
     $captchaContext = stream_context_create([
-        'http' => ['timeout' => 5, 'method' => 'GET'],
-        'socket' => ['timeout' => 5],
+        'http' => [
+            'timeout' => 5,
+            'method' => 'GET',
+        ],
+        'socket' => [
+            'timeout' => 5,
+        ],
     ]);
 
     $verifyResponse = @file_get_contents($captchaUrl, false, $captchaContext);
@@ -81,6 +99,7 @@ if ($captchaEnabled) {
         error_log('reCAPTCHA verification network failure for IP: ' . $ip);
     } else {
         $verifyData = json_decode($verifyResponse, true);
+
         if (!$verifyData || empty($verifyData['success'])) {
             login_json_error(422, 'CAPTCHA verification failed. Kindly refresh the page and try again.');
         }
@@ -91,6 +110,7 @@ if ($identifier === '' || $password === '') {
     login_json_error(400, 'Please enter both email/username and password.');
 }
 
+// Only validate email format when the identifier actually looks like an email.
 $isEmail = strpos($identifier, '@') !== false;
 
 if ($isEmail && !filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
@@ -104,9 +124,10 @@ try {
         throw new RuntimeException('Database connection unavailable.');
     }
 
+    // Lookup by email OR username.
+    // AMENDED: added deleted_by to the SELECT.
     $stmt = $db->prepare(
-        "SELECT id, name, username, email, password, role, verified, status, email_verified_at,
-                deleted_at, deleted_by
+        "SELECT id, name, username, email, password, role, verified, status, email_verified_at, deleted_by
          FROM users
          WHERE " . ($isEmail ? "email = ?" : "username = ?")
     );
@@ -114,6 +135,7 @@ try {
     $stmt->execute([$identifier]);
     $user = $stmt->fetch();
 
+    // Use consistent timing to reduce user enumeration timing differences.
     $passwordHash = $user['password'] ?? '';
     $passwordValid = password_verify($password, $passwordHash);
 
@@ -131,51 +153,63 @@ try {
         login_json_error(401, 'Invalid email/username or password. Please try again.');
     }
 
+    // Check user status
     $status = (string)($user['status'] ?? 'active');
 
     // ============================================================
-    // DELETED ACCOUNT — ALLOW LOGIN FOR REACTIVATION
+    // AMENDED: DELETED ACCOUNT REACTIVATION FLOW
     // ============================================================
-    // If the account was self-deleted, allow the user to authenticate
-    // but do NOT create a normal session. Instead, set a temporary
-    // "pending reactivation" flag so the frontend can redirect to
-    // the reactivation page.
+    // If the account was self-deleted, allow the user to proceed
+    // to the reactivation page instead of blocking them.
+    // If the account was admin-deleted (deleted_by = 'admin' or NULL),
+    // block with the "contact support" message.
     // ============================================================
     if ($status === 'deleted') {
-        $deletedBy = (string)($user['deleted_by'] ?? 'self');
+        $deletedBy = $user['deleted_by'] ?? null;
 
-        // Only self-deleted accounts can be reactivated.
-        // Admin-deleted accounts must contact support.
-        if ($deletedBy === 'admin') {
-            login_json_error(403, 'Your account was deactivated by an administrator. Please contact support to restore it.');
+        if ($deletedBy === 'self') {
+            // Set pending reactivation session flags.
+            // Regenerate session ID to prevent fixation.
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_regenerate_id(true);
+            }
+
+            // Clear any stale login state.
+            unset(
+                $_SESSION['user_id'],
+                $_SESSION['user_name'],
+                $_SESSION['user_email'],
+                $_SESSION['user_role'],
+                $_SESSION['user_verified'],
+                $_SESSION['logged_in'],
+                $_SESSION['user_division'],
+                $_SESSION['is_super_agent'],
+                $_SESSION['csrf_token']
+            );
+
+            $_SESSION['pending_reactivation_user_id'] = (int)$user['id'];
+            $_SESSION['pending_reactivation_email']   = (string)$user['email'];
+            $_SESSION['pending_reactivation_name']    = (string)$user['name'];
+
+            $reactivationCsrf = Security::generateCSRFToken();
+
+            echo json_encode([
+                'success' => false,
+                'requires_reactivation' => true,
+                'csrf_token' => $reactivationCsrf,
+                'message' => 'Your account was deleted. You can reactivate it.',
+            ]);
+            exit;
         }
 
-        // Set a temporary session flag for reactivation.
-        // Do NOT call SessionManager::setUser() — the account is not active yet.
-        $_SESSION['pending_reactivation_user_id'] = (int)$user['id'];
-        $_SESSION['pending_reactivation_email'] = (string)$user['email'];
-        $_SESSION['pending_reactivation_name'] = (string)$user['name'];
-
-        Security::logActivity(
-            (int)$user['id'],
-            'login_deleted_account',
-            "Deleted account login for reactivation: $identifier from $ip"
-        );
-
-        echo json_encode([
-            'success' => true,
-            'requires_reactivation' => true,
-            'csrf_token' => Security::generateCSRFToken(),
-            'message' => 'Your account was deleted. You can reactivate it.',
-        ]);
-
-        exit;
+        // Admin-deleted or unknown deletion source: block.
+        login_json_error(403, 'Your account has been deleted. Please contact support.');
     }
 
     if ($status !== 'active') {
         $statusMessages = [
             'suspended' => 'Your account has been suspended. Please contact support.',
-            'inactive' => 'Your account is inactive. Please contact support.',
+            'inactive'  => 'Your account is inactive. Please contact support.',
         ];
 
         $statusMessage = $statusMessages[$status] ?? 'Your account is ' . $status . '. Please contact support.';
@@ -183,6 +217,8 @@ try {
         login_json_error(403, $statusMessage);
     }
 
+    // Block login if the email has not been verified.
+    // Admins are seeded with email_verified_at already set.
     if (($user['role'] ?? '') !== 'admin' && empty($user['email_verified_at'])) {
         Security::logActivity(
             (int)$user['id'],
@@ -200,8 +236,10 @@ try {
         );
     }
 
+    // Rotate session ID on privilege change (login)
     SessionManager::regenerateSession();
 
+    // Issue DB-persisted token for API clients
     $token = Security::generateToken(32);
     $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
 
@@ -227,6 +265,7 @@ try {
         error_log('Session row insert failed (non-fatal, web auth will still work): ' . $sessionErr->getMessage());
     }
 
+    // Populate session via SessionManager AFTER any DB writes.
     SessionManager::setUser($user);
 
     Security::logActivity(
@@ -235,6 +274,7 @@ try {
         'Successful login from ' . $ip
     );
 
+    // Rotate CSRF token after successful login.
     unset($_SESSION['csrf_token']);
     $newCsrfToken = Security::generateCSRFToken();
 
@@ -256,6 +296,7 @@ try {
     }
 
     echo json_encode($response);
+
 } catch (\Throwable $e) {
     error_log('Login error: ' . $e->getMessage());
 
