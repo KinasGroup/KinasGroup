@@ -1,13 +1,8 @@
 <?php
-// api/solar/calculate.php
-// FIXED:
-// - Passes selected panel wattage and panel description to PDF.
-// - Keeps existing frontend/response contract.
-
+// api/solar/calculate.php — DUAL-OPTION (Option B) rebuild
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
-
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../config/database.php';
@@ -19,32 +14,20 @@ require_once __DIR__ . '/../../includes/solar-engine.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Method not allowed.',
-    ]);
+    echo json_encode(['success' => false, 'message' => 'Method not allowed.']);
     exit;
 }
 
 try {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
+    if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-    // ------------------------------------------------------------
-    // 1. CSRF + rate limit
-    // ------------------------------------------------------------
     if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
         throw new Exception('Invalid security token. Please refresh the page and try again.');
     }
-
     if (class_exists('Security', false) && method_exists('Security', 'rateLimitDB')) {
         Security::rateLimitDB('solar_calc_' . Security::getClientIP(), 10, 600);
     }
 
-    // ------------------------------------------------------------
-    // 2. Read + validate input
-    // ------------------------------------------------------------
     $fullName     = trim($_POST['full_name'] ?? '');
     $phone        = trim($_POST['phone'] ?? '');
     $email        = trim($_POST['email'] ?? '');
@@ -56,22 +39,17 @@ try {
     if (empty($fullName) || empty($phone) || empty($email) || empty($cityState) || empty($propertyType)) {
         throw new Exception('Please fill in all required fields.');
     }
-
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         throw new Exception('Please enter a valid email address.');
     }
-
     if (empty($appliances) || !is_array($appliances)) {
         throw new Exception('Please add at least one appliance.');
     }
 
     $db = Database::getInstance()->getConnection();
 
-    // ------------------------------------------------------------
-    // 3. Run calculation engine
-    // ------------------------------------------------------------
     $calc = kinas_solar_calculate($db, [
-        'appliances' => $appliances,
+        'appliances'   => $appliances,
         'backup_hours' => $backupHours,
     ]);
 
@@ -80,39 +58,30 @@ try {
     }
 
     $reference = kinas_solar_make_reference();
+    $optionA = $calc['options']['generator'];
+    $optionB = $calc['options']['custom'];
 
-    // ------------------------------------------------------------
-    // 4. Get selected panel description from line items
-    // ------------------------------------------------------------
-    $panelDescription = '';
-
-    foreach ($calc['items'] as $item) {
-        if (($item['type'] ?? '') === 'panel') {
-            $panelDescription = (string)($item['description'] ?? '');
-            break;
-        }
-    }
-
-    $powerLabel = $calc['power_source_label'] ?: 'Custom Power System (contact us)';
-
-    // ------------------------------------------------------------
-    // 5. Map engine output to PDF/response/email shapes
-    // ------------------------------------------------------------
+    // ---------------- PDF payload (both options + legacy keys) ----------------
     $pdfData = [
-        'full_name'            => $fullName,
-        'email'                => $email,
-        'phone'                => $phone,
-        'city_state'           => $cityState,
-        'property_type'        => $propertyType,
-        'total_load_watts'     => $calc['total_load_w'],
-        'daily_kwh'            => $calc['daily_kwh'],
-        'backup_hours'         => $calc['backup_hours'],
+        'full_name'        => $fullName,
+        'email'            => $email,
+        'phone'            => $phone,
+        'city_state'       => $cityState,
+        'property_type'    => $propertyType,
+        'total_load_watts' => $calc['total_load_w'],
+        'daily_kwh'        => $calc['daily_kwh'],
+        'backup_hours'     => $calc['backup_hours'],
+        'required_pv_kw'   => $calc['required_pv_kw'],
+        'required_inverter_kw' => $calc['required_inverter_kw'],
+        'required_battery_kwh' => $calc['required_battery_kwh'],
+        'options'          => ['generator' => $optionA, 'custom' => $optionB],
+        // legacy keys for the current PDF until Part 2 replaces it:
         'system_size'          => $calc['recommended_pv_kw'],
         'recommended_panels'   => $calc['panels_qty'],
-        'panel_wattage_w'      => (float)($calc['panel_wattage_w'] ?? 0),
-        'panel_description'    => $panelDescription,
-        'recommended_inverter' => $powerLabel,
-        'recommended_battery'  => $powerLabel . ' (integrated battery)',
+        'panel_wattage_w'      => (float)$calc['panel_wattage_w'],
+        'panel_description'    => $calc['panel_description'],
+        'recommended_inverter' => $calc['power_source_label'],
+        'recommended_battery'  => $calc['power_source_label'] . ' (integrated battery)',
         'battery_units'        => 1,
         'estimated_cost'       => $calc['grand_total'],
         'monthly_savings'      => $calc['monthly_savings'],
@@ -124,11 +93,7 @@ try {
         'warnings'             => $calc['warnings'],
     ];
 
-    // ------------------------------------------------------------
-    // 6. Generate PDF
-    // ------------------------------------------------------------
     $pdfUrl = null;
-
     try {
         generateSolarRecommendationPDF($pdfData, $reference);
         $pdfUrl = 'https://' . $_SERVER['HTTP_HOST'] . '/uploads/solar-reports/' . $reference . '.pdf';
@@ -136,9 +101,6 @@ try {
         error_log('Solar PDF error: ' . $e->getMessage());
     }
 
-    // ------------------------------------------------------------
-    // 7. Save auditable proposal
-    // ------------------------------------------------------------
     kinas_solar_save_proposal($db, $calc, [
         'full_name' => $fullName,
         'phone' => $phone,
@@ -164,166 +126,151 @@ try {
                 INDEX idx_email (email)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
-
         $db->prepare("
-            INSERT INTO solar_enquiries (
-                full_name,
-                email,
-                phone,
-                monthly_bill,
-                system_size,
-                annual_savings,
-                payback_years,
-                status,
-                created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'new', NOW())
+            INSERT INTO solar_enquiries
+            (full_name, email, phone, monthly_bill, system_size, annual_savings, payback_years, status, created_at)
+            VALUES (?,?,?,?,?,?,?,'new',NOW())
         ")->execute([
-            $fullName,
-            $email,
-            $phone,
-            $calc['monthly_savings'],
-            $calc['recommended_pv_kw'],
-            $calc['annual_savings'],
-            $calc['payback_years'],
+            $fullName, $email, $phone,
+            $calc['monthly_savings'], $calc['recommended_pv_kw'],
+            $calc['annual_savings'], $calc['payback_years'],
         ]);
     } catch (Throwable $e) {
-        // Legacy mirror is optional.
     }
 
-    // ------------------------------------------------------------
-    // 8. Emails
-    // ------------------------------------------------------------
-    $itemsRows = '';
-
-    foreach ($calc['items'] as $item) {
-        $itemsRows .= '<tr>'
-            . '<td style="padding:6px 8px;border:1px solid #E0E0E0;">' . htmlspecialchars($item['description']) . '</td>'
-            . '<td style="padding:6px 8px;border:1px solid #E0E0E0;text-align:center;">' . (int)$item['qty'] . '</td>'
-            . '<td style="padding:6px 8px;border:1px solid #E0E0E0;text-align:right;">₦' . number_format($item['line_total']) . '</td>'
-            . '</tr>';
-    }
-
-    $warningsHtml = '';
-
-    if (!empty($calc['warnings'])) {
-        $warningsHtml = '<p style="font-size:12px;color:#8D6E00;background:#FFF8E1;padding:8px 10px;border-radius:6px;">'
-            . htmlspecialchars(implode(' ', $calc['warnings']))
-            . '</p>';
-    }
+    // ---------------- Emails: BOTH options ----------------
+    $optionBlock = function (array $opt) {
+        if (empty($opt['available'])) {
+            return '<p style="font-size:12px;color:#888;"><strong>' . htmlspecialchars($opt['label'])
+                . ':</strong> Not available for this load — ' . htmlspecialchars($opt['reason'] ?? 'requirements not met.') . '</p>';
+        }
+        $rows = '';
+        foreach ($opt['items'] as $it) {
+            $rows .= '<tr>'
+                . '<td style="padding:6px 8px;border:1px solid #E0E0E0;">' . htmlspecialchars($it['description']) . '</td>'
+                . '<td style="padding:6px 8px;border:1px solid #E0E0E0;text-align:center;">' . (int)$it['qty'] . '</td>'
+                . '<td style="padding:6px 8px;border:1px solid #E0E0E0;text-align:right;">₦' . number_format($it['line_total']) . '</td>'
+                . '</tr>';
+        }
+        return '<h3 style="margin:18px 0 6px;color:#0A0A0A;">' . htmlspecialchars($opt['label']) . '</h3>'
+            . '<p style="font-size:12px;color:#555;margin:0 0 6px;">'
+            . 'Panels: ' . (int)$opt['panels_qty'] . ' × ' . (int)$opt['panel_wattage_w'] . 'W · '
+            . 'Power: ' . htmlspecialchars($opt['power_source_label']) . ' · '
+            . 'Monthly savings: ₦' . number_format($opt['monthly_savings']) . '</p>'
+            . '<table class="items" style="width:100%;border-collapse:collapse;font-size:12px;margin:6px 0 4px;">'
+            . '<tr style="background:#F5F5F5;"><th style="padding:6px 8px;border:1px solid #E0E0E0;text-align:left;">Item</th>'
+            . '<th style="padding:6px 8px;border:1px solid #E0E0E0;">Qty</th>'
+            . '<th style="padding:6px 8px;border:1px solid #E0E0E0;text-align:right;">Total</th></tr>'
+            . $rows
+            . '<tr style="background:#C6A43F;color:#0A0A0A;font-weight:bold;"><td colspan="2" style="padding:6px 8px;border:1px solid #E0E0E0;text-align:right;">TOTAL</td>'
+            . '<td style="padding:6px 8px;border:1px solid #E0E0E0;text-align:right;">₦' . number_format($opt['grand_total']) . '</td></tr>'
+            . '</table>';
+    };
 
     $emailService = new EmailService();
-
     $customerSubject = 'Your Solar Proposal from KINAS VOLT - ' . $reference;
 
     $customerBody = '
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <style>
+    <!DOCTYPE html><html><head><style>
     body{font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#2C2C2C;}
     .content{background:#FFF;padding:30px;}
     .btn{display:inline-block;padding:12px 30px;background:#C6A43F;color:#0A0A0A;text-decoration:none;border-radius:4px;font-weight:bold;margin:10px 0;}
     .info-box{background:#F8F6F1;padding:15px;border-radius:4px;margin:20px 0;border-left:4px solid #C6A43F;}
-    table.items{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0;}
-    </style>
-    </head>
-    <body>
+    table.items{width:100%;border-collapse:collapse;font-size:12px;}
+    </style></head><body>
     <div style="background:#0A0A0A;padding:20px;text-align:center;">
-        <h1 style="color:#C6A43F;font-family:Prata,serif;margin:0;">KINAS GROUP</h1>
-        <p style="color:rgba(255,255,255,0.5);margin:4px 0 0;">KINAS VOLT - Solar Division</p>
+    <h1 style="color:#C6A43F;font-family:Prata,serif;margin:0;">KINAS GROUP</h1>
+    <p style="color:rgba(255,255,255,0.5);margin:4px 0 0;">KINAS VOLT - Solar Division</p>
     </div>
     <div class="content">
-        <h2 style="color:#0A0A0A;font-family:Prata,serif;">Your Solar Proposal is Ready!</h2>
-        <p>Dear ' . htmlspecialchars($fullName) . ',</p>
-        <p>Thank you for using the KINAS VOLT Solar Calculator. Based on your inputs we have matched real KINAS VOLT products for you.</p>
-        <div class="info-box">
-            <strong>📄 Proposal Details:</strong><br>
-            <strong>Reference:</strong> ' . $reference . '<br>
-            <strong>System Size:</strong> ' . $calc['recommended_pv_kw'] . ' kWp<br>
-            <strong>Solar Panels:</strong> ' . $calc['panels_qty'] . ' × ' . (int)$calc['panel_wattage_w'] . 'W<br>
-            <strong>Panel Product:</strong> ' . htmlspecialchars($panelDescription) . '<br>
-            <strong>Power System:</strong> ' . htmlspecialchars($powerLabel) . '<br>
-            <strong>Estimated Investment (Hardware):</strong> ₦' . number_format($calc['grand_total']) . '<br>
-            <strong>Monthly Savings:</strong> ₦' . number_format($calc['monthly_savings']) . '
-        </div>
-        <table class="items">
-            <tr style="background:#F5F5F5;">
-                <th style="padding:6px 8px;border:1px solid #E0E0E0;text-align:left;">Item</th>
-                <th style="padding:6px 8px;border:1px solid #E0E0E0;">Qty</th>
-                <th style="padding:6px 8px;border:1px solid #E0E0E0;text-align:right;">Total</th>
-            </tr>
-            ' . $itemsRows . '
-        </table>
-        ' . $warningsHtml . '
-        <p style="font-size:11px;color:#888;">Quotation covers solar hardware only. Installation, cabling, mounting and transport are not included, as these services are not currently offered.</p>
-        <p style="text-align:center;margin:30px 0;">
-            <a href="' . ($pdfUrl ?? '#') . '" class="btn">📄 View/Download Your Proposal</a>
-        </p>
-        <p>Our team will contact you within 24 hours. Call <strong>+234 913 717 5523</strong> for questions.</p>
+    <h2 style="color:#0A0A0A;font-family:Prata,serif;">Your Solar Proposal is Ready!</h2>
+    <p>Dear ' . htmlspecialchars($fullName) . ',</p>
+    <p>Based on your appliances and backup needs we prepared <strong>two real-product options</strong> for you.</p>
+    <div class="info-box">
+    <strong>📄 Reference:</strong> ' . $reference . '<br>
+    <strong>Total Load:</strong> ' . number_format($calc['total_load_w']) . ' W · '
+    . '<strong>Daily Use:</strong> ' . $calc['daily_kwh'] . ' kWh · '
+    . '<strong>Backup:</strong> ' . $calc['backup_hours'] . 'h<br>
+    <strong>Required:</strong> PV ' . $calc['required_pv_kw'] . ' kW · Inverter '
+    . $calc['required_inverter_kw'] . ' kW · Battery ' . $calc['required_battery_kwh'] . ' kWh
     </div>
-    </body>
-    </html>';
+    ' . $optionBlock($optionA) . '
+    ' . $optionBlock($optionB) . '
+    <p style="font-size:11px;color:#888;">Quotation covers solar hardware only. Installation, cabling, mounting and transport are not included, as these services are not currently offered.</p>
+    <p style="text-align:center;margin:30px 0;"><a href="' . ($pdfUrl ?? '#') . '" class="btn">📄 View/Download Your Proposal</a></p>
+    <p>Our team will contact you within 24 hours. Call <strong>+234 913 717 5523</strong> for questions.</p>
+    </div></body></html>';
 
-    $customerSent = $emailService->send(
-        $email,
-        $fullName,
-        $customerSubject,
-        $customerBody,
-        strip_tags($customerBody)
-    );
+    $customerSent = $emailService->send($email, $fullName, $customerSubject, $customerBody, strip_tags($customerBody));
 
     $adminSubject = '🔔 NEW Solar Enquiry - ' . $reference . ' - ' . $fullName;
-
     $adminBody = $customerBody
         . '<p style="font-size:12px;color:#666;">Customer: ' . htmlspecialchars($fullName)
-        . ' | ' . htmlspecialchars($email)
-        . ' | ' . htmlspecialchars($phone)
-        . ' | ' . htmlspecialchars($cityState)
-        . ' | ' . htmlspecialchars($propertyType) . '</p>';
+        . ' | ' . htmlspecialchars($email) . ' | ' . htmlspecialchars($phone)
+        . ' | ' . htmlspecialchars($cityState) . ' | ' . htmlspecialchars($propertyType) . '</p>';
+    $adminSent = $emailService->send('admin@kinas-group.com', 'Admin', $adminSubject, $adminBody, strip_tags($adminBody));
 
-    $adminSent = $emailService->send(
-        'admin@kinas-group.com',
-        'Admin',
-        $adminSubject,
-        $adminBody,
-        strip_tags($adminBody)
-    );
+    // ---------------- Response ----------------
+    $optionSummary = function (array $opt) {
+        return [
+            'available' => (bool)$opt['available'],
+            'reason' => $opt['reason'],
+            'label' => $opt['label'],
+            'items' => $opt['items'],
+            'grand_total' => $opt['grand_total'],
+            'panels_qty' => $opt['panels_qty'],
+            'panel_wattage_w' => $opt['panel_wattage_w'],
+            'panel_description' => $opt['panel_description'],
+            'power_source_label' => $opt['power_source_label'],
+            'max_pv_input_w' => $opt['max_pv_input_w'],
+            'recommended_pv_kw' => $opt['recommended_pv_kw'],
+            'recommended_inverter_kw' => $opt['recommended_inverter_kw'],
+            'recommended_battery_kwh' => $opt['recommended_battery_kwh'],
+            'monthly_savings' => $opt['monthly_savings'],
+            'payback_years' => $opt['payback_years'],
+            'roi' => $opt['roi_20_years'],
+            'co2_saved' => $opt['co2_tons_year'],
+        ];
+    };
 
-    // ------------------------------------------------------------
-    // 9. Response
-    // ------------------------------------------------------------
     echo json_encode([
-        'success' => true,
-        'message' => 'Proposal generated successfully! Check your email for the PDF.',
+        'success'   => true,
+        'message'   => 'Proposal generated successfully! Check your email for the PDF.',
         'reference' => $reference,
-        'pdf_url' => $pdfUrl,
-        'data' => [
-            'system_size' => $calc['recommended_pv_kw'],
-            'panels' => $calc['panels_qty'],
-            'panel_wattage' => (int)$calc['panel_wattage_w'],
-            'panel_description' => $panelDescription,
+        'pdf_url'   => $pdfUrl,
+        'data'      => [
+            // legacy keys (primary option) for the current front-end:
+            'system_size'      => $calc['recommended_pv_kw'],
+            'panels'           => $calc['panels_qty'],
             'battery_capacity' => $calc['recommended_battery_kwh'],
-            'estimated_cost' => $calc['grand_total'],
-            'monthly_savings' => $calc['monthly_savings'],
-            'payback_years' => number_format($calc['payback_years'], 2),
-            'roi' => number_format($calc['roi_20_years'], 2),
-            'co2_saved' => number_format($calc['co2_tons_year'], 2),
-            'power_system' => $powerLabel,
-            'items' => $calc['items'],
-            'warnings' => $calc['warnings'],
+            'estimated_cost'   => $calc['grand_total'],
+            'monthly_savings'  => $calc['monthly_savings'],
+            'payback_years'    => number_format($calc['payback_years'], 2),
+            'roi'              => number_format($calc['roi_20_years'], 2),
+            'co2_saved'        => number_format($calc['co2_tons_year'], 2),
+            'power_system'     => $calc['power_source_label'],
+            'items'            => $calc['items'],
+            'warnings'         => $calc['warnings'],
+            // new dual-option payload for the Part-2 front-end:
+            'requirements' => [
+                'total_load_w' => $calc['total_load_w'],
+                'daily_kwh' => $calc['daily_kwh'],
+                'required_pv_kw' => $calc['required_pv_kw'],
+                'required_inverter_kw' => $calc['required_inverter_kw'],
+                'required_battery_kwh' => $calc['required_battery_kwh'],
+            ],
+            'options' => [
+                'generator' => $optionSummary($optionA),
+                'custom'    => $optionSummary($optionB),
+            ],
         ],
         'emails_sent' => [
             'customer' => $customerSent ? 'sent' : 'failed',
-            'admin' => $adminSent ? 'sent' : 'failed',
+            'admin'    => $adminSent ? 'sent' : 'failed',
         ],
     ]);
 } catch (Exception $e) {
     error_log('Solar Calculator Error: ' . $e->getMessage());
-
     http_response_code(500);
-
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage(),
-    ]);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
