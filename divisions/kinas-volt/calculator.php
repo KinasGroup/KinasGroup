@@ -1,5 +1,5 @@
 <?php
-// calculator.php — DUAL-OPTION rebuild (Option B: show both options equally)
+// calculator.php — bundle-aware rebuild (shows matched bundle + line items)
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/security.php';
 require_once __DIR__ . '/../../api/config/database.php';
@@ -244,22 +244,6 @@ margin-bottom: 16px;
 .result-value { font-size: 24px; font-weight: 800; margin: 4px 0; }
 .result-value.small { font-size: 15px; line-height: 1.3; }
 .result-label { font-size: 12px; opacity: 0.7; }
-/* Requirements strip (dual-option results) */
-.req-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
-.req-item { background: rgba(0,0,0,0.08); border-radius: 10px; padding: 14px; text-align: center; }
-.req-value { font-size: 18px; font-weight: 800; }
-.req-label { font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-/* Dual option cards */
-.options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px; }
-.option-card { background: rgba(0,0,0,0.08); border-radius: 12px; padding: 20px; text-align: left; display: flex; flex-direction: column; }
-.option-card h3 { font-size: 16px; margin-bottom: 4px; }
-.option-card .option-sub { font-size: 12px; opacity: 0.75; margin-bottom: 14px; }
-.option-card.unavailable { opacity: 0.85; border: 1px dashed rgba(0,0,0,0.35); }
-.option-specs { list-style: none; margin: 0 0 14px 0; padding: 0; font-size: 13px; }
-.option-specs li { padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.08); }
-.option-specs li strong { display: inline-block; min-width: 112px; }
-.option-total { margin-top: auto; padding-top: 14px; border-top: 2px solid rgba(0,0,0,0.25); font-size: 18px; font-weight: 800; }
-.option-meta { font-size: 12px; opacity: 0.8; margin-top: 6px; }
 /* Itemised quotation + warnings */
 .quote-block { background: rgba(0,0,0,0.08); border-radius: 12px; padding: 20px; margin: 0 0 20px 0; text-align: left; }
 .quote-block h3 { font-size: 16px; margin-bottom: 12px; }
@@ -287,6 +271,25 @@ font-size: 18px !important; background: rgba(255,255,255,0.05) !important;
 }
 .je-footer-social a:hover { background: #C6A43F !important; border-color: #C6A43F !important; color: #0A0A0A !important; transform: translateY(-3px) !important; }
 .je-footer-social a i { font-size: 18px !important; line-height: 1 !important; display: inline-block !important; color: inherit !important; }
+
+/* =========================================
+   INJECTION 1: DUAL-OPTION (OPTION B) CSS 
+   ========================================= */
+.req-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.req-item { background: rgba(0,0,0,0.08); border-radius: 10px; padding: 14px; text-align: center; }
+.req-value { font-size: 18px; font-weight: 800; }
+.req-label { font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+.options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px; }
+.option-card { background: rgba(0,0,0,0.08); border-radius: 12px; padding: 20px; text-align: left; display: flex; flex-direction: column; }
+.option-card h3 { font-size: 16px; margin-bottom: 4px; }
+.option-card .option-sub { font-size: 12px; opacity: 0.75; margin-bottom: 14px; }
+.option-card.unavailable { opacity: 0.85; border: 1px dashed rgba(0,0,0,0.35); }
+.option-specs { list-style: none; margin: 0 0 14px 0; padding: 0; font-size: 13px; }
+.option-specs li { padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.08); }
+.option-specs li strong { display: inline-block; min-width: 112px; }
+.option-total { margin-top: auto; padding-top: 14px; border-top: 2px solid rgba(0,0,0,0.25); font-size: 18px; font-weight: 800; }
+.option-meta { font-size: 12px; opacity: 0.8; margin-top: 6px; }
+
 @media (max-width: 768px) {
 .calculator-hero h1 { font-size: 32px; }
 .progress-steps { gap: 30px; }
@@ -536,118 +539,117 @@ showError('Network error. Please check your connection and try again.');
 }
 });
 
-// ------------------------------------------------------------
-// DUAL-OPTION RENDERING (Option B: show both options equally)
-// ------------------------------------------------------------
+/* =========================================
+   INJECTION 2: DUAL-OPTION (OPTION B) JS 
+   ========================================= */
 function optionCard(title, opt) {
-if (!opt) return '';
-if (!opt.available) {
-return `
-<div class="option-card unavailable">
-<h3>${escapeHtml(title)}</h3>
-<p class="option-sub"><i class="fas fa-ban"></i> Not available for this load</p>
-<p style="font-size:13px;">${escapeHtml(opt.reason || 'Requirements not met by any current KINAS VOLT product.')}</p>
-</div>`;
-}
-let rows = '';
-(opt.items || []).forEach(it => {
-rows += `<tr><td>${escapeHtml(it.description || '')}</td><td style="text-align:center;">${it.qty || 1}</td><td style="text-align:right;">₦${Number(it.line_total || 0).toLocaleString()}</td></tr>`;
-});
-const specs = [];
-specs.push(`<li><strong>Panels:</strong> ${opt.panels_qty || 0} × ${opt.panel_wattage_w || 0}W</li>`);
-specs.push(`<li><strong>Power:</strong> ${escapeHtml(opt.power_source_label || '—')}</li>`);
-specs.push(`<li><strong>Usable battery:</strong> ${opt.recommended_battery_kwh || 0} kWh</li>`);
-if (opt.max_pv_input_w) specs.push(`<li><strong>Max PV input:</strong> ${opt.max_pv_input_w} W</li>`);
-return `
-<div class="option-card">
-<h3>${escapeHtml(title)}</h3>
-<p class="option-sub">${escapeHtml(opt.label || '')}</p>
-<ul class="option-specs">${specs.join('')}</ul>
-<table class="quote-table">
-<thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Total</th></tr></thead>
-<tbody>${rows}</tbody>
-</table>
-<div class="option-total">₦${Number(opt.grand_total || 0).toLocaleString()}</div>
-<div class="option-meta">Monthly savings ₦${Number(opt.monthly_savings || 0).toLocaleString()} · Payback ${opt.payback_years || 0} yrs · ROI ${opt.roi || 0}%</div>
-</div>`;
+    if (!opt) return '';
+    if (!opt.available) {
+        return `<div class="option-card unavailable"><h3>${escapeHtml(title)}</h3><p class="option-sub"><i class="fas fa-ban"></i> Not available for this load</p><p style="font-size:13px;">${escapeHtml(opt.reason || 'Requirements not met by any current KINAS VOLT product.')}</p></div>`;
+    }
+    let rows = '';
+    (opt.items || []).forEach(it => {
+        rows += `<tr><td>${escapeHtml(it.description || '')}</td><td style="text-align:center;">${it.qty || 1}</td><td style="text-align:right;">₦${Number(it.line_total || 0).toLocaleString()}</td></tr>`;
+    });
+    const specs = [];
+    specs.push(`<li><strong>Panels:</strong> ${opt.panels_qty || 0} × ${opt.panel_wattage_w || 0}W</li>`);
+    specs.push(`<li><strong>Power:</strong> ${escapeHtml(opt.power_source_label || '—')}</li>`);
+    specs.push(`<li><strong>Usable battery:</strong> ${opt.recommended_battery_kwh || 0} kWh</li>`);
+    if (opt.max_pv_input_w) specs.push(`<li><strong>Max PV input:</strong> ${opt.max_pv_input_w} W</li>`);
+    
+    return `
+    <div class="option-card">
+        <h3>${escapeHtml(title)}</h3>
+        <p class="option-sub">${escapeHtml(opt.label || '')}</p>
+        <ul class="option-specs">${specs.join('')}</ul>
+        <table class="quote-table">
+            <thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Total</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+        <div class="option-total">₦${Number(opt.grand_total || 0).toLocaleString()}</div>
+        <div class="option-meta">Monthly savings ₦${Number(opt.monthly_savings || 0).toLocaleString()} · Payback ${opt.payback_years || 0} yrs · ROI ${opt.roi_20_years || opt.roi || 0}%</div>
+    </div>`;
 }
 
 function displayResults(data, reference, pdfUrl) {
-const resultsDiv = document.getElementById('results');
-let bodyHtml = '';
+    const resultsDiv = document.getElementById('results');
+    let bodyHtml = '';
 
-if (data.options) {
-// ---- NEW dual-option layout ----
-const req = data.requirements || {};
-bodyHtml += `
-<div class="req-grid">
-<div class="req-item"><div class="req-value">${Number(req.total_load_w || 0).toLocaleString()} W</div><div class="req-label">Total Load</div></div>
-<div class="req-item"><div class="req-value">${req.daily_kwh || 0} kWh</div><div class="req-label">Daily Use</div></div>
-<div class="req-item"><div class="req-value">${req.required_pv_kw || 0} kW</div><div class="req-label">Required PV</div></div>
-<div class="req-item"><div class="req-value">${req.required_inverter_kw || 0} kW</div><div class="req-label">Required Inverter</div></div>
-<div class="req-item"><div class="req-value">${req.required_battery_kwh || 0} kWh</div><div class="req-label">Required Battery</div></div>
-</div>
-<div class="options-grid">
-${optionCard('Option 1 — All-in-One Solar Generator', data.options.generator)}
-${optionCard('Option 2 — Custom-Built System', data.options.custom)}
-</div>`;
-} else {
-// ---- LEGACY single-bundle fallback (old API shape) ----
-let itemsHtml = '';
-if (data.items && data.items.length) {
-let rows = '';
-data.items.forEach(it => {
-rows += `<tr><td>${escapeHtml(it.description || '')}</td><td style="text-align:center;">${it.qty || 1}</td><td style="text-align:right;">₦${Number(it.line_total || 0).toLocaleString()}</td></tr>`;
-});
-itemsHtml = `
-<div class="quote-block">
-<h3><i class="fas fa-boxes"></i> Itemised Quotation (live KINAS VOLT prices)</h3>
-<table class="quote-table">
-<thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Total</th></tr></thead>
-<tbody>${rows}
-<tr class="total"><td colspan="2" style="text-align:right;">GRAND TOTAL</td><td style="text-align:right;">₦${Number(data.estimated_cost || 0).toLocaleString()}</td></tr>
-</tbody>
-</table>
-</div>`;
-}
-bodyHtml += `
-<div class="results-grid">
-<div class="result-item"><i class="fas fa-bolt"></i><div class="result-value">${data.system_size || '--'} kW</div><div class="result-label">Recommended System Size</div></div>
-<div class="result-item"><i class="fas fa-solar-panel"></i><div class="result-value">${data.panels || '--'}</div><div class="result-label">Solar Panels Needed</div></div>
-<div class="result-item"><i class="fas fa-microchip"></i><div class="result-value small">${escapeHtml(data.power_system || 'Custom (contact us)')}</div><div class="result-label">Matched Power Station</div></div>
-<div class="result-item"><i class="fas fa-battery-full"></i><div class="result-value">${data.battery_capacity || '--'} kWh</div><div class="result-label">Usable Battery</div></div>
-<div class="result-item"><i class="fas fa-money-bill-wave"></i><div class="result-value">₦${Number(data.estimated_cost || 0).toLocaleString()}</div><div class="result-label">Estimated Investment</div></div>
-<div class="result-item"><i class="fas fa-chart-line"></i><div class="result-value">₦${Number(data.monthly_savings || 0).toLocaleString()}</div><div class="result-label">Monthly Savings</div></div>
-</div>
-${itemsHtml}`;
-}
+    if (data.options) {
+        // NEW DUAL-OPTION LAYOUT
+        const req = data.requirements || {};
+        bodyHtml += `
+        <div class="req-grid">
+            <div class="req-item"><div class="req-value">${Number(req.total_load_w || 0).toLocaleString()} W</div><div class="req-label">Total Load</div></div>
+            <div class="req-item"><div class="req-value">${req.daily_kwh || 0} kWh</div><div class="req-label">Daily Use</div></div>
+            <div class="req-item"><div class="req-value">${req.required_pv_kw || 0} kW</div><div class="req-label">Required PV</div></div>
+            <div class="req-item"><div class="req-value">${req.required_inverter_kw || 0} kW</div><div class="req-label">Required Inverter</div></div>
+            <div class="req-item"><div class="req-value">${req.required_battery_kwh || 0} kWh</div><div class="req-label">Required Battery</div></div>
+        </div>
+        <div class="options-grid">
+            ${optionCard('Option 1 — All-in-One Solar Generator', data.options.generator)}
+            ${optionCard('Option 2 — Custom-Built System', data.options.custom)}
+        </div>`;
+    } else {
+        // LEGACY FALLBACK (Single bundle)
+        let itemsHtml = '';
+        if (data.items && data.items.length) {
+            let rows = '';
+            data.items.forEach(it => {
+                rows += `<tr><td>${escapeHtml(it.description || '')}</td><td style="text-align:center;">${it.qty || 1}</td><td style="text-align:right;">₦${Number(it.line_total || 0).toLocaleString()}</td></tr>`;
+            });
+            itemsHtml = `
+            <div class="quote-block">
+                <h3><i class="fas fa-boxes"></i> Itemised Quotation (live KINAS VOLT prices)</h3>
+                <table class="quote-table">
+                    <thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Total</th></tr></thead>
+                    <tbody>${rows}
+                    <tr class="total"><td colspan="2" style="text-align:right;">GRAND TOTAL</td><td style="text-align:right;">₦${Number(data.estimated_cost || 0).toLocaleString()}</td></tr>
+                    </tbody>
+                </table>
+            </div>`;
+        }
+        bodyHtml += `
+        <div class="results-grid">
+            <div class="result-item"><i class="fas fa-bolt"></i><div class="result-value">${data.system_size || '--'} kW</div><div class="result-label">Recommended System Size</div></div>
+            <div class="result-item"><i class="fas fa-solar-panel"></i><div class="result-value">${data.panels || '--'}</div><div class="result-label">Solar Panels Needed</div></div>
+            <div class="result-item"><i class="fas fa-microchip"></i><div class="result-value small">${escapeHtml(data.power_system || 'Custom (contact us)')}</div><div class="result-label">Matched Power Station</div></div>
+            <div class="result-item"><i class="fas fa-battery-full"></i><div class="result-value">${data.battery_capacity || '--'} kWh</div><div class="result-label">Usable Battery</div></div>
+            <div class="result-item"><i class="fas fa-money-bill-wave"></i><div class="result-value">₦${Number(data.estimated_cost || 0).toLocaleString()}</div><div class="result-label">Estimated Investment</div></div>
+            <div class="result-item"><i class="fas fa-chart-line"></i><div class="result-value">₦${Number(data.monthly_savings || 0).toLocaleString()}</div><div class="result-label">Monthly Savings</div></div>
+            <div class="result-item"><i class="fas fa-leaf"></i><div class="result-value">${data.co2_saved || '--'}</div><div class="result-label">CO₂ Saved (tons/year)</div></div>
+            <div class="result-item"><i class="fas fa-calendar-alt"></i><div class="result-value">${data.payback_years || '--'} years</div><div class="result-label">Payback Period</div></div>
+            <div class="result-item"><i class="fas fa-trophy"></i><div class="result-value">${data.roi || '--'}%</div><div class="result-label">ROI (20 years)</div></div>
+        </div>
+        ${itemsHtml}`;
+    }
 
-let warningsHtml = '';
-if (data.warnings && data.warnings.length) {
-warningsHtml = `<div class="quote-warnings"><strong>Please note:</strong><ul>` +
-data.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('') + `</ul></div>`;
-}
+    let warningsHtml = '';
+    if (data.warnings && data.warnings.length) {
+        warningsHtml = `<div class="quote-warnings"><strong>Please note:</strong><ul>` +
+            data.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('') + `</ul></div>`;
+    }
 
-resultsDiv.innerHTML = `
-<div class="results-card">
-<div class="results-header">
-<div class="check-icon"><i class="fas fa-check-circle"></i></div>
-<h2>Your Solar Solutions are Ready!</h2>
-<p>Matched to real KINAS VOLT products</p>
-<p style="font-size: 13px; margin-top: 8px; opacity: 0.7;">Reference: ${escapeHtml(reference || '')}</p>
-</div>
-${bodyHtml}
-${warningsHtml}
-<div class="proposal-buttons">
-${pdfUrl ? `<a href="${pdfUrl}" target="_blank" class="btn btn-dark"><i class="fas fa-file-pdf"></i> View PDF Proposal</a>` : ''}
-<button class="btn btn-outline-dark" onclick="location.reload()"><i class="fas fa-redo"></i> Start Over</button>
-</div>
-<p style="text-align: center; margin-top: 20px; font-size: 13px; opacity: 0.7;">
-<i class="fas fa-envelope"></i> A detailed proposal with both options has been sent to your email.
-</p>
-</div>`;
-resultsDiv.classList.add('active');
-resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    resultsDiv.innerHTML = `
+    <div class="results-card">
+        <div class="results-header">
+            <div class="check-icon"><i class="fas fa-check-circle"></i></div>
+            <h2>Your Solar Solutions are Ready!</h2>
+            <p>Matched to real KINAS VOLT products</p>
+            <p style="font-size: 13px; margin-top: 8px; opacity: 0.7;">Reference: ${escapeHtml(reference || '')}</p>
+        </div>
+        ${bodyHtml}
+        ${warningsHtml}
+        <div class="proposal-buttons">
+            ${pdfUrl ? `<a href="${pdfUrl}" target="_blank" class="btn btn-dark"><i class="fas fa-file-pdf"></i> View PDF Proposal</a>` : ''}
+            <button class="btn btn-outline-dark" onclick="location.reload()"><i class="fas fa-redo"></i> Start Over</button>
+        </div>
+        <p style="text-align: center; margin-top: 20px; font-size: 13px; opacity: 0.7;">
+            <i class="fas fa-envelope"></i> A detailed proposal with both options has been sent to your email.
+        </p>
+    </div>`;
+    resultsDiv.classList.add('active');
+    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // Initialize
