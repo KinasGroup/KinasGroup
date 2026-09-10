@@ -16,6 +16,18 @@ $hardwareTypes = [
 'charge_controller' => 'Charge Controller',
 'mounting_structure' => 'Mounting Structure',
 ];
+
+// ------------------------------------------------------------
+// Read table columns ONCE. Drives both validation and the
+// guarded INSERT, so we never ask for a value we can't save.
+// ------------------------------------------------------------
+$cols = [];
+try {
+    $colStmt = $db->query("SHOW COLUMNS FROM solar_listings");
+    while ($c = $colStmt->fetch(PDO::FETCH_ASSOC)) { $cols[] = $c['Field']; }
+} catch (Exception $e) { $cols = []; }
+$hasMaxPvCol = in_array('max_pv_input_w', $cols, true);
+
 $errors  = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (!Security::verifyCSRFToken($_POST['csrf_token'] ?? '')) { $errors[] = 'Please refresh and try again.'; }
@@ -26,6 +38,7 @@ $brand   = trim($_POST['brand'] ?? '');
 $panelWatts = trim($_POST['panel_watts'] ?? '');
 $inverterKva = trim($_POST['inverter_kva'] ?? '');
 $batteryKwh = trim($_POST['battery_kwh'] ?? '');
+$maxPvInput = trim($_POST['max_pv_input_w'] ?? '');
 $warranty = trim($_POST['warranty_years'] ?? '');
 $price    = trim($_POST['price'] ?? '');
 $description = trim($_POST['description'] ?? '');
@@ -40,17 +53,23 @@ if ($hwType === 'battery' && ($batteryKwh === '' || !is_numeric($batteryKwh) || 
 if ($hwType === 'power_station') {
 if ($inverterKva === '' || !is_numeric($inverterKva) || $inverterKva <= 0) $errors[] = 'Power Station requires Inverter Capacity in kW/kVA.';
 if ($batteryKwh === '' || !is_numeric($batteryKwh) || $batteryKwh <= 0) $errors[] = 'Power Station requires Battery Capacity in kWh.';
+// STRICT MODE: the calculator cannot size panels without the input cap.
+if ($hasMaxPvCol && ($maxPvInput === '' || !is_numeric($maxPvInput) || $maxPvInput <= 0)) $errors[] = 'Power Station requires Max Panel Input in Watts (W) — the calculator uses it to size the solar array.';
 }
+if ($hasMaxPvCol && $maxPvInput !== '' && (!is_numeric($maxPvInput) || $maxPvInput <= 0)) $errors[] = 'Max Panel Input must be a positive number of Watts.';
 if (empty($errors)) {
 try {
-$colStmt = $db->query("SHOW COLUMNS FROM solar_listings"); $cols = [];
-while ($c = $colStmt->fetch(PDO::FETCH_ASSOC)) $cols[] = $c['Field'];
+if (empty($cols)) {
+$colStmt = $db->query("SHOW COLUMNS FROM solar_listings");
+while ($c = $colStmt->fetch(PDO::FETCH_ASSOC)) { $cols[] = $c['Field']; }
+}
 $fields = ['agent_id','title','service_type','brand','price','warranty_years','description','city','state','status','created_at'];
 $values = [$agentId,$title,$hwType,$brand !== '' ? $brand : null,$price,$warranty !== '' ? $warranty : null,$description !== '' ? $description : null,$city !== '' ? $city : null,$state !== '' ? $state : null,'active'];
 if (in_array('hardware_type',$cols)) { $fields[]='hardware_type'; $values[]=$hwType; }
 if (in_array('panel_watts',$cols)) { $fields[]='panel_watts'; $values[]=$panelWatts !== '' ? (float)$panelWatts : null; }
 if (in_array('inverter_kva',$cols)) { $fields[]='inverter_kva'; $values[]=$inverterKva !== '' ? (float)$inverterKva : null; }
 if (in_array('battery_kwh',$cols)) { $fields[]='battery_kwh'; $values[]=$batteryKwh !== '' ? (float)$batteryKwh : null; }
+if (in_array('max_pv_input_w',$cols)) { $fields[]='max_pv_input_w'; $values[]=$maxPvInput !== '' ? (int)$maxPvInput : null; }
 $ph = implode(',', array_fill(0, count($fields), '?'));
 $db->prepare("INSERT INTO solar_listings (".implode(',',$fields).") VALUES ($ph)")->execute($values);
 $_SESSION['flash_success'] = 'Hardware item "' . $title . '" added to your inventory.';
@@ -90,6 +109,9 @@ include __DIR__ . '/../templates/header.php';
 <div class="je-form-group" id="grp_panel_watts" style="display:none;"><label>Panel Capacity (W)</label><input type="number" step="0.01" min="0" name="panel_watts" value="<?= htmlspecialchars($_POST['panel_watts'] ?? '') ?>" placeholder="e.g. 550"></div>
 <div class="je-form-group" id="grp_inverter_kva" style="display:none;"><label>Inverter Capacity (kW/kVA)</label><input type="number" step="0.01" min="0" name="inverter_kva" value="<?= htmlspecialchars($_POST['inverter_kva'] ?? '') ?>" placeholder="e.g. 5"></div>
 <div class="je-form-group" id="grp_battery_kwh" style="display:none;"><label>Battery Capacity (kWh)</label><input type="number" step="0.01" min="0" name="battery_kwh" value="<?= htmlspecialchars($_POST['battery_kwh'] ?? '') ?>" placeholder="e.g. 10"></div>
+<?php if ($hasMaxPvCol): ?>
+<div class="je-form-group" id="grp_max_pv" style="display:none;"><label>Max Panel Input (W)</label><input type="number" step="1" min="0" name="max_pv_input_w" value="<?= htmlspecialchars($_POST['max_pv_input_w'] ?? '') ?>" placeholder="e.g. 300"></div>
+<?php endif; ?>
 </div>
 <p style="font-size:12px;color:#888;margin-top:6px;" id="hw_hint">Select a hardware type to enter its capacity in the correct unit.</p>
 </div>
@@ -116,7 +138,8 @@ var show=function(id,on){var elx=document.getElementById(id);if(elx)elx.style.di
 show('grp_panel_watts', t==='solar_panel');
 show('grp_inverter_kva', t==='inverter'||t==='power_station');
 show('grp_battery_kwh', t==='battery'||t==='power_station');
-var hints={solar_panel:'Enter Panel Capacity in Watts (W).',inverter:'Enter Inverter Capacity in kW/kVA.',battery:'Enter Battery Capacity in kWh.',power_station:'Enter both Inverter (kW/kVA) and Battery (kWh) capacities.',charge_controller:'No capacity needed for Charge Controller.',mounting_structure:'No capacity needed for Mounting Structure.'};
+show('grp_max_pv', t==='power_station');
+var hints={solar_panel:'Enter Panel Capacity in Watts (W).',inverter:'Enter Inverter Capacity in kW/kVA.',battery:'Enter Battery Capacity in kWh.',power_station:'<?= $hasMaxPvCol ? 'Enter Inverter (kW/kVA), Battery (kWh) and Max Panel Input (W).' : 'Enter both Inverter (kW/kVA) and Battery (kWh) capacities.' ?>',charge_controller:'No capacity needed for Charge Controller.',mounting_structure:'No capacity needed for Mounting Structure.'};
 var h=document.getElementById('hw_hint'); if(h)h.textContent=hints[t]||'Select a hardware type to enter its capacity in the correct unit.';
 }
 if(sel){sel.addEventListener('change',sync);sync();}
