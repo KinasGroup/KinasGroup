@@ -193,11 +193,12 @@ function generateSolarRecommendationPDF($data, $reference) {
         </table>';
 
         // ============================================================
-        // DUAL-OPTION RENDERING (Option B)
+        // DUAL-OPTION RENDERING (Option B) — both options when present
         // ============================================================
         $options = $data['options'] ?? null;
         $hasOptions = is_array($options) && (isset($options['generator']) || isset($options['custom']));
 
+        $grandTotal = 0.0;
         $estimatedCost = 0.0;
         $monthlySavings = 0.0;
         $paybackYears = 0.0;
@@ -225,21 +226,21 @@ function generateSolarRecommendationPDF($data, $reference) {
 
                 $availableTotals[$optKey] = (float)($opt['grand_total'] ?? 0);
 
+                $optPanelWatt = (int)($opt['panel_wattage_w'] ?? 0);
+                $optPanelDesc = trim((string)($opt['panel_description'] ?? ''));
+                $optPanelSpec = $optPanelDesc !== ''
+                    ? $optPanelDesc
+                    : ($optPanelWatt > 0 ? $optPanelWatt . 'W Solar Panel' : 'Solar Panel');
+
                 // Spec table
                 $html .= '<table class="system-table">
                     <tr><th width="30%">Component</th><th>Specification</th><th width="18%">Quantity</th></tr>
-                    <tr><td><strong>Solar Panels</strong></td><td>'
-                        . htmlspecialchars((string)($opt['panel_description'] ?? (((int)($opt['panel_wattage_w'] ?? 0)) . 'W Solar Panel')))
-                        . '</td><td><strong>' . (int)($opt['panels_qty'] ?? 0) . ' Units</strong></td></tr>
-                    <tr><td><strong>Power System</strong></td><td>'
-                        . htmlspecialchars((string)($opt['power_source_label'] ?? '—'))
-                        . '</td><td><strong>1 Unit</strong></td></tr>
-                    <tr><td><strong>Usable Battery</strong></td><td>'
-                        . number_format((float)($opt['recommended_battery_kwh'] ?? 0), 2) . ' kWh</td><td></td></tr>';
+                    <tr><td><strong>Solar Panels</strong></td><td>' . htmlspecialchars($optPanelSpec) . '</td><td><strong>' . (int)($opt['panels_qty'] ?? 0) . ' Units</strong></td></tr>
+                    <tr><td><strong>Power System</strong></td><td>' . htmlspecialchars((string)($opt['power_source_label'] ?? '—')) . '</td><td><strong>1 Unit</strong></td></tr>
+                    <tr><td><strong>Usable Battery</strong></td><td>' . number_format((float)($opt['recommended_battery_kwh'] ?? 0), 2) . ' kWh</td><td></td></tr>';
 
                 if ($optKey === 'generator' && !empty($opt['max_pv_input_w'])) {
-                    $html .= '<tr><td><strong>Max PV Input</strong></td><td>'
-                        . (int)$opt['max_pv_input_w'] . ' W</td><td></td></tr>';
+                    $html .= '<tr><td><strong>Max PV Input</strong></td><td>' . (int)$opt['max_pv_input_w'] . ' W</td><td></td></tr>';
                 }
 
                 $html .= '</table>';
@@ -247,25 +248,32 @@ function generateSolarRecommendationPDF($data, $reference) {
                 // Line items table
                 $html .= '<table class="system-table"><tr><th>Item</th><th>Unit Price</th><th>Qty</th><th>Total</th></tr>';
 
+                $optSum = 0.0;
+
                 foreach (($opt['items'] ?? []) as $it) {
+                    $line = (float)($it['line_total'] ?? 0);
+                    $optSum += $line;
+
                     $html .= '<tr><td><strong>' . htmlspecialchars((string)($it['description'] ?? 'Item')) . '</strong></td>'
                         . '<td>₦' . number_format((float)($it['unit_price'] ?? 0)) . '</td>'
                         . '<td>' . (int)($it['qty'] ?? 1) . '</td>'
-                        . '<td><strong>₦' . number_format((float)($it['line_total'] ?? 0)) . '</strong></td></tr>';
+                        . '<td><strong>₦' . number_format($line) . '</strong></td></tr>';
                 }
+
+                $optTotal = $availableTotals[$optKey] > 0 ? $availableTotals[$optKey] : $optSum;
 
                 $html .= '<tr style="background:#C6A43F;color:#0A0A0A;font-weight:bold;font-size:12px;">'
                     . '<td colspan="3" align="right"><strong>OPTION TOTAL (HARDWARE ONLY)</strong></td>'
-                    . '<td><strong>₦' . number_format((float)($opt['grand_total'] ?? 0)) . '</strong></td></tr>';
+                    . '<td><strong>₦' . number_format($optTotal) . '</strong></td></tr>';
                 $html .= '</table>';
 
-                $html .= '<p style="font-size:9px;color:#666;margin:0 0 18px 0;">Monthly savings ₦'
+                $html .= '<p style="font-size:9px;color:#666;margin:-4px 0 18px 0;">Monthly savings ₦'
                     . number_format((float)($opt['monthly_savings'] ?? 0))
                     . ' · Payback ' . number_format((float)($opt['payback_years'] ?? 0), 1)
                     . ' yrs · 20-yr ROI ' . number_format((float)($opt['roi_20_years'] ?? 0), 1) . '%</p>';
             }
 
-            // Comparison table when both available
+            // Comparison table when both options are available
             if (count($availableTotals) > 1) {
                 $html .= '<div class="section-title">OPTION COMPARISON</div>'
                     . '<table class="system-table"><tr><th>Option</th><th width="30%">Total (₦)</th></tr>';
@@ -279,12 +287,13 @@ function generateSolarRecommendationPDF($data, $reference) {
 
             $html .= '<p style="font-size:9px;color:#888;margin-top:4px;">Quotation covers solar hardware only. Installation, cabling, mounting and transport are not included, as these services are not currently offered.</p>';
 
-            // Summary uses the lowest available total
+            // Summary figures come from the lowest available option total
             if (!empty($availableTotals)) {
                 $lowest = min($availableTotals);
                 $lowestKey = array_search($lowest, $availableTotals, true);
                 $primaryOpt = $options[$lowestKey] ?? [];
 
+                $grandTotal = $lowest;
                 $estimatedCost = $lowest;
                 $monthlySavings = (float)($primaryOpt['monthly_savings'] ?? 0);
                 $paybackYears = (float)($primaryOpt['payback_years'] ?? 0);
@@ -318,6 +327,9 @@ function generateSolarRecommendationPDF($data, $reference) {
                 <tr><td><strong>Battery</strong></td><td>' . htmlspecialchars($data['recommended_battery'] ?? 'Integrated LiFePO4') . '</td><td><strong>' . ($data['battery_units'] ?? 1) . ' Unit(s)</strong></td></tr>
             </table>';
 
+            // ============================================================
+            // FINANCIAL BREAKDOWN — live bundle line items, NO service costs
+            // ============================================================
             $items = $data['items'] ?? [];
             if (!is_array($items)) { $items = []; }
             $hasItems = !empty($items);
@@ -345,14 +357,15 @@ function generateSolarRecommendationPDF($data, $reference) {
                 $html .= '</table>';
                 $html .= '<p style="font-size:9px;color:#888;margin-top:4px;">Quotation covers solar hardware only. Installation, cabling, mounting and transport are not included, as these services are not currently offered.</p>';
             } else {
+                // Fallback: no line items supplied — show total only.
                 $html .= '<div class="section-title">FINANCIAL BREAKDOWN</div>';
                 $html .= '<p style="font-size:10px;color:#666;">Itemised pricing will be confirmed by our team after a site assessment.</p>';
             }
 
             $estimatedCost = $grandTotal > 0 ? $grandTotal : (float)($data['estimated_cost'] ?? 0);
-            $monthlySavings = (float)($data['monthly_savings'] ?? (($data['daily_kwh'] ?? 0) * 30 * 225));
-            $paybackYears = (float)($data['payback_years'] ?? ($monthlySavings > 0 ? ($estimatedCost / ($monthlySavings * 12)) : 0));
-            $roi = (float)($data['roi'] ?? ($estimatedCost > 0 ? (($monthlySavings * 12 * 20) / $estimatedCost * 100) : 0));
+            $monthlySavings = $data['monthly_savings'] ?? (($data['daily_kwh'] ?? 0) * 30 * 225);
+            $paybackYears = $data['payback_years'] ?? ($monthlySavings > 0 ? ($estimatedCost / ($monthlySavings * 12)) : 0);
+            $roi = $data['roi'] ?? ($estimatedCost > 0 ? (($monthlySavings * 12 * 20) / $estimatedCost * 100) : 0);
         }
 
         // Warnings (engine notes)
