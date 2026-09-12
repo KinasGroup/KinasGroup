@@ -3,21 +3,47 @@
 * KINAS GROUP — Global Site Header
 *
 * Includes:
+* - Cache-busting headers + build version (defeats stale cache)
 * - WhatsApp global floating button & product integration constants (LOGGED-IN USERS ONLY)
 * - Open Graph / Twitter Card meta tags
 * - Mobile navigation drawer & overlay
 * - Desktop navigation with notification bell & cart badge
 * - Real-time session-based notification polling (15-second interval)
-* - Facebook-style louder notification sound
+* - Facebook-style notification sound (inverted arpeggio E5 -> C5 -> G4)
 * - Permanent floating toast notification for new messages
 * - Hamburger menu badge for mobile (visible without opening menu)
 *
 * AMENDED: user-data meta now carries the public username; legacy
 * sessions (pre-username) are resolved once against the DB and cached.
 */
+
+// ============================================================
+// CACHE BUSTER — force fresh HTML on every request
+// Defeats browser HTTP cache, CDN cache, BFCache, host full-page cache.
+// MUST be before any output (no whitespace before <?php).
+// ============================================================
+if (!headers_sent()) {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Cache-Control: post-check=0, pre-check=0', false);
+    header('Pragma: no-cache');
+    header('Expires: Sat, 01 Jan 2000 00:00:00 GMT');
+    header('X-Accel-Expires: 0');
+    header('Surrogate-Control: no-store');
+    header('CDN-Cache-Control: no-store');
+    header('Vary: *');
+}
+
+// ============================================================
+// HEADER BUILD VERSION
+// Bump this string ANY TIME you change header.php to force a
+// one-time hard reload for every visitor (throws away stale JS).
+// ============================================================
+define('KINAS_HEADER_BUILD', '2026-09-12-v2');
+
 require_once __DIR__ . '/../api/config/database.php';
 require_once __DIR__ . '/../api/config/constants.php';
 require_once __DIR__ . '/../includes/functions.php';
+
 // Ensure session is active before checking user data
 if (session_status() === PHP_SESSION_NONE) {
 @session_start();
@@ -25,6 +51,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $isLoggedIn = isset($_SESSION['user_id']);
 $userRole = $_SESSION['user_role'] ?? null;
 $userName = $_SESSION['user_name'] ?? '';
+
 // AMENDED: public identity (username) exposed to the frontend.
 $userUsername = $_SESSION['user_username'] ?? '';
 if ($isLoggedIn && $userUsername === '') {
@@ -37,6 +64,7 @@ $userUsername = (string)($__st->fetchColumn() ?: '');
 if ($userUsername !== '') { $_SESSION['user_username'] = $userUsername; }
 } catch (Throwable $e) { $userUsername = ''; }
 }
+
 // ============================================================
 // WHATSAPP CONFIGURATION
 // WHATSAPP IS NOW RESTRICTED TO LOGGED-IN USERS ONLY.
@@ -50,6 +78,7 @@ $whatsappGeneralMessage = 'Hello KINAS GROUP, I would like to make an enquiry.';
 $whatsappGeneralLink = ($whatsappEnabled && $whatsappLoggedIn)
 ? 'https://wa.me/' . $whatsappNumber . '?text=' . rawurlencode($whatsappGeneralMessage)
 : '';
+
 // Check if this is a "hero page" (for transparent header overlay effect).
 $isHeroPage = false;
 $scriptName = basename($_SERVER['PHP_SELF']);
@@ -66,6 +95,7 @@ if ($scriptName === 'about.php'
 $isHeroPage = true;
 }
 $transparentClass = $isHeroPage ? 'transparent' : 'solid';
+
 $ogScheme = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
 || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') ? 'https' : 'http';
 $ogHost = $_SERVER['HTTP_HOST'] ?? parse_url(SITE_URL, PHP_URL_HOST);
@@ -83,6 +113,15 @@ $canonicalUrl = $pageUrl ?? ($ogOrigin . ($_SERVER['REQUEST_URI'] ?? '/'));
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<!-- ============================================================ -->
+<!-- HEADER BUILD VERSION — tells browser this is a new document -->
+<!-- ============================================================ -->
+<meta name="kinas-header-build" content="<?php echo htmlspecialchars(KINAS_HEADER_BUILD); ?>">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png">
@@ -323,6 +362,48 @@ display: none;
     }
 }
 </style>
+
+<!-- ============================================================ -->
+<!-- ONE-TIME CACHE + SERVICE WORKER KILLER                        -->
+<!-- Runs on every load; only acts if build changed or stale SW.   -->
+<!-- Bump KINAS_HEADER_BUILD in PHP to trigger a hard reload.      -->
+<!-- ============================================================ -->
+<script>
+(function() {
+    'use strict';
+    var BUILD = <?php echo json_encode(KINAS_HEADER_BUILD); ?>;
+
+    // 1) Unregister any service worker controlling this page.
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+            regs.forEach(function(reg) { reg.unregister(); });
+        }).catch(function() {});
+    }
+
+    // 2) Wipe Cache Storage buckets.
+    if ('caches' in window) {
+        caches.keys().then(function(keys) {
+            keys.forEach(function(key) { caches.delete(key); });
+        }).catch(function() {});
+    }
+
+    // 3) If stored build != current build, force ONE hard reload.
+    //    This throws away any stale in-memory JS (old sound function).
+    try {
+        var stored = localStorage.getItem('kinas_header_build');
+        if (stored !== BUILD) {
+            localStorage.setItem('kinas_header_build', BUILD);
+            var guard = sessionStorage.getItem('kinas_reloaded_for_build');
+            if (guard !== BUILD) {
+                sessionStorage.setItem('kinas_reloaded_for_build', BUILD);
+                window.location.reload();
+                return;
+            }
+        }
+    } catch (e) { /* localStorage blocked — silent fail */ }
+})();
+</script>
+
 <!-- ============================================================ -->
 <!-- WHATSAPP SITE CONSTANTS + SCRIPT  (LOGGED-IN ONLY) -->
 <!-- ============================================================ -->
@@ -349,7 +430,7 @@ window.SITE_CONSTANTS.WHATSAPP_LOGGED_IN = true;
 <div id="mobileNavDrawer" class="mobile-nav-drawer">
 <button class="close-menu" id="closeMobileMenu">✕</button>
 <a href="/divisions/kinas-automobile/">KINAS AUTOMOBILE</a>
-<a href="/divisions/williams-connect-home/">WILLIAMS CONNECT HOME</a>
+<a href="/divisions/kinas-williams-connect-home/">WILLIAMS CONNECT HOME</a>
 <a href="/divisions/kinas-volt/">KINAS VOLT</a>
 <a href="/divisions/kinas-marketplace/">KINAS MARKETPLACE</a>
 <a href="/pages/about.php">ABOUT US</a>
@@ -433,6 +514,7 @@ elseif ($userRole === 'admin') { $messagesLink = '/admin/messages.php'; }
 </nav>
 </div>
 </header>
+
 <!-- ============================================================ -->
 <!-- GLOBAL FLOATING WHATSAPP BUTTON  (LOGGED-IN ONLY) -->
 <!-- ============================================================ -->
@@ -449,6 +531,7 @@ data-kinas-whatsapp-global="1">
 <span class="kinas-whatsapp-tooltip">Chat with us on WhatsApp</span>
 </a>
 <?php endif; ?>
+
 <main>
 <!-- ============================================================ -->
 <!-- PERMANENT FLOATING NEW MESSAGE TOAST -->
@@ -461,6 +544,7 @@ data-kinas-whatsapp-global="1">
     </div>
     <button class="toast-close" id="toastClose" title="Dismiss">✕</button>
 </div>
+
 <script>
 (function() {
 var badge = document.getElementById('jeCartBadge');
@@ -520,6 +604,7 @@ if (e.key === 'Escape' && drawer.classList.contains('open')) closeMenu();
 if (closeIcon) closeIcon.style.display = 'none';
 if (menuIcon) menuIcon.style.display = 'block';
 })();
+
 // ============================================================
 // NOTIFICATION SYSTEM — 15-SECOND POLLING + FACEBOOK SOUND + TOAST
 // ============================================================
@@ -547,8 +632,9 @@ var messagesUrl = '<?php
 ?>';
 
 // ============================================================
-// FACEBOOK-STYLE NOTIFICATION SOUND (inverted arpeggio, high to low)
-// E5 (659.25 Hz) -> C5 (523.25 Hz) -> G4 (392.00 Hz)
+// FACEBOOK-STYLE NOTIFICATION SOUND
+// Inverted arpeggio (High -> Low): E5 (659.25) -> C5 (523.25) -> G4 (392.00)
+// Louder peak (0.85), longer notes (0.14s), slight sustain before decay.
 // ============================================================
 function playNotificationSound() {
     try {
@@ -559,14 +645,13 @@ function playNotificationSound() {
             audioCtx.resume();
         }
 
-        // Facebook-style inverted arpeggio (High to Low)
-        // E5 (659.25 Hz) -> C5 (523.25 Hz) -> G4 (392.00 Hz)
         var notes = [659.25, 523.25, 392.00];
-        var noteDuration = 0.08;
+        var noteDuration = 0.14;   // longer, more audible
+        var noteGap = 0.09;        // slight overlap between notes
 
         for (var index = 0; index < notes.length; index++) {
             var freq = notes[index];
-            var startTime = audioCtx.currentTime + (index * noteDuration);
+            var startTime = audioCtx.currentTime + (index * noteGap);
 
             var osc = audioCtx.createOscillator();
             var gainNode = audioCtx.createGain();
@@ -574,7 +659,10 @@ function playNotificationSound() {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq, startTime);
 
-            gainNode.gain.setValueAtTime(0.5, startTime);
+            // Louder peak + short sustain + exponential decay
+            gainNode.gain.setValueAtTime(0.0001, startTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.85, startTime + 0.01);
+            gainNode.gain.setValueAtTime(0.85, startTime + noteDuration * 0.4);
             gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + noteDuration);
 
             osc.connect(gainNode);
@@ -687,15 +775,12 @@ function updateBadges() {
         // TOAST LOGIC — PERMANENT UNTIL DEALT WITH
         // ============================================================
         if (count === 0) {
-            // All messages read → hide toast permanently
             hideToast();
             toastDismissed = false;
         } else if (lastCount !== -1 && count > lastCount) {
-            // NEW message arrived → show toast + play sound
             playNotificationSound();
             showToast(count);
         } else if (count > 0 && !toastDismissed) {
-            // Unread exists and toast was never dismissed → keep showing
             var toast = document.getElementById('kinasMsgToast');
             if (toast && !toast.classList.contains('visible')) {
                 showToast(count);
