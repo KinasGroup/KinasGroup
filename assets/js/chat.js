@@ -10,6 +10,13 @@
 //   Applied in: conversation list names, avatar initials,
 //   thread header names, and thread header avatar initials.
 //
+// SOUND AMENDED:
+// - playReceiveSound() now uses the Facebook-style inverted arpeggio
+//   (E5 659.25 -> C5 523.25 -> G4 392.00) matching header.php's
+//   playNotificationSound, so a new message sounds identical whether
+//   it arrives on a normal page or inside the messages page.
+// - playTone() gain raised from 0.08 to 0.30 for audibility.
+//
 // Includes:
 // - No microphone / voice recording button
 // - + attachment menu
@@ -260,7 +267,9 @@ function playTone(steps, totalDuration) {
             var t = startAt + (step.t || 0);
 
             gain.gain.setValueAtTime(0.0001, t);
-            gain.gain.exponentialRampToValueAtTime(0.08, t + 0.02);
+            // AMENDED: was 0.08 — raised to 0.30 for audibility so the
+            // chat sound is clearly heard (matches header.php's loudness).
+            gain.gain.exponentialRampToValueAtTime(0.30, t + 0.02);
             gain.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.06, totalDuration - (step.t || 0)));
 
             osc.start(t);
@@ -276,11 +285,16 @@ function playSendSound() {
     ], 0.18);
 }
 
+// AMENDED: Facebook-style inverted arpeggio (High -> Low)
+// E5 (659.25 Hz) -> C5 (523.25 Hz) -> G4 (392.00 Hz)
+// Matches header.php's playNotificationSound so a new message sounds
+// identical whether it arrives on a normal page or inside the chat.
 function playReceiveSound() {
     playTone([
         { f: 659.25, t: 0 },
-        { f: 880, t: 0.12 }
-    ], 0.26);
+        { f: 523.25, t: 0.09 },
+        { f: 392.00, t: 0.18 }
+    ], 0.32);
 }
 
 // ============================================================
