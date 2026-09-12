@@ -30,8 +30,13 @@ $chatJsFile  = __DIR__ . '/../assets/js/chat.js';
 $chatCssMtime = @filemtime($chatCssFile);
 $chatJsMtime  = @filemtime($chatJsFile);
 
-$chatCssVersion = ($chatCssMtime ? $chatCssMtime : $kinasBuildVersion) . '.' . $kinasBuildVersion;
-$chatJsVersion  = ($chatJsMtime ? $chatJsMtime : $kinasBuildVersion) . '.' . $kinasBuildVersion;
+// Auto cache-bust: use the file's mtime directly. The trailing
+// .$kinasBuildVersion suffix was removed — it was a fixed constant
+// that never changed, so browsers kept serving the old cached file
+// even after new deploys. A pure mtime (e.g. 1757654321) is unique
+// per deploy, so every visitor automatically gets the fresh file.
+$chatCssVersion = ($chatCssMtime ?: time());
+$chatJsVersion  = ($chatJsMtime ?: time());
 
 $userId = SessionManager::getUserId();
 
