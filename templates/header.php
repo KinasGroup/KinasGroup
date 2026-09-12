@@ -547,7 +547,8 @@ var messagesUrl = '<?php
 ?>';
 
 // ============================================================
-// FACEBOOK-STYLE NOTIFICATION SOUND (louder, two-tone ding)
+// FACEBOOK-STYLE NOTIFICATION SOUND (inverted arpeggio, high to low)
+// E5 (659.25 Hz) -> C5 (523.25 Hz) -> G4 (392.00 Hz)
 // ============================================================
 function playNotificationSound() {
     try {
@@ -558,46 +559,30 @@ function playNotificationSound() {
             audioCtx.resume();
         }
 
-        var now = audioCtx.currentTime;
+        // Facebook-style inverted arpeggio (High to Low)
+        // E5 (659.25 Hz) -> C5 (523.25 Hz) -> G4 (392.00 Hz)
+        var notes = [659.25, 523.25, 392.00];
+        var noteDuration = 0.08;
 
-        // First tone: bright pop at ~830Hz
-        var osc1 = audioCtx.createOscillator();
-        var gain1 = audioCtx.createGain();
-        osc1.connect(gain1);
-        gain1.connect(audioCtx.destination);
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(830, now);
-        gain1.gain.setValueAtTime(0.5, now);
-        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-        osc1.start(now);
-        osc1.stop(now + 0.15);
+        for (var index = 0; index < notes.length; index++) {
+            var freq = notes[index];
+            var startTime = audioCtx.currentTime + (index * noteDuration);
 
-        // Second tone: higher ding at ~1245Hz
-        var osc2 = audioCtx.createOscillator();
-        var gain2 = audioCtx.createGain();
-        osc2.connect(gain2);
-        gain2.connect(audioCtx.destination);
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(1245, now + 0.08);
-        gain2.gain.setValueAtTime(0.001, now + 0.08);
-        gain2.gain.exponentialRampToValueAtTime(0.4, now + 0.1);
-        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-        osc2.start(now + 0.08);
-        osc2.stop(now + 0.3);
+            var osc = audioCtx.createOscillator();
+            var gainNode = audioCtx.createGain();
 
-        // Third harmonic for richness
-        var osc3 = audioCtx.createOscillator();
-        var gain3 = audioCtx.createGain();
-        osc3.connect(gain3);
-        gain3.connect(audioCtx.destination);
-        osc3.type = 'triangle';
-        osc3.frequency.setValueAtTime(1660, now + 0.08);
-        gain3.gain.setValueAtTime(0.001, now + 0.08);
-        gain3.gain.exponentialRampToValueAtTime(0.15, now + 0.1);
-        gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-        osc3.start(now + 0.08);
-        osc3.stop(now + 0.25);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, startTime);
 
+            gainNode.gain.setValueAtTime(0.5, startTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + noteDuration);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start(startTime);
+            osc.stop(startTime + noteDuration);
+        }
     } catch (e) {}
 }
 
