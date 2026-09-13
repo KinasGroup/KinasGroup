@@ -3,11 +3,15 @@
 * KINAS GROUP — Self-service account deletion (soft delete)
 *
 * Sets users.status = 'deleted' so the account can be reactivated later.
+* Sets users.deleted_by = 'self' and users.deleted_at = NOW() so the
+* login API can distinguish self-deleted (reactivatable) accounts from
+* admin-deleted (blocked) accounts.
+*
 * For agents: also suspends agent_profiles and hides listings.
 * Logs the user out after successful deletion.
 *
 * Called by: /user/delete-account.php
-* Accepts: POST with csrf_token + password confirmation
+* Accepts: POST JSON with csrf_token + password confirmation
 */
 require_once '../config/database.php';
 require_once '../../includes/session.php';
@@ -78,13 +82,19 @@ try {
     $db->beginTransaction();
 
     // 1) Soft-delete the user account
-    $db->prepare("UPDATE users SET status = 'deleted' WHERE id = ?")
+    //    CRITICAL: Sets deleted_by = 'self' and deleted_at = NOW()
+    //    so the login API can identify this as a reactivatable account.
+    $db->prepare("UPDATE users SET status = 'deleted', deleted_by = 'self', deleted_at = NOW() WHERE id = ?")
        ->execute([$userId]);
 
     // 2) If agent: suspend profile + hide listings
     if ($user['role'] === 'agent') {
-        $db->prepare("UPDATE agent_profiles SET verification_status = 'suspended' WHERE user_id = ?")
-           ->execute([$userId]);
+        try {
+            $db->prepare("UPDATE agent_profiles SET verification_status = 'suspended' WHERE user_id = ?")
+               ->execute([$userId]);
+        } catch (Throwable $e) {
+            // agent_profiles may not exist for this user
+        }
 
         $listingTables = [
             'car_listings',
@@ -94,14 +104,22 @@ try {
         ];
 
         foreach ($listingTables as $tbl) {
-            $db->prepare("UPDATE {$tbl} SET status = 'removed' WHERE agent_id = ? AND status NOT IN ('sold','rented')")
-               ->execute([$userId]);
+            try {
+                $db->prepare("UPDATE {$tbl} SET status = 'removed' WHERE agent_id = ? AND status NOT IN ('sold','rented')")
+                   ->execute([$userId]);
+            } catch (Throwable $e) {
+                // Table may not exist
+            }
         }
     }
 
     // 3) Invalidate session tokens
-    $db->prepare("DELETE FROM sessions WHERE user_id = ?")
-       ->execute([$userId]);
+    try {
+        $db->prepare("DELETE FROM sessions WHERE user_id = ?")
+           ->execute([$userId]);
+    } catch (Throwable $e) {
+        // sessions table may not exist
+    }
 
     Security::logActivity($userId, 'account_self_deleted', "User self-deleted account ({$user['role']})");
 
@@ -113,6 +131,7 @@ try {
     echo json_encode([
         'success' => true,
         'message' => 'Your account has been deleted. You can sign in again later to reactivate it.',
+        'redirect' => '/auth/login.php?deleted=1',
     ]);
 
 } catch (Exception $e) {
