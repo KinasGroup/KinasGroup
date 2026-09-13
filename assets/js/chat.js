@@ -1,5 +1,5 @@
 // ============================================================
-// KINAS BUILD: 2026.08.17.01
+// KINAS BUILD: 2026.08.17.02
 // FILE: assets/js/chat.js
 //
 // COMPLETE MESSENGER CLIENT
@@ -11,11 +11,12 @@
 //   thread header names, and thread header avatar initials.
 //
 // SOUND AMENDED:
-// - playReceiveSound() now uses the Facebook-style inverted arpeggio
-//   (E5 659.25 -> C5 523.25 -> G4 392.00) matching header.php's
-//   playNotificationSound, so a new message sounds identical whether
-//   it arrives on a normal page or inside the messages page.
-// - playTone() gain raised from 0.08 to 0.30 for audibility.
+// - playReceiveSound() and playSendSound() now use the exact same
+//   Facebook-style three-oscillator implementation as header.php's
+//   playNotificationSound(), ensuring the new-message alert sounds
+//   identical whether it arrives on a normal page or inside the
+//   messages page.
+// - Gain levels: 0.50 / 0.40 / 0.15 (loud and clearly audible).
 //
 // Includes:
 // - No microphone / voice recording button
@@ -34,7 +35,7 @@
 (function () {
 'use strict';
 
-window.__kinasChatBuild = '2026.08.17.01';
+window.__kinasChatBuild = '2026.08.17.02';
 window.__kinasChatBoot = false;
 
 var root = document.getElementById('chatRoot');
@@ -215,7 +216,7 @@ function roleBadgeClass(role) {
 }
 
 // ============================================================
-// SOUND ENGINE
+// SOUND ENGINE — FACEBOOK-STYLE (identical to header.php)
 // ============================================================
 
 var audioCtx = null;
@@ -240,7 +241,13 @@ function ensureAudioContext() {
 document.addEventListener('click', ensureAudioContext);
 document.addEventListener('keydown', ensureAudioContext);
 
-function playTone(steps, totalDuration) {
+// ============================================================
+// FACEBOOK-STYLE NOTIFICATION SOUND
+// Three-oscillator implementation — exact match with header.php's
+// playNotificationSound(). Descending arpeggio with rich harmonics.
+// Gain levels: 0.50 (pop) / 0.40 (ding) / 0.15 (harmonic)
+// ============================================================
+function playFacebookSound() {
     if (!state.soundEnabled) return;
 
     var ctx = ensureAudioContext();
@@ -248,53 +255,57 @@ function playTone(steps, totalDuration) {
 
     var now = Date.now();
     if (now - state.lastSoundAt < 250) return;
-
     state.lastSoundAt = now;
 
     try {
-        var startAt = ctx.currentTime;
+        var t = ctx.currentTime;
 
-        steps.forEach(function (step) {
-            var osc = ctx.createOscillator();
-            var gain = ctx.createGain();
+        // First tone: bright pop at ~830Hz
+        var osc1 = ctx.createOscillator();
+        var gain1 = ctx.createGain();
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(830, t);
+        gain1.gain.setValueAtTime(0.5, t);
+        gain1.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+        osc1.start(t);
+        osc1.stop(t + 0.15);
 
-            osc.connect(gain);
-            gain.connect(ctx.destination);
+        // Second tone: higher ding at ~1245Hz
+        var osc2 = ctx.createOscillator();
+        var gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1245, t + 0.08);
+        gain2.gain.setValueAtTime(0.001, t + 0.08);
+        gain2.gain.exponentialRampToValueAtTime(0.4, t + 0.1);
+        gain2.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+        osc2.start(t + 0.08);
+        osc2.stop(t + 0.3);
 
-            osc.type = 'sine';
-            osc.frequency.value = step.f;
-
-            var t = startAt + (step.t || 0);
-
-            gain.gain.setValueAtTime(0.0001, t);
-            // AMENDED: was 0.08 — raised to 0.30 for audibility so the
-            // chat sound is clearly heard (matches header.php's loudness).
-            gain.gain.exponentialRampToValueAtTime(0.30, t + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.06, totalDuration - (step.t || 0)));
-
-            osc.start(t);
-            osc.stop(t + totalDuration + 0.02);
-        });
+        // Third harmonic for richness
+        var osc3 = ctx.createOscillator();
+        var gain3 = ctx.createGain();
+        osc3.connect(gain3);
+        gain3.connect(ctx.destination);
+        osc3.type = 'triangle';
+        osc3.frequency.setValueAtTime(1660, t + 0.08);
+        gain3.gain.setValueAtTime(0.001, t + 0.08);
+        gain3.gain.exponentialRampToValueAtTime(0.15, t + 0.1);
+        gain3.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+        osc3.start(t + 0.08);
+        osc3.stop(t + 0.25);
     } catch (e) {}
 }
 
 function playSendSound() {
-    playTone([
-        { f: 880, t: 0 },
-        { f: 1174.66, t: 0.09 }
-    ], 0.18);
+    playFacebookSound();
 }
 
-// AMENDED: Facebook-style inverted arpeggio (High -> Low)
-// E5 (659.25 Hz) -> C5 (523.25 Hz) -> G4 (392.00 Hz)
-// Matches header.php's playNotificationSound so a new message sounds
-// identical whether it arrives on a normal page or inside the chat.
 function playReceiveSound() {
-    playTone([
-        { f: 659.25, t: 0 },
-        { f: 523.25, t: 0.09 },
-        { f: 392.00, t: 0.18 }
-    ], 0.32);
+    playFacebookSound();
 }
 
 // ============================================================
@@ -325,7 +336,7 @@ function toggleSound() {
     updateSoundToggleIcon();
 
     if (state.soundEnabled) {
-        playTone([{ f: 660, t: 0 }], 0.12);
+        playFacebookSound();
     }
 
     toast(
@@ -890,7 +901,6 @@ function renderList() {
     var shown = 0;
 
     state.conversations.forEach(function (c) {
-        // FIX: Clean the display name (remove '@' prefix)
         var displayName = cleanName(c.other_name || 'Unknown');
 
         var hay = (displayName + ' ' + (c.last_preview || '') + ' ' + (c.listing_title || '')).toLowerCase();
@@ -907,7 +917,6 @@ function renderList() {
         item.setAttribute('role', 'button');
         item.setAttribute('tabindex', '0');
 
-        // FIX: Avatar initial uses cleaned name (no '@')
         var av = el('div', 'chat-avatar' + ((c.unread_count || 0) > 0 ? ' is-unread' : ''));
         av.textContent = displayName.charAt(0).toUpperCase() || '?';
 
@@ -915,7 +924,6 @@ function renderList() {
         var top = el('div', 'chat-conv-top');
         var name = el('div', 'chat-conv-name');
 
-        // FIX: Display cleaned name (no '@')
         name.innerHTML = esc(displayName) +
             ' <span class="chat-role-badge ' + roleBadgeClass(c.other_role) + '">' + esc(c.other_role || 'user') + '</span>';
 
@@ -995,13 +1003,10 @@ function loadThread(initial) {
             state.canReply = !!conv.can_reply;
             state.listing = conv.listing || null;
 
-            // FIX: Clean the display name (remove '@' prefix)
             var otherName = cleanName(conv.other_name || 'Unknown');
 
-            // FIX: Avatar initial uses cleaned name (no '@')
             threadAvatar.textContent = otherName.charAt(0).toUpperCase() || '?';
 
-            // FIX: Display cleaned name (no '@')
             threadName.innerHTML = esc(otherName) +
                 ' <span class="chat-role-badge ' + roleBadgeClass(conv.other_role) + '">' + esc(conv.other_role || 'user') + '</span>';
 
