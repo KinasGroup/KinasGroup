@@ -1,16 +1,16 @@
 <?php
 /**
- * Agent: update own profile.
- *
- * Fixed:
- * - Loads constants.php.
- * - Validates avatar uploads properly.
- * - Falls back to local upload with clear error messages.
- * - Updates only agent_profiles columns that actually exist.
- * - Saves extra business fields when columns exist.
- * - Prevents silent avatar upload failure.
- */
-
+* Agent: update own profile.
+*
+* AMENDED:
+* - Removed social link fields (facebook, twitter, instagram, linkedin, youtube).
+* - Loads constants.php.
+* - Validates avatar uploads properly.
+* - Falls back to local upload with clear error messages.
+* - Updates only agent_profiles columns that actually exist.
+* - Saves extra business fields when columns exist.
+* - Prevents silent avatar upload failure.
+*/
 require_once '../config/database.php';
 require_once '../config/constants.php';
 require_once '../../includes/session.php';
@@ -22,8 +22,8 @@ if (file_exists($r2UploadFile)) {
 }
 
 /**
- * Respond either as JSON or redirect with flash message.
- */
+* Respond either as JSON or redirect with flash message.
+*/
 function agentUpdateRespond(bool $success, string $message, int $code = 200, string $redirect = '/agent/profile.php'): void
 {
     $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
@@ -49,8 +49,8 @@ function agentUpdateRespond(bool $success, string $message, int $code = 200, str
 }
 
 /**
- * Human-readable PHP upload error.
- */
+* Human-readable PHP upload error.
+*/
 function agentUploadErrorCode(int $code): string
 {
     switch ($code) {
@@ -74,14 +74,14 @@ function agentUploadErrorCode(int $code): string
 }
 
 /**
- * Handle avatar upload.
- *
- * Returns:
- * [
- *   'url' => string|null,
- *   'error' => string|null,
- * ]
- */
+* Handle avatar upload.
+*
+* Returns:
+* [
+*   'url' => string|null,
+*   'error' => string|null,
+* ]
+*/
 function agentHandleAvatar(array $file, int $userId): array
 {
     $errorCode = $file['error'] ?? UPLOAD_ERR_NO_FILE;
@@ -101,6 +101,7 @@ function agentHandleAvatar(array $file, int $userId): array
     }
 
     $size = (int)($file['size'] ?? 0);
+
     if ($size <= 0) {
         return [
             'url' => null,
@@ -109,6 +110,7 @@ function agentHandleAvatar(array $file, int $userId): array
     }
 
     $maxSize = 5 * 1024 * 1024; // 5MB
+
     if ($size > $maxSize) {
         return [
             'url' => null,
@@ -150,11 +152,8 @@ function agentHandleAvatar(array $file, int $userId): array
     // Try Cloudflare R2 first if available and enabled.
     if (class_exists('R2Upload') && defined('R2_ENABLED') && R2_ENABLED) {
         try {
-            // Existing R2Upload implementation expects mime => extension.
             $allowedMimeToExt = array_flip($allowedExtToMime);
-
             $uploader = new R2Upload('general', $allowedMimeToExt, $maxSize);
-
             $result = $uploader->upload($file, [
                 'prefix' => 'avatar_' . $userId . '_',
             ]);
@@ -236,6 +235,7 @@ if (!$isJson && empty($_POST) && empty($_FILES)) {
 }
 
 $token = $data['csrf_token'] ?? '';
+
 if ($token === '' || !Security::verifyCSRFToken($token)) {
     agentUpdateRespond(false, 'Please refresh the page and try again.', 403);
 }
@@ -243,6 +243,7 @@ if ($token === '' || !Security::verifyCSRFToken($token)) {
 $userId = (int)$_SESSION['user_id'];
 
 $redirectAfter = $data['redirect'] ?? ($_SERVER['HTTP_REFERER'] ?? '/agent/profile.php');
+
 if (!preg_match('#^/[a-zA-Z0-9_\-/]*(\.php)?(\?.*)?$#', $redirectAfter)) {
     $redirectAfter = '/agent/profile.php';
 }
@@ -252,6 +253,7 @@ try {
 
     // Get existing agent_profiles columns so we do not try to update missing columns.
     $profileColumns = [];
+
     try {
         $profileColumns = $db->query("SHOW COLUMNS FROM agent_profiles")->fetchAll(PDO::FETCH_COLUMN);
     } catch (Throwable $e) {
@@ -303,7 +305,7 @@ try {
             agentUpdateRespond(false, 'Current password is incorrect.', 422, $redirectAfter);
         }
 
-        $newPasswordHash = Security::hashPassword($newPassword);
+        $newPasswordHash = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
     }
 
     // Validate phone.
@@ -411,10 +413,11 @@ try {
     if (!empty($userUpdates)) {
         $userParams[] = $userId;
         $db->prepare('UPDATE users SET ' . implode(', ', $userUpdates) . ' WHERE id = ?')
-            ->execute($userParams);
+           ->execute($userParams);
     }
 
     // Build agent_profiles update only for existing columns.
+    // Social fields removed — no longer processed.
     $profileSet = [];
 
     $profileFields = [
@@ -427,11 +430,6 @@ try {
         'company_email' => 'company_email',
         'license_number' => 'license_number',
         'website' => 'website',
-        'facebook' => 'facebook',
-        'twitter' => 'twitter',
-        'instagram' => 'instagram',
-        'linkedin' => 'linkedin',
-        'youtube' => 'youtube',
         'years_in_business' => 'years_in_business',
         'professional_affiliations' => 'professional_affiliations',
     ];
@@ -499,7 +497,7 @@ try {
             $setParams[] = $userId;
 
             $db->prepare("UPDATE agent_profiles SET " . implode(', ', $setSql) . " WHERE user_id = ?")
-                ->execute($setParams);
+               ->execute($setParams);
         }
     } else {
         $insertColumns = ['user_id'];
@@ -527,7 +525,7 @@ try {
         $placeholders = implode(',', array_fill(0, count($insertColumns), '?'));
 
         $db->prepare("INSERT INTO agent_profiles (" . implode(',', $insertColumns) . ") VALUES ($placeholders)")
-            ->execute($insertParams);
+           ->execute($insertParams);
     }
 
     Security::logActivity($userId, 'profile_updated', 'Agent updated own profile');
@@ -548,9 +546,9 @@ try {
     }
 
     agentUpdateRespond(true, $message, 200, $redirectAfter);
-
 } catch (Throwable $e) {
     error_log('update-profile error: ' . $e->getMessage());
+
     agentUpdateRespond(
         false,
         'Failed to update profile. Check the server error log for details.',
