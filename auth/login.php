@@ -64,7 +64,7 @@ function authCssV($file)
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* Remove eyebrow spacing and give heading more breathing room */
+        /* Give heading more breathing room since eyebrow banner is removed */
         .ka-card h2 {
             margin-top: 10px;
             margin-bottom: 6px;
@@ -317,6 +317,14 @@ function authCssV($file)
 
                 if (data.success) {
                     willRedirect = true;
+
+                    // ============================================================
+                    // REACTIVATION FLOW REDIRECT
+                    // ============================================================
+                    if (data.requires_reactivation) {
+                        window.location.href = '/auth/reactivate-account.php';
+                        return;
+                    }
 
                     if (data.token) {
                         localStorage.setItem('kinas_token', data.token);
