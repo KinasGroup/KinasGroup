@@ -2,12 +2,9 @@
 /**
 * KINAS GROUP — Self-service account deletion (soft delete)
 *
-* Sets users.status = 'deleted' so the account can be reactivated later.
-* Sets users.deleted_by = 'self' and users.deleted_at = NOW() so the
-* login API can distinguish self-deleted (reactivatable) accounts from
-* admin-deleted (blocked) accounts.
-*
-* For agents: also suspends agent_profiles and hides listings.
+* Sets users.status = 'deleted', deleted_by = 'self', deleted_at = NOW().
+* For agents: suspends agent_profiles and hides ONLY active listings.
+* Listings in other states (pending, draft, sold, rented) are untouched.
 * Logs the user out after successful deletion.
 *
 * Called by: /user/delete-account.php
@@ -72,7 +69,6 @@ try {
         exit;
     }
 
-    // Prevent admins from self-deleting via this endpoint
     if ($user['role'] === 'admin') {
         http_response_code(403);
         echo json_encode(['error' => 'Admin accounts cannot be deleted from this page.']);
@@ -82,18 +78,21 @@ try {
     $db->beginTransaction();
 
     // 1) Soft-delete the user account
-    //    CRITICAL: Sets deleted_by = 'self' and deleted_at = NOW()
-    //    so the login API can identify this as a reactivatable account.
-    $db->prepare("UPDATE users SET status = 'deleted', deleted_by = 'self', deleted_at = NOW() WHERE id = ?")
-       ->execute([$userId]);
+    $db->prepare("
+        UPDATE users
+        SET status = 'deleted',
+            deleted_by = 'self',
+            deleted_at = NOW()
+        WHERE id = ?
+    ")->execute([$userId]);
 
-    // 2) If agent: suspend profile + hide listings
+    // 2) If agent: suspend profile + hide ONLY active listings
     if ($user['role'] === 'agent') {
         try {
             $db->prepare("UPDATE agent_profiles SET verification_status = 'suspended' WHERE user_id = ?")
                ->execute([$userId]);
         } catch (Throwable $e) {
-            // agent_profiles may not exist for this user
+            // agent_profiles may not exist
         }
 
         $listingTables = [
@@ -105,7 +104,9 @@ try {
 
         foreach ($listingTables as $tbl) {
             try {
-                $db->prepare("UPDATE {$tbl} SET status = 'removed' WHERE agent_id = ? AND status NOT IN ('sold','rented')")
+                // FIX: Only hide ACTIVE listings.
+                // Pending, draft, sold, rented listings are untouched.
+                $db->prepare("UPDATE {$tbl} SET status = 'removed' WHERE agent_id = ? AND status = 'active'")
                    ->execute([$userId]);
             } catch (Throwable $e) {
                 // Table may not exist
