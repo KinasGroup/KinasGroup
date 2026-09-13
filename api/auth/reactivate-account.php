@@ -4,6 +4,13 @@
 *
 * Restores a self-deleted account back to active status.
 * Requires the pending_reactivation_user_id session flag set by login.
+*
+* Restoration includes:
+* - Setting users.status back to 'active'
+* - Clearing deleted_at and deleted_by
+* - Restoring agent profile verification status (if agent)
+* - Restoring ONLY 'removed' listings back to 'active' (if agent)
+* - Creating a normal session
 */
 declare(strict_types=1);
 header('Content-Type: application/json');
@@ -28,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Must have pending reactivation session flag
 if (empty($_SESSION['pending_reactivation_user_id'])) {
     http_response_code(401);
     echo json_encode(['error' => 'No pending reactivation. Please log in first.']);
@@ -42,7 +48,6 @@ if (!is_array($data)) {
     $data = $_POST;
 }
 
-// CSRF validation
 $csrfToken = trim((string)($data['csrf_token'] ?? ''));
 if ($csrfToken === '' || !Security::verifyCSRFToken($csrfToken)) {
     http_response_code(403);
@@ -56,8 +61,6 @@ try {
         throw new RuntimeException('Database connection unavailable.');
     }
 
-    // FIX 1: Select ALL fields needed by SessionManager::setUser() 
-    // (including 'verified' and 'password' which were missing before)
     $stmt = $db->prepare("SELECT id, name, username, email, password, role, verified, status, deleted_by FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -76,7 +79,6 @@ try {
         exit;
     }
 
-    // Only self-deleted accounts can be reactivated
     if (($user['deleted_by'] ?? 'self') === 'admin') {
         unset($_SESSION['pending_reactivation_user_id']);
         http_response_code(403);
@@ -86,8 +88,7 @@ try {
 
     $db->beginTransaction();
 
-    // FIX 2: Safely update users table. 
-    // Removed 'deletion_snapshot = NULL' because that column might not exist.
+    // 1) Restore user status
     $db->prepare("
         UPDATE users
         SET status = 'active',
@@ -98,6 +99,7 @@ try {
 
     // 2) If agent, restore profile and listings
     if ($user['role'] === 'agent') {
+        // Restore agent profile verification
         try {
             $db->prepare("
                 UPDATE agent_profiles
@@ -109,6 +111,9 @@ try {
             error_log('Reactivate: agent_profiles restore error: ' . $e->getMessage());
         }
 
+        // FIX: Only restore 'removed' listings back to 'active'.
+        // Listings that were pending, draft, sold, or rented before deletion
+        // were never changed to 'removed', so they are unaffected.
         $listingTables = [
             'car_listings',
             'property_listings',
@@ -130,7 +135,7 @@ try {
         }
     }
 
-    // 3) Invalidate any stale session tokens for this user
+    // 3) Invalidate stale session tokens
     try {
         $db->prepare("DELETE FROM sessions WHERE user_id = ?")->execute([$userId]);
     } catch (Throwable $e) {
@@ -143,19 +148,15 @@ try {
     // 4) Create a normal session
     SessionManager::regenerateSession();
 
-    // Clear the pending reactivation flag
     unset($_SESSION['pending_reactivation_user_id']);
     unset($_SESSION['pending_reactivation_email']);
     unset($_SESSION['pending_reactivation_name']);
 
-    // Set the user session (now has all required fields)
     SessionManager::setUser($user);
 
-    // Generate new CSRF token
     unset($_SESSION['csrf_token']);
     $newCsrfToken = Security::generateCSRFToken();
 
-    // Issue DB-persisted token for API clients
     $token = Security::generateToken(32);
     $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
     $tokenIssued = false;
@@ -199,11 +200,8 @@ try {
     if (isset($db) && $db->inTransaction()) {
         $db->rollBack();
     }
-    
+
     error_log('Reactivate error: ' . $e->getMessage());
     http_response_code(500);
-    
-    // TEMPORARY DEBUG: Showing exact error so we can fix it if it fails again.
-    // Change back to generic message once confirmed working.
-    echo json_encode(['error' => 'Failed to reactivate account. Debug: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Failed to reactivate account. Please try again.']);
 }
