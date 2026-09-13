@@ -6,10 +6,12 @@ header('Pragma: no-cache');
 * KINAS GROUP — User Profile
 *
 * AMENDED:
-* - Username is displayed as read-only.
-* - Address field retained and now backed by users.address column.
+* - Removed redundant inner profile-sidenav (main user-sidebar.php
+*   already handles all dashboard navigation).
+* - Profile content now uses full available width.
+* - Username displayed as read-only.
+* - Address field backed by users.address column.
 * - Decoupled Profile Update and Password Update logic.
-* - Danger Zone REMOVED. Account deletion lives in Settings only.
 */
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
@@ -67,6 +69,7 @@ exit;
 }
 $usernameRaw = trim((string)($user['username'] ?? ''));
 $usernameDisplay = $usernameRaw !== '' ? '@' . ltrim($usernameRaw, '@') : '';
+// Stats.
 $savedCount = $db->prepare("SELECT COUNT(*) FROM favorites WHERE user_id = ?");
 $savedCount->execute([$user_id]);
 $saved = $savedCount->fetchColumn();
@@ -83,6 +86,7 @@ padding-top: 66px;
 min-height: 100vh;
 background: #f7f7f7;
 }
+/* ── PROFILE HERO / BANNER ── */
 .profile-banner {
 background: #0A0A0A;
 padding: 40px;
@@ -173,6 +177,7 @@ background: rgba(46,125,50,0.2);
 color: #66BB6A;
 border: 1px solid rgba(46,125,50,0.3);
 }
+/* ── STATS ROW ── */
 .profile-stats-row {
 background: #fff;
 border-bottom: 1px solid #e8e8e8;
@@ -204,60 +209,14 @@ letter-spacing: 0.5px;
 text-transform: uppercase;
 margin-top: 2px;
 }
+/* ── MAIN CONTENT — single column, no inner sidenav ── */
 .profile-content {
 max-width: 1100px;
 margin: 0 auto;
 padding: 36px 40px 60px;
-display: grid;
-grid-template-columns: 240px 1fr;
-gap: 32px;
-align-items: start;
-}
-.profile-sidenav {
-background: #fff;
-border: 1px solid #e8e8e8;
-border-radius: 4px;
-overflow: hidden;
-position: sticky;
-top: 86px;
-}
-.sidenav-section-title {
-padding: 14px 18px 10px;
-font-size: 10px;
-font-weight: 700;
-letter-spacing: 1.2px;
-text-transform: uppercase;
-color: #bbb;
-border-bottom: 1px solid #f0f0f0;
-}
-.sidenav-link {
 display: flex;
-align-items: center;
-gap: 10px;
-padding: 13px 18px;
-font-size: 13px;
-color: #555;
-text-decoration: none;
-transition: all 0.15s;
-border-bottom: 1px solid #f7f7f7;
-}
-.sidenav-link:hover {
-background: #f9f9f9;
-color: #0A0A0A;
-}
-.sidenav-link.active {
-background: rgba(198,164,63,0.06);
-color: #C6A43F;
-font-weight: 600;
-border-left: 3px solid #C6A43F;
-padding-left: 15px;
-}
-.sidenav-link svg {
-flex-shrink: 0;
-opacity: 0.6;
-}
-.sidenav-link.active svg {
-opacity: 1;
+flex-direction: column;
+gap: 24px;
 }
 .profile-main {
 display: flex;
@@ -291,6 +250,7 @@ margin-top: 1px;
 .profile-card-body {
 padding: 24px;
 }
+/* Flash messages */
 .flash-msg {
 padding: 12px 16px;
 border-radius: 3px;
@@ -311,6 +271,7 @@ background: #FEF2F2;
 color: #DC2626;
 border-left: 3px solid #DC2626;
 }
+/* Form elements */
 .form-grid {
 display: grid;
 grid-template-columns: 1fr 1fr;
@@ -394,38 +355,54 @@ border: none;
 border-top: 1px solid #f0f0f0;
 margin: 20px 0;
 }
-.je-password-wrap { position: relative; display: flex; align-items: center; }
-.je-password-wrap input { padding-right: 40px !important; }
-.je-password-toggle { position: absolute; right: 10px; background: none; border: none; cursor: pointer; color: #888; font-size: 15px; padding: 5px; }
-.je-password-toggle:hover { color: #C6A43F; }
+.danger-zone-text {
+font-size: 13px;
+color: #888;
+margin-bottom: 16px;
+}
+.je-danger-btn {
+display: inline-flex;
+align-items: center;
+gap: 7px;
+padding: 10px 20px;
+background: transparent;
+color: #DC2626;
+border: 1.5px solid #DC2626;
+border-radius: 3px;
+font-family: 'Inter', sans-serif;
+font-size: 13px;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.2s;
+}
+.je-danger-btn:hover {
+background: #FEF2F2;
+}
+.je-password-wrap {
+position: relative;
+display: flex;
+align-items: center;
+}
+.je-password-wrap input {
+padding-right: 40px !important;
+}
+.je-password-toggle {
+position: absolute;
+right: 10px;
+background: none;
+border: none;
+cursor: pointer;
+color: #888;
+font-size: 15px;
+padding: 5px;
+}
+.je-password-toggle:hover {
+color: #C6A43F;
+}
+/* Responsive */
 @media (max-width: 960px) {
 .profile-content {
-grid-template-columns: 1fr;
 padding: 24px 20px 40px;
-}
-.profile-sidenav {
-position: static;
-display: flex;
-overflow-x: auto;
-border-radius: 4px;
-}
-.sidenav-section-title {
-display: none;
-}
-.sidenav-link {
-border-bottom: none;
-border-right: 1px solid #f0f0f0;
-white-space: nowrap;
-flex-direction: column;
-gap: 4px;
-text-align: center;
-padding: 12px 16px;
-font-size: 11px;
-}
-.sidenav-link.active {
-border-left: none;
-border-bottom: 3px solid #C6A43F;
-padding-left: 16px;
 }
 }
 @media (max-width: 600px) {
@@ -447,6 +424,9 @@ min-width: 50%;
 grid-template-columns: 1fr;
 }
 }
+/* ============================================================
+DARK MODE — force light
+============================================================ */
 @media (prefers-color-scheme: dark) {
 .profile-page { background: #f7f7f7 !important; }
 .profile-banner { background: #0A0A0A !important; }
@@ -460,11 +440,6 @@ grid-template-columns: 1fr;
 .profile-stats-row { background: #fff !important; }
 .stat-num { color: #0A0A0A !important; }
 .stat-lbl { color: #999 !important; }
-.profile-sidenav { background: #fff !important; }
-.sidenav-section-title { color: #bbb !important; }
-.sidenav-link { color: #555 !important; }
-.sidenav-link:hover { background: #f9f9f9 !important; color: #0A0A0A !important; }
-.sidenav-link.active { background: rgba(198,164,63,0.06) !important; color: #C6A43F !important; }
 .profile-card { background: #fff !important; }
 .profile-card-title { color: #0A0A0A !important; }
 .profile-card-subtitle { color: #999 !important; }
@@ -481,6 +456,9 @@ grid-template-columns: 1fr;
 .je-save-btn { background: #0A0A0A !important; color: #fff !important; }
 .je-save-btn:hover { background: #333 !important; }
 .readonly-field { background: #f7f7f7 !important; color: #666 !important; }
+.danger-zone-text { color: #888 !important; }
+.je-danger-btn { color: #DC2626 !important; }
+.je-danger-btn:hover { background: #FEF2F2 !important; }
 }
 </style>
 <div class="je-dash-shell">
@@ -534,42 +512,8 @@ Member since <?php echo date('Y', strtotime($user['created_at'])); ?>
 </div>
 </div>
 </div>
-<!-- ── CONTENT AREA ── -->
+<!-- ── CONTENT AREA (no inner sidenav) ── -->
 <div class="profile-content">
-<!-- Sidebar nav -->
-<nav class="profile-sidenav">
-<div class="sidenav-section-title">Account</div>
-<a href="/user/profile.php" class="sidenav-link active">
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-My Profile
-</a>
-<a href="/user/saved-listings.php" class="sidenav-link">
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-Saved Listings
-</a>
-<a href="/user/my-inquiries.php" class="sidenav-link">
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-My Enquiries
-</a>
-<a href="/user/messages.php" class="sidenav-link">
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-Messages
-</a>
-<a href="/user/settings.php" class="sidenav-link">
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-Settings
-</a>
-<div class="sidenav-section-title" style="border-top:1px solid #f0f0f0;margin-top:4px;">Browse</div>
-<a href="/divisions/kinas-automobile/search.php" class="sidenav-link">
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2zM3 9h18M9 3v4m6-4v4"/></svg>
-Browse Cars
-</a>
-<a href="/divisions/williams-connect-home/search.php" class="sidenav-link">
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-Properties
-</a>
-</nav>
-<!-- Main content -->
 <div class="profile-main">
 <?php foreach ($errors as $e): ?>
 <div class="flash-msg flash-error">⚠ <?php echo htmlspecialchars($e); ?></div>
@@ -618,7 +562,7 @@ Save Changes
 </div>
 </div>
 </form>
-<!-- Account Information (read-only) -->
+<!-- Account Details (read-only) -->
 <div class="profile-card">
 <div class="profile-card-header">
 <div>
@@ -689,15 +633,34 @@ Update Password
 </div>
 </div>
 </form>
-<!-- NOTE: Danger Zone removed. Account deletion is handled in Settings only. -->
+<!-- Danger Zone -->
+<div class="profile-card">
+<div class="profile-card-header">
+<div>
+<div class="profile-card-title" style="color:#DC2626;">Danger Zone</div>
+<div class="profile-card-subtitle">Account deletion</div>
+</div>
+</div>
+<div class="profile-card-body">
+<p class="danger-zone-text">
+Deleting your account will deactivate it and hide your data from the platform.
+You can sign in again later with the same credentials to reactivate it.
+</p>
+<a href="/user/delete-account.php" class="je-danger-btn" style="text-decoration:none;">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+Delete My Account
+</a>
+</div>
+</div>
 </div><!-- /profile-main -->
 </div><!-- /profile-content -->
 </div><!-- /profile-page -->
 <script>
+// Password strength meter
 document.getElementById('new-pw-input')?.addEventListener('input', function() {
 const v = this.value;
 let score = 0;
-if (v.length >= 8)  score += 25;
+if (v.length >= 8) score += 25;
 if (v.length >= 12) score += 15;
 if (/[A-Z]/.test(v)) score += 20;
 if (/[0-9]/.test(v)) score += 20;
