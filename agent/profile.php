@@ -4,15 +4,17 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 
 /**
- * KINAS GROUP — Agent Profile
- *
- * FIXED:
- * - Removed nested Danger Zone form from inside the main profile form.
- * - Added frontend avatar validation.
- * - Prevented duplicate hidden "name" input creation.
- * - Safer stats loading.
- */
-
+* KINAS GROUP — Agent Profile
+*
+* AMENDED:
+* - Removed social links section (not needed).
+* - Username displayed as read-only.
+* - Business info includes CAC, TIN, Tax ID, Company Legal Name, Company Email.
+* - Danger Zone uses unified soft-delete/reactivation flow.
+* - Avatar validation on frontend.
+* - No nested forms.
+* - No duplicate hidden "name" input.
+*/
 require_once __DIR__ . '/../api/config/database.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/security.php';
@@ -261,6 +263,7 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    text-decoration: none;
 }
 
 .btn-danger:hover {
@@ -425,6 +428,7 @@ body {
     font-size: 13px;
     color: #666;
     margin-bottom: 12px;
+    line-height: 1.6;
 }
 
 .je-password-wrap {
@@ -480,7 +484,6 @@ body {
 
     <main class="je-dash-main">
         <div class="agent-container">
-
             <?php if ($flashSuccess): ?>
                 <div class="flash success">
                     <i class="fas fa-check-circle"></i> <?= htmlspecialchars($flashSuccess) ?>
@@ -543,6 +546,7 @@ body {
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                 <input type="hidden" name="redirect" value="/agent/profile.php">
 
+                <!-- PERSONAL INFORMATION -->
                 <div class="profile-card">
                     <h3><i class="fas fa-user"></i> Personal Information</h3>
 
@@ -581,6 +585,7 @@ body {
                     </div>
                 </div>
 
+                <!-- BUSINESS INFORMATION -->
                 <div class="profile-card">
                     <h3><i class="fas fa-building"></i> Business Information</h3>
 
@@ -632,9 +637,9 @@ body {
                             $yib = $profile['years_in_business'] ?? '';
 
                             $opts = [
-                                'lt_1' => 'Less than 1 year',
-                                '1_3' => '1–3 years',
-                                '3_5' => '3–5 years',
+                                'lt_1'   => 'Less than 1 year',
+                                '1_3'    => '1–3 years',
+                                '3_5'    => '3–5 years',
                                 '5_plus' => '5+ years',
                             ];
 
@@ -658,6 +663,7 @@ body {
                     </div>
                 </div>
 
+                <!-- PROFILE PHOTO -->
                 <div class="profile-card">
                     <h3><i class="fas fa-camera"></i> Profile Photo</h3>
 
@@ -684,35 +690,9 @@ body {
                             </p>
                         </div>
                     </div>
-
-                    <h3 style="margin-top:24px;"><i class="fas fa-share-alt"></i> Social Links</h3>
-
-                    <div class="form-group">
-                        <label><i class="fab fa-facebook" style="color: #1877F2;"></i> Facebook</label>
-                        <input type="url" name="facebook" value="<?= htmlspecialchars($profile['facebook'] ?? '') ?>" placeholder="https://facebook.com/yourpage">
-                    </div>
-
-                    <div class="form-group">
-                        <label><i class="fab fa-twitter"></i> Twitter / X</label>
-                        <input type="url" name="twitter" value="<?= htmlspecialchars($profile['twitter'] ?? '') ?>" placeholder="https://twitter.com/yourhandle">
-                    </div>
-
-                    <div class="form-group">
-                        <label><i class="fab fa-instagram" style="color: #E4405F;"></i> Instagram</label>
-                        <input type="url" name="instagram" value="<?= htmlspecialchars($profile['instagram'] ?? '') ?>" placeholder="https://instagram.com/yourprofile">
-                    </div>
-
-                    <div class="form-group">
-                        <label><i class="fab fa-linkedin" style="color: #0A66C2;"></i> LinkedIn</label>
-                        <input type="url" name="linkedin" value="<?= htmlspecialchars($profile['linkedin'] ?? '') ?>" placeholder="https://linkedin.com/in/yourprofile">
-                    </div>
-
-                    <div class="form-group">
-                        <label><i class="fab fa-youtube" style="color: #FF0000;"></i> YouTube</label>
-                        <input type="url" name="youtube" value="<?= htmlspecialchars($profile['youtube'] ?? '') ?>" placeholder="https://youtube.com/@yourchannel">
-                    </div>
                 </div>
 
+                <!-- ACCOUNT SETTINGS -->
                 <div class="profile-card">
                     <h3><i class="fas fa-lock"></i> Account Settings</h3>
 
@@ -777,25 +757,14 @@ body {
                 </h3>
 
                 <p class="danger-zone-note">
-                    Deactivating your account hides all your listings but preserves your data.
-                    To permanently delete your account, contact support.
+                    Deleting your account will deactivate your profile and hide your listings from public view.
+                    You can sign in again later with the same email and password to reactivate your account.
                 </p>
 
-                <form method="POST" action="/api/agent/deactivate.php"
-                      data-kinas-confirm="Deactivating will hide all your listings from public view. Continue?"
-                      data-kinas-title="Deactivate Account"
-                      data-kinas-label="Deactivate"
-                      data-kinas-variant="warning"
-                      data-kinas-icon="fa-user-slash"
-                      style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-
-                    <button type="submit" class="btn-danger">
-                        <i class="fas fa-user-slash"></i> Deactivate Account
-                    </button>
-                </form>
+                <a href="/user/delete-account.php" class="btn-danger">
+                    <i class="fas fa-user-slash"></i> Delete My Account
+                </a>
             </div>
-
         </div>
 
         <script>
@@ -861,6 +830,7 @@ body {
 
             if (profileForm) {
                 profileForm.addEventListener('submit', function(e) {
+                    // Validate avatar before submit
                     if (avatarUpload && avatarUpload.files && avatarUpload.files[0]) {
                         var avatarError = validateAvatarFile(avatarUpload.files[0]);
 
@@ -871,12 +841,14 @@ body {
                         }
                     }
 
+                    // Combine first/last name into single "name" field
                     var firstInput = profileForm.querySelector('[name="name_first"]');
                     var lastInput = profileForm.querySelector('[name="name_last"]');
 
                     var first = firstInput ? firstInput.value.trim() : '';
                     var last = lastInput ? lastInput.value.trim() : '';
 
+                    // Only create hidden input if it doesn't already exist
                     var hidden = profileForm.querySelector('input[type="hidden"][name="name"]');
 
                     if (!hidden) {
