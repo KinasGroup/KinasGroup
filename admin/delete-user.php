@@ -1,28 +1,16 @@
 <?php
-// Authenticated, per-session content — never cache this page. Without
-// this, a browser or CDN (e.g. Cloudflare) could keep serving a stale
-// snapshot indefinitely after data changes (deletes, status updates,
-// etc.), which is exactly what made this dashboard look like it wasn't
-// updating.
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
-
-/**
- * Admin: Delete User
- */
 
 require_once '../includes/session.php';
 require_once '../api/config/database.php';
 
-// Check if user is admin
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     header('Location: /auth/login.php');
     exit;
 }
 
 $db = Database::getInstance()->getConnection();
-
-// Get the user ID from URL
 $userId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 if (!$userId) {
@@ -30,8 +18,7 @@ if (!$userId) {
     exit;
 }
 
-// Check if the user exists
-$check = $db->prepare("SELECT id, email, role FROM users WHERE id = ?");
+$check = $db->prepare("SELECT id, email, role, status FROM users WHERE id = ?");
 $check->execute([$userId]);
 $user = $check->fetch();
 
@@ -40,52 +27,53 @@ if (!$user) {
     exit;
 }
 
-// Prevent admin from deleting themselves
 if ($userId == $_SESSION['user_id']) {
     header('Location: users.php?error=You cannot delete your own account');
     exit;
 }
 
-// Begin transaction
+if (($user['status'] ?? '') === 'deleted') {
+    header('Location: users.php?error=Account is already deleted');
+    exit;
+}
+
 try {
     $db->beginTransaction();
-    
-    // If the user is an agent, delete agent profile first
+
+    // 1. Soft delete the user (DO NOT hard delete, or reactivation becomes impossible)
+    $db->prepare("UPDATE users SET status = 'deleted', deleted_by = 'admin', deleted_at = NOW() WHERE id = ?")
+       ->execute([$userId]);
+
+    // 2. If the user is an agent, suspend profile and hide listings
     if ($user['role'] === 'agent') {
-        // Delete from agent_profiles
         try {
-            $deleteProfile = $db->prepare("DELETE FROM agent_profiles WHERE user_id = ?");
-            $deleteProfile->execute([$userId]);
-        } catch (Exception $e) {
-            // Table might not exist, continue
-        }
-        
-        // Delete agent's listings from all divisions
+            $db->prepare("UPDATE agent_profiles SET verification_status = 'suspended' WHERE user_id = ?")
+               ->execute([$userId]);
+        } catch (Exception $e) {}
+
         $tables = ['solar_listings', 'car_listings', 'property_listings', 'marketplace_listings'];
         foreach ($tables as $table) {
             try {
-                $deleteListings = $db->prepare("DELETE FROM $table WHERE agent_id = ?");
-                $deleteListings->execute([$userId]);
-            } catch (Exception $e) {
-                // Table might not exist
-            }
+                $db->prepare("UPDATE $table SET status = 'removed' WHERE agent_id = ? AND status NOT IN ('sold','rented')")
+                   ->execute([$userId]);
+            } catch (Exception $e) {}
         }
     }
-    
-    // Delete the user
-    $deleteUser = $db->prepare("DELETE FROM users WHERE id = ?");
-    $deleteUser->execute([$userId]);
-    
-    // Commit transaction
+
+    // 3. Invalidate active sessions
+    try {
+        $db->prepare("DELETE FROM sessions WHERE user_id = ?")->execute([$userId]);
+    } catch (Exception $e) {}
+
     $db->commit();
-    
-    // Redirect back to users page with success message
-    header('Location: users.php?success=User deleted successfully');
+
+    header('Location: users.php?success=User account deactivated successfully');
     exit;
-    
 } catch (Exception $e) {
-    // Rollback on error
-    $db->rollBack();
+    if (isset($db) && $db->inTransaction()) {
+        $db->rollBack();
+    }
+    error_log('Admin delete-user error: ' . $e->getMessage());
     header('Location: users.php?error=Failed to delete user');
     exit;
 }
