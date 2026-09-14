@@ -93,10 +93,33 @@ try {
         'warnings'             => $calc['warnings'],
     ];
 
+    // ------------------------------------------------------------
+    // Generate PDF and upload to persistent storage (Cloudflare R2)
+    // This fixes the "downloads the whole website" bug caused by
+    // ephemeral local storage falling back to index.php on Railway.
+    // ------------------------------------------------------------
     $pdfUrl = null;
     try {
-        generateSolarRecommendationPDF($pdfData, $reference);
-        $pdfUrl = 'https://' . $_SERVER['HTTP_HOST'] . '/uploads/solar-reports/' . $reference . '.pdf';
+        $localPath = generateSolarRecommendationPDF($pdfData, $reference);
+        if ($localPath && file_exists($localPath)) {
+            if (file_exists(__DIR__ . '/../../includes/file-upload.php')) {
+                require_once __DIR__ . '/../../includes/file-upload.php';
+                $uploader = new FileUpload('solar-reports');
+                $result = $uploader->uploadGeneratedFile(
+                    $localPath,
+                    'application/pdf',
+                    ['prefix' => 'proposal_']
+                );
+                if ($result['success']) {
+                    $pdfUrl = isset($result['key']) ? $result['filepath'] : '/uploads/solar-reports/' . $reference . '.pdf';
+                } else {
+                    $pdfUrl = 'https://' . $_SERVER['HTTP_HOST'] . '/uploads/solar-reports/' . $reference . '.pdf';
+                }
+            } else {
+                $pdfUrl = 'https://' . $_SERVER['HTTP_HOST'] . '/uploads/solar-reports/' . $reference . '.pdf';
+            }
+            @unlink($localPath); // Clean up local file
+        }
     } catch (Throwable $e) {
         error_log('Solar PDF error: ' . $e->getMessage());
     }
