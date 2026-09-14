@@ -1,5 +1,5 @@
 // ============================================================
-// KINAS BUILD: 2026.08.17.02
+// KINAS BUILD: 2026.08.17.03
 // FILE: assets/js/chat.js
 //
 // COMPLETE MESSENGER CLIENT
@@ -11,12 +11,9 @@
 //   thread header names, and thread header avatar initials.
 //
 // SOUND AMENDED:
-// - playReceiveSound() and playSendSound() now use the exact same
-//   Facebook-style three-oscillator implementation as header.php's
-//   playNotificationSound(), ensuring the new-message alert sounds
-//   identical whether it arrives on a normal page or inside the
-//   messages page.
-// - Gain levels: 0.50 / 0.40 / 0.15 (loud and clearly audible).
+// - playSendSound() disabled (no sound when sending messages)
+// - playReceiveSound() uses Facebook-style three-oscillator sound
+//   (identical to header.php's playNotificationSound())
 //
 // Includes:
 // - No microphone / voice recording button
@@ -26,7 +23,7 @@
 // - Failed/interrupted upload retry icon
 // - Conversation list
 // - Thread loading
-// - Send/receive sounds
+// - Receive sound only (send sound disabled per client request)
 // - SOUND TOGGLE BUTTON (on/off) in chat list header
 // - Image/video/audio/document rendering
 // - Inquiry metadata rendering
@@ -35,7 +32,7 @@
 (function () {
 'use strict';
 
-window.__kinasChatBuild = '2026.08.17.02';
+window.__kinasChatBuild = '2026.08.17.03';
 window.__kinasChatBoot = false;
 
 var root = document.getElementById('chatRoot');
@@ -300,8 +297,11 @@ function playFacebookSound() {
     } catch (e) {}
 }
 
+// ============================================================
+// SEND SOUND — DISABLED (no sound when sending messages)
+// ============================================================
 function playSendSound() {
-    playFacebookSound();
+    // Intentionally empty — client requested silence on send
 }
 
 function playReceiveSound() {
@@ -1443,7 +1443,7 @@ function doSend(opts) {
         }
 
         if (xhr.status >= 200 && xhr.status < 300 && data && data.success && data.message) {
-            playSendSound();
+            playSendSound(); // Now silent — empty function
 
             input.value = '';
             input.style.height = '40px';
