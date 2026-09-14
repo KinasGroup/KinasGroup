@@ -5,16 +5,22 @@ header('Pragma: no-cache');
 /**
 * KINAS GROUP — Add Hardware (Solar Division)
 *
-* FIXED & STANDARDIZED:
-* - Uses the global FileUpload class for R2/Local image handling (matches create.php).
-* - Syncs legacy capacity_kw column for older dashboard compatibility.
-* - Fully supports Power Station + Max PV Input validation.
+* FIXED:
+* - Product image is now stored in the listing_images table
+*   (listing_type = 'solar'), which is the ONLY place the rest of the
+*   site (edit-listing.php, public pages, update.php) reads photos from.
+*   Previously the URL was written to a column on solar_listings that
+*   nothing reads (or dropped entirely when the column didn't exist),
+*   which is why uploaded pictures never showed up.
+* - Upload still goes through the global FileUpload class (R2 first,
+*   local disk fallback), same as create.php / update.php.
+* - Insert + image row are wrapped in a transaction.
 */
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../api/config/database.php';
-require_once __DIR__ . '/../includes/file-upload.php'; // Standardized uploader
+require_once __DIR__ . '/../includes/file-upload.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['agent', 'admin'], true)) {
     header('Location: /auth/login.php');
@@ -45,16 +51,6 @@ try {
 }
 
 $hasMaxPvCol = in_array('max_pv_input_w', $cols, true);
-
-// Determine which image column exists
-$imageColumn = null;
-if (in_array('images', $cols, true)) {
-    $imageColumn = 'images';
-} elseif (in_array('image_url', $cols, true)) {
-    $imageColumn = 'image_url';
-} elseif (in_array('image', $cols, true)) {
-    $imageColumn = 'image';
-}
 
 $errors = [];
 
@@ -100,12 +96,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Power Station requires Max Panel Input in Watts (W).';
             }
         }
-        
+
         if ($maxPvInput !== '' && (!is_numeric($maxPvInput) || $maxPvInput <= 0)) {
             $errors[] = 'Max Panel Input must be a positive number of Watts.';
         }
 
-        // Handle image upload using the standardized FileUpload class
+        // ------------------------------------------------------------
+        // Handle image upload (FileUpload = R2 first, local fallback)
+        // ------------------------------------------------------------
         $imageUrl = null;
         if (!empty($_FILES['product_image']['name']) && $_FILES['product_image']['error'] === UPLOAD_ERR_OK) {
             try {
@@ -123,9 +121,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'maxHeight' => 1080,
                     'quality'   => 85,
                 ]);
-                
+
                 if ($result['success']) {
-                    $imageUrl = isset($result['key']) ? $result['filepath'] : '/uploads/products/' . $result['filename'];
+                    $imageUrl = isset($result['key'])
+                        ? $result['filepath']
+                        : '/uploads/products/' . $result['filename'];
                 } else {
                     $errors[] = 'Image upload failed: ' . ($result['error'] ?? 'Unknown error');
                 }
@@ -135,9 +135,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Insert if no errors
+        // ------------------------------------------------------------
+        // Insert listing + image row (transaction)
+        // ------------------------------------------------------------
         if (empty($errors)) {
             try {
+                $db->beginTransaction();
+
                 $fields = ['agent_id', 'title', 'service_type', 'brand', 'price', 'warranty_years', 'description', 'city', 'state', 'status'];
                 $values = [
                     $agentId,
@@ -152,7 +156,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'active',
                 ];
 
-                // Timestamps
                 if (in_array('created_at', $cols, true)) {
                     $fields[] = 'created_at';
                     $values[] = date('Y-m-d H:i:s');
@@ -161,8 +164,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $fields[] = 'updated_at';
                     $values[] = date('Y-m-d H:i:s');
                 }
-
-                // Dynamic Hardware Columns
                 if (in_array('hardware_type', $cols, true)) {
                     $fields[] = 'hardware_type';
                     $values[] = $hwType;
@@ -200,25 +201,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                // Image column
-                if ($imageUrl !== null && $imageColumn !== null) {
-                    $fields[] = $imageColumn;
-                    if ($imageColumn === 'images') {
-                        $values[] = json_encode([$imageUrl]);
-                    } else {
-                        $values[] = $imageUrl;
-                    }
-                }
-
                 $ph = implode(',', array_fill(0, count($fields), '?'));
                 $db->prepare("INSERT INTO solar_listings (" . implode(',', $fields) . ") VALUES ($ph)")
                    ->execute($values);
+
+                $listingId = (int)$db->lastInsertId();
+
+                // THE FIX: store the photo where the whole site reads it.
+                if ($imageUrl !== null && $listingId > 0) {
+                    $db->prepare("
+                        INSERT INTO listing_images (listing_id, listing_type, url, sort_order)
+                        VALUES (?, 'solar', ?, 1)
+                    ")->execute([$listingId, $imageUrl]);
+                }
+
+                $db->commit();
 
                 $_SESSION['flash_success'] = 'Hardware item "' . $title . '" added to your inventory.';
                 header('Location: hardware.php');
                 exit;
 
             } catch (Exception $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
                 error_log('add-hardware error: ' . $e->getMessage());
                 $errors[] = 'Could not save hardware item: ' . $e->getMessage();
             }
@@ -389,7 +395,6 @@ include __DIR__ . '/../templates/header.php';
 
 <script>
 (function() {
-    // Hardware type field toggling
     var sel = document.getElementById('hardwareType');
 
     function sync() {
@@ -422,7 +427,6 @@ include __DIR__ . '/../templates/header.php';
         sync();
     }
 
-    // Image preview
     var imageInput = document.getElementById('productImage');
     var imagePreview = document.getElementById('imagePreview');
 
