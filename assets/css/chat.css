@@ -1,5 +1,5 @@
 /* ============================================================
-   KINAS BUILD: 2026.08.17.01
+   KINAS BUILD: 2026.08.17.02
    FILE: assets/css/chat.css
 
    COMPLETE MESSENGER STYLESHEET
@@ -19,6 +19,7 @@
    - Document/video/audio display
    - Lightbox
    - Sound toggle button
+   - Profile Picture Avatars
    - Responsive rules
    ============================================================ */
 
@@ -205,6 +206,16 @@
     font-size: 15px;
     flex-shrink: 0;
     position: relative;
+    overflow: hidden; /* AMENDED: Keeps images inside the circle */
+}
+
+/* AMENDED: Profile picture styling for conversation list */
+.chat-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
 }
 
 .chat-avatar.is-unread {
@@ -370,6 +381,16 @@
     font-weight: 700;
     font-size: 14px;
     flex-shrink: 0;
+    overflow: hidden; /* AMENDED: Keeps images inside the circle */
+}
+
+/* AMENDED: Profile picture styling for thread header */
+.chat-thread-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
 }
 
 .chat-thread-info {
