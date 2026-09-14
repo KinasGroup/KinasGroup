@@ -6,6 +6,7 @@
 * other user + listing.
 *
 * AMENDED: returns @username as other_name when available.
+* AMENDED: returns other_avatar (profile picture) for display in chat list.
 */
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -49,12 +50,13 @@ function chat_preview(array $m): string
     if ($type === 'video')  return '🎬 Video';
     if ($type === 'document') return '📄 Document';
     if ($type === 'audio') return !empty($m['media_name']) ? '🎵 Audio' : '🎤 Voice note';
-
+    
     $body = trim((string)($m['body'] ?? ''));
     if (!empty($m['is_viewing_request'])) {
         $body = '📅 Viewing request' . ($body !== '' ? ': ' . $body : '');
     }
     if ($body === '') return '(attachment)';
+    
     if (function_exists('mb_strlen')) {
         return mb_strlen($body) > 60 ? mb_substr($body, 0, 60) . '…' : $body;
     }
@@ -82,13 +84,16 @@ try {
 }
 
 try {
+    // AMENDED: Added LEFT JOIN to agent_profiles and COALESCE to fetch avatars
     $stmt = $db->prepare("
         SELECT m.*,
-               s.name AS sender_name,   s.username AS sender_username,   s.role AS sender_role,
-               r.name AS receiver_name, r.username AS receiver_username, r.role AS receiver_role
+        s.name AS sender_name, s.username AS sender_username, s.role AS sender_role, COALESCE(sap.avatar, s.avatar) AS sender_avatar,
+        r.name AS receiver_name, r.username AS receiver_username, r.role AS receiver_role, COALESCE(rap.avatar, r.avatar) AS receiver_avatar
         FROM messages m
         LEFT JOIN users s ON s.id = m.sender_id
+        LEFT JOIN agent_profiles sap ON s.id = sap.user_id
         LEFT JOIN users r ON r.id = m.receiver_id
+        LEFT JOIN agent_profiles rap ON r.id = rap.user_id
         WHERE (m.sender_id = ? OR m.receiver_id = ?)
         AND m.sender_id <> m.receiver_id
         ORDER BY m.id DESC
@@ -113,8 +118,11 @@ foreach ($rows as $m) {
     $otherUsername = $isMine ? ($m['receiver_username'] ?? '') : ($m['sender_username'] ?? '');
     $otherFullName = $isMine ? ($m['receiver_name'] ?? 'Unknown') : ($m['sender_name'] ?? 'Unknown');
     $otherName = ($otherUsername !== '') ? ('@' . $otherUsername) : ($otherFullName !== '' ? $otherFullName : 'Unknown');
-
     $otherRole = $isMine ? ($m['receiver_role'] ?? 'user') : ($m['sender_role'] ?? 'user');
+    
+    // AMENDED: Extract avatar
+    $otherAvatar = $isMine ? ($m['receiver_avatar'] ?? null) : ($m['sender_avatar'] ?? null);
+
     $lType = (string)($m['listing_type'] ?? '');
     $lId   = (int)($m['listing_id'] ?? 0);
     $key = $otherId . '|' . $lType . '|' . $lId;
@@ -124,6 +132,7 @@ foreach ($rows as $m) {
             'other_user_id'     => $otherId,
             'other_name'        => $otherName,
             'other_role'        => $otherRole,
+            'other_avatar'      => $otherAvatar, // AMENDED: Pass avatar to frontend
             'listing_id'        => $lId,
             'listing_type'      => $lType,
             'last_preview'      => chat_preview($m),
