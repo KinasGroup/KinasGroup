@@ -3,6 +3,7 @@
 * KINAS GROUP — Chat Thread Endpoint
 *
 * AMENDED: returns @username as other_name when available.
+* AMENDED: returns other_avatar (profile picture) for thread header.
 */
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -66,8 +67,8 @@ try {
     exit;
 }
 
-// AMENDED: include username in the other user query
-$uStmt = $db->prepare("SELECT id, name, username, role FROM users WHERE id = ?");
+// AMENDED: include username and avatar in the other user query
+$uStmt = $db->prepare("SELECT u.id, u.name, u.username, u.role, COALESCE(ap.avatar, u.avatar) AS avatar FROM users u LEFT JOIN agent_profiles ap ON u.id = ap.user_id WHERE u.id = ?");
 $uStmt->execute([$otherId]);
 $other = $uStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -290,6 +291,7 @@ echo json_encode([
         'other_user_id'  => $otherId,
         'other_name'     => $otherDisplayName,
         'other_role'     => $otherRole,
+        'other_avatar'   => $other['avatar'] ?? null, // AMENDED: Pass avatar to frontend
         'can_reply'      => $canReply,
         'closed'         => $listingClosed,
         'closed_reason'  => $listingClosed ? 'delisted' : null,
