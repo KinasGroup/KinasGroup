@@ -1,5 +1,5 @@
 // ============================================================
-// KINAS BUILD: 2026.08.17.03
+// KINAS BUILD: 2026.09.14.01
 // FILE: assets/js/chat.js
 //
 // COMPLETE MESSENGER CLIENT
@@ -14,6 +14,10 @@
 // - playSendSound() disabled (no sound when sending messages)
 // - playReceiveSound() uses Facebook-style three-oscillator sound
 //   (identical to header.php's playNotificationSound())
+//
+// AVATAR AMENDED:
+// - Renders actual profile pictures (other_avatar) when available
+// - Falls back to first letter when no avatar exists
 //
 // Includes:
 // - No microphone / voice recording button
@@ -32,7 +36,7 @@
 (function () {
 'use strict';
 
-window.__kinasChatBuild = '2026.08.17.03';
+window.__kinasChatBuild = '2026.09.14.01';
 window.__kinasChatBoot = false;
 
 var root = document.getElementById('chatRoot');
@@ -917,8 +921,16 @@ function renderList() {
         item.setAttribute('role', 'button');
         item.setAttribute('tabindex', '0');
 
+        // AMENDED: Render profile picture if available, else fallback to first letter
         var av = el('div', 'chat-avatar' + ((c.unread_count || 0) > 0 ? ' is-unread' : ''));
-        av.textContent = displayName.charAt(0).toUpperCase() || '?';
+        if (c.other_avatar) {
+            var img = document.createElement('img');
+            img.src = c.other_avatar;
+            img.alt = displayName || 'User';
+            av.appendChild(img);
+        } else {
+            av.textContent = displayName.charAt(0).toUpperCase() || '?';
+        }
 
         var body = el('div', 'chat-conv-body');
         var top = el('div', 'chat-conv-top');
@@ -1005,7 +1017,16 @@ function loadThread(initial) {
 
             var otherName = cleanName(conv.other_name || 'Unknown');
 
-            threadAvatar.textContent = otherName.charAt(0).toUpperCase() || '?';
+            // AMENDED: Render profile picture in thread header if available
+            if (conv.other_avatar) {
+                threadAvatar.innerHTML = '';
+                var img = document.createElement('img');
+                img.src = conv.other_avatar;
+                img.alt = otherName;
+                threadAvatar.appendChild(img);
+            } else {
+                threadAvatar.textContent = otherName.charAt(0).toUpperCase() || '?';
+            }
 
             threadName.innerHTML = esc(otherName) +
                 ' <span class="chat-role-badge ' + roleBadgeClass(conv.other_role) + '">' + esc(conv.other_role || 'user') + '</span>';
