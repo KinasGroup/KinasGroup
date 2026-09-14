@@ -344,6 +344,31 @@ if (!function_exists('kinas_solar_calculate')) {
             $totalLoadW += $appliance['quantity'] * $appliance['watts'];
             $dailyWh += $appliance['quantity'] * $appliance['watts'] * $appliance['hours'];
         }
+
+        // ------------------------------------------------------------
+        // SAFEGUARD: Fix "3.36 kWh no matter what" bug
+        // If the frontend accidentally leaked the Stage 3 backup hours 
+        // into every appliance's Stage 2 hours, dailyWh will be artificially 
+        // inflated (e.g. 280W * 12h = 3.36kWh). This causes the engine to 
+        // oversize the battery and skip smaller generators like the G10W.
+        // If all appliances have the exact same hours as backup_hours, 
+        // we assume a realistic default of 6 hours/day for daily energy.
+        // ------------------------------------------------------------
+        $allHoursSameAsBackup = true;
+        foreach ($appliances as $ap) {
+            if (abs($ap['hours'] - $backupHours) > 0.01) {
+                $allHoursSameAsBackup = false;
+                break;
+            }
+        }
+        if ($allHoursSameAsBackup && $backupHours > 6) {
+            $dailyWh = 0.0;
+            foreach ($appliances as $appliance) {
+                // Use 6 hours/day as a realistic default for daily usage
+                $dailyWh += $appliance['quantity'] * $appliance['watts'] * 6.0;
+            }
+        }
+
         if ($totalLoadW <= 0 || $dailyWh <= 0) {
             return [
                 'success' => false,
